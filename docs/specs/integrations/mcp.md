@@ -29,12 +29,25 @@ operation's owner defines its behavior.
   [`noteAddress`](../outliner/note-ids.md#global-addresses). Results that
   identify documents or notes include their URLs.
 - Reading a document returns every editor note in document order with its
-  nesting, content text, checked state, list type, body text, and URL.
+  nesting, each list's type, and each note's content text, checked state, body
+  text, and URL. Reading does not change the document, so it omits the URL of a
+  note whose ID [load-time normalization](../outliner/note-ids.md#persisted-json-and-normalization)
+  would first have to store.
 - Each tool declares a title and whether it only reads or changes the user's
   data, so clients can require confirmation before changes.
 - A failed tool call returns a tool error naming its cause.
-- Tool calls open as many documents at once as the server's memory allows; a
-  call that cannot open one within a bounded wait fails as busy.
+
+## Limits
+
+- **Request body:** at most 1 MiB; a larger request is refused with HTTP 413
+  before any tool runs.
+- **Append:** at most 1,000 notes per call, counting nested children; a larger
+  append fails without changing the document.
+- **Open documents:** as many at once as the server's memory allows; a call
+  that cannot open its document within 30 seconds fails as busy before changing
+  it.
+- **RemDo API:** a request that gets no answer within 10 seconds fails; for a
+  change, the error states that its outcome is unconfirmed.
 
 ## References
 

@@ -5,7 +5,7 @@ import { $getNoteChecked } from '#client/editor/features/list-types/checked-stat
 import { $isNoteFolded } from '#client/editor/outline/fold-state';
 import { getContentSiblings } from '#client/editor/outline/list-structure';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
-import { getNoteBody } from '#client/editor/outline/selection/body-region';
+import { getNoteBodyText } from '#client/editor/outline/selection/body-region';
 import { getNestedList } from '#client/editor/outline/selection/tree';
 import { $getChildNoteIds, $requireContentItemNoteId, $resolveRootContentList } from '#client/editor/outline/schema';
 import { matchesPathQuery, tokenizeQuery } from '#client/search/query-match';
@@ -79,7 +79,7 @@ export function collectLexicalDocumentSearchResults(
       const value: EditorNoteSnapshot = Object.freeze({
         id: $requireContentItemNoteId(note),
         text: getNoteOwnText(note),
-        body: getNoteBody(note)?.getTextContent() ?? null,
+        body: getNoteBodyText(note),
         checked: $getNoteChecked(note) === true,
         folded: $isNoteFolded(note),
         children: nested
@@ -105,7 +105,7 @@ export function collectLexicalDocumentSearchResults(
       pathTexts.length = frame.depth;
       pathNotes.push(note);
       pathTexts.push(getNoteOwnText(note));
-      const matches = matchesNoteQuery(pathTexts, getNoteBody(note)?.getTextContent() ?? null, query);
+      const matches = matchesNoteQuery(pathTexts, getNoteBodyText(note), query);
       if (matches && flatResults.length === limit) {
         return { flatResults, hasMore: true };
       }

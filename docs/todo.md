@@ -251,13 +251,24 @@ RemDo document, minimal but useful for real work.
 - Expose search once server-side search spans a user's documents; searching a
   single document adds little over reading it whole.
 - Write the Connect-Claude guide and try the connector on the hosted instance.
+- **Headless append failure modes.** `append_children` never settles while
+  collaboration authorization keeps failing: each reconnect clears the connect
+  deadline, and the abandoned session appends once Django recovers, which can
+  duplicate notes. A transient document-content load failure reaches it, and
+  browser editors, as a terminal `Document access denied`. When persistence
+  fails after the hub accepted the notes, the call fails without their note
+  addresses although the notes are later stored.
+- **Oversized upload regression coverage.** Django closing the connection before
+  reading an over-limit body used to crash the MCP process. The fix in
+  `src/platform/net/django-request.ts` was confirmed only against gunicorn;
+  fakes and the Docker E2E path did not reproduce the crash deterministically.
 
 ### Delegated access
 
 - **Limit connected apps.** Let users limit what connected apps can access, for
   example per document from the share dialog. Until then, a connected app can
   use every operation the [MCP server](specs/integrations/mcp.md) exposes,
-  including deleting and sharing documents once those are exposed. Access tokens
+  including deleting notes once that is exposed. Access tokens
   are also not yet bound to the MCP server as their audience, so any delegated
   token is accepted there.
 

@@ -29,4 +29,5 @@ once the document's source acknowledges the operation and the document list
 includes the acknowledged result. A later document-list refresh failure does not
 fail a resolved operation. A rejected operation leaves the document list
 unchanged. An operation addresses its document by `docId` whether or not the
-document is listed; the document's source decides its outcome.
+document is listed; the document's source decides its outcome. A document name
+is at most 500 characters.
