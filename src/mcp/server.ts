@@ -44,7 +44,13 @@ const UNAVAILABLE = 'RemDo is unavailable. Try again later.';
 const UNCONFIRMED = 'RemDo did not confirm whether the request took effect. '
   + 'Check with list_documents before retrying.';
 
+const readOnly = { readOnlyHint: true, openWorldHint: false } satisfies ToolAnnotations;
 const additiveWrite = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } satisfies ToolAnnotations;
+
+// The Claude connector directory reads annotations.title; newer clients read the tool's own title.
+function titled(title: string, annotations: ToolAnnotations) {
+  return { title, annotations: { ...annotations, title } };
+}
 
 function countNotes(notes: readonly NewNote[]): number {
   return notes.reduce((count, note) => count + 1 + countNotes(note.children ?? []), 0);
@@ -119,31 +125,28 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     }, { instructions: INSTRUCTIONS });
 
     server.registerTool('list_documents', {
-      title: 'List documents',
+      ...titled('List documents', readOnly),
       description: 'List the RemDo documents the user can access, with their documentIds and URLs.',
-      annotations: { readOnlyHint: true, openWorldHint: false },
     }, () => respond(async () => {
       const documents = await callApi(authorization, '/api/documents') as Array<{ id: string; title: string }>;
       return documents.map(({ id, title }) => ({ documentId: id, title, url: documentUrl(id) }));
     }));
 
     server.registerTool('create_document', {
-      title: 'Create document',
+      ...titled('Create document', additiveWrite),
       description: 'Create a RemDo document owned by the user and return its documentId.',
       inputSchema: { title: z.string().describe('Document title.') },
-      annotations: additiveWrite,
     }, ({ title }) => respond(async () => {
       const { id } = await callApi(authorization, '/api/documents', 'POST', { title }) as { id: string };
       return { documentId: id, title, url: documentUrl(id) };
     }));
 
     server.registerTool('read_document', {
-      title: 'Read document',
+      ...titled('Read document', readOnly),
       description: 'Read a whole RemDo document as a nested Markdown list. Each note links to its URL, '
         + 'whose last path segment is the noteAddress; a note without a link cannot be addressed until '
         + 'the document is opened in RemDo. A note\'s body follows it as an indented blockquote.',
       inputSchema: { documentId: z.string().describe('A documentId.') },
-      annotations: { readOnlyHint: true, openWorldHint: false },
     }, ({ documentId: input }) => respond(async () => {
       const ref = parseDocumentRef(input);
       if (!ref || ref.noteId) throw new Error('The documentId is not valid.');
@@ -155,7 +158,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     }));
 
     server.registerTool('append_children', {
-      title: 'Append notes',
+      ...titled('Append notes', additiveWrite),
       description: 'Append notes as the last children of a note (by noteAddress) '
         + 'or as the last top-level notes of a document (by documentId). Write an outline: short topic titles '
         + 'at the top level, supporting details nested beneath.',
@@ -163,7 +166,6 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
         parent: z.string().describe('A documentId or a noteAddress.'),
         notes: z.array(newNote).describe(`At most ${MAX_APPENDED_NOTES} notes, counting nested children.`),
       },
-      annotations: additiveWrite,
     }, ({ parent, notes }) => respond(async () => {
       if (countNotes(notes) > MAX_APPENDED_NOTES) {
         throw new Error(`Append at most ${MAX_APPENDED_NOTES} notes per call, counting nested children; `
