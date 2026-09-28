@@ -14,7 +14,9 @@ class PublicPageTests(SimpleTestCase):
         self.enterContext(override_settings(PUBLIC_PAGES_DIR=self.pages))
 
     def write_page(self, name="privacy", title="Privacy & data"):
-        (self.pages / f"{name}.md").write_text(
+        path = self.pages / f"{name}.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
             f"---\ntitle: {title}\ndescription: 'Our \"data\" policy'\n---\n\n"
             "## Your data\n\nKeep **control**. [Home](/)\n",
             encoding="utf-8",
@@ -43,8 +45,17 @@ class PublicPageTests(SimpleTestCase):
         self.write_page(title="Updated privacy")
         self.assertContains(self.client.get("/privacy/"), "Updated privacy")
 
+    def test_docs_pages_are_served_under_docs(self):
+        self.write_page("docs/mcp", title="Connect an assistant")
+        response = self.client.get("/docs/mcp/")
+        self.assertContains(response, "<h1>Connect an assistant</h1>", html=True)
+        self.assertContains(
+            response, f'<link rel="canonical" href="{settings.APP_ORIGIN}/docs/mcp/">', html=True
+        )
+
     def test_missing_and_non_page_paths_are_not_rendered(self):
         self.write_page()
+        self.write_page("nested/privacy")
         for url in (
             "/missing/",
             "/nested/privacy/",
