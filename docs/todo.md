@@ -262,6 +262,47 @@ RemDo document, minimal but useful for real work.
   `src/platform/net/django-request.ts` was confirmed only against gunicorn;
   fakes and the Docker E2E path did not reproduce the crash deterministically.
 
+### Demo videos
+
+No [demo video](specs/demo/demo-video.md) recording exists yet. Build it in
+slices that each produce a usable video and that later slices extend:
+
+1. **Outlining, one pane.** A Playwright script with its own config and package
+   script, recording through `page.screencast` with `showActions` and
+   `showChapter`, which cover annotations without other tooling. Reuse
+   `tools/hosted-demo-reset.ts` for the reset and its `REMDO_USER_PASSWORD` for
+   sign-in. Run it against a local development origin while iterating, which
+   first needs the `user` account there: `setup_configured_users` runs only at
+   container startup. Add a [task guide](documentation.md#documentation-layout) once it runs.
+2. **Two-pane composition.** Compose two sessions' timestamped screencast
+   frames into one video with layout changes over time, keeping each pane a
+   real viewport resized to its area. Choose between composing with ffmpeg from
+   a recorded layout timeline and recording a local stage page that renders
+   both frame streams; ffmpeg is not yet a development prerequisite.
+3. **Collaboration.** Decide whether the two sessions share the `user` account
+   or the scenario needs a second demo account shared into the document, which
+   the reset and deployment accounts do not provide.
+4. **Claude.** Choose how the conversation pane is driven:
+   1. **(Recommended)** The Claude API's MCP connector pointed at the target's
+      `/mcp`, rendered in a repository-owned chat pane that names Claude and
+      the API without imitating claude.ai. It uses the same model with real MCP
+      effects through Anthropic's programmatic access path.
+   2. Scripted claude.ai in a signed-in browser profile. It shows the real
+      product, but UI changes and sign-in checks make it fragile; check
+      Anthropic's current consumer terms on scripted access first.
+   3. A person records the claude.ai conversation manually while the script
+      records RemDo, then the two are aligned. It is authentic but not
+      repeatable.
+
+   Option 1 needs a delegated access token for the `user` account
+   obtained without a person completing the consent screen during the run.
+   Decide how a script obtains and stores it; this belongs to
+   [delegated access](specs/access/access-control.md#delegated-access), not to
+   demo recording.
+
+Open questions: whether a local-origin run of each scenario also serves as a
+CI smoke check, and where published videos live.
+
 ### Delegated access
 
 - **Limit connected apps.** Let users limit what connected apps can access, for
