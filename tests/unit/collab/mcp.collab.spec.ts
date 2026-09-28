@@ -94,11 +94,13 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(await storedText(documentId)).toContain('Second');
   });
 
-  it('reads a new document without storing its normalization', async () => {
+  it('reads a new document as empty without storing anything', async () => {
     const client = await connect(await delegatedToken());
     const { documentId } = (await call(client, 'create_document', { title: 'Untouched' })).value as { documentId: string };
     const read = await client.callTool({ name: 'read_document', arguments: { documentId } });
     expect(read.isError).toBeFalsy();
+    const [outline] = read.content as Array<{ text: string }>;
+    expect(outline!.text).toBe(`Document: ${new URL(`/n/${documentId}`, config.env.APP_ORIGIN).href}\n\n`);
     expect(await storedText(documentId)).toBe('');
   });
 

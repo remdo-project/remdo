@@ -26,6 +26,12 @@ export function $requireRootContentList(): ListNode {
   });
 }
 
+/** A document with no stored content loads as a bare root with no outline yet. */
+export function $isBlankRoot(): boolean {
+  const root = $getRoot();
+  return !$isListNode(root.getFirstChild()) && root.getTextContent() === '';
+}
+
 export function $resolveRootContentList(): ListNode | null {
   const root = $getRoot();
   const children = root.getChildren();

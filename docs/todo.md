@@ -248,6 +248,8 @@ RemDo document, minimal but useful for real work.
   Appending cannot add a body, although reading returns bodies.
 - Reading renders top-level notes as a bullet list because the open document
   does not expose the document root's list type.
+- Reading a document with missing or duplicate note IDs returns addresses for
+  the IDs its in-memory normalization generates, which are never stored.
 - Expose search once server-side search spans a user's documents; searching a
   single document adds little over reading it whole.
 - Write the Connect-Claude guide and try the connector on the hosted instance.
