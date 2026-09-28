@@ -339,7 +339,7 @@ describe('document-list change stream', () => {
       this.dispatchEvent(new Event('open'));
     }
 
-    notify() { this.dispatchEvent(new Event('message')); }
+    send(data: string) { this.dispatchEvent(new MessageEvent('message', { data })); }
     close() {
       this.readyState = FakeWebSocket.CLOSED;
       this.dispatchEvent(new Event('close'));
@@ -354,7 +354,7 @@ describe('document-list change stream', () => {
     runtimeCleanup.push(new QueryObserver(runtime.client, runtime.documentsQuery).subscribe(() => {}));
     const stop = runtime.watchDocumentList();
     const title = () => runtime.userData.getDocuments().getById('shared')?.getText();
-    return { runtime, stop, title };
+    return { runtime, stop, title, listings: () => listings };
   }
 
   beforeEach(() => {
@@ -372,7 +372,7 @@ describe('document-list change stream', () => {
     expect(FakeWebSocket.opened.map((socket) => socket.url.href))
       .toEqual([`ws://${location.host}/collaboration?document-list`]);
 
-    FakeWebSocket.opened[0]!.notify();
+    FakeWebSocket.opened[0]!.send('changed');
     await vi.waitFor(() => expect(title()).toBe('Renamed elsewhere'));
   });
 
@@ -399,6 +399,30 @@ describe('document-list change stream', () => {
     staleListing.resolve(Response.json([{ id: 'shared', title: 'Draft', shareable: false }]));
     await vi.waitFor(() => expect(runtime.userData.getDocuments().getById('shared')?.getText())
       .toBe('Renamed while disconnected'));
+  });
+
+  it('treats a keepalive as liveness rather than a change', async () => {
+    const { title, listings } = watchedAccount(['Draft', 'Renamed elsewhere']);
+    await vi.waitFor(() => expect(title()).toBe('Draft'));
+    FakeWebSocket.opened[0]!.send('keepalive');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(listings()).toBe(1);
+    expect(title()).toBe('Draft');
+  });
+
+  it('replaces a connected stream that falls silent', async () => {
+    vi.useFakeTimers();
+    watchedAccount(['Draft']);
+    FakeWebSocket.opened[0]!.connect();
+    await vi.advanceTimersByTimeAsync(74_000);
+    FakeWebSocket.opened[0]!.send('keepalive');
+    await vi.advanceTimersByTimeAsync(74_999);
+    expect(FakeWebSocket.opened[0]!.readyState).toBe(FakeWebSocket.OPEN);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(FakeWebSocket.opened[0]!.readyState).toBe(FakeWebSocket.CLOSED);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(FakeWebSocket.opened).toHaveLength(2);
   });
 
   it('reopens a closed stream after a growing delay', async () => {

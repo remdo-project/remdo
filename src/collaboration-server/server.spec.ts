@@ -7,7 +7,8 @@ import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/pro
 import WebSocket from 'ws';
 import * as Y from 'yjs';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { createCollaborationServer, DOCUMENT_LIST_PATH, INTERNAL_SECRET_HEADER } from './server';
+import { createCollaborationServer, INTERNAL_SECRET_HEADER } from './server';
+import { DOCUMENT_LIST_KEEPALIVE, DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS, DOCUMENT_LIST_PATH } from '#platform/net/document-list-socket';
 import { requestPersistence } from '../collaboration/persistence-barrier';
 import { createProviderFactory } from '../collaboration/runtime';
 
@@ -384,17 +385,60 @@ it('rejects a document-list socket without a session and a notice without the in
   expect(await notifyDocumentListChanged(['alice'], { [INTERNAL_SECRET_HEADER]: 'wrong' })).toBe(403);
 });
 
+const documentListUpgrade = `GET ${DOCUMENT_LIST_PATH} HTTP/1.1\r\nHost: remdo.test\r\nConnection: Upgrade\r\n`
+  + 'Upgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n'
+  + 'Cookie: user=alice\r\nOrigin: http://remdo.test\r\n\r\n';
+
 it('keeps serving after a client resets its document-list socket during the session check', async () => {
   let releaseSession!: () => void;
   holdSession = new Promise((resolve) => { releaseSession = resolve; });
   const client = connectSocket(runtime.server.address.port, '127.0.0.1');
   await once(client, 'connect');
-  client.write(`GET ${DOCUMENT_LIST_PATH} HTTP/1.1\r\nHost: remdo.test\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n`
-    + 'Sec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nCookie: user=alice\r\nOrigin: http://remdo.test\r\n\r\n');
+  client.write(documentListUpgrade);
   await vi.waitFor(() => expect(sessionHeaders).toHaveLength(1));
   client.resetAndDestroy();
   releaseSession();
 
   expect((await fetch(`${origin}/ready`)).status).toBe(200);
   expect(await notifyDocumentListChanged(['alice'])).toBe(204);
+});
+
+it('keeps serving after a signed-in client sends a malformed document-list frame', async () => {
+  const client = connectSocket(runtime.server.address.port, '127.0.0.1');
+  await once(client, 'connect');
+  client.write(documentListUpgrade);
+  expect(String((await once(client, 'data'))[0])).toMatch(/^HTTP\/1\.1 101 /u);
+  const closed = once(client, 'close');
+  // An unmasked client frame violates the protocol.
+  client.write(Buffer.from([0x81, 0x00]));
+  await closed;
+
+  expect((await fetch(`${origin}/ready`)).status).toBe(200);
+  expect(await notifyDocumentListChanged(['alice'])).toBe(204);
+});
+
+it('sends document-list keepalives to connected sockets', async () => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+  try {
+    const keepalive = createCollaborationServer({
+      port: 0,
+      secret,
+      apiOrigin: `http://127.0.0.1:${(backend.address() as AddressInfo).port}`,
+      appOrigin: 'http://remdo.test',
+    });
+    await keepalive.server.listen();
+    try {
+      const socket = new WebSocket(`ws://127.0.0.1:${keepalive.server.address.port}${DOCUMENT_LIST_PATH}`, {
+        headers: { Cookie: 'user=alice', Origin: 'http://remdo.test' },
+      });
+      await once(socket, 'open');
+      const message = once(socket, 'message');
+      vi.advanceTimersByTime(DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS);
+      expect(String((await message)[0])).toBe(DOCUMENT_LIST_KEEPALIVE);
+    } finally {
+      await keepalive.stop();
+    }
+  } finally {
+    vi.useRealTimers();
+  }
 });

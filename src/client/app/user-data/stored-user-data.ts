@@ -4,6 +4,7 @@ import type { CollectionSource, UserDocument } from '#note-sdk';
 import type { DocumentAccessView } from '#domain/documents/access';
 import { DOCUMENT_TITLE_MAX_LENGTH } from '#domain/documents/user-data';
 import { api, requireData } from '#platform/http/api-client';
+import { DOCUMENT_LIST_CHANGED, DOCUMENT_LIST_PATH, DOCUMENT_LIST_SILENCE_LIMIT_MS } from '#platform/net/document-list-socket';
 import { currentUserBootstrapQuery } from './current-user-bootstrap';
 
 const MIN_REOPEN_DELAY_MS = 1000;
@@ -142,11 +143,12 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
   });
 
   function watchDocumentList(): () => void {
-    const url = new URL('/collaboration?document-list', location.origin);
+    const url = new URL(DOCUMENT_LIST_PATH, location.origin);
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
     let socket: WebSocket;
     let stopped = false;
     let reopenTimer: ReturnType<typeof setTimeout> | undefined;
+    let silenceTimer: ReturnType<typeof setTimeout> | undefined;
     let reopenDelay = MIN_REOPEN_DELAY_MS;
     // A listing already in flight may predate the change; TanStack reuses rather
     // than restarts one that has no data yet.
@@ -157,25 +159,43 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     const open = () => {
       const opened = new WebSocket(url);
       socket = opened;
+      let retired = false;
+      const reopen = () => {
+        clearTimeout(silenceTimer);
+        if (stopped || retired) return;
+        retired = true;
+        reopenTimer = setTimeout(open, reopenDelay);
+        reopenDelay = Math.min(reopenDelay * 2, MAX_REOPEN_DELAY_MS);
+      };
+      // A silently dropped connection may not report its close until long after,
+      // so reconnecting does not wait for it.
+      const expectMessage = () => {
+        clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => {
+          reopen();
+          opened.close();
+        }, DOCUMENT_LIST_SILENCE_LIMIT_MS);
+      };
       opened.addEventListener('open', () => {
         if (stopped) {
           opened.close();
           return;
         }
         reopenDelay = MIN_REOPEN_DELAY_MS;
+        expectMessage();
         // Changes made while disconnected send no notice.
         reread();
       });
-      opened.addEventListener('message', reread);
-      opened.addEventListener('close', () => {
-        if (stopped) return;
-        reopenTimer = setTimeout(open, reopenDelay);
-        reopenDelay = Math.min(reopenDelay * 2, MAX_REOPEN_DELAY_MS);
+      opened.addEventListener('message', (event: MessageEvent<string>) => {
+        expectMessage();
+        if (event.data === DOCUMENT_LIST_CHANGED) reread();
       });
+      opened.addEventListener('close', reopen);
     };
     const stop = () => {
       stopped = true;
       clearTimeout(reopenTimer);
+      clearTimeout(silenceTimer);
       // Closing a connecting socket logs a browser warning; its open handler closes it instead.
       if (socket.readyState !== WebSocket.CONNECTING) socket.close();
       lifetime.signal.removeEventListener('abort', stop);

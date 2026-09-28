@@ -10,9 +10,14 @@ import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { decodePersistenceMessage, encodePersistenceMessage } from '#platform/net/persistence-barrier';
+import {
+  DOCUMENT_LIST_CHANGED,
+  DOCUMENT_LIST_KEEPALIVE,
+  DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS,
+  DOCUMENT_LIST_PATH,
+} from '#platform/net/document-list-socket';
 
 export const INTERNAL_SECRET_HEADER = 'X-Remdo-Collaboration-Secret';
-export const DOCUMENT_LIST_PATH = '/collaboration?document-list';
 
 interface ServerOptions {
   port: number;
@@ -38,6 +43,11 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
   const retryDelays = new Map<Document, number>();
   const documentListSockets = new Map<string, Set<WebSocket>>();
   const documentListServer = new WebSocketServer({ noServer: true });
+  const documentListKeepalive = setInterval(() => {
+    for (const listeners of documentListSockets.values()) {
+      for (const listener of listeners) listener.send(DOCUMENT_LIST_KEEPALIVE);
+    }
+  }, DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS);
   const queuedSaves = new Map<Document, Promise<void>>();
   let revision = 0;
   let stopping = false;
@@ -80,6 +90,9 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
       const listeners = documentListSockets.get(userId) ?? new Set();
       documentListSockets.set(userId, listeners);
       listeners.add(listener);
+      // ws closes the socket after reporting a malformed frame; unhandled, the
+      // report would crash the hub.
+      listener.on('error', () => {});
       listener.once('close', () => {
         listeners.delete(listener);
         if (!listeners.size) documentListSockets.delete(userId);
@@ -96,7 +109,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
     for await (const chunk of request) chunks.push(Buffer.from(chunk));
     const { userIds } = JSON.parse(Buffer.concat(chunks).toString()) as { userIds: string[] };
     for (const userId of userIds) {
-      for (const listener of documentListSockets.get(userId) ?? []) listener.send('changed');
+      for (const listener of documentListSockets.get(userId) ?? []) listener.send(DOCUMENT_LIST_CHANGED);
     }
     response.writeHead(204).end();
   }
@@ -272,6 +285,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
       stopping = true;
       for (const timer of retries.values()) clearTimeout(timer);
       retries.clear();
+      clearInterval(documentListKeepalive);
       for (const listeners of documentListSockets.values()) {
         for (const listener of listeners) listener.terminate();
       }
