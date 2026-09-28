@@ -89,8 +89,8 @@ narrower owners can take over.
 #### Repository authority
 
 The shared entry point owns [repository authority](../../../AGENTS.md#repository-authority),
-including default edit authority, skill-declared mutations, and operations that
-require explicit user authority.
+including default edit authority, skill-declared mutations, operations that
+require explicit user authority, and topic-branch commits instead of `main`.
 
 #### Isolation
 
