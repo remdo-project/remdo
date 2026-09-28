@@ -23,6 +23,14 @@ function scrubEvent(event: ErrorEvent): ErrorEvent {
   if (event.request?.url) {
     event.request.url = withoutQuery(event.request.url);
   }
+  // A failure without a usable stack gets a stand-in frame named by the page URL.
+  for (const exception of event.exception?.values ?? []) {
+    for (const frame of exception.stacktrace?.frames ?? []) {
+      if (frame.filename) {
+        frame.filename = withoutQuery(frame.filename);
+      }
+    }
+  }
   return event;
 }
 

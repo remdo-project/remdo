@@ -82,12 +82,18 @@ describe('browser error reporting', () => {
 
     // The browser's global error hook, called directly: a dispatched error event
     // would also reach the test runner's own unhandled-error listener.
-    window.onerror!('uncaught failure', location.href, 1, 1, new Error('uncaught failure'));
+    // Without an error object, the report's only frame is named by the page URL.
+    window.onerror!('uncaught failure', location.href, 1, 1);
 
     await vi.waitFor(() => expect(sent).toHaveLength(2));
     expect(reportedEvent(sent[1]!)).toMatchObject({
-      exception: { values: [{ type: 'Error', value: 'uncaught failure', mechanism: { handled: false } }] },
+      exception: { values: [{
+        value: 'uncaught failure',
+        mechanism: { handled: false },
+        stacktrace: { frames: [{ filename: `${location.origin}/n/document-id` }] },
+      }] },
     });
+    expect(sent[1]!.body).not.toContain('private-');
   });
 
   it('loads no reporter when the instance leaves reporting disabled', async () => {
