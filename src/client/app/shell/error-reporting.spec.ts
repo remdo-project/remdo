@@ -96,6 +96,21 @@ describe('browser error reporting', () => {
     expect(sent[1]!.body).not.toContain('private-');
   });
 
+  it('leaves the session unreported when the reporter fails to load', async () => {
+    vi.doMock('./error-reporter', () => {
+      throw new Error('reporter chunk unavailable');
+    });
+    try {
+      const { reporting, sent } = await startWithConfiguredDsn('https://publickey@ingest.example/7');
+
+      await renderCaughtFailure(reporting.errorReportingRootOptions);
+
+      expect(sent).toEqual([]);
+    } finally {
+      vi.doUnmock('./error-reporter');
+    }
+  });
+
   it('loads no reporter when the instance leaves reporting disabled', async () => {
     const { reporting, sent } = await startWithConfiguredDsn('');
 

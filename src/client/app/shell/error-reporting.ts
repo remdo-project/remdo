@@ -18,10 +18,9 @@ async function loadReporter(dsn: string): Promise<Capture> {
 }
 
 export function startErrorReporting(): Promise<unknown> {
-  capture = getApiConfig().then(
-    async ({ errorReportingDsn }) => errorReportingDsn ? loadReporter(errorReportingDsn) : undefined,
-    () => {},
-  );
+  capture = getApiConfig()
+    .then(async ({ errorReportingDsn }) => errorReportingDsn ? loadReporter(errorReportingDsn) : undefined)
+    .catch(() => {});
   return capture;
 }
 
