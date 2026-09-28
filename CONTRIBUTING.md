@@ -13,8 +13,8 @@ Testing follows the [contributor testing policy](docs/dev/testing.md).
 explicitly targeting an integration branch uses that branch instead.
 
 `deploy-test` is a mutable deployment pointer for the hosted test sandbox.
-Do not develop, merge, or base review work on it. `pnpm deploy:test` moves it
-to the committed `HEAD` selected for deployment.
+Do not develop, merge, or base review work on it. `pnpm hosted:deploy-test`
+moves it to the committed `HEAD` selected for deployment.
 
 Topic branches use `<type>/<short-kebab-case-description>`. The prefix
 identifies the branch's primary outcome:
