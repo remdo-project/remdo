@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { NewNote } from '#note-sdk';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
@@ -26,25 +26,24 @@ const newNote: z.ZodType<NewNote> = z.lazy(() => z.object({
 }));
 
 const UNAVAILABLE = 'RemDo is unavailable. Try again later.';
+const UNCONFIRMED = 'RemDo did not confirm whether the request took effect. '
+  + 'Check with list_documents before retrying.';
 
-const additiveWrite = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
+const additiveWrite = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } satisfies ToolAnnotations;
 
-function fieldErrors(body: string): string | null {
+function isJson(body: string): boolean {
   try {
-    const errors: unknown = JSON.parse(body);
-    return errors && typeof errors === 'object' ? JSON.stringify(errors) : null;
+    JSON.parse(body);
+    return true;
   } catch {
-    return null;
+    return false;
   }
 }
 
 function rejection(status: number, body: string): string {
   if (status >= 500) return UNAVAILABLE;
   switch (status) {
-    case 400: {
-      const errors = fieldErrors(body);
-      return errors ? `RemDo rejected the request as invalid: ${errors}` : 'RemDo rejected the request as invalid.';
-    }
+    case 400: return isJson(body) ? `RemDo rejected the request as invalid: ${body}` : 'RemDo rejected the request as invalid.';
     case 401: return 'RemDo no longer accepts this authorization. Reconnect RemDo.';
     case 403: return 'The user is not allowed to do this in RemDo.';
     default: return `RemDo could not complete the request (${status}).`;
@@ -77,8 +76,9 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
       },
       body: body === undefined ? undefined : Buffer.from(JSON.stringify(body)),
       signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
-    }).catch(() => {
-      throw new Error(UNAVAILABLE);
+    }).catch((error: unknown) => {
+      // Once Django has the request, a timeout or dropped connection leaves its outcome unknown.
+      throw new Error((error as NodeJS.ErrnoException).code === 'ECONNREFUSED' ? UNAVAILABLE : UNCONFIRMED);
     });
     if (!response.ok) throw new Error(rejection(response.status, response.body.toString()));
     return JSON.parse(response.body.toString()) as unknown;

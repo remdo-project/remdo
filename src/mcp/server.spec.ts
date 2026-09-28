@@ -4,7 +4,7 @@ import { afterEach, expect, it } from 'vitest';
 import { createMcpServer } from './server';
 
 let currentUserStatus: number;
-let documentsResponse: { status: number; body: string } | 'unreachable';
+let documentsResponse: { status: number; body: string } | 'dropped';
 const stops: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
@@ -12,10 +12,9 @@ afterEach(async () => {
 });
 
 async function start() {
-  documentsResponse = { status: 200, body: '[]' };
   const django = http.createServer((req, res) => {
     if (req.url === '/api/current-user') res.writeHead(currentUserStatus).end('{}');
-    else if (documentsResponse === 'unreachable') res.socket!.destroy();
+    else if (documentsResponse === 'dropped') req.socket.destroy();
     else res.writeHead(documentsResponse.status).end(documentsResponse.body);
   });
   await new Promise<void>((resolve) => django.listen(0, '127.0.0.1', resolve));
@@ -106,7 +105,7 @@ it.each([
   [{ status: 403, body: '{}' }, 'The user is not allowed to do this in RemDo.'],
   [{ status: 413, body: '' }, 'RemDo could not complete the request (413).'],
   [{ status: 502, body: '' }, 'RemDo is unavailable. Try again later.'],
-  ['unreachable' as const, 'RemDo is unavailable. Try again later.'],
+  ['dropped' as const, 'RemDo did not confirm whether the request took effect. Check with list_documents before retrying.'],
 ])('reports API outcome %j as a tool error naming its cause', async (outcome, message) => {
   const post = await start();
   currentUserStatus = 200;

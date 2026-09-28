@@ -1,7 +1,10 @@
 import { Buffer } from 'node:buffer';
 import { request as httpRequest } from 'node:http';
+import type { Socket } from 'node:net';
 
 export const DJANGO_REQUEST_TIMEOUT_MS = 10_000;
+
+const guardedSockets = new WeakSet<Socket>();
 
 export const isBearer = (authorization: string | null | undefined) => /^bearer \S/iu.test(authorization ?? '');
 
@@ -22,6 +25,14 @@ export function requestDjango(url: URL, options: {
       })().catch(reject);
     });
     request.once('error', reject);
+    request.on('socket', (socket) => {
+      if (guardedSockets.has(socket)) return;
+      guardedSockets.add(socket);
+      // Django may answer and close before reading the whole body; Node then
+      // reports the unfinished upload on the detached socket, which would
+      // otherwise crash the process after the response has settled.
+      socket.on('error', () => {});
+    });
     request.end(options.body);
   });
 }

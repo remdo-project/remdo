@@ -245,6 +245,17 @@ RemDo document, minimal but useful for real work.
   creating a document, and appending children. Expose the remaining operations
   it covers, such as children reads, search, renaming, deletion, and sharing.
 - Write the Connect-Claude guide and try the connector on the hosted instance.
+- **Headless append failure modes.** `append_children` never settles while
+  collaboration authorization keeps failing: each reconnect clears the connect
+  deadline, and the abandoned session appends once Django recovers, which can
+  duplicate notes. A transient document-content load failure reaches it, and
+  browser editors, as a terminal `Document access denied`. When persistence
+  fails after the hub accepted the notes, the call fails without their note
+  addresses although the notes are later stored.
+- **Oversized upload regression coverage.** Django closing the connection before
+  reading an over-limit body used to crash the MCP process. The fix in
+  `src/platform/net/django-request.ts` was confirmed only against gunicorn;
+  fakes and the Docker E2E path did not reproduce the crash deterministically.
 
 ### Delegated access
 
