@@ -143,5 +143,5 @@ URI.
 ## Request diagnostics
 
 Production Django request errors reach standard error with status, exception type,
-and code locations when available. Diagnostics exclude request data, exception
-messages, local variables, and source excerpts under the [logging principle](../../principles.md#data-and-trust).
+and code locations when available. Within the [diagnostics principle](../../principles.md#data-and-trust),
+they also exclude all other request data, exception messages, and source excerpts.
