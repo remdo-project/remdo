@@ -51,6 +51,7 @@ const nodeTests = [
   'tests/unit/vite-logger.spec.ts',
   'tests/unit/vite-shared.spec.ts',
   'tests/unit/server-error-reporting.spec.ts',
+  'tests/unit/vite-error-report-forwarding.spec.ts',
 ];
 
 // These tests need a DOM but not the shared RemDo editor fixture.

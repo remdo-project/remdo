@@ -1,3 +1,6 @@
+import { act, Component, createElement } from 'react';
+import type { ReactNode } from 'react';
+import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 interface SentRequest {
@@ -29,31 +32,68 @@ async function startWithConfiguredDsn(errorReportingDsn: string) {
   return { reporting, sent };
 }
 
+class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  override render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
+function NoteBody(): never {
+  throw new Error('render failure');
+}
+
+async function renderCaughtFailure(rootOptions: Parameters<typeof createRoot>[1]) {
+  const root = createRoot(document.createElement('div'), rootOptions);
+  await act(async () => root.render(createElement(Boundary, null, createElement(NoteBody))));
+  root.unmount();
+  // React's default handler logs caught errors, and the reporting handler keeps that.
+  expect(console.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'render failure' }));
+  vi.mocked(console.error).mockClear();
+}
+
+function reportedEvent({ body }: SentRequest) {
+  const [, , item] = body.split('\n');
+  return JSON.parse(item!) as unknown;
+}
+
 describe('browser error reporting', () => {
-  it('reports caught render errors through the instance origin without query strings', async () => {
+  it('reports caught and uncaught errors through the instance origin without query strings', async () => {
     history.replaceState(null, '', '/n/previous-id?code=private-query-value');
     const { reporting, sent } = await startWithConfiguredDsn('https://publickey@ingest.example/7');
     history.pushState(null, '', '/n/document-id?code=private-query-value#private-fragment');
 
-    await reporting.reportRenderError(new Error('render failure'), '\n    at NoteBody');
+    await renderCaughtFailure(reporting.errorReportingRootOptions);
 
     await vi.waitFor(() => expect(sent).toHaveLength(1));
-    const [{ path, body }] = sent as [SentRequest];
-    const [, , item] = body.split('\n');
-    expect(path).toBe('/api/error-reports');
-    expect(JSON.parse(item!)).toMatchObject({
+    const [request] = sent as [SentRequest];
+    expect(request.path).toBe('/api/error-reports');
+    expect(reportedEvent(request)).toMatchObject({
       exception: { values: [{ type: 'Error', value: 'render failure' }] },
       request: { url: `${location.origin}/n/document-id`, headers: { 'User-Agent': navigator.userAgent } },
-      contexts: { react: { componentStack: '\n    at NoteBody' } },
+      contexts: { react: { componentStack: expect.stringContaining('NoteBody') } },
       breadcrumbs: [{ category: 'navigation', data: { from: '/n/previous-id', to: '/n/document-id' } }],
     });
-    expect(body).not.toContain('private-');
+    expect(request.body).not.toContain('private-');
+
+    // The browser's global error hook, called directly: a dispatched error event
+    // would also reach the test runner's own unhandled-error listener.
+    window.onerror!('uncaught failure', location.href, 1, 1, new Error('uncaught failure'));
+
+    await vi.waitFor(() => expect(sent).toHaveLength(2));
+    expect(reportedEvent(sent[1]!)).toMatchObject({
+      exception: { values: [{ type: 'Error', value: 'uncaught failure', mechanism: { handled: false } }] },
+    });
   });
 
   it('loads no reporter when the instance leaves reporting disabled', async () => {
     const { reporting, sent } = await startWithConfiguredDsn('');
 
-    await reporting.reportRenderError(new Error('render failure'), undefined);
+    await renderCaughtFailure(reporting.errorReportingRootOptions);
 
     expect(sent).toEqual([]);
   });
