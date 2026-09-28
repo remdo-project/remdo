@@ -80,8 +80,8 @@ Deploy the Render environments from [the repository blueprint](../../render.yaml
 
 1. Create a Render Blueprint deployment from it.
 2. In each service's **Environment** view, copy its generated
-   `REMDO_ADMIN_PASSWORD` into the password manager. Test also generates
-   `REMDO_USER_PASSWORD`. Render preserves these generated values
+   `REMDO_ADMIN_PASSWORD` and `REMDO_USER_PASSWORD` into the password
+   manager. Render preserves these generated values
    across later Blueprint syncs.
 3. Point DNS at each service as Render's domain settings instruct and wait for
    its certificate.

@@ -22,7 +22,7 @@ REDIRECT_URI = "https://claude.example/api/mcp/auth_callback"
 CLIENT_METADATA = {
     "client_id": CLIENT_ID,
     "client_name": "Claude",
-    "redirect_uris": [REDIRECT_URI],
+    "redirect_uris": [REDIRECT_URI, "http://localhost/callback"],
     "grant_types": ["authorization_code", "refresh_token"],
     "response_types": ["code"],
     "token_endpoint_auth_method": "none",
@@ -64,10 +64,12 @@ class DelegatedAccessTests(TestCase):
             }
         )
 
-    def grant(self, resource=None):
+    def grant(self, redirect_uri=REDIRECT_URI, resource=None):
         requested = {} if resource is None else {"resource": resource}
         self.client.force_login(self.user)
-        page = self.client.get(f"/identity/o/authorize?{self.authorize_query(**requested)}")
+        page = self.client.get(
+            f"/identity/o/authorize?{self.authorize_query(redirect_uri=redirect_uri, **requested)}"
+        )
         self.assertEqual(page.status_code, 200, page.content[:500])
         signed = re.search(rb'name="request" value="([^"]+)"', page.content).group(1).decode()
         response = self.client.post(
@@ -79,6 +81,7 @@ class DelegatedAccessTests(TestCase):
             },
         )
         self.assertEqual(response.status_code, 302, response.content[:500])
+        self.assertTrue(response["Location"].startswith(f"{redirect_uri}?"))
         code = parse_qs(urlsplit(response["Location"]).query)["code"][0]
         self.client.logout()
         token = self.client.post(
@@ -86,7 +89,7 @@ class DelegatedAccessTests(TestCase):
             {
                 "grant_type": "authorization_code",
                 "code": code,
-                "redirect_uri": REDIRECT_URI,
+                "redirect_uri": redirect_uri,
                 "client_id": CLIENT_ID,
                 "code_verifier": VERIFIER,
                 **requested,
@@ -147,6 +150,10 @@ class DelegatedAccessTests(TestCase):
         rejected = self.documents("not-a-token")
         self.assertEqual(rejected.status_code, 401)
         self.assertEqual(rejected["WWW-Authenticate"], "Bearer")
+
+    def test_native_clients_redirect_to_any_localhost_port(self):
+        tokens = self.grant("http://localhost:53682/callback")
+        self.assertEqual(self.documents(tokens["access_token"]).status_code, 200)
 
     def test_token_is_not_accepted_on_session_only_pages(self):
         tokens = self.grant()
