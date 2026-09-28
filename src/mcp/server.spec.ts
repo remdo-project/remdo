@@ -126,3 +126,33 @@ it('reports a dropped read as unavailable because it cannot have changed anythin
 
   expect(result).toEqual({ isError: true, content: [{ type: 'text', text: 'RemDo is unavailable. Try again later.' }] });
 });
+
+it('refuses a request body over 1 MiB before running any tool', async () => {
+  const post = await start();
+  currentUserStatus = 200;
+
+  const response = await post('Bearer valid', {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'tools/call',
+    params: { name: 'create_document', arguments: { title: 'x'.repeat(1024 * 1024) } },
+  });
+
+  expect(response.status).toBe(413);
+});
+
+it('refuses to append more than 1000 notes, counting nested children, before opening the document', async () => {
+  const post = await start();
+  currentUserStatus = 200;
+  const notes = [...Array.from({ length: 999 }, () => ({ text: 'Point' })), { text: 'Section', children: [{ text: 'Detail' }] }];
+
+  const result = await rpc(post, 'tools/call', { name: 'append_children', arguments: { parent: 'missingdoc', notes } });
+
+  expect(result).toEqual({
+    isError: true,
+    content: [{
+      type: 'text',
+      text: 'Append at most 1000 notes per call, counting nested children; split the outline across calls.',
+    }],
+  });
+});
