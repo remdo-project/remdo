@@ -12,7 +12,6 @@ import {
   $insertNodes,
   $isElementNode,
   $isRangeSelection,
-  $isRootNode,
   $isLineBreakNode,
   $isTextNode,
   $setState,
@@ -32,7 +31,6 @@ import { $createNoteLinkNode } from '#client/editor/features/links/note-link-nod
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import {
   $getOrCreateChildList,
-  getBodyWrapper,
   getContentSiblings,
   getNodesForNote,
   getPreviousContentSibling,
@@ -42,7 +40,7 @@ import {
 } from '#client/editor/outline/list-structure';
 import { getNoteBody, $getSelectionBody } from '#client/editor/outline/selection/body-region';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
-import { resolveContentItemFromNode } from '#client/editor/outline/schema';
+import { $getDocumentPlaceholder, resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { getViewRoot } from '#client/editor/outline/view-root';
 import { $selectItemEdge, isPointAtBoundary } from '#client/editor/outline/selection/caret';
 import { resolveCaretPlacement } from '#client/editor/outline/selection/caret-placement';
@@ -578,16 +576,6 @@ function $resolveStructuralClipboardContext(
   return heads.length === 0 ? null : { selection, selectionRange, heads };
 }
 
-function $isSoleEmptyRootNote(item: ListItemNode, parentList: ListNode): boolean {
-  return (
-    $isRootNode(parentList.getParent()) &&
-    getContentSiblings(parentList).length === 1 &&
-    getNoteOwnText(item).length === 0 &&
-    getBodyWrapper(item) === null &&
-    !noteHasChildren(item)
-  );
-}
-
 function $resolveClipboardSourceGap(
   selection: BaseSelection | null,
   sourceGap: RemDoClipboardSourceGap | undefined
@@ -687,10 +675,7 @@ function $insertNodesAtSelection(
       return false;
     }
     parentList = candidateParent;
-    if ($isSoleEmptyRootNote(contentItem, parentList)) {
-      // Structural deletion keeps the document editable by creating one empty
-      // root note. Pasting notes into an otherwise empty document replaces that
-      // placeholder instead of leaving an extra blank note behind.
+    if (contentItem.is($getDocumentPlaceholder())) {
       orderedHeads = [contentItem];
       nextSibling = getNextContentSibling(contentItem);
     } else {
