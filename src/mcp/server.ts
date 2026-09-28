@@ -29,6 +29,14 @@ const newNote: z.ZodType<NewNote> = z.lazy(() => z.object({
   children: z.array(newNote).optional(),
 }));
 
+const INSTRUCTIONS = [
+  'RemDo is an outliner: each document is a tree of single-line notes.',
+  'Save content as an outline, not prose: a few short topic titles at the top level, with supporting details nested '
+    + 'under the note they support, so each parent summarizes its children and the outline reads well when folded.',
+  'Give each topic or conversation its own descriptively titled document, and read a document before adding to it '
+    + 'or relying on it.',
+].join(' ');
+
 const MAX_REQUEST_BYTES = 1024 * 1024;
 const MAX_APPENDED_NOTES = 1000;
 
@@ -108,7 +116,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
         { src: new URL('/icon-192.png', appOrigin).href, mimeType: 'image/png', sizes: ['192x192'] },
         { src: new URL('/logo.svg', appOrigin).href, mimeType: 'image/svg+xml', sizes: ['any'] },
       ],
-    });
+    }, { instructions: INSTRUCTIONS });
 
     server.registerTool('list_documents', {
       title: 'List documents',
@@ -149,7 +157,8 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     server.registerTool('append_children', {
       title: 'Append notes',
       description: 'Append notes as the last children of a note (by noteAddress) '
-        + 'or as the last top-level notes of a document (by documentId).',
+        + 'or as the last top-level notes of a document (by documentId). Write an outline: short topic titles '
+        + 'at the top level, supporting details nested beneath.',
       inputSchema: {
         parent: z.string().describe('A documentId or a noteAddress.'),
         notes: z.array(newNote).describe(`At most ${MAX_APPENDED_NOTES} notes, counting nested children.`),

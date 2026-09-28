@@ -67,7 +67,7 @@ it('challenges missing and rejected tokens but reports an unavailable RemDo as u
   expect((await post('Bearer valid')).status).toBe(503);
 });
 
-it('identifies itself with the app icon so clients do not guess it from a favicon', async () => {
+it('identifies itself with the app icon and tells clients how to use RemDo', async () => {
   const post = await start();
   currentUserStatus = 200;
 
@@ -75,7 +75,8 @@ it('identifies itself with the app icon so clients do not guess it from a favico
     protocolVersion: '2025-11-25',
     capabilities: {},
     clientInfo: { name: 'test', version: '1' },
-  }) as { serverInfo: unknown };
+  }) as { serverInfo: unknown; instructions?: string };
+  expect(result.instructions).toContain('outliner');
   expect(result.serverInfo).toMatchObject({
     title: 'RemDo',
     websiteUrl: 'https://remdo.example',

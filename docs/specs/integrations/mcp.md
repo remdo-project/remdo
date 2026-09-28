@@ -8,7 +8,12 @@ authorization server.
 
 The server identifies itself with the product name, the app origin as its
 website, and the app icons, so clients show RemDo's current icon without
-inferring one from a favicon.
+inferring one from a favicon. It also gives clients usage guidance: write
+outlines whose top-level notes are short topic titles and whose parents
+summarize the details nested beneath them, keep each topic in its own
+descriptively titled document, and read a document before extending or relying
+on it. The append tool's description repeats the outline guidance because some
+clients ignore server guidance.
 
 ## Tools
 
