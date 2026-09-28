@@ -14,11 +14,14 @@ import type { OutlineNote } from './stage';
 import { readOutline, Stage } from './stage';
 
 const USAGE = [
-  'Usage: pnpm demo:record [origin]',
+  'Usage: pnpm demo:record [--final] [origin]',
   'Resets the origin\'s user account, whose password REMDO_USER_PASSWORD holds, then records',
   'the demo video to $DATA_DIR/demo/demo.mp4 with its poster demo.jpg, encoding them with ffmpeg.',
+  'Without --final, the recording runs at a fast pace with a quick encode for iterating on it.',
   'The origin defaults to https://remdo.com.',
 ].join('\n');
+const QUICK = { pace: 0.2, preset: 'veryfast' };
+const FINAL = { pace: 1, preset: 'slow' };
 const VIEWPORT = { width: 1280, height: 720 };
 const END_STATE_TIMEOUT_MS = 15_000;
 
@@ -67,18 +70,20 @@ async function ffmpeg(...args: string[]): Promise<void> {
 }
 
 // H.264 in MP4 with its index first plays everywhere and starts before the
-// download completes; the final frame shows the finished outline.
-async function encodeForWeb(recording: string, video: string, poster: string): Promise<void> {
-  await ffmpeg('-i', recording, '-c:v', 'libx264', '-preset', 'slow', '-crf', '22',
+// download completes.
+async function encodeForWeb(recording: string, preset: string, video: string): Promise<void> {
+  await ffmpeg('-i', recording, '-c:v', 'libx264', '-preset', preset, '-crf', '22',
     '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', '-f', 'mp4', video);
-  await ffmpeg('-sseof', '-0.5', '-i', recording, '-frames:v', '1', '-q:v', '3', '-f', 'image2', poster);
 }
 
 async function main(): Promise<void> {
-  const [originArgument = 'https://remdo.com', ...extra] = process.argv.slice(2);
-  if (extra.length > 0) {
+  const args = process.argv.slice(2);
+  const final = args.includes('--final');
+  const [originArgument = 'https://remdo.com', ...extra] = args.filter((arg) => arg !== '--final');
+  if (extra.length > 0 || originArgument.startsWith('-')) {
     throw new Error(USAGE);
   }
+  const mode = final ? FINAL : QUICK;
   const origin = new URL(originArgument).origin;
   // eslint-disable-next-line node/no-process-env -- a deployment secret, absent from the development config schema.
   const password = process.env.REMDO_USER_PASSWORD;
@@ -107,17 +112,21 @@ async function main(): Promise<void> {
 
     await page.screencast.start({ path: recording, size: VIEWPORT });
     try {
-      const stage = new Stage(page);
+      const stage = new Stage(page, mode.pace);
       await stage.captionActions();
       await outlining.run(stage);
+      await page.screenshot({ path: partials[1], type: 'jpeg', quality: 85 });
     } finally {
       await page.screencast.stop();
     }
     await confirmEndState(browser, context, origin, document.id, outlining.endState);
-    await encodeForWeb(recording, ...partials);
+    await encodeForWeb(recording, mode.preset, partials[0]);
     await rename(partials[0], video);
     await rename(partials[1], poster);
     console.info(`Recorded ${video} and ${poster}`);
+    if (!final) {
+      console.info('This quick recording runs faster than viewers can follow; record with --final to publish.');
+    }
   } finally {
     await browser.close();
     await Promise.all([recording, ...partials].map(async (file) => rm(file, { force: true })));

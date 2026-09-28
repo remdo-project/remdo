@@ -14,23 +14,24 @@ const TYPING_DELAY_MS = 70;
 const ACTION_PAUSE_MS = 450;
 const CHAPTER_MS = 2200;
 
-const ACTION_CAPTIONS = { position: 'bottom' } as const;
+const CAPTION_MS = 500;
 const SEQUENCE_CAPTION_MS = 1200;
 
 export class Stage {
-  constructor(readonly page: Page) {}
+  /** `pace` scales every wait and caption duration; 1 is the viewer-facing pace. */
+  constructor(readonly page: Page, private readonly pace: number) {}
 
   async captionActions(): Promise<void> {
-    await this.page.screencast.showActions(ACTION_CAPTIONS);
+    await this.page.screencast.showActions({ position: 'bottom', duration: this.paced(CAPTION_MS) });
   }
 
   async chapter(title: string, description?: string): Promise<void> {
-    await this.page.screencast.showChapter(title, { description, duration: CHAPTER_MS });
-    await this.page.waitForTimeout(CHAPTER_MS);
+    await this.page.screencast.showChapter(title, { description, duration: this.paced(CHAPTER_MS) });
+    await this.page.waitForTimeout(this.paced(CHAPTER_MS));
   }
 
   async type(text: string): Promise<void> {
-    await this.page.keyboard.type(text, { delay: TYPING_DELAY_MS });
+    await this.page.keyboard.type(text, { delay: this.paced(TYPING_DELAY_MS) });
     await this.pause();
   }
 
@@ -45,7 +46,7 @@ export class Stage {
   // stretch timed key sequences such as double-Shift beyond their window.
   async sequence(keys: string[]): Promise<void> {
     await this.page.screencast.hideActions();
-    await this.page.screencast.showOverlay(sequenceCaption(keys), { duration: SEQUENCE_CAPTION_MS });
+    await this.page.screencast.showOverlay(sequenceCaption(keys), { duration: this.paced(SEQUENCE_CAPTION_MS) });
     for (const key of keys) {
       await this.page.keyboard.press(key);
     }
@@ -54,7 +55,11 @@ export class Stage {
   }
 
   async pause(ms = ACTION_PAUSE_MS): Promise<void> {
-    await this.page.waitForTimeout(ms);
+    await this.page.waitForTimeout(this.paced(ms));
+  }
+
+  private paced(ms: number): number {
+    return Math.round(ms * this.pace);
   }
 }
 
