@@ -148,9 +148,9 @@ or one with a secret key, fails at startup, since browsers receive the DSN.
 **Deterministic.**
 
 The API, collaboration server, MCP server, and browser app report unhandled
-failures; the browser app also reports errors that an error boundary catches. A
-failing server process still exits unsuccessfully, after a bounded delivery
-attempt. Reports identify the build revision and the
+failures; the browser app also reports errors that an error boundary or the
+editor catches. A failing server process still exits unsuccessfully, after a
+bounded delivery attempt. Reports identify the build revision and the
 [`APP_ORIGIN`](#network-addressing) host. **Deterministic.**
 
 The browser app sends reports through the instance's gateway.

@@ -132,7 +132,7 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-
 
 - Silent failure: parseable-but-non-Lexical JSON (`{}`, `{"foo":1}`, `[]`)
   creates an empty doc with no alert in prod — `parseEditorState` routes the
-  error to `onError`, which only `console.error`s in prod, so the plugin's
+  error to `onError`, which does not rethrow in prod, so the plugin's
   `catch` never fires. Validate/reject at the upload boundary.
 - Review/refactor the shipping commit for self-containment: it's spread across a
   module-level `Map` hand-off, a divergent copy of `TestBridgePlugin`'s load

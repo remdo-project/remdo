@@ -12,6 +12,12 @@ export const editorConfig = {
     if (config.isDevOrTest) {
       throw error;
     }
+    // Browsers hand it to the global error handlers, which report it; the
+    // headless editor runs where this hook does not exist.
+    if (typeof globalThis.reportError === 'function') {
+      globalThis.reportError(error);
+      return;
+    }
 
     console.error('runtime.editor-error');
   },
