@@ -93,7 +93,8 @@ validates browser origins against the [configured trusted origins](specs/access/
 ### Gateway
 
 The gateway explicitly owns frontend assets, Django static assets, health
-probes, collaboration endpoints, and the [MCP server](specs/integrations/mcp.md).
+probes, collaboration endpoints, the [MCP server](specs/integrations/mcp.md),
+and browser [error report](specs/runtime/configuration.md#error-reporting) forwarding.
 Django owns all other HTTP routes,
 including the app routes ([Home](specs/outliner/home.md) at `/`, `/n/*`, and `/sign-out`),
 unknown routes, and their 404 responses. Normal HTTP routes have the

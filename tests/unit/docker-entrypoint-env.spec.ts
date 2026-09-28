@@ -125,6 +125,29 @@ describe('docker entrypoint Caddy environment', () => {
   });
 });
 
+describe('docker entrypoint error report forwarding', () => {
+  function readForwarding(sentryDsn: string): string[] {
+    const result = runEntryPointEnv(
+      String.raw`remdo_configure_error_report_forwarding; printf "%s\n%s" "$SENTRY_ENVELOPE_ORIGIN" "$SENTRY_ENVELOPE_PATH"`,
+      { SENTRY_DSN: sentryDsn },
+    );
+    expect(result.status).toBe(0);
+    return String(result.stdout).split('\n');
+  }
+
+  it.each([
+    ['https://publickey@o1.ingest.de.sentry.io/42', 'https://o1.ingest.de.sentry.io', '/api/42/envelope/'],
+    ['http://publickey@sentry.example.test:9000/prefix/7', 'http://sentry.example.test:9000', '/prefix/api/7/envelope/'],
+    ['https://publickey@o1.ingest.de.sentry.io/42?region=de#setup', 'https://o1.ingest.de.sentry.io', '/api/42/envelope/'],
+  ])('forwards reports for %s to its project envelope endpoint', (sentryDsn, origin, envelopePath) => {
+    expect(readForwarding(sentryDsn)).toEqual([origin, envelopePath]);
+  });
+
+  it('leaves forwarding disabled without a DSN', () => {
+    expect(readForwarding('')).toEqual(['', '']);
+  });
+});
+
 describe('docker entrypoint internal services', () => {
   function resolveInternalServices(overrides: NodeJS.ProcessEnv): string[] {
     return String(runEntryPointEnv(

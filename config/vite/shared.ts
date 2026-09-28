@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { config } from '../index.ts';
 import { onRollupWarning } from '../_internal/vite/onRollupWarning.ts';
 import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveMcpServerOrigin } from '../../src/platform/net/origins.ts';
+import { errorReportForwarding } from './error-report-forwarding.ts';
 import { shouldProxyToDjango } from './gateway-routes.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -75,6 +76,7 @@ export function createViteSharedConfig() {
     },
     plugins: [
       privateRouteGuard,
+      ...(config.env.SENTRY_DSN ? [errorReportForwarding(config.env.SENTRY_DSN)] : []),
       VitePWA({
         includeAssets: ['icons/*.svg', 'logo.svg'],
         registerType: 'autoUpdate',

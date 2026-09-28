@@ -175,3 +175,14 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
    in the service's **Environment** view on Render or in `.env` for the
    self-hosted launcher, then redeploy.
 4. Confirm that the application home offers **Sign in with Google**.
+
+## Enable Error Reporting
+
+1. In Sentry, create a project and copy its DSN. Choose an organization in the
+   data region matching the instance's hosting region, so reports stay where
+   its data lives.
+2. Because the DSN is public, set a
+   [rate limit on its key](https://docs.sentry.io/pricing/quotas/manage-event-stream-guide/#rate-limiting).
+3. Set [`SENTRY_DSN`](../specs/runtime/configuration.md#error-reporting) in the
+   service's **Environment** view on Render or in `.env` for the self-hosted
+   launcher, then redeploy.

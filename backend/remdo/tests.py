@@ -1,12 +1,15 @@
+import gzip
 import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 from .testing import DEFAULT_TEST_LABELS, DefaultLabelTestRunner
 
@@ -77,6 +80,91 @@ print(json.dumps([
     address({'X-Forwarded-For': '198.51.100.1'}),
     address({'X-Forwarded-For': '198.51.100.1', 'CF-Connecting-IP': 'invalid'}),
 ]))
+"""
+
+
+class FakeIngest:
+    """Records envelopes posted to a Sentry-compatible envelope endpoint."""
+
+    def __init__(self):
+        self.received = []
+        ingest = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                body = self.rfile.read(int(self.headers["Content-Length"]))
+                if self.headers.get("Content-Encoding") == "gzip":
+                    body = gzip.decompress(body)
+                ingest.received.append((self.path, body))
+                self.send_response(200)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.dsn = f"http://publickey@127.0.0.1:{self.server.server_port}/7"
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+    def items(self):
+        return [
+            (json.loads(header)["type"], json.loads(item))
+            for _, body in self.received
+            for header, item in zip(body.splitlines()[1::2], body.splitlines()[2::2])
+        ]
+
+
+PRODUCTION_FAILURE = """
+import io
+import json
+from types import ModuleType
+import sentry_sdk
+from django.core.handlers.wsgi import WSGIHandler
+from django.core.exceptions import SuspiciousOperation
+from django.test import override_settings
+from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def fail(request, document):
+    confidential_local = 'private-local-value'
+    raise RuntimeError('reported-exception-message')
+
+@csrf_exempt
+def suspicious(request, document):
+    raise SuspiciousOperation('reported-suspicious-request')
+
+routes = ModuleType('reporting_routes')
+routes.urlpatterns = [path('fail/<str:document>', fail), path('suspicious/<str:document>', suspicious)]
+body = b'private-form-field=private-form-value'
+environ = {
+    'REQUEST_METHOD': 'POST',
+    'QUERY_STRING': 'code=private-query-value',
+    'SERVER_NAME': 'remdo.example',
+    'SERVER_PORT': '443',
+    'REMOTE_ADDR': '198.51.100.7',
+    'wsgi.url_scheme': 'https',
+    'wsgi.input': io.BytesIO(body),
+    'CONTENT_TYPE': 'application/x-www-form-urlencoded',
+    'CONTENT_LENGTH': str(len(body)),
+    'HTTP_HOST': 'remdo.example',
+    'HTTP_USER_AGENT': 'reporting-test-agent',
+    'HTTP_COOKIE': 'private-cookie-name=private-cookie-value',
+    'HTTP_AUTHORIZATION': 'Bearer private-token',
+    'HTTP_X_REMDO_COLLABORATION_SECRET': 'private-collaboration-secret',
+}
+statuses = []
+with override_settings(ROOT_URLCONF=routes):
+    for route in ('/fail/document-id', '/suspicious/document-id'):
+        request = {**environ, 'PATH_INFO': route, 'wsgi.input': io.BytesIO(body)}
+        WSGIHandler()(request, lambda status, headers: statuses.append(status))
+sentry_sdk.flush()
+print(json.dumps(statuses))
 """
 
 
@@ -212,6 +300,58 @@ class ConfigurationTests(SimpleTestCase):
             self.assertEqual(results[-1]["cookie"], f"remdo_session_{base}")
         self.assertNotEqual(results[0]["cookie"], results[1]["cookie"])
 
+    def test_error_reporting_follows_the_dsn_except_under_verification(self):
+        dsn = "https://publickey@ingest.example/7"
+        report = (
+            "import json; from django.conf import settings; print(json.dumps(settings.SENTRY_DSN))"
+        )
+        for module, expected in (
+            ("remdo.settings", dsn),
+            ("remdo.development", dsn),
+            ("remdo.testing", ""),
+        ):
+            with self.subTest(module=module):
+                self.assertEqual(
+                    self.settings(
+                        report=report,
+                        DJANGO_SETTINGS_MODULE=module,
+                        SENTRY_DSN=dsn,
+                    ),
+                    expected,
+                )
+
+    def test_production_failures_are_reported_without_confidential_request_data(self):
+        ingest = FakeIngest()
+        self.addCleanup(ingest.close)
+
+        statuses = self.settings(
+            report=PRODUCTION_FAILURE,
+            SENTRY_DSN=ingest.dsn,
+            BUILD_REVISION="reporting-test-revision",
+        )
+
+        self.assertEqual(statuses, ["500 Internal Server Error", "400 Bad Request"])
+        items = ingest.items()
+        self.assertEqual([item_type for item_type, _ in items], ["event", "event"])
+        [(_, event), (_, logged)] = items
+        self.assertEqual(logged["logger"], "django.security.SuspiciousOperation")
+        [exception] = event["exception"]["values"]
+        self.assertEqual(exception["type"], "RuntimeError")
+        self.assertEqual(exception["value"], "reported-exception-message")
+        self.assertEqual(event["release"], "reporting-test-revision")
+        self.assertEqual(event["environment"], "remdo.example")
+        self.assertEqual(event["request"]["url"], "https://remdo.example/fail/document-id")
+        self.assertEqual(event["request"]["headers"], {"User-Agent": "reporting-test-agent"})
+        self.assertNotIn("private-", json.dumps(items))
+        self.assertNotIn("198.51.100.7", json.dumps(items))
+
+    def test_public_configuration_exposes_the_reporting_project(self):
+        dsn = "https://publickey@ingest.example/7"
+        for configured in ("", dsn):
+            with self.subTest(configured=configured), override_settings(SENTRY_DSN=configured):
+                configuration = self.client.get("/api/config").json()
+                self.assertEqual(configuration["errorReportingDsn"], configured)
+
     def test_invalid_backend_configuration_fails_at_startup(self):
         for overrides, message in (
             ({"DATA_DIR": ""}, "DATA_DIR is required"),
@@ -220,6 +360,15 @@ class ConfigurationTests(SimpleTestCase):
             ({"APP_ORIGIN": "http://user:password@localhost"}, "APP_ORIGIN must be an exact"),
             ({"GOOGLE_CLIENT_ID": "client"}, "must be set together"),
             ({"GOOGLE_CLIENT_SECRET": "secret"}, "must be set together"),
+            ({"SENTRY_DSN": "not-a-dsn"}, "SENTRY_DSN must be a Sentry DSN"),
+            (
+                {"SENTRY_DSN": "https://publickey@ingest.example/7 "},
+                "SENTRY_DSN must be a Sentry DSN",
+            ),
+            (
+                {"SENTRY_DSN": "https://public:secret@ingest.example/7"},
+                "SENTRY_DSN must not include a secret key",
+            ),
         ):
             with self.subTest(overrides=overrides):
                 result = subprocess.run(

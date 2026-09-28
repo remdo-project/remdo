@@ -32,6 +32,12 @@ try:
 except ValueError as error:
     raise ImproperlyConfigured("APP_ORIGIN must be an exact HTTP(S) origin.") from error
 
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+if SENTRY_DSN:
+    from . import error_reporting
+
+    error_reporting.start(SENTRY_DSN, BUILD_REVISION, origin.hostname)
+
 CSRF_TRUSTED_ORIGINS = [APP_ORIGIN]
 ALLOWED_HOSTS = [origin.hostname]
 SESSION_COOKIE_NAME = f"remdo_session_{cookie_namespace}"

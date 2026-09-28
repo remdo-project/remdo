@@ -1,8 +1,10 @@
 import process from 'node:process';
 import { config } from '#config';
 import { resolveApiServerOrigin, resolveMcpServerOrigin } from '#platform/net/origins';
+import { startServerErrorReporting } from '#platform/server-error-reporting';
 import { createMcpServer } from './server';
 
+await startServerErrorReporting();
 const server = createMcpServer({
   origin: resolveMcpServerOrigin(),
   apiOrigin: resolveApiServerOrigin(),

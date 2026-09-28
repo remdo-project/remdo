@@ -2,8 +2,10 @@ import process from 'node:process';
 import { config } from '#config';
 import { resolveApiServerOrigin } from '#platform/net/origins';
 import { DJANGO_REQUEST_TIMEOUT_MS } from '#platform/net/django-request';
+import { startServerErrorReporting } from '#platform/server-error-reporting';
 import { createCollaborationServer } from './server';
 
+await startServerErrorReporting();
 const collaboration = createCollaborationServer({
   port: config.env.COLLAB_SERVER_PORT,
   apiOrigin: resolveApiServerOrigin(),

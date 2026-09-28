@@ -148,8 +148,34 @@ image is the same URL with a `.jpg` path extension. Unset offers no video.
 When the development server serves source files, development defaults it to
 the local recording under [`DATA_DIR`](#persistence), whether or not one exists.
 
+## Error reporting
+
+`SENTRY_DSN` enables error reporting to that Sentry project; verification
+ignores it. Without reporting, no process loads a reporter. A malformed value,
+or one with a secret key, fails at startup, since browsers receive the DSN.
+**Deterministic.**
+
+The API, collaboration server, MCP server, and browser app report unhandled
+failures; the browser app also reports errors that an error boundary or the
+editor catches. A failing server process still exits unsuccessfully, after a
+bounded delivery attempt. Reports identify the build revision and the
+[`APP_ORIGIN`](#network-addressing) host. **Deterministic.**
+
+The browser app sends reports through the instance's gateway.
+**Deterministic.** Uncaught failures before startup configuration enables
+reporting, and every failure in a page session whose startup configuration
+request fails, go unreported. Runtime delivery of the DSN lets one build serve
+every deployment.
+
+Beyond the [diagnostics principle](../../principles.md#data-and-trust), reports
+and their delivery exclude user identity, client addresses, cookies, request
+headers other than the user agent, URL query strings and fragments, and command
+lines. **Deterministic.** Reporting covers errors only, without tracing,
+profiling, or session tracking. Production frontend source maps are public so
+that browser reports resolve to source.
+
 ## Request diagnostics
 
 Production Django request errors reach standard error with status, exception type,
-and code locations when available. Diagnostics exclude request data, exception
-messages, local variables, and source excerpts under the [logging principle](../../principles.md#data-and-trust).
+and code locations when available. Beyond the [diagnostics principle](../../principles.md#data-and-trust),
+they exclude request data, exception messages, and source excerpts.

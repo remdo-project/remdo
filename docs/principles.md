@@ -16,11 +16,18 @@ RemDo's product principles are assumptions that outrank current implementation d
 2. The trust story should stay simple enough to verify.
 3. Delegate security-critical work when that improves confidence and preserves
    self-hosting simplicity.
-4. Production logs and diagnostic output must not disclose user content,
-   credentials, authentication tokens, or other confidential data. Development
-   and test output may include synthetic fixture data and dedicated
+4. An instance sends data only to services its operator configures. Configured
+   services, such as hosting, databases, and error reporting, share the
+   instance's trust tier, and the operator discloses them to users.
+5. Logs and diagnostic output never disclose real credentials, authentication
+   tokens, or other secrets. Production diagnostics may include exception
+   messages and request routes, which can incidentally quote user content; they
+   exclude request and document bodies, local variables, and session
+   recordings, and are retained only as long as operating and securing the
+   instance requires.
+   Development and test output may include synthetic fixture data and dedicated
    development/test credentials, but must not disclose real confidential data.
-5. Derived data should respect the privacy and access boundaries of its sources.
+6. Derived data should respect the privacy and access boundaries of its sources.
 
 ## Deployment targets
 

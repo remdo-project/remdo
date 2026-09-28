@@ -100,6 +100,8 @@
     "@mantine/core": "catalog:",
     "@mantine/hooks": "catalog:",
     "@modelcontextprotocol/sdk": "catalog:",
+    "@sentry/browser": "catalog:",
+    "@sentry/core": "catalog:",
     "@tabler/icons-react": "catalog:",
     "@tanstack/query-core": "catalog:",
     "@tanstack/react-query": "catalog:",
