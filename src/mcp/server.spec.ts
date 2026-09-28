@@ -115,3 +115,13 @@ it.each([
 
   expect(result).toEqual({ isError: true, content: [{ type: 'text', text: message }] });
 });
+
+it('reports a dropped read as unavailable because it cannot have changed anything', async () => {
+  const post = await start();
+  currentUserStatus = 200;
+  documentsResponse = 'dropped';
+
+  const result = await rpc(post, 'tools/call', { name: 'list_documents', arguments: {} });
+
+  expect(result).toEqual({ isError: true, content: [{ type: 'text', text: 'RemDo is unavailable. Try again later.' }] });
+});

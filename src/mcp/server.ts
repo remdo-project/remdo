@@ -77,8 +77,9 @@ export function createMcpServer({ origin, apiOrigin, appOrigin }: ServerOptions)
       body: body === undefined ? undefined : Buffer.from(JSON.stringify(body)),
       signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
     }).catch((error: unknown) => {
-      // Once Django has the request, a timeout or dropped connection leaves its outcome unknown.
-      throw new Error((error as NodeJS.ErrnoException).code === 'ECONNREFUSED' ? UNAVAILABLE : UNCONFIRMED);
+      // Once Django has a write, a timeout or dropped connection leaves its outcome unknown.
+      const unconfirmed = method !== 'GET' && (error as NodeJS.ErrnoException).code !== 'ECONNREFUSED';
+      throw new Error(unconfirmed ? UNCONFIRMED : UNAVAILABLE);
     });
     if (!response.ok) throw new Error(rejection(response.status, response.body.toString()));
     return JSON.parse(response.body.toString()) as unknown;
