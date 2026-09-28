@@ -154,7 +154,10 @@ attempt. Reports identify the build revision and the
 [`APP_ORIGIN`](#network-addressing) host. **Deterministic.**
 
 The browser app sends reports through the instance's gateway.
-**Deterministic.**
+**Deterministic.** It reports from the point its startup configuration enables
+reporting; failures before then, and throughout a page session whose startup
+configuration request fails, go unreported. Runtime delivery of the DSN lets one
+build serve every deployment.
 
 Beyond the [diagnostics principle](../../principles.md#data-and-trust), reports
 and their delivery exclude user identity, client addresses, cookies, request
