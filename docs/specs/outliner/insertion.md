@@ -58,7 +58,9 @@ plain text is interpreted and focus after paste) live in [Clipboard](./clipboard
 ## Appending notes
 
 Appending adds described notes as the last children of a note; appending to the
-[document root](./note-model.md#definitions) adds top-level notes. Each
+[document root](./note-model.md#definitions) adds top-level notes, which replace
+the document's only editor note when it is an
+[empty note](./note-model.md#definitions) without a body. Each
 described note supplies its plain text and optionally its checked state, its
 children, and the list type of those children. A line break in any described
 text makes the append
@@ -71,10 +73,8 @@ text makes the append
 - The parent's existing child list keeps its type. A missing child list,
   including one created for a described note without a described list type,
   takes the type of the list containing its parent.
-- Appending top-level notes to a document whose only editor note is an
-  [empty leaf note](./note-model.md#definitions) without a body replaces that
-  note, and a caret in it moves to the first appended note. Focus and selection
-  are otherwise unchanged.
+- A caret in a replaced note moves to the first appended note; focus and
+  selection are otherwise unchanged.
 - The append is one local update, so undo never removes part of it.
 
 ## Future
