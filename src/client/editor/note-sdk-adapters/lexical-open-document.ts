@@ -45,7 +45,7 @@ import { getNoteBodyText } from '#client/editor/outline/selection/body-region';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getNestedList, isWithinBoundary, noteHasChildren } from '#client/editor/outline/selection/tree';
 import { forEachContentItemInOutline } from '#client/editor/outline/list-traversal';
-import { $getChildNoteIds, $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';
+import { $getChildNoteIds, $getDocumentPlaceholder, $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';
 import { $resolveViewRoot, subscribeViewRoot } from '#client/editor/outline/view-root';
 import { collectLexicalDocumentSearchResults } from './lexical-document-search';
 import { $appendNewNotes, hasLineBreak } from './lexical-note-insertion';
@@ -320,7 +320,13 @@ export function createLexicalOpenDocumentRuntime({
       if (notes.length === 0) {
         return [];
       }
-      return $appendNewNotes(parent ? $getOrCreateChildList(parent) : $requireRootContentList(), notes);
+      if (parent) {
+        return $appendNewNotes($getOrCreateChildList(parent), notes);
+      }
+      const placeholder = $getDocumentPlaceholder();
+      const noteIds = $appendNewNotes($requireRootContentList(), notes);
+      placeholder?.remove();
+      return noteIds;
     });
 
   const refresh = () => {

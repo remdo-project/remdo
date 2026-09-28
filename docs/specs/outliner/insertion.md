@@ -71,7 +71,10 @@ text makes the append
 - The parent's existing child list keeps its type. A missing child list,
   including one created for a described note without a described list type,
   takes the type of the list containing its parent.
-- Focus and selection are unchanged.
+- Appending top-level notes to a document whose only editor note is an
+  [empty leaf note](./note-model.md#definitions) without a body replaces that
+  note, and a caret in it moves to the first appended note. Focus and selection
+  are otherwise unchanged.
 - The append is one local update, so undo never removes part of it.
 
 ## Future

@@ -77,8 +77,8 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const read = await client.callTool({ name: 'read_document', arguments: { documentId: created.documentId } });
     const [outline] = read.content as Array<{ text: string }>;
-    expect(outline!.text).toContain(`Document: ${noteUrl(created.documentId)}`);
-    expect(outline!.text).toContain(`- [Summary](${noteUrl(summary!.noteAddress)})`);
+    expect(outline!.text.startsWith(`Document: ${noteUrl(created.documentId)}\n\n- [Summary](${noteUrl(summary!.noteAddress)})`))
+      .toBe(true);
     expect(outline!.text).toMatch(/\n {2}- \[Decision\]\(/);
 
     const listed = (await call(client, 'list_documents')).value as Array<{ documentId: string }>;

@@ -1006,6 +1006,29 @@ describe('lexical open document', () => {
       expect(openDocument.noteRef(summary!).getChildren().map((note) => note.getText())).toEqual(['Done', 'Open']);
     });
 
+    it('replaces an empty document placeholder with appended top-level notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
+      await remdo.mutate(() => $setSingleNoteDocument('blank', ''));
+      await placeCaretAtNote(remdo, 'blank');
+
+      const [first, second] = await remdo.openDocument.root.appendChildren([{ text: 'First' }, { text: 'Second' }]);
+
+      expect(remdo).toMatchOutline([{ noteId: first!, text: 'First' }, { noteId: second!, text: 'Second' }]);
+      expect(remdo).toMatchSelection({ state: 'caret', note: first! });
+    });
+
+    it('keeps a sole empty note that has a body or receives the append', meta({ fixture: 'flat' }), async ({ remdo }) => {
+      await remdo.mutate(() => $setSingleNoteDocument('blank', ''));
+      const [child] = await remdo.openDocument.noteRef('blank').appendChildren([{ text: 'Child' }]);
+      expect(remdo).toMatchOutline([{ noteId: 'blank', children: [{ noteId: child!, text: 'Child' }] }]);
+
+      await remdo.mutate(() => {
+        $setSingleNoteDocument('blank', '');
+        $addNoteBody($findNoteById('blank')!).append($createTextNode('details'));
+      });
+      const [appended] = await remdo.openDocument.root.appendChildren([{ text: 'Appended' }]);
+      expect(remdo.openDocument.root.getChildren().map((note) => note.getId())).toEqual(['blank', appended]);
+    });
+
     it('notifies a subscriber of the parent when its children change', meta({ fixture: 'tree' }), async ({ remdo }) => {
       const parent = remdo.openDocument.noteRef('note2');
       const listener = vi.fn();
