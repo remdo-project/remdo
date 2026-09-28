@@ -161,9 +161,9 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
       socket = opened;
       let retired = false;
       const reopen = () => {
-        clearTimeout(silenceTimer);
         if (stopped || retired) return;
         retired = true;
+        clearTimeout(silenceTimer);
         reopenTimer = setTimeout(open, reopenDelay);
         reopenDelay = Math.min(reopenDelay * 2, MAX_REOPEN_DELAY_MS);
       };

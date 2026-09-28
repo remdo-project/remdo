@@ -425,6 +425,20 @@ describe('document-list change stream', () => {
     expect(FakeWebSocket.opened).toHaveLength(2);
   });
 
+  it('keeps watching a replacement stream when the replaced one reports its close late', async () => {
+    vi.useFakeTimers();
+    watchedAccount(['Draft']);
+    const replaced = FakeWebSocket.opened[0]!;
+    replaced.connect();
+    replaced.close = () => { replaced.readyState = FakeWebSocket.CLOSED; };
+    await vi.advanceTimersByTimeAsync(75_000 + 1000);
+    FakeWebSocket.opened[1]!.connect();
+    replaced.dispatchEvent(new Event('close'));
+
+    await vi.advanceTimersByTimeAsync(75_000 + 1000);
+    expect(FakeWebSocket.opened).toHaveLength(3);
+  });
+
   it('reopens a closed stream after a growing delay', async () => {
     vi.useFakeTimers();
     watchedAccount(['Draft']);
