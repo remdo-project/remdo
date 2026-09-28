@@ -16,6 +16,7 @@ import { IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
 import { createMountedLexicalEditor, getNoteKey, meta, placeCaretAtNote, selectNoteRange, typeText } from '#tests';
 import { editorConfig } from '#client/editor/runtime/config';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
+import { $addNoteBody } from '#client/editor/features/note-body/note-body-ops';
 import {
   DELETE_SELECTED_NOTES_COMMAND,
   INDENT_NOTES_COMMAND,
@@ -230,7 +231,7 @@ describe('lexical open document', () => {
     await waitFor(() => expect(runtime.openDocument.noteRef('note2').getFolded()).toBe(true));
   });
 
-  it('reads addressed-note values without subscribing', meta({ fixture: 'tree' }), ({ remdo }) => {
+  it('reads addressed-note values without subscribing', meta({ fixture: 'tree' }), async ({ remdo }) => {
     const runtime = createLexicalOpenDocumentRuntime({
       editor: remdo.editor,
       docId: remdo.getCollabDocId(),
@@ -242,7 +243,14 @@ describe('lexical open document', () => {
     const note = runtime.openDocument.noteRef('note2');
 
     expect(note.getText()).toBe('note2');
+    expect(note.getBody()).toBeNull();
     expect(note.getFolded()).toBe(false);
+
+    await remdo.mutate(() => {
+      $addNoteBody($findNoteById('note2')!).append($createTextNode('details'));
+    });
+    expect(note.getText()).toBe('note2');
+    expect(note.getBody()).toBe('details');
   });
 
   it('rejects search until the runtime starts and the source is ready', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -447,6 +455,15 @@ describe('lexical open document', () => {
     });
     await waitFor(() => {
       expect(note.getFolded()).toBe(true);
+      expect(listener).toHaveBeenCalledOnce();
+    });
+
+    listener.mockClear();
+    await remdo.mutate(() => {
+      $addNoteBody($findNoteById('note2')!).append($createTextNode('details'));
+    });
+    await waitFor(() => {
+      expect(note.getBody()).toBe('details');
       expect(listener).toHaveBeenCalledOnce();
     });
   });

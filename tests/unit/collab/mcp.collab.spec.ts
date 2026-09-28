@@ -58,7 +58,7 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('creates a document, appends an outline, and has it stored when the tool returns', async () => {
     const client = await connect(await delegatedToken());
     const { tools } = await client.listTools();
-    expect(tools.map(({ name }) => name).sort()).toEqual(['append_children', 'create_document', 'list_documents']);
+    expect(tools.map(({ name }) => name).sort()).toEqual(['append_children', 'create_document', 'list_documents', 'read_document']);
 
     const created = (await call(client, 'create_document', { title: 'Conversation' })).value as { documentId: string };
     const appended = await call(client, 'append_children', {
@@ -72,6 +72,13 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const stored = await storedText(created.documentId);
     expect(stored).toContain('Summary');
     expect(stored).toContain('Decision');
+
+    const read = await client.callTool({ name: 'read_document', arguments: { documentId: created.documentId } });
+    const [outline] = read.content as Array<{ text: string }>;
+    const url = (address: string) => new URL(`/n/${address}`, config.env.APP_ORIGIN).href;
+    expect(outline!.text).toContain(`Document: ${url(created.documentId)}`);
+    expect(outline!.text).toContain(`- [Summary](${url(summary!.noteAddress)})`);
+    expect(outline!.text).toMatch(/\n {2}- \[Decision\]\(/);
 
     const listed = (await call(client, 'list_documents')).value as Array<{ documentId: string }>;
     expect(listed.map(({ documentId }) => documentId)).toContain(created.documentId);
@@ -91,6 +98,8 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const client = await connect(await delegatedToken());
     const appended = await call(client, 'append_children', { parent: 'missingdoc', notes: [{ text: 'Lost' }] });
     expect(appended.isError).toBe(true);
+    const read = await client.callTool({ name: 'read_document', arguments: { documentId: 'missingdoc' } });
+    expect(read.isError).toBe(true);
     const malformed = await call(client, 'append_children', { parent: 'missingdoc_', notes: [{ text: 'Lost' }] });
     expect(malformed.isError).toBe(true);
   });

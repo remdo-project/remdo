@@ -12,16 +12,19 @@ inferring one from a favicon.
 
 ## Tools
 
-The server exposes the [open document](../outliner/open-document.md) and
-[user data](../outliner/user-data.md) reads and operations that act without a
-viewer, excluding observation and capability reads, as tools. Each tool is named
-after what it delegates to, whose owner defines its behavior.
+The server exposes tools that list and create the user's documents, read a
+document, and append notes. A tool delegating to an
+[open document](../outliner/open-document.md) or
+[user data](../outliner/user-data.md) operation is named after it, and that
+operation's owner defines its behavior.
 
 - A tool addresses a document by its
   [`documentId`](../outliner/note-ids.md#definitions), which also addresses the
   document root, and an editor note by its
   [`noteAddress`](../outliner/note-ids.md#global-addresses). Results that
   identify documents or notes include their URLs.
+- Reading a document returns every editor note in document order with its
+  nesting, content text, checked state, list type, body text, and URL.
 - Each tool declares a title and whether it only reads or changes the user's
   data, so clients can require confirmation before changes.
 - A failed tool call returns a tool error naming its cause.
