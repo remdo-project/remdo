@@ -56,6 +56,10 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
   // Sharing the collaboration path keeps every gateway and proxy rule routing it.
   async function openDocumentListSocket(request: IncomingMessage, socket: Duplex, head: Buffer) {
     const reject = (status: string) => socket.end(`HTTP/1.1 ${status}\r\nConnection: close\r\n\r\n`);
+    // Nothing else listens until the upgrade completes, so a client reset while
+    // the session is checked would otherwise crash the hub.
+    const ignoreReset = () => {};
+    socket.on('error', ignoreReset);
     let session: Awaited<ReturnType<typeof requestDjango>>;
     try {
       session = await requestDjango(new URL('/internal/collaboration/session', apiOrigin), {
@@ -71,6 +75,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
       return;
     }
     const { userId } = JSON.parse(session.body.toString()) as { userId: string };
+    socket.off('error', ignoreReset);
     documentListServer.handleUpgrade(request, socket, head, (listener) => {
       const listeners = documentListSockets.get(userId) ?? new Set();
       documentListSockets.set(userId, listeners);

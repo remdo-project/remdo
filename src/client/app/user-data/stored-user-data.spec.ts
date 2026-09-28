@@ -384,6 +384,23 @@ describe('document-list change stream', () => {
     await vi.waitFor(() => expect(title()).toBe('Renamed while offline'));
   });
 
+  it('rereads a listing already in flight when the stream connects', async () => {
+    const runtime = account();
+    const staleListing = deferred<Response>();
+    let listings = 0;
+    documentRequests(() => listings++ === 0
+      ? staleListing.promise
+      : Response.json([{ id: 'shared', title: 'Renamed while disconnected', shareable: false }]));
+    runtimeCleanup.push(new QueryObserver(runtime.client, runtime.documentsQuery).subscribe(() => {}));
+    runtime.watchDocumentList();
+    await vi.waitFor(() => expect(listings).toBe(1));
+
+    FakeWebSocket.opened[0]!.connect();
+    staleListing.resolve(Response.json([{ id: 'shared', title: 'Draft', shareable: false }]));
+    await vi.waitFor(() => expect(runtime.userData.getDocuments().getById('shared')?.getText())
+      .toBe('Renamed while disconnected'));
+  });
+
   it('reopens a closed stream after a growing delay', async () => {
     vi.useFakeTimers();
     watchedAccount(['Draft']);

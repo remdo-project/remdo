@@ -148,6 +148,12 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     let stopped = false;
     let reopenTimer: ReturnType<typeof setTimeout> | undefined;
     let reopenDelay = MIN_REOPEN_DELAY_MS;
+    // A listing already in flight may predate the change; TanStack reuses rather
+    // than restarts one that has no data yet.
+    const reread = () => {
+      void client.cancelQueries({ queryKey: documentsQuery.queryKey })
+        .then(() => client.invalidateQueries({ queryKey: documentsQuery.queryKey }));
+    };
     const open = () => {
       const opened = new WebSocket(url);
       socket = opened;
@@ -158,11 +164,9 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
         }
         reopenDelay = MIN_REOPEN_DELAY_MS;
         // Changes made while disconnected send no notice.
-        void client.invalidateQueries({ queryKey: documentsQuery.queryKey }, { cancelRefetch: false });
+        reread();
       });
-      opened.addEventListener('message', () => {
-        void client.invalidateQueries({ queryKey: documentsQuery.queryKey });
-      });
+      opened.addEventListener('message', reread);
       opened.addEventListener('close', () => {
         if (stopped) return;
         reopenTimer = setTimeout(open, reopenDelay);

@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { createServer } from 'node:http';
+import { connect as connectSocket } from 'node:net';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
@@ -21,6 +22,7 @@ let savedDocuments: Map<string, Uint8Array>;
 let loaded: number;
 let authorizations: number;
 let sessionHeaders: Array<Record<string, string | string[] | undefined>>;
+let holdSession: Promise<void> | undefined;
 const runtimeCleanup: Array<() => void> = [];
 let stores: Uint8Array[];
 let persisted: Uint8Array;
@@ -35,6 +37,7 @@ const backend = createServer((request, response) => {
     expect(request.headers.host).toBe('remdo.test');
     if (request.url === '/internal/collaboration/session') {
       sessionHeaders.push(request.headers);
+      await holdSession;
       const userId = /user=(\w+)/u.exec(request.headers.cookie ?? '')?.[1];
       if (userId) response.writeHead(200).end(JSON.stringify({ userId }));
       else response.writeHead(403).end();
@@ -76,6 +79,7 @@ beforeEach(async () => {
   loaded = 0;
   authorizations = 0;
   sessionHeaders = [];
+  holdSession = undefined;
   stores = [];
   persisted = new Uint8Array();
   holdStore = undefined;
@@ -378,4 +382,19 @@ it('rejects a document-list socket without a session and a notice without the in
   const { status } = await openDocumentListSocket({ Origin: 'http://remdo.test' });
   expect(status).toBe(403);
   expect(await notifyDocumentListChanged(['alice'], { [INTERNAL_SECRET_HEADER]: 'wrong' })).toBe(403);
+});
+
+it('keeps serving after a client resets its document-list socket during the session check', async () => {
+  let releaseSession!: () => void;
+  holdSession = new Promise((resolve) => { releaseSession = resolve; });
+  const client = connectSocket(runtime.server.address.port, '127.0.0.1');
+  await once(client, 'connect');
+  client.write(`GET ${DOCUMENT_LIST_PATH} HTTP/1.1\r\nHost: remdo.test\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n`
+    + 'Sec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nCookie: user=alice\r\nOrigin: http://remdo.test\r\n\r\n');
+  await vi.waitFor(() => expect(sessionHeaders).toHaveLength(1));
+  client.resetAndDestroy();
+  releaseSession();
+
+  expect((await fetch(`${origin}/ready`)).status).toBe(200);
+  expect(await notifyDocumentListChanged(['alice'])).toBe(204);
 });
