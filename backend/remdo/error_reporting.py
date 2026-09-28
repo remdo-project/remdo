@@ -23,6 +23,9 @@ def scrub_event(event, hint):
 
 def start(dsn, release, environment):
     try:
+        # The gateway and Node servers read the variable verbatim.
+        if dsn != dsn.strip():
+            raise BadDsn("surrounding whitespace")
         parsed = Dsn(dsn)
     except BadDsn as error:
         raise ImproperlyConfigured("SENTRY_DSN must be a Sentry DSN.") from error

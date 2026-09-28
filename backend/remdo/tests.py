@@ -354,6 +354,10 @@ class ConfigurationTests(SimpleTestCase):
             ({"GOOGLE_CLIENT_SECRET": "secret"}, "must be set together"),
             ({"SENTRY_DSN": "not-a-dsn"}, "SENTRY_DSN must be a Sentry DSN"),
             (
+                {"SENTRY_DSN": "https://publickey@ingest.example/7 "},
+                "SENTRY_DSN must be a Sentry DSN",
+            ),
+            (
                 {"SENTRY_DSN": "https://public:secret@ingest.example/7"},
                 "SENTRY_DSN must not include a secret key",
             ),

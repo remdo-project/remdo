@@ -32,7 +32,7 @@ try:
 except ValueError as error:
     raise ImproperlyConfigured("APP_ORIGIN must be an exact HTTP(S) origin.") from error
 
-SENTRY_DSN = os.environ.get("SENTRY_DSN", "").strip()
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 if SENTRY_DSN:
     from . import error_reporting
 
