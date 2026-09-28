@@ -12,7 +12,7 @@ export function renderOutline(root: OpenDocumentParentNote, noteUrl: (noteId: No
       const checkbox = note.getChecked() ? ' [x]' : listType === 'check' ? ' [ ]' : '';
       lines.push(`${indent}${marker}${checkbox} [${escapeLabel(note.getText())}](${noteUrl(note.getId())})`);
       const childIndent = `${indent}${' '.repeat(marker.length + 1)}`;
-      for (const line of note.getBody()?.split('\n') ?? []) lines.push(line ? `${childIndent}${line}` : '');
+      for (const line of note.getBody()?.split('\n') ?? []) lines.push(`${childIndent}>${line ? ` ${line}` : ''}`);
       visit(note, note.getChildListType() ?? 'bullet', childIndent);
     }
   };

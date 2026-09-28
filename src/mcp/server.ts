@@ -106,7 +106,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     server.registerTool('read_document', {
       title: 'Read document',
       description: 'Read a whole RemDo document as a nested Markdown list. Each note links to its URL, '
-        + 'whose last path segment is the noteAddress; a note\'s body follows it as indented text.',
+        + 'whose last path segment is the noteAddress; a note\'s body follows it as an indented blockquote.',
       inputSchema: { documentId: z.string().describe('A documentId.') },
       annotations: { readOnlyHint: true, openWorldHint: false },
     }, ({ documentId }) => respond(async () => {
