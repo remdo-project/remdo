@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { NewNote } from '#note-sdk';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
@@ -28,13 +28,28 @@ const newNote: z.ZodType<NewNote> = z.lazy(() => z.object({
   children: z.array(newNote).optional(),
 }));
 
+const UNAVAILABLE = 'RemDo is unavailable. Try again later.';
+const UNCONFIRMED = 'RemDo did not confirm whether the request took effect. '
+  + 'Check with list_documents before retrying.';
+
+const additiveWrite = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } satisfies ToolAnnotations;
+
+function isJson(body: string): boolean {
+  try {
+    JSON.parse(body);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function rejection(status: number, body: string): string {
+  if (status >= 500) return UNAVAILABLE;
   switch (status) {
-    case 400: return `RemDo rejected the request as invalid: ${body}`;
+    case 400: return isJson(body) ? `RemDo rejected the request as invalid: ${body}` : 'RemDo rejected the request as invalid.';
     case 401: return 'RemDo no longer accepts this authorization. Reconnect RemDo.';
     case 403: return 'The user is not allowed to do this in RemDo.';
-    case 429: return 'RemDo is limiting requests. Try again later.';
-    default: return `RemDo is unavailable (${status}). Try again later.`;
+    default: return `RemDo could not complete the request (${status}).`;
   }
 }
 
@@ -65,6 +80,10 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       },
       body: body === undefined ? undefined : Buffer.from(JSON.stringify(body)),
       signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
+    }).catch((error: unknown) => {
+      // Once Django has a write, a timeout or dropped connection leaves its outcome unknown.
+      const unconfirmed = method !== 'GET' && (error as NodeJS.ErrnoException).code !== 'ECONNREFUSED';
+      throw new Error(unconfirmed ? UNCONFIRMED : UNAVAILABLE);
     });
     if (!response.ok) throw new Error(rejection(response.status, response.body.toString()));
     return JSON.parse(response.body.toString()) as unknown;
@@ -95,7 +114,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       title: 'Create document',
       description: 'Create a RemDo document owned by the user and return its documentId.',
       inputSchema: { title: z.string().describe('Document title.') },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: additiveWrite,
     }, ({ title }) => respond(async () => {
       const { id } = await callApi(authorization, '/api/documents', 'POST', { title }) as { id: string };
       return { documentId: id, title, url: documentUrl(id) };
@@ -106,7 +125,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       description: 'Append notes as the last children of a note (by noteAddress) '
         + 'or as the last top-level notes of a document (by documentId).',
       inputSchema: { parent: z.string().describe('A documentId or a noteAddress.'), notes: z.array(newNote) },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: additiveWrite,
     }, ({ parent, notes }) => respond(async () => {
       const ref = parseDocumentRef(parent);
       if (!ref) throw new Error('The parent is not a documentId or a noteAddress.');
