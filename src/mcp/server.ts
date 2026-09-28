@@ -29,6 +29,15 @@ const newNote: z.ZodType<NewNote> = z.lazy(() => z.object({
   children: z.array(newNote).optional(),
 }));
 
+const INSTRUCTIONS = [
+  'RemDo is an outliner: each document is a tree of single-line notes.',
+  'Save content as an outline, not prose: a few short topic titles at the top level, with supporting details nested '
+    + 'under the note they support, so each parent summarizes its children and the outline reads well when folded.',
+  'Keep one idea per note, put conclusions before discussion, and list next steps as a check list.',
+  'Give each topic or conversation its own descriptively titled document, and read a document before adding to it '
+    + 'or relying on it.',
+].join(' ');
+
 function rejection(status: number, body: string): string {
   switch (status) {
     case 400: return `RemDo rejected the request as invalid: ${body}`;
@@ -82,7 +91,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
         { src: new URL('/icon-192.png', appOrigin).href, mimeType: 'image/png', sizes: ['192x192'] },
         { src: new URL('/logo.svg', appOrigin).href, mimeType: 'image/svg+xml', sizes: ['any'] },
       ],
-    });
+    }, { instructions: INSTRUCTIONS });
 
     server.registerTool('list_documents', {
       title: 'List documents',
@@ -118,7 +127,8 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     server.registerTool('append_children', {
       title: 'Append notes',
       description: 'Append notes as the last children of a note (by noteAddress) '
-        + 'or as the last top-level notes of a document (by documentId).',
+        + 'or as the last top-level notes of a document (by documentId). Write an outline: short topic titles '
+        + 'at the top level, supporting details nested beneath, one idea per note.',
       inputSchema: { parent: z.string().describe('A documentId or a noteAddress.'), notes: z.array(newNote) },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     }, ({ parent, notes }) => respond(async () => {
