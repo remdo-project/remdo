@@ -1,6 +1,6 @@
 import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
-import type { LexicalEditor } from 'lexical';
+import type { EditorState, LexicalEditor, NodeKey } from 'lexical';
 import {
   $getNodeByKey,
   CAN_REDO_COMMAND,
@@ -44,7 +44,8 @@ import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { getNoteBodyText } from '#client/editor/outline/selection/body-region';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getNestedList, isWithinBoundary, noteHasChildren } from '#client/editor/outline/selection/tree';
-import { $getChildNoteIds, $requireRootContentList } from '#client/editor/outline/schema';
+import { forEachContentItemInOutline } from '#client/editor/outline/list-traversal';
+import { $getChildNoteIds, $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';
 import { $resolveViewRoot, subscribeViewRoot } from '#client/editor/outline/view-root';
 import { collectLexicalDocumentSearchResults } from './lexical-document-search';
 import { $appendNewNotes, hasLineBreak } from './lexical-note-insertion';
@@ -166,12 +167,29 @@ export function createLexicalOpenDocumentRuntime({
     return list ? $getChildNoteIds(list) : [];
   };
 
+  // Reading a whole document addresses every note, so each lookup must not walk the outline.
+  let noteKeyIndex: { state: EditorState; keys: Map<NoteId, NodeKey> } | null = null;
+  const $findIndexedNote = (state: EditorState, noteId: NoteId): ListItemNode | null => {
+    if (noteKeyIndex?.state !== state) {
+      const keys = new Map<NoteId, NodeKey>();
+      forEachContentItemInOutline($requireRootContentList(), (item) => {
+        const itemNoteId = $requireContentItemNoteId(item);
+        if (!keys.has(itemNoteId)) keys.set(itemNoteId, item.getKey());
+      });
+      noteKeyIndex = { state, keys };
+    }
+    const key = noteKeyIndex.keys.get(noteId);
+    const note = key === undefined ? null : $getNodeByKey(key);
+    return $isListItemNode(note) ? note : null;
+  };
+
   const readAddressedNote = (noteId: NoteId): AddressedNoteValues | null => {
     if (!started || disposed || !sourceReady) {
       return null;
     }
-    return editor.getEditorState().read(() => {
-      const note = $findNoteById(noteId);
+    const state = editor.getEditorState();
+    return state.read(() => {
+      const note = $findIndexedNote(state, noteId);
       if (!note) return null;
       return {
         folded: $isNoteFolded(note),
