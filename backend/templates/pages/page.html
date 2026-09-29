@@ -5,7 +5,7 @@
   <link rel="canonical" href="{{ canonical }}">
 {% endblock %}
 {% block body %}
-  {% if request.path == '/privacy/' %}
+  {% if request.path == '/privacy/' or request.path == '/terms/' %}
     <div class="remdo-legal">
       <a class="remdo-legal-skip" href="#legal-document">Skip to content</a>
       <header class="remdo-legal-header">
@@ -19,8 +19,8 @@
         <footer class="remdo-legal-footer">
           <span>© {% now "Y" %} RemDo</span>
           <nav aria-label="Legal">
-            <a href="/privacy/" aria-current="page">Privacy</a>
-            <a href="/terms/">Terms</a>
+            <a href="/privacy/"{% if request.path == '/privacy/' %} aria-current="page"{% endif %}>Privacy</a>
+            <a href="/terms/"{% if request.path == '/terms/' %} aria-current="page"{% endif %}>Terms</a>
           </nav>
         </footer>
       </main>
