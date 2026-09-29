@@ -85,7 +85,14 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('creates a document, appends an outline, and has it stored when the tool returns', async () => {
     const client = await connect(await delegatedToken());
     const { tools } = await client.listTools();
-    expect(tools.map(({ name }) => name).sort()).toEqual(['append_children', 'create_document', 'list_documents', 'read_document']);
+    expect(tools.map(({ name }) => name).sort()).toEqual([
+      'append_children',
+      'create_document',
+      'list_documents',
+      'read_document',
+      'rename_document',
+      'set_child_list_type',
+    ]);
 
     const created = (await call(client, 'create_document', { title: 'Conversation' })).value as { documentId: string };
     const appended = await call(client, 'append_children', {
@@ -100,7 +107,7 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(stored).toContain('Summary');
     expect(stored).toContain('Decision');
 
-    const read = await client.callTool({ name: 'read_document', arguments: { documentId: created.documentId } });
+    const read = await client.callTool({ name: 'read_document', arguments: { target: created.documentId } });
     const [outline] = read.content as Array<{ text: string }>;
     expect(outline!.text.startsWith(`Document: ${noteUrl(created.documentId)}\n\n- [Summary](${noteUrl(summary!.noteAddress)})`))
       .toBe(true);
@@ -135,18 +142,74 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('reads a new document without storing or linking its generated note', async () => {
     const client = await connect(await delegatedToken());
     const { documentId } = (await call(client, 'create_document', { title: 'Untouched' })).value as { documentId: string };
-    const read = await client.callTool({ name: 'read_document', arguments: { documentId } });
+    const read = await client.callTool({ name: 'read_document', arguments: { target: documentId } });
     expect(read.isError).toBeFalsy();
     const [outline] = read.content as Array<{ text: string }>;
     expect(outline!.text).toBe(`Document: ${noteUrl(documentId)}\n\n- `);
     expect(await storedText(documentId)).toBe('');
   });
 
+  it('reads one note with its descendants and cuts a read off at the depth limit', async () => {
+    const client = await connect(await delegatedToken());
+    const { documentId } = (await call(client, 'create_document', { title: 'Depth' })).value as { documentId: string };
+    const appended = await call(client, 'append_children', {
+      parent: documentId,
+      notes: [{ text: 'Other' }, { text: 'Topic', children: [{ text: 'Detail', children: [{ text: 'Fine print' }] }] }],
+    });
+    const [, topic] = appended.value as Array<{ noteAddress: string }>;
+    const read = async (args: Record<string, unknown>) => {
+      const response = await client.callTool({ name: 'read_document', arguments: args });
+      return (response.content as Array<{ text: string }>)[0]!.text.split('\n\n')[1];
+    };
+
+    expect(await read({ target: topic!.noteAddress })).toMatch(
+      /^- \[Topic\]\([^)]+\)\n {2}- \[Detail\]\([^)]+\)\n {4}- \[Fine print\]\([^)]+\)$/,
+    );
+    expect(await read({ target: topic!.noteAddress, depth: 2 })).toMatch(
+      /^- \[Topic\]\([^)]+\)\n {2}- \[Detail\]\([^)]+\) \*\(1 child not shown\)\*$/,
+    );
+    expect(await read({ target: documentId, depth: 1 })).toMatch(
+      /^- \[Other\]\([^)]+\)\n- \[Topic\]\([^)]+\) \*\(1 child not shown\)\*$/,
+    );
+    const missingNote = await client.callTool({ name: 'read_document', arguments: { target: `${documentId}_nosuchnote` } });
+    expect(missingNote.isError).toBe(true);
+  });
+
+  it('renames a document', async () => {
+    const client = await connect(await delegatedToken());
+    const { documentId } = (await call(client, 'create_document', { title: 'Draft' })).value as { documentId: string };
+
+    const renamed = await call(client, 'rename_document', { documentId, title: 'Final' });
+    expect(renamed.value).toEqual({ documentId, title: 'Final', url: noteUrl(documentId) });
+
+    const listed = (await call(client, 'list_documents')).value as Array<{ documentId: string; title: string }>;
+    expect(listed.find((document) => document.documentId === documentId)?.title).toBe('Final');
+  });
+
+  it('converts the list holding a note\'s children and refuses a note without children', async () => {
+    const client = await connect(await delegatedToken());
+    const { documentId } = (await call(client, 'create_document', { title: 'Checklist' })).value as { documentId: string };
+    const appended = await call(client, 'append_children', {
+      parent: documentId,
+      notes: [{ text: 'Trip', children: [{ text: 'Passport' }] }, { text: 'Visa' }],
+    });
+    const [trip, visa] = appended.value as Array<{ noteAddress: string }>;
+
+    const converted = await call(client, 'set_child_list_type', { noteAddress: trip!.noteAddress, listType: 'check' });
+    expect(converted).toMatchObject({ isError: false, value: { noteAddress: trip!.noteAddress, listType: 'check' } });
+
+    const read = await client.callTool({ name: 'read_document', arguments: { target: documentId } });
+    expect((read.content as Array<{ text: string }>)[0]!.text).toMatch(/\n {2}- \[ \] \[Passport\]\(/);
+
+    const refused = await call(client, 'set_child_list_type', { noteAddress: visa!.noteAddress, listType: 'number' });
+    expect(refused).toEqual({ isError: true, value: 'Only a note with children has a child list.' });
+  });
+
   it('reports an unavailable document as a tool error', async () => {
     const client = await connect(await delegatedToken());
     const appended = await call(client, 'append_children', { parent: 'missingdoc', notes: [{ text: 'Lost' }] });
     expect(appended.isError).toBe(true);
-    const read = await client.callTool({ name: 'read_document', arguments: { documentId: 'missingdoc' } });
+    const read = await client.callTool({ name: 'read_document', arguments: { target: 'missingdoc' } });
     expect(read.isError).toBe(true);
     const malformed = await call(client, 'append_children', { parent: 'missingdoc_', notes: [{ text: 'Lost' }] });
     expect(malformed.isError).toBe(true);

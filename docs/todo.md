@@ -241,13 +241,13 @@ Decisions requiring a contract owner's judgement:
 Goal: a Claude web custom connector that saves a conversation outline into a
 RemDo document, minimal but useful for real work.
 
-- The [MCP server](specs/integrations/mcp.md) lets Claude list, create, and
-  read documents and append notes. Let it adjust documents next: set a note's
-  content text and delete a note, which first need
-  [open document](specs/outliner/open-document.md) operations addressing a note.
-  Appending cannot add a body, although reading returns bodies.
-- Reading renders top-level notes as a bullet list because the open document
-  does not expose the document root's list type.
+- Let the [MCP server](specs/integrations/mcp.md) set a note's content text
+  and delete a note, which first need [open document](specs/outliner/open-document.md)
+  operations addressing a note. Appending cannot add a body, although reading
+  returns bodies.
+- Reading renders top-level notes, and the addressed note of a subtree read, as
+  bullet-list items because the open document exposes neither the document
+  root's list type nor the type of the list containing a note.
 - Expose search once server-side search spans a user's documents; searching a
   single document adds little over reading it whole.
 - **Headless append failure modes.** `append_children` never settles while
