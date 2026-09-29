@@ -75,6 +75,21 @@ describe('document route', () => {
     });
   });
 
+  it('starts each opened document with the header as the menu target', async () => {
+    renderDocumentRoute();
+
+    fireEvent.focus(await screen.findByTestId('editor-input-probe'));
+    expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'note');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Test Document' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'testDoc');
+    });
+    expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'header');
+  });
+
   it('returns to the document URL when zoom is cleared', async () => {
     const router = renderDocumentRoute(createDocumentPath('testDoc'));
 

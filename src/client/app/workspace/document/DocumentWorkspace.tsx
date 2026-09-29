@@ -46,7 +46,14 @@ export default function DocumentWorkspace({
 }) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
-  const [menuTarget, setMenuTarget] = useState<'header' | 'note'>('header');
+  const [menuTargetState, setMenuTargetState] = useState<{ docId: string; target: 'header' | 'note' }>({
+    docId,
+    target: 'header',
+  });
+  const menuTarget = menuTargetState.docId === docId ? menuTargetState.target : 'header';
+  const setMenuTarget = (target: 'header' | 'note') => {
+    setMenuTargetState((current) => current.docId === docId && current.target === target ? current : { docId, target });
+  };
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
   const { requestZoomNoteId } = useEditorViewActions();
   const zoomPath = useZoomPath();
