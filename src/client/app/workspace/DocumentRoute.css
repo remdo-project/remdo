@@ -172,8 +172,9 @@
 }
 
 /* One menu button shows at a time: the document header's or the note strip's,
-   whichever the pointer or caret last moved to. */
-.document-editor-shell[data-menu-target='header'] .note-controls-layer {
+   whichever the pointer or caret last moved to. The strip's fold toggle keeps
+   following its own rule. */
+.document-editor-shell[data-menu-target='header'] .note-controls__button--menu {
   visibility: hidden;
 }
 

@@ -12,10 +12,23 @@ test.describe('Document-root header', () => {
     await page.getByRole('heading', { level: 1 }).hover();
     await expect(headerButton).toHaveCSS('opacity', '1');
     await expect(noteButton).toBeHidden();
+    await expect(editorLocator(page).locator('.note-controls__button--expanded')).toBeVisible();
 
     await editorLocator(page).locator('[data-lexical-text="true"]', { hasText: 'note2' }).first().hover();
     await expect(noteButton).toBeVisible();
     await expect(headerButton).toHaveCSS('opacity', '0');
+  });
+
+  test('keeps the header target while the pointer crosses blank editor space', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+    const headerButton = page.getByRole('button', { name: /^Actions for/u });
+    const box = (await editorLocator(page).locator('.editor-input').boundingBox())!;
+
+    await page.getByRole('heading', { level: 1 }).hover();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height - 4);
+
+    await expect(headerButton).toHaveCSS('opacity', '1');
+    await expect(editorLocator(page).locator('.note-controls__button--menu')).toBeHidden();
   });
 
   test('returns the menu target to the note strip on editor focus and typing', async ({ page, editor }) => {

@@ -148,7 +148,9 @@ export default function DocumentWorkspace({
           : 'document-editor-pane'}
         onFocus={() => { setMenuTarget('note'); }}
         onKeyDown={() => { setMenuTarget('note'); }}
-        onPointerMove={() => { setMenuTarget('note'); }}
+        onPointerMove={(event) => {
+          if (event.target instanceof Element && event.target.closest('li.list-item')) setMenuTarget('note');
+        }}
       >
         <Editor
           key={docId}
