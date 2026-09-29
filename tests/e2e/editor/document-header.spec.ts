@@ -1,5 +1,5 @@
 import { expect, isolatedTest as test } from '#editor/fixtures';
-import { editorLocator, homeView } from '#editor/locators';
+import { documentShell, editorLocator, homeView } from '#editor/locators';
 import { openNoteMenu } from './_support/menu';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
@@ -55,7 +55,7 @@ test.describe('Document-root header', () => {
     await page.getByRole('heading', { level: 1 }).hover();
 
     await menu.expectOpen();
-    await expect(page.locator('.document-editor-shell')).toHaveAttribute('data-menu-target', 'note');
+    await expect(documentShell(page)).toHaveAttribute('data-menu-target', 'note');
   });
 
   test('returns the menu target to the note strip on editor focus and typing', async ({ page, editor }) => {
