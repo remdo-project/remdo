@@ -121,6 +121,7 @@ export default function DocumentWorkspace({
           onPendingDocumentImportError={handleImportError}
         />
       </div>
+      <p className="document-editor-shortcut-hint">Press Shift twice for note actions</p>
     </div>
   );
 }

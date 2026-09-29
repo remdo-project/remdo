@@ -1,20 +1,12 @@
-/* The document fills the width of the app-shell card — no reading-column cap. A
-   cap would manufacture empty margins to solve a measure problem we don't yet
-   have: an outliner is scanned more than read, indentation shortens nested
-   notes, and the wide space is better spent by real components (a sidebar, a
-   second doc pane) once they exist — at which point the document narrows because
-   something is there, not because of an artificial limit. The card surface and
-   elevation come from the page shell; the document body just adds its own inset. */
+/* The document uses the full width of the flat workspace. */
 .document-editor-shell {
-  padding-block: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 97px);
+  padding: 24px 80px 28px;
 }
 
-/* The document label / search / actions read as a quiet strip. A subtle inset
-   hairline — inset to the editor's `xl` body padding so it sits over the note
-   column, stopping short of the card edges — separates it from the outline
-   without the heaviness of a full-width divider. The `xl` inline padding matches
-   the editor pane and search results (the shared body inset), keeping the label
-   row column-aligned with the notes. */
+/* Breadcrumb, search, and save state share a full-width document strip. */
 .document-header {
   position: relative;
   padding: 0 var(--mantine-spacing-xl) var(--mantine-spacing-sm);
@@ -144,6 +136,9 @@
   min-width: 10rem;
   max-height: 16rem;
   overflow: auto;
+  border-color: #424242;
+  background: #242424;
+  color: #c9c9c9;
 }
 
 .document-header-doc-dropdown [role='option'] {
@@ -175,6 +170,7 @@
   border: none;
   border-radius: 0;
   background: transparent;
+  padding: 0;
 }
 
 .document-editor-pane--hidden {
@@ -570,3 +566,151 @@ main.document-route-container:has(.document-home) {
     max-width: none;
   }
 }
+
+/* Workspace paint overrides the legacy editor chrome while keeping its controls. */
+/* stylelint-disable no-descending-specificity */
+main.document-route-container:has(.document-editor-shell) {
+  padding-block: 0;
+}
+
+.document-editor-shell .document-header {
+  flex: 0 0 auto;
+  min-height: 65px;
+  margin: 0 0 24px;
+  padding: 0 0 24px;
+  border-bottom: 1px solid #424242;
+}
+
+.document-editor-shell .document-header::after {
+  display: none;
+}
+
+.document-editor-shell .document-header-breadcrumbs {
+  color: #828282;
+  font-size: 16px;
+  line-height: 25px;
+  letter-spacing: -0.1px;
+}
+
+.document-editor-shell .document-header-breadcrumbs button {
+  color: #828282;
+}
+
+.document-editor-shell .document-header-breadcrumbs li + li::before {
+  margin-inline: 12px;
+  color: #828282;
+}
+
+.document-editor-shell .document-header-doc-input {
+  color: #c9c9c9;
+}
+
+.document-editor-shell .document-header-doc-menu {
+  width: 20px;
+  height: 20px;
+  color: #c9c9c9;
+}
+
+.document-editor-shell .document-header-doc-combo:hover .document-header-doc-input {
+  text-decoration: none;
+}
+
+.document-editor-shell .document-header-actions {
+  gap: 24px;
+}
+
+.document-editor-shell .document-header-search {
+  width: 304px;
+  max-width: 304px;
+}
+
+.document-editor-shell .document-header-search .mantine-Input-input {
+  height: 40px;
+  padding-left: 40px;
+  border: 1px solid #424242;
+  border-radius: 3px;
+  background: #2e2e2e;
+  color: #c9c9c9;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.document-editor-shell .document-header-search .mantine-Input-input::placeholder {
+  color: #696969;
+}
+
+.document-editor-shell .document-header-search .mantine-Input-section,
+.document-editor-shell .document-header-status .editor-header {
+  color: #828282;
+}
+
+.document-header-doc-dropdown [role='option'][data-focused] {
+  background: #3b3b3b;
+}
+
+.document-editor-shell .document-search-results {
+  padding: 0 0 24px;
+}
+
+.document-editor-shell .document-search-results-item {
+  border-color: #424242;
+  background: #242424;
+  color: #c9c9c9;
+}
+
+.document-editor-shell .editor-root {
+  color: #c9c9c9;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  line-height: 28px;
+}
+
+.document-editor-shell .editor-root li.list-item:not(.list-nested-item) {
+  --list-line-height: 32px;
+  min-height: 32px;
+  padding-block: 2px;
+  line-height: 28px;
+}
+
+.document-editor-shell .editor-root li.list-item[data-note-checked='true'] {
+  color: #828282;
+}
+
+.document-editor-shell .editor-root .date-node {
+  padding: 0 8px;
+  border-radius: 3px;
+  background: rgb(9 146 104 / 45%);
+  color: #96f2d7;
+  font-size: 16px;
+  line-height: 25px;
+}
+
+.document-editor-shell .editor-root .date-node:hover {
+  background: rgb(9 146 104 / 60%);
+  color: #b5ffe9;
+}
+
+.document-editor-shortcut-hint {
+  margin: auto 0 0;
+  color: #828282;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+@media (max-width: 48em) {
+  .document-editor-shell {
+    padding: 24px 24px 40px;
+  }
+
+  .document-editor-shell .document-header {
+    min-height: 0;
+    padding-bottom: 16px;
+  }
+
+  .document-editor-shell .document-header-search {
+    width: 100%;
+    max-width: none;
+  }
+}
+/* stylelint-enable no-descending-specificity */

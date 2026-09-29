@@ -108,7 +108,7 @@ describe('document search', () => {
     renderDocumentRoute();
 
     const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-    expect(searchInput).toHaveAttribute('placeholder', 'Search');
+    expect(searchInput).toHaveAttribute('placeholder', 'Search document');
 
     searchInput.focus();
     await waitFor(() => {
@@ -117,7 +117,7 @@ describe('document search', () => {
 
     fireEvent.blur(searchInput);
     await waitFor(() => {
-      expect(searchInput).toHaveAttribute('placeholder', 'Search');
+      expect(searchInput).toHaveAttribute('placeholder', 'Search document');
     });
   });
 

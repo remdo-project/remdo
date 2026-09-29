@@ -41,14 +41,14 @@ export function DocumentSearchInput({ model }: { model: DocumentSearchModel }) {
       aria-expanded={model.searchModeActive}
       aria-haspopup="listbox"
       className="document-header-search remdo-interaction-surface"
-      leftSection={<IconSearch aria-hidden="true" size={14} />}
+      leftSection={<IconSearch aria-hidden="true" size={18} />}
       onBlur={model.handleSearchBlur}
       onChange={model.handleSearchChange}
       onCompositionEnd={model.handleSearchCompositionEnd}
       onCompositionStart={model.handleSearchCompositionStart}
       onFocus={model.handleSearchFocus}
       onKeyDown={model.handleSearchKeyDown}
-      placeholder={model.searchModeActive ? '' : 'Search'}
+      placeholder={model.searchModeActive ? '' : 'Search document'}
       ref={model.searchInputRef}
       role="combobox"
       size="xs"
