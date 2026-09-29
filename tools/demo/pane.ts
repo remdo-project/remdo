@@ -212,6 +212,12 @@ export class Pane {
       (outline) => flatten(outline).some((note) => note.text === parent && (note.children ?? []).some(({ text }) => text === child)));
   }
 
+  /** Waits until the note `parent` has at least one note under it. */
+  async expectChildren(parent: string): Promise<void> {
+    await waitForOutline(this.page, `notes under "${parent}"`,
+      (outline) => flatten(outline).some((note) => note.text === parent && (note.children?.length ?? 0) > 0));
+  }
+
   async noteCount(): Promise<number> {
     return flatten(await readOutline(this.page)).length;
   }

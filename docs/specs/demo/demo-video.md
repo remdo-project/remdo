@@ -41,13 +41,14 @@ in this order. Conversations with Claude use RemDo's
 part of the video rather than as any Claude app; their end states constrain
 which notes exist, never Claude's wording.
 
-- **Plan with Claude.** The video opens on an empty plan document; a plain
-  request asks Claude to fill it, and its notes appear there live beside the
-  conversation. End state: the document holds Claude's plan.
-- **Make it yours.** A step with details is added by keyboard, and the whole
-  plan folds to its top-level steps, staying folded apart from the step the
-  teammate later unfolds to work in.
-  End state: the details sit under that step.
+- **Outline it.** The video opens on an empty plan document, and the viewer
+  types its top-level steps and the details of the last one by keyboard. End
+  state: the document holds that outline.
+- **Ask Claude.** One message at a time, a conversation asks Claude to fill in
+  two of the steps, and its notes appear under each step live beside the
+  conversation. End state: both steps hold notes.
+- **Big picture.** The whole plan folds to its top-level steps, staying folded
+  apart from the step the teammate later unfolds to work in.
 - **Share it.** The demo account shares the plan with a second account from
   the document's own menu. End state: the second account is among the plan's recipients.
 - **Work together.** Both accounts edit the plan side by side, each seeing the

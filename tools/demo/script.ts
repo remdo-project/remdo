@@ -51,34 +51,44 @@ export interface Show {
 }
 
 export async function script({ main, ben, chat, chapter, closingCard, split, unsplit, pause }: Show): Promise<void> {
-  await chapter('Plan with Claude', 'Ask in plain words; watch Claude write into RemDo');
-  await chat.open();
-  await split(chat);
-  await chat.ask('I\'m filming a short demo of RemDo. Jot down the steps to get it ready in my Demo video doc.');
-  await main.expectMoreNotesThan(1);
-  await pause(pacing.readReply);
-  await unsplit();
-
-  await chapter('Make it yours', 'Add a step and its details by keyboard');
-  await main.toDocumentEnd();
+  await chapter('Outline it', 'Sketch the plan without leaving the keyboard');
+  await main.type('Prepare the demo');
   await main.newNote();
-  await main.toTopLevel();
+  await main.type('Record the demo');
+  await main.newNote();
   await main.type('Publish the demo video');
   await main.newNote();
   await main.indent();
   await main.type('Keep it keyboard-first');
   await main.newNote();
   await main.type('Show Claude and a teammate');
+  await main.expect(`
+    Prepare the demo
+    Record the demo
+    Publish the demo video
+      Keep it keyboard-first
+      Show Claude and a teammate
+  `);
+
+  await chapter('Ask Claude', 'Claude fills in steps, right where you are looking');
+  await chat.open();
+  await split(chat);
+  await chat.ask('Add a few steps under "Prepare the demo" in my Demo video doc.');
+  await main.expectChildren('Prepare the demo');
+  await pause('short');
+  await chat.ask('Now do the same for "Record the demo".');
+  await main.expectChildren('Record the demo');
+  await pause(pacing.readReply);
+  await unsplit();
+
+  await chapter('Big picture', 'Fold it down to the main steps');
+  await main.toDocumentEnd();
   await main.newNote();
+  await main.toTopLevel();
   await main.type('Fold it down to the big picture');
-  await main.outdent();
   await main.foldToTopLevel();
   await pause('long');
   await pause('long');
-  //await main.unfoldAll();
-  //await main.zoomIn();
-  //await pause('long');
-  //await main.zoomOut();
 
   await chapter('Share it', 'Invite a teammate to the plan');
   await main.share('ben@example.test');
