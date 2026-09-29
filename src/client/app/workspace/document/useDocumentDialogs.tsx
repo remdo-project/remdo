@@ -11,7 +11,7 @@ interface Target {
   trigger: HTMLButtonElement | null;
 }
 
-export function useDocumentDialogs(fallbackRef: { current: HTMLElement | null }) {
+export function useDocumentDialogs(fallbackRef: { current: HTMLElement | null }, onDeleted?: () => void) {
   const [target, setTarget] = useState<Target | null>(null);
   const restoredTriggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -46,7 +46,7 @@ export function useDocumentDialogs(fallbackRef: { current: HTMLElement | null })
     openRename: open('rename'),
     openShare: open('share'),
     documentDialog: target && {
-      delete: <DocumentDeleteDialog key={target.note.getId()} note={target.note} onClose={close} />,
+      delete: <DocumentDeleteDialog key={target.note.getId()} note={target.note} onClose={close} onDeleted={onDeleted} />,
       rename: <DocumentRenameDialog key={target.note.getId()} note={target.note} onClose={close} />,
       share: <DocumentShareDialog key={target.note.getId()} note={target.note} onClose={close} />,
     }[target.kind],

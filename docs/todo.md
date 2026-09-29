@@ -357,11 +357,11 @@ until accepted in their behavioral owners. Defer a command palette and action
 menus on every breadcrumb until improving the existing surfaces leaves a
 concrete unmet need.
 
-- **Location header and document actions.** Rename and the Home row menu ship;
-  the document-root header and its menu remain, then the
-  [persistent menu target](specs/outliner/menu.md#entry), which Home rows approximate with a
-  hover- and focus-revealed button in a reserved gutter. The
-  [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups) track the missing surfaces.
+- **Location header and document actions.** Rename, the Home row menu, and the
+  document-root header menu ship; the
+  [persistent menu target](specs/outliner/menu.md#entry) remains, which Home rows and
+  the header approximate with a hover- and focus-revealed button in a reserved
+  gutter. The [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups) track the missing surfaces.
 
 - **Zoomed-note location header.** Complete the rich editable header and its
   applicable note, children, and view actions, preserving the
@@ -396,7 +396,9 @@ concrete unmet need.
   them.
 
 - **Document deletion in open sessions.** [Document deletion](specs/access/access-control.md#document-deletion) ships from
-  Home row menus, but other sessions do not learn of it as specified. Django
+  Home row menus and the document-root header menu, and the deleting session
+  leaves for Home without the deletion notice, but other sessions do not learn
+  of it as specified. Django
   notifies the collaboration hub only of document-list changes; the hub closes
   a deleted document's connections only when its next store fails, and hub
   authorization maps a missing document to the same denial as refused access.

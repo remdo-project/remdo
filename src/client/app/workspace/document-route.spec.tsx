@@ -61,6 +61,20 @@ describe('document route', () => {
     });
   });
 
+  it('heads the document-root view with the full document name and hides the heading when zoomed', async () => {
+    const name = `Quarterly ${'planning '.repeat(8)}notes`;
+    const createdDocument = await getTestUserData().getDocuments().create(name);
+    renderDocumentRoute(createDocumentPath(createdDocument.getId()));
+
+    expect(await screen.findByRole('heading', { level: 1, name })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom note' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    });
+  });
+
   it('returns to the document URL when zoom is cleared', async () => {
     const router = renderDocumentRoute(createDocumentPath('testDoc'));
 

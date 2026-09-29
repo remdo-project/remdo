@@ -170,11 +170,9 @@ ships.
   (`document-switcher.spec.ts`, the picker cases in
   `document-toolbar.spec.tsx`/`document-route.spec.tsx`).
 
-The location headers are not yet built; the entries below track implementation
-gaps against their rules.
+The zoomed-note location header is not yet built; the entries below track
+implementation gaps against the location-header rules.
 
-- No document-root location header is rendered; the document name remains in
-  the breadcrumb picker, so rename is reachable only from a Home row menu.
 - Menu buttons do not share the [persistent active target](specs/outliner/menu.md#entry) across the document
   header, Home rows, and editor notes.
 - No zoomed-note location header is rendered: the zoom root remains the

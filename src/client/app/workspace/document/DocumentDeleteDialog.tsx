@@ -6,9 +6,11 @@ import { RemdoDialog } from '#client/ui/RemdoDialog';
 export function DocumentDeleteDialog({
   note,
   onClose,
+  onDeleted,
 }: {
   note: DocumentNote;
   onClose: () => void;
+  onDeleted?: () => void;
 }) {
   // Read once: the live note throws once its document leaves the list.
   const [name] = useState(() => note.getText());
@@ -21,6 +23,7 @@ export function DocumentDeleteDialog({
     try {
       await note.delete();
       onClose();
+      onDeleted?.();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could not delete the document.');
       setPending(false);

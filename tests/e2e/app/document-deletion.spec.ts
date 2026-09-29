@@ -29,3 +29,22 @@ test('owner deletes a document from its Home row after confirming', async ({ pag
   const listing = await page.request.get('/api/documents');
   expect((await listing.json() as Array<{ id: string }>).map((document) => document.id)).not.toContain(docId);
 });
+
+test('owner deletes the open document from its header and leaves for Home', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('group', { name: 'Current Server', exact: true })
+    .getByRole('button', { name: 'New Document', exact: true }).click();
+  await expect(page).toHaveURL(/\/n\/[A-Za-z0-9]+$/u);
+  const docId = new URL(page.url()).pathname.slice(3);
+  await ensureReady(page);
+
+  const heading = page.getByRole('heading', { level: 1 });
+  await heading.hover();
+  await page.getByRole('button', { name: /^Actions for/u }).click();
+  await page.getByRole('menuitem', { name: 'Delete…' }).click();
+  await page.getByRole('dialog', { name: /^Delete/u }).getByRole('button', { name: 'Delete', exact: true }).click();
+
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+  await expect(page.locator(`[data-home-document-ref="${docId}"]`)).toHaveCount(0);
+});
