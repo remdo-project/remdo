@@ -677,6 +677,26 @@ main.document-route-container:has(.document-editor-shell) {
   color: #828282;
 }
 
+.document-editor-shell .editor-root .note-body {
+  color: #828282;
+  font-size: 16px;
+  font-style: italic;
+  line-height: 24px;
+}
+
+.document-editor-shell .editor-root .text-underline {
+  text-decoration-thickness: auto;
+}
+
+.document-editor-shell .editor-root .text-code {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: #3b3b3b;
+  color: #c9c9c9;
+  font-size: 18px;
+  line-height: 28px;
+}
+
 .document-editor-shell .editor-root .date-node {
   padding: 0 8px;
   border-radius: 3px;
