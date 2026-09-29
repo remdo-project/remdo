@@ -1,18 +1,19 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { createUserDataRootNote } from '#note-sdk';
 import type { DocumentNote } from '#note-sdk';
 import { TestMantineProvider } from '#tests';
 import { DocumentMenu } from './DocumentMenu';
 
 const documentNote = (
   { canRename = false, canShareWith = false, canDelete = false } = {},
-): DocumentNote => ({
-  getId: () => 'doc-a',
-  getText: () => 'Ideas',
-  canRename: () => canRename,
-  canShareWith: () => canShareWith,
-  canDelete: () => canDelete,
-} as unknown as DocumentNote);
+): DocumentNote => createUserDataRootNote(
+  [{ id: 'doc-a', title: 'Ideas', shareable: canShareWith, deletable: canDelete }],
+  {
+    ...(canRename && { renameDocument: () => Promise.resolve() }),
+    ...(canDelete && { deleteDocument: () => Promise.resolve() }),
+  },
+).getDocuments().getById('doc-a')!;
 
 const openView = () => ({ zoomOut: vi.fn(), foldToLevel: vi.fn() });
 
