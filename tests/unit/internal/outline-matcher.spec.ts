@@ -119,6 +119,13 @@ const CASES: OutlineCase[] = [
     ],
   },
   {
+    fixture: 'tree-ordered-root',
+    outline: [
+      { noteId: 'note1', text: 'note1' },
+      { noteId: 'note2', text: 'note2', children: [ { noteId: 'note3', text: 'note3' } ] },
+    ],
+  },
+  {
     fixture: 'tree-complex',
     outline: [
       {

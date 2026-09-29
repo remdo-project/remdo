@@ -101,6 +101,9 @@ export default function DocumentWorkspace({
     setZoomNoteId: requestZoomNoteId,
   });
 
+  let activeMenuTarget: 'header' | 'note' = 'note';
+  if (zoomNoteId === null && documentNote) activeMenuTarget = search.searchModeActive ? 'header' : menuTarget;
+
   useEffect(() => {
     document.title = pageTitle;
     return () => {
@@ -111,7 +114,7 @@ export default function DocumentWorkspace({
   return (
     <div
       className="document-editor-shell"
-      data-menu-target={zoomNoteId === null && documentNote ? menuTarget : 'note'}
+      data-menu-target={activeMenuTarget}
       ref={shellRef}
     >
       <DocumentToolbar
@@ -159,7 +162,7 @@ export default function DocumentWorkspace({
         onFocus={() => { setMenuTarget('note'); }}
         onKeyDown={() => { setMenuTarget('note'); }}
         onPointerMove={(event) => {
-          const outline = event.currentTarget.querySelector('.editor-input > ul')?.getBoundingClientRect();
+          const outline = event.currentTarget.querySelector('.editor-input > :is(ul, ol)')?.getBoundingClientRect();
           if (outline && event.clientY >= outline.top && event.clientY <= outline.bottom) setMenuTarget('note');
         }}
       >

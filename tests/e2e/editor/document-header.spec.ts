@@ -20,6 +20,19 @@ test.describe('Document-root header', () => {
     await expect(headerButton).toHaveCSS('opacity', '0');
   });
 
+  test('hands the target to a hovered note in an ordered root list', async ({ page, editor }) => {
+    await editor.load('tree-ordered-root');
+    const headerButton = page.getByRole('button', { name: /^Actions for/u });
+    const noteButton = editorLocator(page).locator('.note-controls__button--menu');
+
+    await page.getByRole('heading', { level: 1 }).hover();
+    await expect(headerButton).toHaveCSS('opacity', '1');
+    await editorLocator(page).locator('[data-lexical-text="true"]', { hasText: 'note2' }).first().hover();
+
+    await expect(documentShell(page)).toHaveAttribute('data-menu-target', 'note');
+    await expect(noteButton).toBeVisible();
+  });
+
   test('keeps the header target while the pointer crosses blank editor space', async ({ page, editor }) => {
     await editor.load('tree-complex');
     const headerButton = page.getByRole('button', { name: /^Actions for/u });

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTestUserData } from '#tests';
 import { createDocumentPath } from '#document-routes';
@@ -87,6 +87,22 @@ describe('document route', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', second.getId());
+    });
+    expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'header');
+  });
+
+  it('targets the header while search hides the editor', async () => {
+    renderDocumentRoute(createDocumentPath('testDoc'));
+
+    fireEvent.focus(await screen.findByTestId('editor-input-probe'));
+    expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'note');
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    act(() => searchInput.focus());
+    fireEvent.change(searchInput, { target: { value: 'note' } });
+
+    await waitFor(() => {
+      expect(document.querySelector('.document-editor-pane--hidden')).not.toBeNull();
     });
     expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'header');
   });
