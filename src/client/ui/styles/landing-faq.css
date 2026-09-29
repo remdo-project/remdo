@@ -1,0 +1,97 @@
+.landing-faq {
+  padding-block: 32px 128px;
+  background: var(--landing-ivory);
+  color: var(--landing-ink);
+}
+.landing-faq h2 {
+  margin-bottom: 64px;
+  font: 400 62px/66px Tinos, Georgia, serif;
+  letter-spacing: -1.1px;
+  text-align: center;
+}
+.landing-faq-items {
+  max-width: 896px;
+  margin-inline: auto;
+  border-top: 1px solid #cec7c0;
+}
+.landing-faq-item {
+  padding-block: 24px;
+  border-bottom: 1px solid #cec7c0;
+}
+.landing-faq-question {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--landing-secondary);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 32px;
+  letter-spacing: -.2px;
+  text-align: left;
+  list-style: none;
+  cursor: pointer;
+}
+.landing-faq-question::-webkit-details-marker {
+  display: none;
+}
+.landing-faq-question:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 6px;
+}
+.landing-faq-icon {
+  flex: 0 0 24px;
+  color: var(--landing-secondary);
+  font-size: 22px;
+  line-height: 32px;
+  text-align: center;
+}
+.landing-faq-icon::before {
+  content: '+';
+}
+.landing-faq-item[open] .landing-faq-question,
+.landing-faq-item[data-expanded] .landing-faq-question {
+  color: var(--landing-ink);
+}
+.landing-faq-item[open] .landing-faq-icon::before,
+.landing-faq-item[data-expanded] .landing-faq-icon::before {
+  content: '−';
+}
+.landing-faq-answer {
+  padding-top: 16px;
+  color: var(--landing-secondary);
+  font-size: 16px;
+  line-height: 25px;
+  letter-spacing: -.1px;
+  text-align: left;
+}
+.landing-faq-panel {
+  height: var(--disclosure-panel-height);
+  overflow: clip;
+  transition: height 200ms ease-out;
+}
+@media (width <= 760px) {
+  .landing-faq {
+    padding-block: 32px 80px;
+  }
+  .landing-faq h2 {
+    margin-bottom: 40px;
+    font-size: 40px;
+    line-height: 44px;
+    letter-spacing: 0;
+  }
+  .landing-faq-question {
+    font-size: 18px;
+    line-height: 26px;
+    letter-spacing: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-faq-panel {
+    transition: none;
+  }
+}

@@ -17,6 +17,7 @@
     "src/mcp/main.ts!",
     // Django renders the app page that loads this Vite entry.
     "src/client/app/shell/main.tsx!",
+    "src/client/ui/landing/faq.tsx!",
     "playwright.docker.config.ts",
     // Browser tests import this fixture through Vite URLs inside page.evaluate.
     "tests/e2e/_support/local-persistence-browser.ts",

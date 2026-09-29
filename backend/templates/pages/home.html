@@ -1,12 +1,17 @@
 {% extends "base.html" %}
+{% load frontend %}
 {% block extra_head %}
   <meta name="description" content="RemDo is a keyboard-first collaborative outliner for organizing and connecting notes.">
   <link rel="canonical" href="{{ canonical }}">
   <script src="/landing/story-reveal.js" defer></script>
   <script src="/landing/connector.js" defer></script>
+  <script src="/landing/ending.js" defer></script>
+  {% landing_faq_script_url as faq_script %}
+  <script type="module" src="{{ faq_script }}"></script>
 {% endblock %}
 {% block body %}
 <div class="remdo-landing">
+ <div class="landing-page">
   <a class="landing-skip" href="#landing-main">Skip to content</a>
   <header class="landing-navigation landing-container">
     <a class="landing-wordmark" href="/" aria-label="RemDo home">RemDo</a>
@@ -77,15 +82,10 @@
       </div>
     </section>
     {% include "pages/landing/connector.html" %}
+    {% include "pages/landing/team.html" %}
+    {% include "pages/landing/faq.html" %}
   </main>
-  <footer class="remdo-footer landing-existing-footer landing-container">
-    <div class="remdo-footer-start">
-      <span>© {% now "Y" %} RemDo</span>
-      <nav aria-label="Footer" class="remdo-footer-links">
-        <a href="/about/">About</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a>
-        <a href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">Source</a>
-      </nav>
-    </div>
-  </footer>
+ </div>
+ {% include "pages/landing/ending.html" %}
 </div>
 {% endblock %}

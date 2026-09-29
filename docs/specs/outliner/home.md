@@ -28,6 +28,16 @@ keys. It does not connect accounts or send requests. Motion respects reduced
 motion preferences; cards never advance automatically. Without JavaScript,
 all four examples remain readable.
 
+The FAQ initially expands its first answer. Opening another question closes
+the previous answer; activating the open question closes it. Questions and
+answers remain available without JavaScript.
+
+The closing sign-in panel and footer reveal together behind the scrolling
+page, stationary against the viewport bottom. This single-pass reveal applies
+on desktop and mobile when the content fits. Reduced motion, enlarged text or
+a short viewport uses normal document flow. Keyboard focus reveals a covered
+footer control immediately, and content changes re-evaluate the fit.
+
 ## Signed-in behavior
 
 1. Home shows document navigation and actions, without a document editor or its

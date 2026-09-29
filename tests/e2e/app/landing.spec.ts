@@ -52,7 +52,8 @@ test.describe('public landing without JavaScript', () => {
 
     const submission = page.waitForResponse((response) =>
       new URL(response.url()).pathname === '/accounts/google/login/');
-    await page.getByRole('button', { name: 'Sign in with Google', exact: true }).click();
+    await page.getByRole('region', { name: 'Keyboard-first collaborative outliner' })
+      .getByRole('button', { name: 'Sign in with Google', exact: true }).click();
     const response = await submission;
 
     expect(response.status()).toBe(302);
@@ -61,6 +62,51 @@ test.describe('public landing without JavaScript', () => {
       .get('csrfmiddlewaretoken')).toBeTruthy();
     await expect(page.getByRole('heading', { name: 'Google authorization', exact: true })).toBeVisible();
   });
+});
+
+test('opens one FAQ answer at a time and allows closing all answers', async ({ page }) => {
+  await page.goto('/');
+  const faq = page.getByRole('region', { name: 'Frequently asked questions' });
+  const first = faq.getByRole('button', { name: 'Is RemDo still in early development?' });
+  const offline = faq.getByRole('button', { name: 'Can I use RemDo offline?' });
+  await expect(first).toHaveAttribute('aria-expanded', 'true');
+  await offline.press('Enter');
+  await expect(first).toHaveAttribute('aria-expanded', 'false');
+  await expect(offline).toHaveAttribute('aria-expanded', 'true');
+  await expect(faq.getByText(/Yes, if RemDo remembers your session/u)).toBeVisible();
+  await offline.press('Space');
+  await expect(offline).toHaveAttribute('aria-expanded', 'false');
+  await expect(faq.getByRole('group')).toHaveCount(0);
+});
+
+test('reveals a stationary ending on desktop and mobile, with an accessible flow fallback', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 950 });
+  await page.goto('/');
+  const ending = page.locator('.landing-ending');
+  const faq = page.getByRole('region', { name: 'Frequently asked questions' });
+  const legal = page.getByRole('navigation', { name: 'Footer', exact: true });
+  const lastQuestion = faq.getByRole('button', { name: 'Does RemDo connect to email and calendars?' });
+
+  for (const viewport of [{ width: 1440, height: 950 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await expect(ending).toHaveAttribute('data-reveal-mode', 'curtain');
+    await lastQuestion.focus();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('region', { name: 'Try RemDo now' })
+      .getByRole('button', { name: 'Sign in with Google', exact: true })).toBeFocused();
+    await expect(legal.getByRole('link', { name: 'Terms', exact: true })).toBeInViewport({ ratio: 1 });
+    const before = await ending.boundingBox();
+    await page.mouse.wheel(0, -150);
+    await expect.poll(async () => (await ending.boundingBox())?.y).toBe(before!.y);
+  }
+
+  await page.setViewportSize({ width: 1280, height: 680 });
+  await expect(ending).toHaveAttribute('data-reveal-mode', 'flow');
+  await legal.scrollIntoViewIfNeeded();
+  await expect(legal.getByRole('link', { name: 'Privacy', exact: true })).toBeInViewport({ ratio: 1 });
+  await page.setViewportSize({ width: 1440, height: 950 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(ending).toHaveAttribute('data-reveal-mode', 'flow');
 });
 
 test('keeps collaboration, note links, and tasks visible in responsive illustration crops', async ({ page }) => {

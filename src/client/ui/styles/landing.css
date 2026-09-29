@@ -116,15 +116,15 @@ body:has(> .remdo-landing) {
   background: transparent;
   color: var(--landing-ivory);
 }
+.landing-button:disabled {
+  cursor: default;
+  opacity: 1;
+}
 .landing-button:not(:disabled):hover, .landing-hero-actions .remdo-google-button:hover {
   background: #ded8d1;
 }
 .landing-button--outline:not(:disabled):hover {
   background: #27231f;
-}
-.landing-button:disabled {
-  cursor: default;
-  opacity: 1;
 }
 .landing-video-background {
   position: relative;
@@ -243,9 +243,6 @@ body:has(> .remdo-landing) {
 }
 .landing-feature-copy p {
   color: var(--landing-secondary);
-}
-.remdo-landing .landing-existing-footer {
-  padding-block: 32px;
 }
 .landing-visually-hidden, .landing-skip:not(:focus) {
   position: absolute;

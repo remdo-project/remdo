@@ -1,4 +1,5 @@
 import json
+import re
 import tempfile
 from pathlib import Path
 from urllib.parse import quote
@@ -100,6 +101,7 @@ class AppPageTests(TestCase):
 
 
 class HomePageTests(TestCase):
+    @override_settings(FRONTEND_USE_SOURCE=True)
     def test_signed_out_visitors_get_the_public_home(self):
         response = self.client.get("/?utm_source=test")
         self.assertContains(response, "Keyboard-first")
@@ -110,9 +112,62 @@ class HomePageTests(TestCase):
         self.assertContains(response, 'name="description"')
         self.assertContains(response, 'href="/accounts/login/"')
         self.assertNotContains(response, 'id="root"')
-        self.assertNotContains(response, 'type="module"')
+        self.assertContains(
+            response,
+            '<script type="module" src="/src/client/ui/landing/faq.tsx"></script>',
+            html=True,
+        )
+        self.assertNotContains(response, "/src/client/app/shell/main.tsx")
+        self.assertNotContains(response, 'rel="manifest"')
         self.assertIn("no-store", response.headers["Cache-Control"])
         self.assertEqual(self.client.post("/").status_code, 405)
+
+    def test_public_home_faq_remains_readable_without_javascript(self):
+        response = self.client.get("/")
+        for question in (
+            "Is RemDo still in early development?",
+            "What can I do with RemDo today?",
+            "Can I use RemDo offline?",
+            "Can I work with other people?",
+            "Does RemDo connect to email and calendars?",
+        ):
+            self.assertContains(response, question, count=1)
+        self.assertContains(response, "The wider workspace is still in development.")
+        self.assertContains(response, "You can organize notes in an outline")
+        self.assertContains(response, "RemDo syncs your changes when you reconnect.")
+        self.assertContains(response, "A document link does not give access.")
+        self.assertContains(response, "Connections to email, calendars, and external files")
+        details = re.findall(r"<details\b([^>]*)>", response.content.decode())
+        self.assertEqual(
+            [bool(re.search(r"\bopen(?:\s|=|$)", attrs)) for attrs in details],
+            [True, False, False, False, False],
+        )
+
+    def test_built_public_home_loads_the_faq_entry_without_the_app_shell(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "manifest.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "src/client/ui/styles/shared.css": {
+                            "file": "app-assets/shared-test.js",
+                            "css": ["app-assets/shared-test.css"],
+                        },
+                        "src/client/ui/landing/faq.tsx": {"file": "app-assets/faq-test.js"},
+                        "src/client/app/shell/main.tsx": {"file": "app-assets/main-test.js"},
+                    }
+                )
+            )
+            with override_settings(FRONTEND_USE_SOURCE=False, FRONTEND_MANIFEST=manifest):
+                response = self.client.get("/")
+        self.assertContains(
+            response, '<script type="module" src="/app-assets/faq-test.js"></script>', html=True
+        )
+        self.assertContains(response, 'href="/app-assets/shared-test.css"')
+        self.assertNotContains(response, "/app-assets/main-test.js")
+        self.assertNotContains(response, "/src/client/")
+        self.assertNotContains(response, 'id="root"')
+        self.assertNotContains(response, 'rel="manifest"')
 
     @override_settings(ROOT_URLCONF=NoGoogleLoginUrls)
     def test_public_home_google_entry_opens_native_sign_in_when_google_is_unconfigured(self):

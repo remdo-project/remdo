@@ -6,6 +6,7 @@ from django.conf import settings
 register = template.Library()
 SHARED_STYLES = "src/client/ui/styles/shared.css"
 APP_ENTRY = "src/client/app/shell/main.tsx"
+LANDING_FAQ_ENTRY = "src/client/ui/landing/faq.tsx"
 
 
 def load_manifest():
@@ -17,6 +18,13 @@ def shared_styles_urls():
     if settings.FRONTEND_USE_SOURCE:
         return [f"/{SHARED_STYLES}"]
     return [f"/{asset}" for asset in load_manifest()[SHARED_STYLES]["css"]]
+
+
+@register.simple_tag
+def landing_faq_script_url():
+    if settings.FRONTEND_USE_SOURCE:
+        return f"/{LANDING_FAQ_ENTRY}"
+    return f"/{load_manifest()[LANDING_FAQ_ENTRY]['file']}"
 
 
 @register.simple_tag
