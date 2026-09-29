@@ -23,8 +23,9 @@ const USAGE = [
   'chapter runs the signed-in `claude` CLI. Without --final, the recording runs at a fast pace with',
   'a quick encode for iterating on it.',
 ].join('\n');
-// A development-only account, so recording leaves the development user's documents alone.
+// Development-only accounts, so recording leaves the development user's documents alone.
 const ACCOUNT: DemoAccount = { email: 'demo@example.test', password: 'demo-password-1234' };
+const TEAMMATE: DemoAccount = { email: 'ben@example.test', password: 'ben-password-1234' };
 
 async function signIn(browser: Browser, origin: string, account: DemoAccount): Promise<BrowserContext> {
   const context = await browser.newContext({ viewport: STAGE_SIZE, locale: 'en-US' });
@@ -44,9 +45,9 @@ async function signIn(browser: Browser, origin: string, account: DemoAccount): P
 async function confirmStoredOutline(browser: Browser, context: BrowserContext, documentUrl: string, expected: OutlineNote[]): Promise<void> {
   const fresh = await browser.newContext({ viewport: STAGE_SIZE, storageState: await context.storageState() });
   try {
-    const pane = new Pane(await fresh.newPage(), new Timing(pacing, 1), documentUrl);
-    await pane.openDocument();
-    await expectOutline(pane.page, expected);
+    const page = await fresh.newPage();
+    await page.goto(documentUrl);
+    await expectOutline(page, expected);
   } finally {
     await fresh.close();
   }
@@ -94,37 +95,47 @@ async function main(): Promise<void> {
   });
 
   await provisionDjangoUser({ ...ACCOUNT, name: 'Demo' });
+  await provisionDjangoUser({ ...TEAMMATE, name: 'Ben' });
   const mcp = { url: new URL('/mcp', origin).href, token: await mcpToken(ACCOUNT.email) };
-  const { document } = await resetDemoAccount(origin, ACCOUNT);
+  await resetDemoAccount(origin, ACCOUNT, { emptyDocument: false });
+  await resetDemoAccount(origin, TEAMMATE, { emptyDocument: false });
   const browser = await chromium.launch();
   try {
     const context = await signIn(browser, origin, ACCOUNT);
-    const documentUrl = new URL(`/n/${document.id}`, origin).href;
-    const main = new Pane(await context.newPage(), timing, documentUrl);
-    const other = new Pane(await context.newPage(), timing, documentUrl);
-    await main.openDocument();
+    const main = new Pane(await context.newPage(), timing, origin);
+    const chatPane = new Pane(await context.newPage(), timing, origin);
+    const ben = new Pane(await (await signIn(browser, origin, TEAMMATE)).newPage(), timing, origin);
+    await main.openHome();
+    await ben.openHome();
     const stage = await Stage.open(browser, timing);
     await stage.show('main', main);
-    await stage.show('extra', other);
     await main.captionActions();
-    await other.captionActions();
+    await ben.captionActions();
 
+    const chat = new Chat(chatPane, mcp);
     await stage.page.screencast.start({ path: recording, size: STAGE_SIZE });
     try {
       await script({
         main,
-        other,
-        chat: new Chat(other, mcp),
+        ben,
+        chat,
         chapter: async (title, description) => stage.chapter(title, description),
-        split: async () => stage.split(main, other),
-        unsplit: async () => stage.unsplit(main),
+        closingCard: async (title, description) => stage.closingCard(title, description),
+        split: async (pane) => stage.split(pane instanceof Chat ? pane.pane : pane),
+        unsplit: async () => stage.unsplit(),
         pause: async (length) => main.pause(length),
       });
       await stage.page.screenshot({ path: partials[1], type: 'jpeg', quality: 85 });
+    } catch (error) {
+      const panes = { main: main.page, ben: ben.page, chat: chatPane.page, stage: stage.page };
+      await Promise.all(Object.entries(panes).map(async ([name, page]) =>
+        page.screenshot({ path: path.join(outputDir, `failure-${name}.png`) }).catch(() => {})));
+      throw new Error(`${error instanceof Error ? error.message : String(error)}\nScreenshots of each tab: ${outputDir}/failure-*.png`);
     } finally {
       await stage.page.screencast.stop();
+      await chat.close();
     }
-    await confirmStoredOutline(browser, context, documentUrl, await readOutline(main.page));
+    await confirmStoredOutline(browser, context, main.page.url(), await readOutline(main.page));
     await encodeForWeb(recording, preset, partials[0]);
     await rename(partials[0], video);
     await rename(partials[1], poster);

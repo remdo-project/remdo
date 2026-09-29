@@ -52,12 +52,12 @@ class Session {
 }
 
 export interface DemoReset {
-  document: Document;
+  document?: Document;
   deleted: number;
   sharedRemaining: number;
 }
 
-export async function resetDemoAccount(origin: string, account: DemoAccount): Promise<DemoReset> {
+export async function resetDemoAccount(origin: string, account: DemoAccount, { emptyDocument = true } = {}): Promise<DemoReset> {
   const session = new Session(origin);
   await session.refreshCsrfToken();
   await session.request('POST', '/api/auth/browser/v1/auth/login', account);
@@ -68,6 +68,8 @@ export async function resetDemoAccount(origin: string, account: DemoAccount): Pr
   for (const document of owned) {
     await session.request('DELETE', `/api/documents/${encodeURIComponent(document.id)}`);
   }
-  const document = await (await session.request('POST', '/api/documents', { title: 'New Document' })).json() as Document;
+  const document = emptyDocument
+    ? await (await session.request('POST', '/api/documents', { title: 'New Document' })).json() as Document
+    : undefined;
   return { document, deleted: owned.length, sharedRemaining: documents.length - owned.length };
 }

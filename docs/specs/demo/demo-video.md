@@ -35,19 +35,27 @@ from the product. Development-only tooling stays hidden.
 
 ## Chapters
 
-The video contains these chapters in order.
+The chapters tell one story, planning and publishing the demo video itself,
+in this order. Conversations with Claude use RemDo's
+[MCP server](../integrations/mcp.md) in the demo's own chat surface, styled as
+part of the video rather than as any Claude app; their end states constrain
+which notes exist, never Claude's wording.
 
-- **Outlining.** One pane creates a nested outline, then indents, reorders,
-  folds, and zooms it using the keyboard. End state: the document holds the
-  outline in its final structure.
-- **Collaboration.** Two panes edit one document as two sessions, each seeing
-  the other's edits. End state: both panes show the same document containing
-  both sessions' edits.
-- **Claude.** One pane holds a conversation with Claude using RemDo's
-  [MCP server](../integrations/mcp.md); the other shows the document it
-  writes. The conversation pane is the demo's own chat surface, styled as part
-  of the video rather than as any Claude app. End state: the document contains
-  notes that conversation created, whatever their text.
+- **Plan with Claude.** A plain request asks Claude for a short plan in RemDo;
+  Claude creates it as a document, which then opens from Home. End state: the
+  document holds Claude's plan.
+- **Make it yours.** A step with details is added by keyboard, then folded and
+  zoomed. End state: the details sit under that step.
+- **Share it.** The demo account shares the plan with a second account from
+  Home. End state: the second account is among the plan's recipients.
+- **Work together.** Both accounts edit the plan side by side, each seeing the
+  other's edits. End state: both panes show both accounts' edits.
+- **Pick it up later.** A new conversation asks what the plan contains, and
+  Claude reads it from RemDo to summarize it; a follow-up asks Claude to add
+  what is missing. End state: Claude read the plan, and it holds more notes
+  than before.
+- **Ship it.** The publishing step is checked off, and a closing card tells the
+  viewer the video they are watching is the result.
 
 ## Future
 

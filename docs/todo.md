@@ -268,6 +268,9 @@ The [demo video](specs/demo/demo-video.md) records every chapter from the local
 development instance, driving the Claude chapter with the signed-in `claude`
 CLI.
 
+- **Home listing refresh.** Home lists a document created elsewhere, such as
+  through MCP, only after a reload, so the recording reloads it after Claude
+  creates the plan.
 - **Development markers.** Recordings still show the dev-tools switch and the
   footer's "Local development" label, which production lacks.
 - **Real claude.ai footage.** Ask Anthropic whether scripted demo recording

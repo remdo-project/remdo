@@ -17,6 +17,8 @@ export const pacing: Pacing = {
   keyCaption: 0.5,
   // How long a chapter title card stays up.
   chapterTitle: 2.2,
+  // How long the closing card stays up at the end of the video.
+  closingCard: 4,
   // How long the split-screen slide takes.
   splitScreen: 0.9,
   // Used by pause('short'): a beat to notice a change.
@@ -30,96 +32,83 @@ export const pacing: Pacing = {
 };
 
 /**
- * What the script works with: `main` is the RemDo tab filling the screen,
- * `other` is a second tab of the same user that slides in beside it, and
- * `chat` is a Claude conversation shown in that same side slot.
+ * What the script works with: `main` is the viewer's RemDo tab filling the
+ * screen, `ben` is a teammate's RemDo tab, and `chat` is a Claude
+ * conversation. `split(pane)` slides a tab in beside `main`.
  */
 export interface Show {
   main: Pane;
-  other: Pane;
+  ben: Pane;
   chat: Chat;
   chapter: (title: string, description: string) => Promise<void>;
-  split: () => Promise<void>;
+  closingCard: (title: string, description: string) => Promise<void>;
+  split: (pane: Pane | Chat) => Promise<void>;
   unsplit: () => Promise<void>;
   pause: (length: PauseLength) => Promise<void>;
 }
 
-export async function script({ main, other, chat, chapter, split, unsplit, pause }: Show): Promise<void> {
-  await chapter('Capture', 'Type an outline without leaving the keyboard');
-  await main.type('Launch plan');
+export async function script({ main, ben, chat, chapter, closingCard, split, unsplit, pause }: Show): Promise<void> {
+  await chapter('Plan with Claude', 'Ask in plain words; Claude writes the plan into RemDo');
+  await chat.open();
+  await split(chat);
+  await chat.ask('Help me plan a short demo video about RemDo. Just the key steps, in RemDo.');
+  await pause(pacing.readReply);
+  await unsplit();
+  await main.reload();
+  await main.open();
+  await main.expectMoreNotesThan(1);
+
+  await chapter('Make it yours', 'Add a step and its details by keyboard');
+  await main.toDocumentEnd();
+  await main.newNote();
+  await main.toTopLevel();
+  await main.type('Publish the demo video');
   await main.newNote();
   await main.indent();
-  await main.type('Write the announcement');
+  await main.type('Keep it keyboard-first');
   await main.newNote();
-  await main.type('Record the demo video');
-  await main.newNote();
-  await main.type('Ship it');
-  await main.newNote();
-  await main.outdent();
-  await main.type('Groceries');
-
-  await chapter('Reorder', 'Move a note among its siblings');
-  await main.up(2);
-  await main.moveNoteUp();
-
-  await chapter('Fold', 'Hide details until they matter');
-  await main.up();
+  await main.type('Show Claude and a teammate');
+  await main.goTo('Publish the demo video');
   await main.fold();
   await pause('long');
   await main.fold();
-
-  await chapter('Zoom', 'Focus on one branch');
   await main.zoomIn();
   await pause('long');
   await main.zoomOut();
-  await pause('long');
-  await main.expect(`
-    Launch plan
-      Record the demo video
-      Write the announcement
-      Ship it
-    Groceries
-  `);
 
-  await other.openDocument();
-  await chapter('Collaborate', 'Edits appear live in every open session');
-  await split();
-  await pause('short');
-  await other.toDocumentEnd();
-  await other.newNote();
-  await other.indent();
-  await other.type('Milk');
-  await main.down(3);
-  await main.toLineEnd();
-  await main.newNote();
-  await main.type('Celebrate');
+  await chapter('Share it', 'Invite a teammate to the plan');
+  await main.goHome();
+  await main.share('ben@example.test');
+  await main.open();
+
+  await chapter('Work together', 'Ben edits the same plan, live');
+  await ben.openHome();
+  await ben.open();
+  await split(ben);
+  await ben.goTo('Show Claude and a teammate');
+  await ben.newNote();
+  await ben.type('I\'ll do the voice-over');
+  await main.goTo('Keep it keyboard-first');
+  await main.type(' and short');
   await pause('long');
-  const collaborated = `
-    Launch plan
-      Record the demo video
-      Write the announcement
-      Ship it
-      Celebrate
-    Groceries
-      Milk
-  `;
-  await main.expect(collaborated);
-  await other.expect(collaborated);
+  await main.expectUnder('Publish the demo video', 'I\'ll do the voice-over');
+  await ben.expectUnder('Publish the demo video', 'Keep it keyboard-first and short');
   await unsplit();
 
+  await chapter('Pick it up later', 'A new chat reads the plan back from RemDo');
+  const notesBefore = await main.noteCount();
   await chat.open();
-  await chapter('Ask Claude', 'Claude reads and writes your outlines');
-  await split();
-  await chat.ask('Add a top-level note "Weekend trip" to my RemDo document, with three things to pack under it.');
-  await main.expectNoteWithChildren('Weekend trip');
+  await split(chat);
+  await chat.ask('What\'s in my demo video plan in RemDo?');
+  chat.expectUsed('read_document');
+  await pause('long');
+  await chat.ask('Add anything that\'s still missing before we publish.');
+  await main.expectMoreNotesThan(notesBefore);
   await pause(pacing.readReply);
   await unsplit();
 
-  await chapter('Keep going', 'Back to a single pane');
-  await main.toDocumentEnd();
-  await main.newNote();
-  await main.outdent();
-  await main.type('Share the video');
+  await main.goTo('Publish the demo video');
+  await main.check();
   await pause('long');
-  await main.expectLastNote('Share the video');
+  await closingCard('You\'re watching it', 'Planned, shared, and shipped with RemDo');
 }

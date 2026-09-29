@@ -38,6 +38,7 @@ interface Stream {
 /** The recorded page, composing the panes' screencast frames into one frame. */
 export class Stage {
   private readonly streams = new Map<Slot, Stream>();
+  private readonly shown = new Map<Slot, Pane>();
 
   private constructor(readonly page: Page, private readonly timing: Timing) {}
 
@@ -48,7 +49,12 @@ export class Stage {
     return new Stage(page, timing);
   }
 
+  /** Streams `pane` into `slot`, replacing the pane shown there. */
   async show(slot: Slot, pane: Pane): Promise<void> {
+    const previous = this.shown.get(slot);
+    if (previous === pane) return;
+    await previous?.page.screencast.stop();
+    this.shown.set(slot, pane);
     const stream: Stream = { flushing: false, width: 0 };
     this.streams.set(slot, stream);
     await pane.page.screencast.start({
@@ -66,9 +72,11 @@ export class Stage {
     await this.frameOfWidth(slot, pane.page.viewportSize()!.width);
   }
 
-  /** Brings the extra pane in beside the main one, each taking half the stage. */
-  async split(main: Pane, extra: Pane): Promise<void> {
+  /** Brings `extra` in beside the main pane, each taking half the stage. */
+  async split(extra: Pane): Promise<void> {
+    const main = this.shown.get('main')!;
     await extra.page.setViewportSize(HALF_SIZE);
+    await this.show('extra', extra);
     await this.frameOfWidth('extra', HALF_SIZE.width);
     await this.resizeSlots('50%', '50%');
     await main.page.setViewportSize(HALF_SIZE);
@@ -76,7 +84,8 @@ export class Stage {
   }
 
   /** Returns the whole stage to the main pane. */
-  async unsplit(main: Pane): Promise<void> {
+  async unsplit(): Promise<void> {
+    const main = this.shown.get('main')!;
     await main.page.setViewportSize(STAGE_SIZE);
     await this.frameOfWidth('main', STAGE_SIZE.width);
     await this.resizeSlots('100%', '0');
@@ -85,6 +94,12 @@ export class Stage {
   async chapter(title: string, description?: string): Promise<void> {
     await this.page.screencast.showChapter(title, { description, duration: this.timing.of('chapterTitle') });
     await this.page.waitForTimeout(this.timing.of('chapterTitle'));
+  }
+
+  /** Ends the video on a title card held over the final frame. */
+  async closingCard(title: string, description: string): Promise<void> {
+    await this.page.screencast.showChapter(title, { description, duration: this.timing.of('closingCard') });
+    await this.page.waitForTimeout(this.timing.of('closingCard'));
   }
 
   private async resizeSlots(main: string, extra: string): Promise<void> {

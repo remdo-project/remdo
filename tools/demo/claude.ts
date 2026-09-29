@@ -1,8 +1,10 @@
+import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
+import type { Interface } from 'node:readline';
 
 export interface ClaudeListener {
   textStart: () => Promise<void>;
@@ -13,7 +15,9 @@ export interface ClaudeListener {
 
 const SYSTEM_PROMPT = [
   'You are Claude, a helpful assistant chatting with a user who connected RemDo, a keyboard-first outliner, through MCP.',
-  'Use the RemDo tools when the user asks about their notes, and reply briefly in plain prose.',
+  'Use the RemDo tools when the user asks about their notes. Act on requests directly, making reasonable assumptions',
+  'instead of asking follow-up questions, and reply briefly in plain prose without links.',
+  'Keep outlines you write to about five notes unless the user asks for more.',
 ].join(' ');
 
 const MCP_SERVER = 'remdo';
@@ -30,49 +34,63 @@ interface StreamEvent {
 }
 
 /**
- * Runs one headless Claude Code turn whose only tools are the RemDo MCP
- * server's, reporting its reply and tool calls as they stream.
+ * One headless Claude Code conversation whose only tools are the RemDo MCP
+ * server's; each message streams its reply and tool calls as they happen.
  */
-export async function askClaude(prompt: string, mcpUrl: string, token: string, listener: ClaudeListener): Promise<void> {
-  // An empty working directory keeps any CLAUDE.md out of the conversation.
-  const workdir = await mkdtemp(path.join(os.tmpdir(), 'remdo-demo-claude-'));
-  try {
+export class ClaudeConversation {
+  private constructor(
+    private readonly child: ChildProcessWithoutNullStreams,
+    private readonly lines: Interface,
+    private readonly events: AsyncIterator<string>,
+    private readonly workdir: string,
+    private readonly mcpUrl: string,
+    private readonly stderr: () => string,
+  ) {}
+
+  static async start(mcpUrl: string, token: string): Promise<ClaudeConversation> {
+    // An empty working directory keeps any CLAUDE.md out of the conversation.
+    const workdir = await mkdtemp(path.join(os.tmpdir(), 'remdo-demo-claude-'));
     const mcpConfig = path.join(workdir, 'mcp.json');
     await writeFile(mcpConfig, JSON.stringify({
       mcpServers: { [MCP_SERVER]: { type: 'http', url: mcpUrl, headers: { Authorization: `Bearer ${token}` } } },
     }), { mode: 0o600 });
     const child = spawn('claude', [
-      '-p', prompt,
+      '-p', '--input-format', 'stream-json',
       '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
       '--mcp-config', mcpConfig, '--strict-mcp-config', '--allowedTools', `mcp__${MCP_SERVER}`,
       '--tools', '', '--setting-sources', '', '--no-session-persistence',
       '--system-prompt', SYSTEM_PROMPT,
-    ], { cwd: workdir, stdio: ['ignore', 'pipe', 'pipe'] });
+    ], { cwd: workdir });
     let stderr = '';
     child.stderr.setEncoding('utf8');
     child.stderr.on('data', (chunk: string) => {
       stderr += chunk;
     });
-    const exited = new Promise<number | null>((resolve, reject) => {
-      child.on('error', reject);
-      child.on('close', resolve);
-    });
+    const lines = createInterface({ input: child.stdout });
+    return new ClaudeConversation(child, lines, lines[Symbol.asyncIterator](), workdir, mcpUrl, () => stderr);
+  }
 
-    let outcome: StreamEvent | undefined;
+  /** Sends `prompt` and resolves with the RemDo tools Claude used to answer it. */
+  async send(prompt: string, listener: ClaudeListener): Promise<string[]> {
+    this.child.stdin.write(`${JSON.stringify({ type: 'user', message: { role: 'user', content: prompt } })}\n`);
+    const tools: string[] = [];
     const toolFailures: string[] = [];
-    for await (const line of createInterface({ input: child.stdout })) {
+    for (;;) {
+      const { value: line, done } = await this.events.next();
+      if (done) throw new Error(`Claude Code exited mid-reply: ${this.stderr().trim()}`);
       const event = JSON.parse(line) as StreamEvent;
       if (event.type === 'system' && event.subtype === 'init') {
         const status = event.mcp_servers?.find(({ name }) => name === MCP_SERVER)?.status;
         if (status !== 'connected') {
-          child.kill();
-          throw new Error(`Claude Code could not connect to RemDo's MCP server at ${mcpUrl} (${status ?? 'missing'}); check that pnpm run dev is running.`);
+          throw new Error(`Claude Code could not connect to RemDo's MCP server at ${this.mcpUrl} (${status ?? 'missing'}); check that pnpm run dev is running.`);
         }
       } else if (event.type === 'stream_event' && event.event) {
         const { type, content_block: block, delta } = event.event;
         if (type === 'content_block_start' && block?.type === 'text') await listener.textStart();
         if (type === 'content_block_start' && block?.type === 'tool_use') {
-          await listener.toolStart(block.name!.replace(MCP_TOOL_PREFIX, ''));
+          const name = block.name!.replace(MCP_TOOL_PREFIX, '');
+          tools.push(name);
+          await listener.toolStart(name);
         }
         if (type === 'content_block_delta' && delta?.type === 'text_delta') await listener.text(delta.text!);
       } else if (event.type === 'user' && Array.isArray(event.message?.content)) {
@@ -82,20 +100,23 @@ export async function askClaude(prompt: string, mcpUrl: string, token: string, l
           if (block.is_error === true) toolFailures.push(toolResultText(block.content));
         }
       } else if (event.type === 'result') {
-        outcome = event;
+        if (event.is_error) throw new Error(`Claude Code failed: ${event.result ?? this.stderr().trim()}`);
+        break;
       }
-    }
-    const code = await exited;
-    if (code !== 0 || !outcome || outcome.is_error) {
-      throw new Error(`Claude Code failed (exit ${code}): ${outcome?.result ?? stderr.trim()}`);
     }
     // Claude explains a failed tool call in prose, so the run would otherwise
     // fail later on a missing note without saying why.
     if (toolFailures.length > 0) {
       throw new Error(`RemDo's MCP server failed a tool call: ${toolFailures.join('; ')}\nIf pnpm run dev started before your latest pull, restart it: its MCP server does not reload.`);
     }
-  } finally {
-    await rm(workdir, { recursive: true, force: true });
+    return tools;
+  }
+
+  async close(): Promise<void> {
+    this.lines.close();
+    this.child.stdin.end();
+    this.child.kill();
+    await rm(this.workdir, { recursive: true, force: true });
   }
 }
 
