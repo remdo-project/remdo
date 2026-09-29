@@ -1,5 +1,6 @@
 import { expect, isolatedTest as test } from '#editor/fixtures';
 import { editorLocator, homeView } from '#editor/locators';
+import { openNoteMenu } from './_support/menu';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
 
@@ -29,6 +30,32 @@ test.describe('Document-root header', () => {
 
     await expect(headerButton).toHaveCSS('opacity', '1');
     await expect(editorLocator(page).locator('.note-controls__button--menu')).toBeHidden();
+  });
+
+  test('moves the menu target to the note strip when the pointer reaches a note through the gutter', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+    const headerButton = page.getByRole('button', { name: /^Actions for/u });
+    const container = (await editorLocator(page).boundingBox())!;
+    const note5 = (await editorLocator(page).locator('[data-lexical-text="true"]', { hasText: 'note5' }).boundingBox())!;
+
+    const heading = (await page.getByRole('heading', { level: 1 }).boundingBox())!;
+
+    await page.getByRole('heading', { level: 1 }).hover();
+    await page.mouse.move(container.x + 8, heading.y + heading.height / 2);
+    await page.mouse.move(container.x + 8, note5.y + note5.height / 2, { steps: 8 });
+
+    await expect(editorLocator(page).locator('.note-controls__button--menu')).toBeVisible();
+    await expect(headerButton).toHaveCSS('opacity', '0');
+  });
+
+  test('keeps the target of an open note menu when the pointer reaches the header', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+    const menu = await openNoteMenu(page, 'note2');
+
+    await page.getByRole('heading', { level: 1 }).hover();
+
+    await menu.expectOpen();
+    await expect(page.getByRole('button', { name: /^Actions for/u })).toHaveCSS('opacity', '0');
   });
 
   test('returns the menu target to the note strip on editor focus and typing', async ({ page, editor }) => {

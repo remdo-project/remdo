@@ -149,7 +149,8 @@ export default function DocumentWorkspace({
         onFocus={() => { setMenuTarget('note'); }}
         onKeyDown={() => { setMenuTarget('note'); }}
         onPointerMove={(event) => {
-          if (event.target instanceof Element && event.target.closest('li.list-item')) setMenuTarget('note');
+          const outline = event.currentTarget.querySelector('.editor-input > ul')?.getBoundingClientRect();
+          if (outline && event.clientY >= outline.top && event.clientY <= outline.bottom) setMenuTarget('note');
         }}
       >
         <Editor
