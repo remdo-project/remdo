@@ -49,7 +49,7 @@ which notes exist, never Claude's wording.
   it.
   End state: the details sit under that step.
 - **Share it.** The demo account shares the plan with a second account from
-  Home. End state: the second account is among the plan's recipients.
+  the document's own menu. End state: the second account is among the plan's recipients.
 - **Work together.** Both accounts edit the plan side by side, each seeing the
   other's edits. End state: both panes show both accounts' edits.
 - **Pick it up later.** A new conversation asks what the plan contains, and

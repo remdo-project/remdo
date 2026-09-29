@@ -64,13 +64,6 @@ export class Pane {
     await this.page.getByRole('heading', { name: 'Home' }).waitFor();
   }
 
-  /** Returns to Home through the breadcrumb. */
-  async goHome(): Promise<void> {
-    await this.click(this.page.locator('[data-zoom-crumb="home"]'));
-    await this.page.getByRole('heading', { name: 'Home' }).waitFor();
-    await this.afterStep();
-  }
-
   /** Opens a document by clicking its row on Home; without a title, the first one. */
   async open(title?: string): Promise<void> {
     await this.click(this.documentRow(title));
@@ -78,10 +71,10 @@ export class Pane {
     await this.pause('short');
   }
 
-  /** Shares a document from its Home row menu with the account at `email`; without a title, the first one. */
-  async share(email: string, title?: string): Promise<void> {
-    const name = title ?? await this.documentRow().innerText();
-    await this.click(this.page.getByRole('button', { name: `Actions for ${name}` }).first());
+  /** Shares the open document, from its heading's menu, with the account at `email`. */
+  async share(email: string): Promise<void> {
+    const name = await this.page.getByRole('heading', { level: 1 }).innerText();
+    await this.click(this.page.getByRole('button', { name: `Actions for ${name}` }));
     await this.afterStep();
     await this.click(this.page.getByRole('menuitem', { name: 'Share…' }));
     const dialog = this.page.getByRole('dialog');

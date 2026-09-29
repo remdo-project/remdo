@@ -71,6 +71,7 @@ export async function script({ main, ben, chat, chapter, closingCard, split, uns
   await main.type('Show Claude and a teammate');
   await main.newNote();
   await main.type('Fold it down to the big picture');
+  await main.outdent();
   await main.foldToTopLevel();
   await pause('long');
   await pause('long');
@@ -80,9 +81,7 @@ export async function script({ main, ben, chat, chapter, closingCard, split, uns
   //await main.zoomOut();
 
   await chapter('Share it', 'Invite a teammate to the plan');
-  await main.goHome();
   await main.share('ben@example.test');
-  await main.open();
 
   await chapter('Work together', 'Ben edits the same plan, live');
   await ben.openHome();
