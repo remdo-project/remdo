@@ -48,6 +48,22 @@ test.describe('Document-root header', () => {
     await expect(headerButton).toHaveCSS('opacity', '0');
   });
 
+  test('hands the target back to the header when the pointer moves within it after typing', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+    const heading = page.getByRole('heading', { level: 1 });
+    const box = (await heading.boundingBox())!;
+
+    await editorLocator(page).locator('.editor-input').focus();
+    await heading.hover();
+    await expect(documentShell(page)).toHaveAttribute('data-menu-target', 'header');
+    await page.keyboard.press('ArrowDown');
+    await expect(documentShell(page)).toHaveAttribute('data-menu-target', 'note');
+
+    await page.mouse.move(box.x + 12, box.y + box.height / 2);
+
+    await expect(documentShell(page)).toHaveAttribute('data-menu-target', 'header');
+  });
+
   test('keeps the header target while its menu is open and the pointer crosses the outline', async ({ page, editor }) => {
     await editor.load('tree-complex');
     const note5 = (await editorLocator(page).locator('[data-lexical-text="true"]', { hasText: 'note5' }).boundingBox())!;

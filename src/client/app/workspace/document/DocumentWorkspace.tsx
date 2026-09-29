@@ -129,7 +129,7 @@ export default function DocumentWorkspace({
         <div
           className="location-header"
           onFocus={targetHeader}
-          onPointerEnter={targetHeader}
+          onPointerMove={targetHeader}
         >
           {documentNote && (
             <DocumentMenu
