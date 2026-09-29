@@ -358,10 +358,10 @@ menus on every breadcrumb until improving the existing surfaces leaves a
 concrete unmet need.
 
 - **Location header and document actions.** Rename, the Home row menu, and the
-  document-root header menu ship; the
-  [persistent menu target](specs/outliner/menu.md#entry) remains, which Home rows and
-  the header approximate with a hover- and focus-revealed button in a reserved
-  gutter. The [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups) track the missing surfaces.
+  document-root header menu ship; Home rows still approximate the
+  [persistent menu target](specs/outliner/menu.md#entry) with a hover- and
+  focus-revealed button in a reserved gutter, tracked in the
+  [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups).
 
 - **Zoomed-note location header.** Complete the rich editable header and its
   applicable note, children, and view actions, preserving the

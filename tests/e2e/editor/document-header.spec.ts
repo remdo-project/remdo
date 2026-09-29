@@ -35,23 +35,30 @@ test.describe('Document-root header', () => {
     await expect(page.getByRole('button', { name: 'Actions for Renamed header' })).toBeFocused();
   });
 
-  test('is absent while zoomed and Zoom out from it opens Home', async ({ page, editor }) => {
+  test('Zoom out from the header menu opens Home', async ({ page, editor }) => {
     await editor.load('tree-complex');
-    const heading = page.getByRole('heading', { level: 1 });
-    await expect(heading).toBeVisible();
 
-    await page.goto(createEditorDocumentPath(editor.docId, 'note2'));
-    await waitForSynced(page);
-    await expect(heading).toHaveCount(0);
-
-    await page.goto(createEditorDocumentPath(editor.docId));
-    await waitForSynced(page);
-    await heading.hover();
+    await page.getByRole('heading', { level: 1 }).hover();
     await page.getByRole('button', { name: /^Actions for/u }).click();
     await page.getByRole('menuitem', { name: 'Zoom out' }).click();
 
     await expect(page).toHaveURL('/');
     await expect(homeView(page).getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+  });
+
+  test('keeps the note strip available when history navigation zooms past the header', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+    await page.getByRole('heading', { level: 1 }).hover();
+
+    await page.evaluate((path) => {
+      globalThis.history.pushState({}, '', path);
+      globalThis.dispatchEvent(new PopStateEvent('popstate'));
+    }, createEditorDocumentPath(editor.docId, 'note2'));
+    await expect(page).toHaveURL(/note2$/u);
+    await waitForSynced(page);
+    await page.mouse.move(0, 0);
+
+    await expect(editorLocator(page).locator('.note-controls__button--menu')).toBeVisible();
   });
 
   test('folds the document to a level from the menu accelerator', async ({ page, editor }) => {

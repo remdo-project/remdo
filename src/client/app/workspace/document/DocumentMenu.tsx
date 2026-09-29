@@ -29,14 +29,13 @@ export function DocumentMenu({
   const handleViewShortcut = (event: KeyboardEvent<HTMLElement>) => {
     if (!view || event.altKey || event.ctrlKey || event.metaKey) return;
     const key = event.key.toLowerCase();
-    let action: (() => void) | null = null;
-    if (key === 'o') action = view.zoomOut;
-    else if (key >= '0' && key <= '9' && key.length === 1) action = () => { view.foldToLevel(Number(key)); };
-    if (!action) return;
+    const isFoldLevel = key >= '0' && key <= '9';
+    if (key !== 'o' && !isFoldLevel) return;
     event.preventDefault();
     event.stopPropagation();
     setIsOpen(false);
-    action();
+    if (isFoldLevel) view.foldToLevel(Number(key));
+    else view.zoomOut();
   };
 
   return (

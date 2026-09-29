@@ -169,12 +169,9 @@ ships.
   stays a crumb), delete its specs
   (`document-switcher.spec.ts`, the picker cases in
   `document-toolbar.spec.tsx`/`document-route.spec.tsx`).
-
-The zoomed-note location header is not yet built; the entries below track
-implementation gaps against the location-header rules.
-
-- Menu buttons do not share the [persistent active target](specs/outliner/menu.md#entry) across the document
-  header, Home rows, and editor notes.
+- Home row menu buttons do not follow the
+  [persistent active target](specs/outliner/menu.md#entry): each reveals only
+  on hover or focus, and no row is the initial target.
 - No zoomed-note location header is rendered: the zoom root remains the
   editable top outline `ListItemNode`.
 - The subtree-zoom root is an editable outline `ListItemNode`, and the

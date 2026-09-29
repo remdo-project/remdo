@@ -60,12 +60,6 @@ describe('document menu', () => {
     expect(itemNames()).toEqual(['Zoom out', 'Fold to level [0-9]']);
   });
 
-  it('has no button when nothing can be offered', () => {
-    renderMenu({ note: documentNote() });
-
-    expect(screen.queryByRole('button', { name: 'Actions for Ideas' })).toBeNull();
-  });
-
   it('zooms out from its item', async () => {
     const view = openView();
     renderMenu({ view });

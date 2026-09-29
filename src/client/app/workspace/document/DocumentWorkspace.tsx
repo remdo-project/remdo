@@ -99,7 +99,11 @@ export default function DocumentWorkspace({
   }, [pageTitle]);
 
   return (
-    <div className="document-editor-shell" data-menu-target={menuTarget} ref={shellRef}>
+    <div
+      className="document-editor-shell"
+      data-menu-target={zoomNoteId === null ? menuTarget : 'note'}
+      ref={shellRef}
+    >
       <DocumentToolbar
         docId={docId}
         documentLabel={source.documentLabel}
