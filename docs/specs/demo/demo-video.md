@@ -25,8 +25,9 @@ from the product.
 
 - **Panes.** A recording shows one or two panes side by side, each a separate
   browser session. A pane appears or disappears within a recording as a chapter
-  requires. With one pane, the page occupies the whole frame and lays
-  itself out for that size rather than being scaled or cropped.
+  requires, sliding in or out rather than cutting. Once the layout settles,
+  each page occupies its whole area and lays itself out for that size rather
+  than being scaled or cropped.
 - **Annotations.** Each keystroke and pointer action is captioned as it
   happens, with a visible pointer for pointer actions. A title introduces each
   chapter.

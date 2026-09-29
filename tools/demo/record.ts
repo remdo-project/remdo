@@ -3,15 +3,15 @@ import { execFile } from 'node:child_process';
 import { mkdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { isDeepStrictEqual, promisify } from 'node:util';
-import type { Browser, BrowserContext, Page } from 'playwright';
+import { promisify } from 'node:util';
+import type { Browser, BrowserContext } from 'playwright';
 import { chromium } from 'playwright';
 import { config } from '#config';
 import type { DemoAccount } from '../lib/demo-account';
 import { demoAccount, resetDemoAccount } from '../lib/demo-account';
-import { outlining } from './outlining';
-import type { OutlineNote } from './stage';
-import { readOutline, Stage } from './stage';
+import { expectOutline, Pane } from './pane';
+import { CHAPTERS, FINAL_OUTLINE } from './scenario';
+import { Stage, STAGE_SIZE } from './stage';
 
 const USAGE = [
   'Usage: pnpm demo:record [--final] [origin]',
@@ -22,11 +22,9 @@ const USAGE = [
 ].join('\n');
 const QUICK = { pace: 0.2, preset: 'veryfast' };
 const FINAL = { pace: 1, preset: 'slow' };
-const VIEWPORT = { width: 1280, height: 720 };
-const END_STATE_TIMEOUT_MS = 15_000;
 
 async function signIn(browser: Browser, origin: string, account: DemoAccount): Promise<BrowserContext> {
-  const context = await browser.newContext({ viewport: VIEWPORT, locale: 'en-US' });
+  const context = await browser.newContext({ viewport: STAGE_SIZE, locale: 'en-US' });
   const configUrl = new URL('/api/config', origin).href;
   const { csrfToken } = await (await context.request.get(configUrl, { failOnStatusCode: true })).json() as { csrfToken: string };
   await context.request.post(new URL('/api/auth/browser/v1/auth/login', origin).href, {
@@ -38,26 +36,13 @@ async function signIn(browser: Browser, origin: string, account: DemoAccount): P
   return context;
 }
 
-async function openDocument(page: Page, origin: string, documentId: string): Promise<void> {
-  await page.goto(new URL(`/n/${documentId}`, origin).href);
-  await page.locator('.editor-container [data-lexical-editor] li.list-item').first().waitFor();
-}
-
 // A fresh context has no local copy, so the outline it shows comes from the server.
-async function confirmEndState(browser: Browser, context: BrowserContext, origin: string, documentId: string, expected: OutlineNote[]): Promise<void> {
-  const fresh = await browser.newContext({ viewport: VIEWPORT, storageState: await context.storageState() });
+async function confirmStoredOutline(browser: Browser, context: BrowserContext, documentUrl: string): Promise<void> {
+  const fresh = await browser.newContext({ viewport: STAGE_SIZE, storageState: await context.storageState() });
   try {
-    const page = await fresh.newPage();
-    await openDocument(page, origin, documentId);
-    const deadline = Date.now() + END_STATE_TIMEOUT_MS;
-    let actual = await readOutline(page);
-    while (!isDeepStrictEqual(actual, expected)) {
-      if (Date.now() > deadline) {
-        throw new Error(`End state not reached.\nExpected: ${JSON.stringify(expected)}\nActual:   ${JSON.stringify(actual)}`);
-      }
-      await page.waitForTimeout(250);
-      actual = await readOutline(page);
-    }
+    const pane = new Pane(await fresh.newPage(), 1);
+    await pane.openDocument(documentUrl);
+    await expectOutline(pane.page, FINAL_OUTLINE);
   } finally {
     await fresh.close();
   }
@@ -106,20 +91,26 @@ async function main(): Promise<void> {
   const browser = await chromium.launch();
   try {
     const context = await signIn(browser, origin, account);
-    const page = await context.newPage();
-    await openDocument(page, origin, document.id);
-    await page.locator('.editor-container [data-lexical-editor]').focus();
+    const documentUrl = new URL(`/n/${document.id}`, origin).href;
+    const main = new Pane(await context.newPage(), mode.pace);
+    const extra = new Pane(await context.newPage(), mode.pace);
+    await main.openDocument(documentUrl);
+    const stage = await Stage.open(browser, mode.pace);
+    await stage.show('main', main);
+    await stage.show('extra', extra);
+    await main.captionActions();
+    await extra.captionActions();
 
-    await page.screencast.start({ path: recording, size: VIEWPORT });
+    await stage.page.screencast.start({ path: recording, size: STAGE_SIZE });
     try {
-      const stage = new Stage(page, mode.pace);
-      await stage.captionActions();
-      await outlining.run(stage);
-      await page.screenshot({ path: partials[1], type: 'jpeg', quality: 85 });
+      for (const chapter of CHAPTERS) {
+        await chapter({ stage, main, extra, documentUrl });
+      }
+      await stage.page.screenshot({ path: partials[1], type: 'jpeg', quality: 85 });
     } finally {
-      await page.screencast.stop();
+      await stage.page.screencast.stop();
     }
-    await confirmEndState(browser, context, origin, document.id, outlining.endState);
+    await confirmStoredOutline(browser, context, documentUrl);
     await encodeForWeb(recording, mode.preset, partials[0]);
     await rename(partials[0], video);
     await rename(partials[1], poster);

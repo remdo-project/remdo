@@ -1,28 +1,84 @@
-import type { Page } from 'playwright';
+import type { Browser, Page } from 'playwright';
+import type { Pane } from './pane';
 
-export interface OutlineNote {
-  text: string;
-  children?: OutlineNote[];
-}
-
-export interface Chapter {
-  run: (stage: Stage) => Promise<void>;
-  endState: OutlineNote[];
-}
-
-const TYPING_DELAY_MS = 70;
-const ACTION_PAUSE_MS = 450;
+export const STAGE_SIZE = { width: 1280, height: 720 };
+const HALF_SIZE = { width: STAGE_SIZE.width / 2, height: STAGE_SIZE.height };
 const CHAPTER_MS = 2200;
+const TRANSITION_MS = 900;
+const FRAME_QUALITY = 90;
 
-const CAPTION_MS = 500;
-const SEQUENCE_CAPTION_MS = 1200;
+export type Slot = 'main' | 'extra';
 
+// The extra slot hugs the right edge, so its pane slides in from the side while
+// the main pane's right part slides out of view; each pane then lays itself
+// out for its final width.
+const STAGE_HTML = `<!doctype html>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1a1b1e; }
+  #slots { display: flex; height: 100%; }
+  .slot {
+    position: relative; display: flex; height: 100%; overflow: hidden; flex: none;
+    transition: width var(--transition) ease-in-out;
+  }
+  .slot img { flex: none; display: block; align-self: flex-start; }
+  #extra { justify-content: flex-end; }
+  #extra::before {
+    content: ''; position: absolute; inset: 0 auto 0 0; width: 2px; z-index: 1; background: #4b4f58;
+  }
+</style>
+<div id="slots">
+  <div class="slot" id="main" style="width: 100%"><img alt=""></div>
+  <div class="slot" id="extra" style="width: 0"><img alt=""></div>
+</div>`;
+
+interface Stream {
+  latest?: string;
+  flushing: boolean;
+  width: number;
+}
+
+/** The recorded page, composing the panes' screencast frames into one frame. */
 export class Stage {
-  /** `pace` scales every wait and caption duration; 1 is the viewer-facing pace. */
-  constructor(readonly page: Page, private readonly pace: number) {}
+  private readonly streams = new Map<Slot, Stream>();
 
-  async captionActions(): Promise<void> {
-    await this.page.screencast.showActions({ position: 'bottom', duration: this.paced(CAPTION_MS) });
+  private constructor(readonly page: Page, private readonly pace: number) {}
+
+  static async open(browser: Browser, pace: number): Promise<Stage> {
+    const page = await browser.newPage({ viewport: STAGE_SIZE });
+    await page.setContent(STAGE_HTML);
+    await page.evaluate((ms) => document.documentElement.style.setProperty('--transition', `${ms}ms`), Math.round(TRANSITION_MS * pace));
+    return new Stage(page, pace);
+  }
+
+  async show(slot: Slot, pane: Pane): Promise<void> {
+    const stream: Stream = { flushing: false, width: 0 };
+    this.streams.set(slot, stream);
+    await pane.page.screencast.start({
+      size: STAGE_SIZE,
+      quality: FRAME_QUALITY,
+      onFrame: ({ data, viewportWidth }) => {
+        stream.latest = data.toString('base64');
+        stream.width = viewportWidth;
+        void this.flush(slot, stream);
+      },
+    });
+    await this.frameOfWidth(slot, pane.page.viewportSize()!.width);
+  }
+
+  /** Brings the extra pane in beside the main one, each taking half the stage. */
+  async split(main: Pane, extra: Pane): Promise<void> {
+    await extra.page.setViewportSize(HALF_SIZE);
+    await this.frameOfWidth('extra', HALF_SIZE.width);
+    await this.resizeSlots('50%', '50%');
+    await main.page.setViewportSize(HALF_SIZE);
+    await this.frameOfWidth('main', HALF_SIZE.width);
+  }
+
+  /** Returns the whole stage to the main pane. */
+  async unsplit(main: Pane): Promise<void> {
+    await main.page.setViewportSize(STAGE_SIZE);
+    await this.frameOfWidth('main', STAGE_SIZE.width);
+    await this.resizeSlots('100%', '0');
   }
 
   async chapter(title: string, description?: string): Promise<void> {
@@ -30,72 +86,40 @@ export class Stage {
     await this.page.waitForTimeout(this.paced(CHAPTER_MS));
   }
 
-  async type(text: string): Promise<void> {
-    await this.page.keyboard.type(text, { delay: this.paced(TYPING_DELAY_MS) });
-    await this.pause();
+  private async resizeSlots(main: string, extra: string): Promise<void> {
+    await this.page.evaluate(([mainWidth, extraWidth]) => {
+      document.getElementById('main')!.style.width = mainWidth!;
+      document.getElementById('extra')!.style.width = extraWidth!;
+    }, [main, extra]);
+    await this.page.waitForTimeout(this.paced(TRANSITION_MS));
   }
 
-  async press(key: string, times = 1): Promise<void> {
-    for (let pressed = 0; pressed < times; pressed++) {
-      await this.page.keyboard.press(key);
-      await this.pause();
+  // Frames are pushed one at a time and superseded ones are dropped, so a slow
+  // stage never falls behind its panes.
+  private async flush(slot: Slot, stream: Stream): Promise<void> {
+    if (stream.flushing) return;
+    stream.flushing = true;
+    try {
+      while (stream.latest !== undefined) {
+        const frame = stream.latest;
+        stream.latest = undefined;
+        await this.page.evaluate(([id, jpeg]) => {
+          document.querySelector<HTMLImageElement>(`#${id} img`)!.src = `data:image/jpeg;base64,${jpeg}`;
+        }, [slot, frame]);
+      }
+    } finally {
+      stream.flushing = false;
     }
   }
 
-  // Action captions hold each action for their display duration, which would
-  // stretch timed key sequences such as double-Shift beyond their window.
-  async sequence(keys: string[]): Promise<void> {
-    await this.page.screencast.hideActions();
-    await this.page.screencast.showOverlay(sequenceCaption(keys), { duration: this.paced(SEQUENCE_CAPTION_MS) });
-    for (const key of keys) {
-      await this.page.keyboard.press(key);
+  private async frameOfWidth(slot: Slot, width: number): Promise<void> {
+    const stream = this.streams.get(slot)!;
+    while (stream.width !== width || stream.flushing || stream.latest !== undefined) {
+      await this.page.waitForTimeout(50);
     }
-    await this.captionActions();
-    await this.pause();
-  }
-
-  async pause(ms = ACTION_PAUSE_MS): Promise<void> {
-    await this.page.waitForTimeout(this.paced(ms));
   }
 
   private paced(ms: number): number {
     return Math.round(ms * this.pace);
   }
-}
-
-function sequenceCaption(keys: string[]): string {
-  const style = [
-    'position:fixed', 'left:50%', 'bottom:32px', 'transform:translateX(-50%)',
-    'padding:8px 16px', 'border-radius:8px', 'background:rgba(0,0,0,.75)',
-    'color:#fff', 'font:600 24px system-ui,sans-serif',
-  ].join(';');
-  const label = keys.map((key) => (key.length === 1 ? key.toUpperCase() : key)).join(' ');
-  return `<div style="${style}">${label}</div>`;
-}
-
-// Row depth counts the children-wrappers enclosing a row; the page function
-// stays free of named inner functions, which tsx would reference as `__name`.
-export async function readOutline(page: Page): Promise<OutlineNote[]> {
-  const rows = await page.locator('.editor-container [data-lexical-editor] li.list-item:not(.list-nested-item)').evaluateAll(
-    (items) => items.map((item) => {
-      let depth = 0;
-      for (let element = item.parentElement; element; element = element.parentElement) {
-        if (element.matches('li.list-nested-item')) depth++;
-      }
-      return { text: item.textContent, depth };
-    }),
-  );
-  const root: OutlineNote[] = [];
-  const lastAtDepth: OutlineNote[] = [];
-  for (const { text, depth } of rows) {
-    const note: OutlineNote = { text };
-    const parent = lastAtDepth[depth - 1];
-    if (parent) {
-      (parent.children ??= []).push(note);
-    } else {
-      root.push(note);
-    }
-    lastAtDepth[depth] = note;
-  }
-  return root;
 }
