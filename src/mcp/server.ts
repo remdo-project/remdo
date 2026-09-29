@@ -5,7 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import type { NewNote } from '#note-sdk';
+import type { NewNote, NoteListType } from '#note-sdk';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { parseDocumentRef } from '#document-routes';
 import { withHeadlessOpenDocument } from '../headless/open-document';
@@ -21,10 +21,12 @@ interface ServerOptions {
   documentSlots: number;
 }
 
+const listTypeSchema: z.ZodType<NoteListType> = z.enum(['bullet', 'number', 'check']);
+
 const newNote: z.ZodType<NewNote> = z.lazy(() => z.object({
   text: z.string().describe('Plain single-line note text.'),
   checked: z.boolean().optional(),
-  childListType: z.enum(['bullet', 'number', 'check']).optional()
+  childListType: listTypeSchema.optional()
     .describe('List type of the children; defaults to the list containing this note.'),
   children: z.array(newNote).optional(),
 }));
@@ -46,6 +48,7 @@ const UNCONFIRMED = 'RemDo did not confirm whether the request took effect. '
 
 const readOnly = { readOnlyHint: true, openWorldHint: false } satisfies ToolAnnotations;
 const additiveWrite = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } satisfies ToolAnnotations;
+const idempotentWrite = { ...additiveWrite, idempotentHint: true } satisfies ToolAnnotations;
 
 // The Claude connector directory reads annotations.title; newer clients read the tool's own title.
 function titled(title: string, annotations: ToolAnnotations) {
@@ -141,18 +144,44 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       return { documentId: id, title, url: documentUrl(id) };
     }));
 
-    server.registerTool('read_document', {
-      ...titled('Read document', readOnly),
-      description: 'Read a whole RemDo document as a nested Markdown list. Each note links to its URL, '
-        + 'whose last path segment is the noteAddress; a note without a link cannot be addressed until '
-        + 'the document is opened in RemDo. A note\'s body follows it as an indented blockquote.',
-      inputSchema: { documentId: z.string().describe('A documentId.') },
-    }, ({ documentId: input }) => respond(async () => {
+    server.registerTool('rename_document', {
+      ...titled('Rename document', idempotentWrite),
+      description: 'Change the title of a RemDo document.',
+      inputSchema: {
+        documentId: z.string().describe('A documentId.'),
+        title: z.string().describe('The new document title.'),
+      },
+    }, ({ documentId: input, title }) => respond(async () => {
       const ref = parseDocumentRef(input);
       if (!ref || ref.noteId) throw new Error('The documentId is not valid.');
       const documentId = ref.docId;
+      const renamed = await callApi(authorization, `/api/documents/${documentId}`, 'PUT', { title }) as { id: string; title: string };
+      return { documentId: renamed.id, title: renamed.title, url: documentUrl(renamed.id) };
+    }));
+
+    server.registerTool('read_document', {
+      ...titled('Read document', readOnly),
+      description: 'Read a RemDo document, or one note and its descendants, as a nested Markdown list. '
+        + 'Each note links to its URL, whose last path segment is the noteAddress; a note without a link '
+        + 'cannot be addressed until the document is opened in RemDo. A note\'s body follows it as an '
+        + 'indented blockquote.',
+      inputSchema: {
+        target: z.string().describe('A documentId to read the whole document, or a noteAddress to read that note and its descendants.'),
+        depth: z.number().int().min(1).optional().describe(
+          'How many levels to return, counting the top-level notes (or the addressed note) as level 1. '
+          + 'A note on the last level reports how many children it hides. Defaults to every level.',
+        ),
+      },
+    }, ({ target, depth }) => respond(async () => {
+      const ref = parseDocumentRef(target);
+      if (!ref) throw new Error('The target is not a documentId or a noteAddress.');
+      const { docId: documentId, noteId } = ref;
       const outline = await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, async (openDocument, isStored) =>
-        renderOutline(openDocument.root, (noteId) => isStored(noteId) ? documentUrl(documentId, noteId) : null),
+        renderOutline(
+          noteId ? [openDocument.noteRef(noteId)] : openDocument.root.getChildren(),
+          (id) => isStored(id) ? documentUrl(documentId, id) : null,
+          { depth },
+        ),
       { readOnly: true }));
       return `Document: ${documentUrl(documentId)}\n\n${outline}`;
     }));
@@ -177,6 +206,23 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       const noteIds = await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
         (noteId ? openDocument.noteRef(noteId) : openDocument.root).appendChildren(notes)));
       return noteIds.map((id) => ({ noteAddress: `${documentId}_${id}`, url: documentUrl(documentId, id) }));
+    }));
+
+    server.registerTool('set_child_list_type', {
+      ...titled('Set list type', idempotentWrite),
+      description: 'Convert the list holding a note\'s children to bullet, number, or check. '
+        + 'Nested lists keep their own types. A note without children is refused.',
+      inputSchema: {
+        noteAddress: z.string().describe('A noteAddress.'),
+        listType: listTypeSchema.describe('The list type of the note\'s children.'),
+      },
+    }, ({ noteAddress, listType }) => respond(async () => {
+      const ref = parseDocumentRef(noteAddress);
+      if (!ref?.noteId) throw new Error('The noteAddress is not valid.');
+      const { docId: documentId, noteId } = ref;
+      await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
+        openDocument.noteRef(noteId).setChildListType(listType)));
+      return { noteAddress, listType, url: documentUrl(documentId, noteId) };
     }));
 
     return server;

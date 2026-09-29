@@ -17,8 +17,9 @@ clients ignore server guidance.
 
 ## Tools
 
-The server exposes tools that list and create the user's documents, read a
-document, and append notes. A tool delegating to an
+The server exposes tools that list, create, and rename the user's documents,
+read a document or one note's subtree, append notes, and set a note's child
+[list type](../outliner/list-types.md#supported-types). A tool delegating to an
 [open document](../outliner/open-document.md) or
 [user data](../outliner/user-data.md) operation is named after it, and that
 operation's owner defines its behavior.
@@ -28,10 +29,13 @@ operation's owner defines its behavior.
   document root, and an editor note by its
   [`noteAddress`](../outliner/note-ids.md#global-addresses). Results that
   identify documents or notes include their URLs.
-- Reading a document returns every editor note in document order with its
-  nesting, each list's type, and each note's content text, checked state, body
-  text, and URL. Reading does not change the document, so it omits the URL of a
-  note whose ID [load-time normalization](../outliner/note-ids.md#persisted-json-and-normalization)
+- Reading a document, or the addressed note and its descendants, returns every
+  editor note in document order with its nesting, each list's type, and each
+  note's content text, checked state, body text, and URL. A read limited to a
+  number of levels, counting the top-level notes or the addressed note as the
+  first, reports how many children each note on the last level hides. Reading
+  does not change the document, so it omits the URL of a note whose ID
+  [load-time normalization](../outliner/note-ids.md#persisted-json-and-normalization)
   would first have to store.
 - Each tool declares a title and whether it only reads or changes the user's
   data, so clients can require confirmation before changes.

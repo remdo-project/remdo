@@ -87,7 +87,7 @@ it('identifies itself with the app icon and tells clients how to use RemDo', asy
   });
 });
 
-it('marks reads as read-only and additive writes as non-destructive so clients can gate confirmation', async () => {
+it('marks reads as read-only and writes as non-destructive so clients can gate confirmation', async () => {
   const post = await start();
   authorizeStatus = 200;
 
@@ -103,6 +103,14 @@ it('marks reads as read-only and additive writes as non-destructive so clients c
     append_children: {
       title: 'Append notes',
       annotations: { title: 'Append notes', readOnlyHint: false, destructiveHint: false },
+    },
+    rename_document: {
+      title: 'Rename document',
+      annotations: { title: 'Rename document', readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    },
+    set_child_list_type: {
+      title: 'Set list type',
+      annotations: { title: 'Set list type', readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
   });
 });
@@ -165,13 +173,28 @@ it('refuses to append more than 1000 notes, counting nested children, before ope
   });
 });
 
-it('rejects a read of anything but a documentId before opening a document', async () => {
+it('rejects a target or address that is not valid before opening a document or calling the API', async () => {
   const post = await start();
   authorizeStatus = 200;
+  documentsResponse = 'dropped';
+  const refused = (name: string, args: Record<string, unknown>) => rpc(post, 'tools/call', { name, arguments: args });
+
+  for (const target of ['', 'doc_', 'doc/..']) {
+    expect(await refused('read_document', { target })).toMatchObject({
+      isError: true,
+      content: [{ text: 'The target is not a documentId or a noteAddress.' }],
+    });
+  }
   for (const documentId of ['', 'doc_note', 'doc/..']) {
-    expect(await rpc(post, 'tools/call', { name: 'read_document', arguments: { documentId } })).toMatchObject({
+    expect(await refused('rename_document', { documentId, title: 'Plan' })).toMatchObject({
       isError: true,
       content: [{ text: 'The documentId is not valid.' }],
+    });
+  }
+  for (const noteAddress of ['', 'doc', 'doc/..']) {
+    expect(await refused('set_child_list_type', { noteAddress, listType: 'check' })).toMatchObject({
+      isError: true,
+      content: [{ text: 'The noteAddress is not valid.' }],
     });
   }
 });
