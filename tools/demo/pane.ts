@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
-import type { Page } from 'playwright';
+import type { Locator, Page } from 'playwright';
 
 export interface OutlineNote {
   text: string;
@@ -9,9 +9,11 @@ export interface OutlineNote {
 /** The script's pacing knobs, in seconds at viewer-facing speed. */
 export interface Pacing {
   typingSpeed: number;
-  afterEachKey: number;
+  betweenSteps: number;
+  keyCaptions: boolean;
   keyCaption: number;
   chapterTitle: number;
+  closingCard: number;
   splitScreen: number;
   shortPause: number;
   longPause: number;
@@ -25,8 +27,12 @@ export type PauseLength = 'short' | 'long' | number;
 export class Timing {
   constructor(private readonly pacing: Pacing, private readonly speedup: number) {}
 
-  of(knob: Exclude<keyof Pacing, 'typingSpeed' | 'quickPreviewSpeedup'>): number {
+  of(knob: Exclude<keyof Pacing, 'typingSpeed' | 'quickPreviewSpeedup' | 'keyCaptions'>): number {
     return this.ms(this.pacing[knob]);
+  }
+
+  get keyCaptions(): boolean {
+    return this.pacing.keyCaptions;
   }
 
   typingDelay(): number {
@@ -46,29 +52,79 @@ export class Timing {
 
 const OUTLINE_TIMEOUT_MS = 15_000;
 
+const EDITOR = '.editor-container [data-lexical-editor]';
+const NOTE_ROW = `${EDITOR} li.list-item:not(.list-nested-item)`;
+
 /** A browser tab shown in one of the stage's slots. */
 export class Pane {
-  constructor(readonly page: Page, private readonly timing: Timing, private readonly documentUrl: string) {}
+  constructor(readonly page: Page, private readonly timing: Timing, private readonly origin: string) {}
 
-  async openDocument(): Promise<void> {
-    await this.page.goto(this.documentUrl);
-    await this.page.locator('.editor-container [data-lexical-editor] li.list-item').first().waitFor();
-    await this.page.locator('.editor-container [data-lexical-editor]').focus();
+  async openHome(): Promise<void> {
+    await this.page.goto(new URL('/', this.origin).href);
+    await this.page.getByRole('heading', { name: 'Home' }).waitFor();
+  }
+
+  /** Opens a document by clicking its row on Home; without a title, the first one. */
+  async open(title?: string): Promise<void> {
+    await this.click(this.documentRow(title));
+    await this.page.locator(`${EDITOR} li.list-item`).first().waitFor();
+    await this.pause('short');
+  }
+
+  /** Shares the open document, from its heading's menu, with the account at `email`. */
+  async share(email: string): Promise<void> {
+    const name = await this.page.getByRole('heading', { level: 1 }).innerText();
+    await this.click(this.page.getByRole('button', { name: `Actions for ${name}` }));
+    await this.afterStep();
+    await this.click(this.page.getByRole('menuitem', { name: 'Share…' }));
+    const dialog = this.page.getByRole('dialog');
+    await this.click(dialog.getByRole('textbox', { name: 'Invite by email' }));
+    await this.type(email);
+    await this.click(dialog.getByRole('button', { name: 'Invite' }));
+    await dialog.getByText(email).first().waitFor();
+    await this.pause('short');
+    await this.click(dialog.getByRole('button', { name: 'Done' }));
+    await this.afterStep();
+  }
+
+  /** Puts the caret at the end of the note whose text is `text`. */
+  async goTo(text: string): Promise<void> {
+    await this.click(this.page.locator(NOTE_ROW).filter({ hasText: new RegExp(`^${escapeRegExp(text)}$`) }).first()
+      .locator('[data-lexical-text]').last(), 'end');
+    await this.press('End');
+  }
+
+  /** Checks off the note at the caret, with everything under it. */
+  async check(): Promise<void> {
+    await this.press('Control+Enter');
+  }
+
+  /** Collapses a selection back to a caret, leaving the document unchanged. */
+  async deselect(): Promise<void> {
+    await this.press('Escape');
+  }
+
+  /** Selects every note in the current view, staying inside a zoomed note. */
+  async selectAll(): Promise<void> {
+    // Each press widens the selection one step: the note's text, the note with
+    // its children, its siblings, then its parent; extra presses do nothing.
+    await this.press('Control+A', 4);
   }
 
   async captionActions(): Promise<void> {
+    if (!this.timing.keyCaptions) return;
     await this.page.screencast.showActions({ position: 'bottom', duration: this.timing.of('keyCaption') });
   }
 
   async type(text: string): Promise<void> {
     await this.page.keyboard.type(text, { delay: this.timing.typingDelay() });
-    await this.afterKey();
+    await this.afterStep();
   }
 
   async press(key: string, times = 1): Promise<void> {
     for (let pressed = 0; pressed < times; pressed++) {
       await this.page.keyboard.press(key);
-      await this.afterKey();
+      await this.afterStep();
     }
   }
 
@@ -82,6 +138,11 @@ export class Pane {
 
   async outdent(): Promise<void> {
     await this.press('Shift+Tab');
+  }
+
+  /** Outdents the note at the caret until it is a top-level note. */
+  async toTopLevel(): Promise<void> {
+    while (await this.caretDepth() > 0) await this.outdent();
   }
 
   async up(times = 1): Promise<void> {
@@ -104,8 +165,18 @@ export class Pane {
     await this.press('Alt+Shift+ArrowUp');
   }
 
+  /** Folds or unfolds the note at the caret. */
   async fold(): Promise<void> {
     await this.menu('f');
+  }
+
+  /** Folds the whole view so only its top-level notes stay visible. */
+  async foldToTopLevel(): Promise<void> {
+    await this.menu('1');
+  }
+
+  async unfoldAll(): Promise<void> {
+    await this.menu('0');
   }
 
   async zoomIn(): Promise<void> {
@@ -126,32 +197,79 @@ export class Pane {
     await waitForOutline(this.page, outline.trim(), (actual) => isDeepStrictEqual(actual, expected));
   }
 
-  /** Waits until the document has a top-level note `text` with notes under it. */
-  async expectNoteWithChildren(text: string): Promise<void> {
-    await waitForOutline(this.page, `a top-level "${text}" with notes under it`,
-      (outline) => outline.some((note) => note.text === text && (note.children?.length ?? 0) > 0));
+  /** Waits until the document's top-level notes include `texts`, in this order. */
+  async expectSteps(texts: string[]): Promise<void> {
+    await waitForOutline(this.page, `top-level notes including ${JSON.stringify(texts)} in order`, (outline) => {
+      let next = 0;
+      for (const note of outline) if (note.text === texts[next]) next++;
+      return next === texts.length;
+    });
   }
 
-  /** Waits until the document's last top-level note is `text`. */
-  async expectLastNote(text: string): Promise<void> {
-    await waitForOutline(this.page, `the outline ending with "${text}"`, (outline) => outline.at(-1)?.text === text);
+  /** Waits until the note `parent` has a note `child` directly under it. */
+  async expectUnder(parent: string, child: string): Promise<void> {
+    await waitForOutline(this.page, `"${child}" under "${parent}"`,
+      (outline) => flatten(outline).some((note) => note.text === parent && (note.children ?? []).some(({ text }) => text === child)));
+  }
+
+  /** Waits until the note `parent` has at least one note under it. */
+  async expectChildren(parent: string): Promise<void> {
+    await waitForOutline(this.page, `notes under "${parent}"`,
+      (outline) => flatten(outline).some((note) => note.text === parent && (note.children?.length ?? 0) > 0));
+  }
+
+  async noteCount(): Promise<number> {
+    return flatten(await readOutline(this.page)).length;
+  }
+
+  /** Waits until the document holds more than `count` notes. */
+  async expectMoreNotesThan(count: number): Promise<void> {
+    await waitForOutline(this.page, `more than ${count} notes`, (outline) => flatten(outline).length > count);
   }
 
   // The note menu opens on two Shift presses within 500ms. Action captions hold
   // each press for their display duration, so this sequence is captioned as one.
   private async menu(shortcut: string): Promise<void> {
     const keys = ['Shift', 'Shift', shortcut];
-    await this.page.screencast.hideActions();
-    await this.page.screencast.showOverlay(sequenceCaption(keys), { duration: this.timing.of('keyCaption') * keys.length });
+    if (this.timing.keyCaptions) {
+      await this.page.screencast.hideActions();
+      await this.page.screencast.showOverlay(sequenceCaption(keys), { duration: this.timing.of('keyCaption') * keys.length });
+    }
     for (const key of keys) {
       await this.page.keyboard.press(key);
     }
     await this.captionActions();
-    await this.afterKey();
+    await this.afterStep();
   }
 
-  private async afterKey(): Promise<void> {
-    await this.page.waitForTimeout(this.timing.of('afterEachKey'));
+  // A mouse click is captioned as a click, where a locator click would caption
+  // the locator itself.
+  private async click(target: Locator, at: 'center' | 'end' = 'center'): Promise<void> {
+    await target.scrollIntoViewIfNeeded();
+    const box = (await target.boundingBox())!;
+    const x = at === 'end' ? box.x + box.width - 1 : box.x + box.width / 2;
+    await this.page.mouse.click(x, box.y + box.height / 2);
+  }
+
+  private documentRow(title?: string): Locator {
+    const documents = this.page.getByRole('group', { name: 'Current Server', exact: true });
+    return title === undefined
+      ? documents.getByRole('button').filter({ hasText: /\S/ }).first()
+      : documents.getByRole('button', { name: title, exact: true });
+  }
+
+  private async caretDepth(): Promise<number> {
+    return this.page.evaluate(() => {
+      let depth = 0;
+      for (let element = getSelection()?.anchorNode?.parentElement ?? null; element; element = element.parentElement) {
+        if (element.matches('li.list-nested-item')) depth++;
+      }
+      return depth;
+    });
+  }
+
+  private async afterStep(): Promise<void> {
+    await this.page.waitForTimeout(this.timing.of('betweenSteps'));
   }
 }
 
@@ -163,6 +281,14 @@ function sequenceCaption(keys: string[]): string {
   ].join(';');
   const label = keys.map((key) => (key.length === 1 ? key.toUpperCase() : key)).join(' ');
   return `<div style="${style}">${label}</div>`;
+}
+
+function flatten(outline: OutlineNote[]): OutlineNote[] {
+  return outline.flatMap((note) => [note, ...flatten(note.children ?? [])]);
+}
+
+function escapeRegExp(text: string): string {
+  return text.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /** Parses an outline written as lines indented by two spaces per level. */

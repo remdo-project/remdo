@@ -1,4 +1,4 @@
-import { askClaude } from './claude';
+import { ClaudeConversation } from './claude';
 import type { Pane } from './pane';
 
 // A minimal chat in RemDo's own palette: the video shows a real Claude
@@ -28,6 +28,7 @@ const CHAT_HTML = `<!doctype html>
   }
   .assistant { display: flex; flex-direction: column; gap: 10px; max-width: 92%; }
   .assistant p { margin: 0; white-space: pre-wrap; }
+  .assistant strong { color: #e9ecef; }
   .assistant code { font-family: 'JetBrains Mono', Menlo, monospace; font-size: 0.9em; }
   .tool {
     align-self: flex-start; display: flex; align-items: center; gap: 8px;
@@ -51,6 +52,8 @@ const CHAT_HTML = `<!doctype html>
 <div id="messages"></div>
 <form><textarea rows="2" placeholder="Ask Claude about your notes"></textarea></form>
 <script>
+// Block-scoped, so opening a new chat can rerun this script in the same window.
+{
   const messages = document.getElementById('messages');
   const input = document.querySelector('textarea');
   let reply, paragraph, pending, tool;
@@ -72,12 +75,21 @@ const CHAT_HTML = `<!doctype html>
     pending = add(reply, 'span', 'pending', '•••');
     paragraph = undefined;
   });
+  // Claude writes Markdown; bold and code are the inline marks worth rendering.
+  const renderInline = (markdown) => markdown
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
+    .replace(/\\x60([^\\x60]+)\\x60/g, '<code>$1</code>');
   window.chat = {
-    textStart() { paragraph = add(reply, 'p', '', ''); },
+    textStart() {
+      paragraph = add(reply, 'p', '', '');
+      paragraph.dataset.markdown = '';
+    },
     text(delta) {
       pending?.remove();
       pending = undefined;
-      paragraph.textContent += delta;
+      paragraph.dataset.markdown += delta;
+      paragraph.innerHTML = renderInline(paragraph.dataset.markdown);
       scroll();
     },
     toolStart(name) {
@@ -88,15 +100,22 @@ const CHAT_HTML = `<!doctype html>
     },
     toolEnd(failed) { tool.dataset.state = failed ? 'failed' : 'done'; },
   };
+}
 </script>`;
 
 type ChatMethod = 'textStart' | 'text' | 'toolStart' | 'toolEnd';
 
 /** The chat page shown in a pane, answered live by Claude through RemDo's MCP server. */
 export class Chat {
-  constructor(private readonly pane: Pane, private readonly mcp: { url: string; token: string }) {}
+  private conversation?: ClaudeConversation;
+  private lastTools: string[] = [];
 
+  constructor(readonly pane: Pane, private readonly mcp: { url: string; token: string }) {}
+
+  /** Starts a new conversation on an empty chat page. */
   async open(): Promise<void> {
+    await this.close();
+    this.conversation = await ClaudeConversation.start(this.mcp.url, this.mcp.token);
     await this.pane.page.setContent(CHAT_HTML);
     await this.pane.page.locator('textarea').focus();
     await this.pane.captionActions();
@@ -106,12 +125,24 @@ export class Chat {
   async ask(prompt: string): Promise<void> {
     await this.pane.type(prompt);
     await this.pane.press('Enter');
-    await askClaude(prompt, this.mcp.url, this.mcp.token, {
+    this.lastTools = await this.conversation!.send(prompt, {
       textStart: async () => this.call('textStart'),
       text: async (delta) => this.call('text', delta),
       toolStart: async (name) => this.call('toolStart', name),
       toolEnd: async (failed) => this.call('toolEnd', failed),
     });
+  }
+
+  /** Fails unless Claude's last answer used the RemDo tool `name`. */
+  expectUsed(name: string): void {
+    if (!this.lastTools.includes(name)) {
+      throw new Error(`Claude answered without RemDo's ${name}; it used: ${this.lastTools.join(', ') || 'no tools'}.`);
+    }
+  }
+
+  async close(): Promise<void> {
+    await this.conversation?.close();
+    this.conversation = undefined;
   }
 
   private async call(method: ChatMethod, argument?: string | boolean): Promise<void> {

@@ -23,7 +23,21 @@ const STAGE_HTML = `<!doctype html>
   #extra::before {
     content: ''; position: absolute; inset: 0 auto 0 0; width: 2px; z-index: 1; background: #4b4f58;
   }
+  #closing-card {
+    position: fixed; inset: 0; z-index: 2; display: grid; place-items: center;
+    backdrop-filter: blur(6px); background: rgb(0 0 0 / 35%);
+    font-family: system-ui, sans-serif; animation: appear 0.4s ease-out;
+  }
+  #closing-card[hidden] { display: none; }
+  #closing-card div {
+    padding: 28px 40px; border-radius: 12px; background: rgb(0 0 0 / 85%);
+    text-align: center; color: #fff;
+  }
+  #closing-card h1 { margin: 0 0 8px; font-size: 32px; }
+  #closing-card p { margin: 0; font-size: 16px; color: #ced4da; }
+  @keyframes appear { from { opacity: 0; } }
 </style>
+<div id="closing-card" hidden><div><h1></h1><p></p></div></div>
 <div id="slots">
   <div class="slot" id="main" style="width: 100%"><img alt=""></div>
   <div class="slot" id="extra" style="width: 0"><img alt=""></div>
@@ -38,6 +52,7 @@ interface Stream {
 /** The recorded page, composing the panes' screencast frames into one frame. */
 export class Stage {
   private readonly streams = new Map<Slot, Stream>();
+  private readonly shown = new Map<Slot, Pane>();
 
   private constructor(readonly page: Page, private readonly timing: Timing) {}
 
@@ -48,7 +63,12 @@ export class Stage {
     return new Stage(page, timing);
   }
 
+  /** Streams `pane` into `slot`, replacing the pane shown there. */
   async show(slot: Slot, pane: Pane): Promise<void> {
+    const previous = this.shown.get(slot);
+    if (previous === pane) return;
+    await previous?.page.screencast.stop();
+    this.shown.set(slot, pane);
     const stream: Stream = { flushing: false, width: 0 };
     this.streams.set(slot, stream);
     await pane.page.screencast.start({
@@ -66,9 +86,11 @@ export class Stage {
     await this.frameOfWidth(slot, pane.page.viewportSize()!.width);
   }
 
-  /** Brings the extra pane in beside the main one, each taking half the stage. */
-  async split(main: Pane, extra: Pane): Promise<void> {
+  /** Brings `extra` in beside the main pane, each taking half the stage. */
+  async split(extra: Pane): Promise<void> {
+    const main = this.shown.get('main')!;
     await extra.page.setViewportSize(HALF_SIZE);
+    await this.show('extra', extra);
     await this.frameOfWidth('extra', HALF_SIZE.width);
     await this.resizeSlots('50%', '50%');
     await main.page.setViewportSize(HALF_SIZE);
@@ -76,15 +98,31 @@ export class Stage {
   }
 
   /** Returns the whole stage to the main pane. */
-  async unsplit(main: Pane): Promise<void> {
+  async unsplit(): Promise<void> {
+    const main = this.shown.get('main')!;
     await main.page.setViewportSize(STAGE_SIZE);
     await this.frameOfWidth('main', STAGE_SIZE.width);
     await this.resizeSlots('100%', '0');
   }
 
+  /** Shows a chapter title card; resolves once the card has been on screen for its full time. */
   async chapter(title: string, description?: string): Promise<void> {
     await this.page.screencast.showChapter(title, { description, duration: this.timing.of('chapterTitle') });
-    await this.page.waitForTimeout(this.timing.of('chapterTitle'));
+  }
+
+  /**
+   * Ends the video on a title card that stays up through the last frame. It is
+   * part of the stage page, since Playwright removes its own overlays when
+   * recording stops.
+   */
+  async closingCard(title: string, description: string): Promise<void> {
+    await this.page.evaluate(([cardTitle, cardDescription]) => {
+      const card = document.getElementById('closing-card')!;
+      card.querySelector('h1')!.textContent = cardTitle!;
+      card.querySelector('p')!.textContent = cardDescription!;
+      card.hidden = false;
+    }, [title, description]);
+    await this.page.waitForTimeout(this.timing.of('closingCard'));
   }
 
   private async resizeSlots(main: string, extra: string): Promise<void> {
