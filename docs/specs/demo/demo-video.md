@@ -12,7 +12,7 @@ account, leaving other accounts' data unchanged.
 2. Perform each [chapter](#chapters) in order through the instance's real user
    interfaces and confirm its end state.
 3. Return the video, playable by current major browsers, and a poster image
-   showing its final frame.
+   showing its final frame before the closing card.
 
 ## Authenticity
 
@@ -41,11 +41,12 @@ in this order. Conversations with Claude use RemDo's
 part of the video rather than as any Claude app; their end states constrain
 which notes exist, never Claude's wording.
 
-- **Plan with Claude.** A plain request asks Claude for a short plan in RemDo;
-  Claude creates it as a document, which then opens from Home. End state: the
-  document holds Claude's plan.
+- **Plan with Claude.** The video opens on an empty plan document; a plain
+  request asks Claude to fill it, and its notes appear there live beside the
+  conversation. End state: the document holds Claude's plan.
 - **Make it yours.** A step with details is added by keyboard, and the whole
-  plan folds to its top-level steps, staying folded until the teammate joins.
+  plan folds to its top-level steps, staying folded until the teammate unfolds
+  it.
   End state: the details sit under that step.
 - **Share it.** The demo account shares the plan with a second account from
   Home. End state: the second account is among the plan's recipients.
@@ -55,9 +56,9 @@ which notes exist, never Claude's wording.
   Claude reads it from RemDo to summarize it; a follow-up asks Claude to add
   what is missing. End state: Claude read the plan, and it holds more notes
   than before.
-- **Ship it.** The view zooms into the publishing step and checks it off with
-  everything under it, and a closing card tells the viewer the video they are
-  watching is the result.
+- **Ship it.** The view, zoomed into the publishing step since the second
+  conversation, checks it off with everything under it, and the video ends on a
+  closing card telling the viewer the video they are watching is the result.
 
 ## Future
 

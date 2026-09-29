@@ -20,7 +20,7 @@ export const pacing: Pacing = {
   keyCaption: 0.5,
   // How long a chapter title card stays up.
   chapterTitle: 2.2,
-  // How long the closing card stays up at the end of the video.
+  // How long the closing card shows before the video ends on it.
   closingCard: 4,
   // How long the split-screen slide takes.
   splitScreen: 0.9,
@@ -51,14 +51,13 @@ export interface Show {
 }
 
 export async function script({ main, ben, chat, chapter, closingCard, split, unsplit, pause }: Show): Promise<void> {
-  await chapter('Plan with Claude', 'Ask in plain words; Claude writes the plan into RemDo');
+  await chapter('Plan with Claude', 'Ask in plain words; watch Claude write into RemDo');
   await chat.open();
   await split(chat);
-  await chat.ask('I\'m filming a short demo of RemDo. Jot down the steps to get it ready in RemDo.');
-  await pause(pacing.readReply);
-  await main.open();
-  await unsplit();
+  await chat.ask('I\'m filming a short demo of RemDo. Jot down the steps to get it ready in my Demo video doc.');
   await main.expectMoreNotesThan(1);
+  await pause(pacing.readReply);
+  await unsplit();
 
   await chapter('Make it yours', 'Add a step and its details by keyboard');
   await main.toDocumentEnd();
@@ -70,8 +69,10 @@ export async function script({ main, ben, chat, chapter, closingCard, split, uns
   await main.type('Keep it keyboard-first');
   await main.newNote();
   await main.type('Show Claude and a teammate');
-  await main.goTo('Publish the demo video');
+  await main.newNote();
+  await main.type('Fold it down to the big picture');
   await main.foldToTopLevel();
+  await pause('long');
   await pause('long');
   //await main.unfoldAll();
   //await main.zoomIn();
@@ -84,10 +85,11 @@ export async function script({ main, ben, chat, chapter, closingCard, split, uns
   await main.open();
 
   await chapter('Work together', 'Ben edits the same plan, live');
-  await main.unfoldAll();
   await ben.openHome();
   await ben.open();
   await split(ben);
+  await ben.goTo('Publish the demo video');
+  await ben.unfoldAll();
   await ben.goTo('Show Claude and a teammate');
   await ben.newNote();
   await ben.type('I\'ll do the voice-over');
@@ -99,20 +101,20 @@ export async function script({ main, ben, chat, chapter, closingCard, split, uns
   await unsplit();
 
   await chapter('Pick it up later', 'A new chat reads the plan back from RemDo');
-  const notesBefore = await main.noteCount();
+  await main.goTo('Publish the demo video');
+  await main.zoomIn();
+  // Ben's tab still shows the whole plan, wherever Claude adds to it.
+  const notesBefore = await ben.noteCount();
   await chat.open();
   await split(chat);
   await chat.ask('What\'s in my demo video plan in RemDo?');
   chat.expectUsed('read_document');
   await pause('long');
   await chat.ask('Add anything that\'s still missing before we publish.');
-  await main.expectMoreNotesThan(notesBefore);
+  await ben.expectMoreNotesThan(notesBefore);
   await pause(pacing.readReply);
   await unsplit();
 
-  await main.goTo('Publish the demo video');
-  await main.zoomIn();
-  await pause('long');
   await main.selectAll();
   await main.check();
   await main.deselect();

@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import type { Browser, BrowserContext } from 'playwright';
 import { chromium } from 'playwright';
 import { config } from '#config';
+import { resolveLocalGatewayOrigin } from '#platform/net/origins';
 import type { DemoAccount } from '../lib/demo-account';
 import { resetDemoAccount } from '../lib/demo-account';
 import { provisionDjangoUser } from '../lib/django-user';
@@ -29,8 +30,16 @@ const TEAMMATE: DemoAccount = { email: 'ben@example.test', password: 'ben-passwo
 
 async function signIn(browser: Browser, origin: string, account: DemoAccount): Promise<BrowserContext> {
   const context = await browser.newContext({ viewport: STAGE_SIZE, locale: 'en-US' });
-  // The app's own dev-tools switch hides development-only surfaces, as in production.
-  await context.addInitScript(() => localStorage.setItem('remdo-dev-tooling-visible', 'false'));
+  // The app's own dev-tools switch hides development-only surfaces, as in
+  // production; the switch itself, also development-only, is hidden by style.
+  await context.addInitScript(() => {
+    localStorage.setItem('remdo-dev-tooling-visible', 'false');
+    document.addEventListener('DOMContentLoaded', () => {
+      const style = document.createElement('style');
+      style.textContent = '.dev-visibility-toggle { display: none !important; }';
+      document.head.append(style);
+    });
+  });
   const configUrl = new URL('/api/config', origin).href;
   const { csrfToken } = await (await context.request.get(configUrl, { failOnStatusCode: true })).json() as { csrfToken: string };
   await context.request.post(new URL('/api/auth/browser/v1/auth/login', origin).href, {
@@ -79,7 +88,9 @@ async function main(): Promise<void> {
   }
   const timing = new Timing(pacing, final ? 1 : pacing.quickPreviewSpeedup);
   const preset = final ? 'slow' : 'veryfast';
-  const origin = config.env.APP_ORIGIN;
+  // A loopback address is a secure context, which RemDo's local offline copy
+  // needs; the public development name is plain HTTP and shows it degraded.
+  const origin = resolveLocalGatewayOrigin();
   await fetch(new URL('/api/health', origin)).catch(() => {
     throw new Error(`No development server answers at ${origin}; start it with pnpm run dev.`);
   });
@@ -97,7 +108,7 @@ async function main(): Promise<void> {
   await provisionDjangoUser({ ...ACCOUNT, name: 'Demo' });
   await provisionDjangoUser({ ...TEAMMATE, name: 'Ben' });
   const mcp = { url: new URL('/mcp', origin).href, token: await mcpToken(ACCOUNT.email) };
-  await resetDemoAccount(origin, ACCOUNT, { emptyDocument: false });
+  await resetDemoAccount(origin, ACCOUNT, { emptyDocument: 'Demo video' });
   await resetDemoAccount(origin, TEAMMATE, { emptyDocument: false });
   const browser = await chromium.launch();
   try {
@@ -106,6 +117,7 @@ async function main(): Promise<void> {
     const chatPane = new Pane(await context.newPage(), timing, origin);
     const ben = new Pane(await (await signIn(browser, origin, TEAMMATE)).newPage(), timing, origin);
     await main.openHome();
+    await main.open('Demo video');
     await ben.openHome();
     const stage = await Stage.open(browser, timing);
     await stage.show('main', main);
@@ -120,12 +132,14 @@ async function main(): Promise<void> {
         ben,
         chat,
         chapter: async (title, description) => stage.chapter(title, description),
-        closingCard: async (title, description) => stage.closingCard(title, description),
+        closingCard: async (title, description) => {
+          await stage.page.screenshot({ path: partials[1], type: 'jpeg', quality: 85 });
+          await stage.closingCard(title, description);
+        },
         split: async (pane) => stage.split(pane instanceof Chat ? pane.pane : pane),
         unsplit: async () => stage.unsplit(),
         pause: async (length) => main.pause(length),
       });
-      await stage.page.screenshot({ path: partials[1], type: 'jpeg', quality: 85 });
     } catch (error) {
       const panes = { main: main.page, ben: ben.page, chat: chatPane.page, stage: stage.page };
       await Promise.all(Object.entries(panes).map(async ([name, page]) =>

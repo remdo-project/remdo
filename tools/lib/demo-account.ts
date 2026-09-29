@@ -57,7 +57,12 @@ export interface DemoReset {
   sharedRemaining: number;
 }
 
-export async function resetDemoAccount(origin: string, account: DemoAccount, { emptyDocument = true } = {}): Promise<DemoReset> {
+/** Deletes the account's own documents, then creates one empty document titled `emptyDocument` unless it is false. */
+export async function resetDemoAccount(
+  origin: string,
+  account: DemoAccount,
+  { emptyDocument = 'New Document' }: { emptyDocument?: string | false } = {},
+): Promise<DemoReset> {
   const session = new Session(origin);
   await session.refreshCsrfToken();
   await session.request('POST', '/api/auth/browser/v1/auth/login', account);
@@ -68,8 +73,8 @@ export async function resetDemoAccount(origin: string, account: DemoAccount, { e
   for (const document of owned) {
     await session.request('DELETE', `/api/documents/${encodeURIComponent(document.id)}`);
   }
-  const document = emptyDocument
-    ? await (await session.request('POST', '/api/documents', { title: 'New Document' })).json() as Document
-    : undefined;
+  const document = emptyDocument === false
+    ? undefined
+    : await (await session.request('POST', '/api/documents', { title: emptyDocument })).json() as Document;
   return { document, deleted: owned.length, sharedRemaining: documents.length - owned.length };
 }

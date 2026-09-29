@@ -23,7 +23,21 @@ const STAGE_HTML = `<!doctype html>
   #extra::before {
     content: ''; position: absolute; inset: 0 auto 0 0; width: 2px; z-index: 1; background: #4b4f58;
   }
+  #closing-card {
+    position: fixed; inset: 0; z-index: 2; display: grid; place-items: center;
+    backdrop-filter: blur(6px); background: rgb(0 0 0 / 35%);
+    font-family: system-ui, sans-serif; animation: appear 0.4s ease-out;
+  }
+  #closing-card[hidden] { display: none; }
+  #closing-card div {
+    padding: 28px 40px; border-radius: 12px; background: rgb(0 0 0 / 85%);
+    text-align: center; color: #fff;
+  }
+  #closing-card h1 { margin: 0 0 8px; font-size: 32px; }
+  #closing-card p { margin: 0; font-size: 16px; color: #ced4da; }
+  @keyframes appear { from { opacity: 0; } }
 </style>
+<div id="closing-card" hidden><div><h1></h1><p></p></div></div>
 <div id="slots">
   <div class="slot" id="main" style="width: 100%"><img alt=""></div>
   <div class="slot" id="extra" style="width: 0"><img alt=""></div>
@@ -96,9 +110,18 @@ export class Stage {
     await this.page.waitForTimeout(this.timing.of('chapterTitle'));
   }
 
-  /** Ends the video on a title card held over the final frame. */
+  /**
+   * Ends the video on a title card that stays up through the last frame. It is
+   * part of the stage page, since Playwright removes its own overlays when
+   * recording stops.
+   */
   async closingCard(title: string, description: string): Promise<void> {
-    await this.page.screencast.showChapter(title, { description, duration: this.timing.of('closingCard') });
+    await this.page.evaluate(([cardTitle, cardDescription]) => {
+      const card = document.getElementById('closing-card')!;
+      card.querySelector('h1')!.textContent = cardTitle!;
+      card.querySelector('p')!.textContent = cardDescription!;
+      card.hidden = false;
+    }, [title, description]);
     await this.page.waitForTimeout(this.timing.of('closingCard'));
   }
 
