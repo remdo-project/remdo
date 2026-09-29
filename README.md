@@ -11,9 +11,9 @@ one RemDo server. The longer-term direction is to extend the same model across
 RemDo servers and information that already lives in email, calendars, files, and
 other tools.
 
-
+<!-- GitHub plays a bare user-attachments URL on its own line. -->
+<!-- markdownlint-disable-next-line MD034 -->
 https://github.com/user-attachments/assets/6ce9085e-5dfe-4ca8-b93a-6ab23dac57c3
-
 
 ## Overview
 
