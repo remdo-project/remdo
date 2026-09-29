@@ -144,9 +144,8 @@ URI.
 
 `HOME_VIDEO_URL` locates the [demo video](../demo/demo-video.md), in MP4, that the
 signed-out [Home](../outliner/home.md#public-introduction) offers; its poster
-image is the same URL with a `.jpg` path extension. Unset offers no video.
-When the development server serves source files, development defaults it to
-the local recording under [`DATA_DIR`](#persistence), whether or not one exists.
+image is the same URL with a `.jpg` path extension. When unset, Home uses its
+bundled demo and first-frame poster.
 
 ## Error reporting
 

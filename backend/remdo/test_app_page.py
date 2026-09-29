@@ -4,8 +4,19 @@ from pathlib import Path
 from urllib.parse import quote
 
 from accounts.models import User
+from accounts.views import LoginView
 from django.conf import settings
 from django.test import TestCase, override_settings
+from django.urls import path
+
+from .app_page import home_page
+
+
+class NoGoogleLoginUrls:
+    urlpatterns = [
+        path("", home_page),
+        path("accounts/login/", LoginView.as_view(), name="account_login"),
+    ]
 
 
 class AppPageTests(TestCase):
@@ -91,7 +102,8 @@ class AppPageTests(TestCase):
 class HomePageTests(TestCase):
     def test_signed_out_visitors_get_the_public_home(self):
         response = self.client.get("/?utm_source=test")
-        self.assertContains(response, '<h1 class="remdo-home-title">RemDo</h1>', html=True)
+        self.assertContains(response, "Keyboard-first")
+        self.assertContains(response, "collaborative outliner")
         self.assertContains(
             response, f'<link rel="canonical" href="{settings.APP_ORIGIN}/">', html=True
         )
@@ -102,10 +114,26 @@ class HomePageTests(TestCase):
         self.assertIn("no-store", response.headers["Cache-Control"])
         self.assertEqual(self.client.post("/").status_code, 405)
 
-    def test_public_home_shows_the_example_outline_without_a_video(self):
+    @override_settings(ROOT_URLCONF=NoGoogleLoginUrls)
+    def test_public_home_google_entry_opens_native_sign_in_when_google_is_unconfigured(self):
         response = self.client.get("/")
-        self.assertContains(response, 'aria-label="Example RemDo outline"')
-        self.assertNotContains(response, "<video")
+        self.assertRegex(
+            response.content.decode(),
+            r'(?s)<a\b[^>]*href="/accounts/login/"[^>]*>'
+            r"(?:(?!</a>).)*Sign in with Google\s*</a>",
+        )
+        self.assertNotContains(response, "/accounts/google/login/")
+
+    @override_settings(HOME_VIDEO_URL="")
+    def test_public_home_offers_the_bundled_video_when_no_override_is_configured(self):
+        response = self.client.get("/")
+        self.assertContains(
+            response, '<source src="/landing/demo.mp4" type="video/mp4">', html=True
+        )
+        self.assertContains(response, 'poster="/landing/demo.jpg"')
+        self.assertContains(response, 'aria-label="RemDo demo"')
+        self.assertContains(response, 'preload="none"')
+        self.assertNotContains(response, "autoplay")
 
     @override_settings(HOME_VIDEO_URL="https://share.example.test/media/demo.mp4?v=2")
     def test_public_home_offers_the_configured_video_with_its_poster(self):
@@ -118,7 +146,7 @@ class HomePageTests(TestCase):
         self.assertContains(response, 'poster="https://share.example.test/media/demo.jpg?v=2"')
         self.assertContains(response, 'preload="none"')
         self.assertNotContains(response, "autoplay")
-        self.assertNotContains(response, 'aria-label="Example RemDo outline"')
+        self.assertNotContains(response, 'src="/landing/demo.mp4"')
 
     def test_signed_out_entry_targets_go_to_sign_in(self):
         for url in ("/?next=%2Fn%2Fexample", "/?doc=example"):

@@ -15,9 +15,10 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 
 ## Public introduction
 
-When a [home video](../runtime/configuration.md#home-video) is configured, the
-public introduction offers it with its poster, playing it only when the visitor
-starts it. Otherwise, it shows an example outline.
+The public introduction offers a demo with a poster of its first frame, playing
+it only when the visitor starts it. A configured
+[home video](../runtime/configuration.md#home-video) replaces the bundled demo
+and uses its associated poster. The product illustrations show example outlines.
 
 ## Signed-in behavior
 

@@ -120,7 +120,7 @@ test.describe('Routing', () => {
     await page.goto('/');
 
     await expectPath(page, '/');
-    await expect(page.getByRole('heading', { level: 1, name: 'RemDo' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Keyboard-first collaborative outliner' })).toBeVisible();
     await expect(page.locator('script[type="module"]')).toHaveCount(0);
     await page.getByRole('navigation').getByRole('link', { name: 'Sign in', exact: true }).click();
     await expectPath(page, '/accounts/login/');
@@ -139,7 +139,7 @@ test.describe('Routing', () => {
     await page.goto('/app-shell/');
 
     await expectPath(page, '/');
-    await expect(page.getByRole('heading', { level: 1, name: 'RemDo' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Keyboard-first collaborative outliner' })).toBeVisible();
   });
 
   unauthenticatedTest('uses native sign-in and preserves protected destinations when signed out', async ({ page }) => {
