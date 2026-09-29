@@ -76,18 +76,27 @@ describe('document route', () => {
   });
 
   it('starts each opened document with the header as the menu target', async () => {
-    renderDocumentRoute();
+    const second = await getTestUserData().getDocuments().create('Second Document');
+    renderDocumentRoute(createDocumentPath('testDoc'));
 
     fireEvent.focus(await screen.findByTestId('editor-input-probe'));
     expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'note');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Test Document' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Second Document' }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'testDoc');
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', second.getId());
     });
     expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'header');
+  });
+
+  it('targets the note strip while the document has no header menu', async () => {
+    renderDocumentRoute();
+
+    await screen.findByTestId('editor-probe');
+
+    expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'note');
   });
 
   it('returns to the document URL when zoom is cleared', async () => {

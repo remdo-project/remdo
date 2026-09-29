@@ -48,6 +48,18 @@ test.describe('Document-root header', () => {
     await expect(headerButton).toHaveCSS('opacity', '0');
   });
 
+  test('keeps the header target while its menu is open and the pointer crosses the outline', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+    const note5 = (await editorLocator(page).locator('[data-lexical-text="true"]', { hasText: 'note5' }).boundingBox())!;
+
+    await page.getByRole('heading', { level: 1 }).hover();
+    await page.getByRole('button', { name: /^Actions for/u }).click();
+    await page.mouse.move(note5.x + 5, note5.y + 5, { steps: 6 });
+
+    await expect(page.getByRole('menu')).toBeVisible();
+    await expect(documentShell(page)).toHaveAttribute('data-menu-target', 'header');
+  });
+
   test('keeps the target of an open note menu when the pointer reaches the header', async ({ page, editor }) => {
     await editor.load('tree-complex');
     const menu = await openNoteMenu(page, 'note2');
