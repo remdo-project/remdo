@@ -105,9 +105,9 @@ export class Stage {
     await this.resizeSlots('100%', '0');
   }
 
+  /** Shows a chapter title card; resolves once the card has been on screen for its full time. */
   async chapter(title: string, description?: string): Promise<void> {
     await this.page.screencast.showChapter(title, { description, duration: this.timing.of('chapterTitle') });
-    await this.page.waitForTimeout(this.timing.of('chapterTitle'));
   }
 
   /**
