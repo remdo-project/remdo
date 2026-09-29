@@ -264,35 +264,15 @@ RemDo document, minimal but useful for real work.
 
 ### Demo video
 
-The [demo video](specs/demo/demo-video.md) records the outlining chapter; the
-recording has run only against local development so far. Build the rest in
-slices that each produce a usable video and that later slices extend:
+The [demo video](specs/demo/demo-video.md) records every chapter from the local
+development instance, driving the Claude chapter with the signed-in `claude`
+CLI.
 
-1. **Two-pane composition.** Compose two sessions' timestamped screencast
-   frames into one video with layout changes over time, keeping each pane a
-   real viewport resized to its area. Choose between composing with ffmpeg from
-   a recorded layout timeline and recording a local stage page that renders
-   both frame streams.
-2. **Collaboration.** Decide whether the two sessions share the `user` account
-   or the chapter needs a second demo account shared into the document, which
-   the reset and deployment accounts do not provide.
-3. **Claude.** Choose how the conversation pane is driven:
-   1. **(Recommended)** The Claude API's MCP connector pointed at the target's
-      `/mcp`, rendered in a repository-owned chat pane that names Claude and
-      the API without imitating claude.ai. It uses the same model with real MCP
-      effects through Anthropic's programmatic access path.
-   2. Scripted claude.ai in a signed-in browser profile. It shows the real
-      product, but UI changes and sign-in checks make it fragile; check
-      Anthropic's current consumer terms on scripted access first.
-   3. A person records the claude.ai conversation manually while the script
-      records RemDo, then the two are aligned. It is authentic but not
-      repeatable.
-
-   Option 1 needs a delegated access token for the `user` account
-   obtained without a person completing the consent screen during the run.
-   Decide how a script obtains and stores it; this belongs to
-   [delegated access](specs/access/access-control.md#delegated-access), not to
-   demo recording.
+- **Development markers.** Recordings still show the dev-tools switch and the
+  footer's "Local development" label, which production lacks.
+- **Real claude.ai footage.** Ask Anthropic whether scripted demo recording
+  through a dedicated claude.ai account is acceptable; if so, drive claude.ai
+  in place of the demo chat surface.
 
 Open question: whether a local-origin run also serves as a CI smoke check.
 

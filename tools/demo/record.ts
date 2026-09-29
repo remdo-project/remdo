@@ -3,67 +3,61 @@ import { execFile } from 'node:child_process';
 import { mkdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { isDeepStrictEqual, promisify } from 'node:util';
-import type { Browser, BrowserContext, Page } from 'playwright';
+import { promisify } from 'node:util';
+import type { Browser, BrowserContext } from 'playwright';
 import { chromium } from 'playwright';
 import { config } from '#config';
 import type { DemoAccount } from '../lib/demo-account';
-import { demoAccount, resetDemoAccount } from '../lib/demo-account';
-import { outlining } from './outlining';
-import type { OutlineNote } from './stage';
-import { readOutline, Stage } from './stage';
+import { resetDemoAccount } from '../lib/demo-account';
+import { provisionDjangoUser } from '../lib/django-user';
+import { Chat } from './chat';
+import type { OutlineNote } from './pane';
+import { expectOutline, Pane, readOutline, Timing } from './pane';
+import { pacing, script } from './script';
+import { Stage, STAGE_SIZE } from './stage';
 
 const USAGE = [
-  'Usage: pnpm demo:record [--final] [origin]',
-  'Resets the origin\'s user account, whose password REMDO_USER_PASSWORD holds, then records',
-  'the demo video to $DATA_DIR/demo/demo.mp4 with its poster demo.jpg, encoding them with ffmpeg.',
-  'Without --final, the recording runs at a fast pace with a quick encode for iterating on it.',
-  'The origin defaults to https://remdo.com.',
+  'Usage: pnpm demo:record [--final]',
+  'Records the demo video from this checkout\'s running development server (pnpm run dev) as its',
+  'demo account, writing $DATA_DIR/demo/demo.mp4 and its poster demo.jpg with ffmpeg. The Claude',
+  'chapter runs the signed-in `claude` CLI. Without --final, the recording runs at a fast pace with',
+  'a quick encode for iterating on it.',
 ].join('\n');
-const QUICK = { pace: 0.2, preset: 'veryfast' };
-const FINAL = { pace: 1, preset: 'slow' };
-const VIEWPORT = { width: 1280, height: 720 };
-const END_STATE_TIMEOUT_MS = 15_000;
+// A development-only account, so recording leaves the development user's documents alone.
+const ACCOUNT: DemoAccount = { email: 'demo@example.test', password: 'demo-password-1234' };
 
 async function signIn(browser: Browser, origin: string, account: DemoAccount): Promise<BrowserContext> {
-  const context = await browser.newContext({ viewport: VIEWPORT, locale: 'en-US' });
+  const context = await browser.newContext({ viewport: STAGE_SIZE, locale: 'en-US' });
+  // The app's own dev-tools switch hides development-only surfaces, as in production.
+  await context.addInitScript(() => localStorage.setItem('remdo-dev-tooling-visible', 'false'));
   const configUrl = new URL('/api/config', origin).href;
   const { csrfToken } = await (await context.request.get(configUrl, { failOnStatusCode: true })).json() as { csrfToken: string };
   await context.request.post(new URL('/api/auth/browser/v1/auth/login', origin).href, {
     data: account,
-    // Django's HTTPS CSRF check requires a same-origin Origin or Referer.
     headers: { 'X-CSRFToken': csrfToken, Origin: origin },
     failOnStatusCode: true,
   });
   return context;
 }
 
-async function openDocument(page: Page, origin: string, documentId: string): Promise<void> {
-  await page.goto(new URL(`/n/${documentId}`, origin).href);
-  await page.locator('.editor-container [data-lexical-editor] li.list-item').first().waitFor();
-}
-
 // A fresh context has no local copy, so the outline it shows comes from the server.
-async function confirmEndState(browser: Browser, context: BrowserContext, origin: string, documentId: string, expected: OutlineNote[]): Promise<void> {
-  const fresh = await browser.newContext({ viewport: VIEWPORT, storageState: await context.storageState() });
+async function confirmStoredOutline(browser: Browser, context: BrowserContext, documentUrl: string, expected: OutlineNote[]): Promise<void> {
+  const fresh = await browser.newContext({ viewport: STAGE_SIZE, storageState: await context.storageState() });
   try {
-    const page = await fresh.newPage();
-    await openDocument(page, origin, documentId);
-    const deadline = Date.now() + END_STATE_TIMEOUT_MS;
-    let actual = await readOutline(page);
-    while (!isDeepStrictEqual(actual, expected)) {
-      if (Date.now() > deadline) {
-        throw new Error(`End state not reached.\nExpected: ${JSON.stringify(expected)}\nActual:   ${JSON.stringify(actual)}`);
-      }
-      await page.waitForTimeout(250);
-      actual = await readOutline(page);
-    }
+    const pane = new Pane(await fresh.newPage(), new Timing(pacing, 1), documentUrl);
+    await pane.openDocument();
+    await expectOutline(pane.page, expected);
   } finally {
     await fresh.close();
   }
 }
 
 const run = promisify(execFile);
+
+async function mcpToken(email: string): Promise<string> {
+  const { stdout } = await run('./tools/django.sh', ['create_delegated_token', email]);
+  return stdout.trim();
+}
 
 async function ffmpeg(...args: string[]): Promise<void> {
   await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args]);
@@ -79,18 +73,15 @@ async function encodeForWeb(recording: string, preset: string, video: string): P
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const final = args.includes('--final');
-  const [originArgument = 'https://remdo.com', ...extra] = args.filter((arg) => arg !== '--final');
-  if (extra.length > 0 || originArgument.startsWith('-')) {
+  if (args.some((arg) => arg !== '--final')) {
     throw new Error(USAGE);
   }
-  const mode = final ? FINAL : QUICK;
-  const origin = new URL(originArgument).origin;
-  // eslint-disable-next-line node/no-process-env -- a deployment secret, absent from the development config schema.
-  const password = process.env.REMDO_USER_PASSWORD;
-  if (!password) {
-    throw new Error('REMDO_USER_PASSWORD must hold the target\'s user account password.');
-  }
-  const account = demoAccount(origin, password);
+  const timing = new Timing(pacing, final ? 1 : pacing.quickPreviewSpeedup);
+  const preset = final ? 'slow' : 'veryfast';
+  const origin = config.env.APP_ORIGIN;
+  await fetch(new URL('/api/health', origin)).catch(() => {
+    throw new Error(`No development server answers at ${origin}; start it with pnpm run dev.`);
+  });
 
   const outputDir = path.join(config.env.DATA_DIR, 'demo');
   const recording = path.join(outputDir, 'recording.webm');
@@ -102,25 +93,39 @@ async function main(): Promise<void> {
     throw new Error('ffmpeg with libx264 must be on PATH.');
   });
 
-  const { document } = await resetDemoAccount(origin, account);
+  await provisionDjangoUser({ ...ACCOUNT, name: 'Demo' });
+  const mcp = { url: new URL('/mcp', origin).href, token: await mcpToken(ACCOUNT.email) };
+  const { document } = await resetDemoAccount(origin, ACCOUNT);
   const browser = await chromium.launch();
   try {
-    const context = await signIn(browser, origin, account);
-    const page = await context.newPage();
-    await openDocument(page, origin, document.id);
-    await page.locator('.editor-container [data-lexical-editor]').focus();
+    const context = await signIn(browser, origin, ACCOUNT);
+    const documentUrl = new URL(`/n/${document.id}`, origin).href;
+    const main = new Pane(await context.newPage(), timing, documentUrl);
+    const other = new Pane(await context.newPage(), timing, documentUrl);
+    await main.openDocument();
+    const stage = await Stage.open(browser, timing);
+    await stage.show('main', main);
+    await stage.show('extra', other);
+    await main.captionActions();
+    await other.captionActions();
 
-    await page.screencast.start({ path: recording, size: VIEWPORT });
+    await stage.page.screencast.start({ path: recording, size: STAGE_SIZE });
     try {
-      const stage = new Stage(page, mode.pace);
-      await stage.captionActions();
-      await outlining.run(stage);
-      await page.screenshot({ path: partials[1], type: 'jpeg', quality: 85 });
+      await script({
+        main,
+        other,
+        chat: new Chat(other, mcp),
+        chapter: async (title, description) => stage.chapter(title, description),
+        split: async () => stage.split(main, other),
+        unsplit: async () => stage.unsplit(main),
+        pause: async (length) => main.pause(length),
+      });
+      await stage.page.screenshot({ path: partials[1], type: 'jpeg', quality: 85 });
     } finally {
-      await page.screencast.stop();
+      await stage.page.screencast.stop();
     }
-    await confirmEndState(browser, context, origin, document.id, outlining.endState);
-    await encodeForWeb(recording, mode.preset, partials[0]);
+    await confirmStoredOutline(browser, context, documentUrl, await readOutline(main.page));
+    await encodeForWeb(recording, preset, partials[0]);
     await rename(partials[0], video);
     await rename(partials[1], poster);
     console.info(`Recorded ${video} and ${poster}`);

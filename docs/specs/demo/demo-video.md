@@ -5,28 +5,28 @@ covers its main capabilities in one run.
 
 ## Recording run
 
-A run takes a target RemDo origin, which defaults to
-`https://remdo.com`, and acts as that origin's
-[`user` account](../runtime/configuration.md#deployment-accounts).
+A run records the checkout's running development instance as a dedicated demo
+account, leaving other accounts' data unchanged.
 
-1. [Reset the account](../../guides/production-deployment.md#reset-the-demo-account).
-2. Perform each [chapter](#chapters) in order through the target's real user
+1. Create the demo account if missing, and reset it to a single empty document.
+2. Perform each [chapter](#chapters) in order through the instance's real user
    interfaces and confirm its end state.
 3. Return the video, playable by current major browsers, and a poster image
    showing its final frame.
 
 ## Authenticity
 
-Everything a recording shows is live behavior of the target origin and of the
+Everything a recording shows is live behavior of the instance and of the
 services a chapter names, except annotations, which are visibly distinct
-from the product.
+from the product. Development-only tooling stays hidden.
 
 ## Presentation
 
 - **Panes.** A recording shows one or two panes side by side, each a separate
   browser session. A pane appears or disappears within a recording as a chapter
-  requires. With one pane, the page occupies the whole frame and lays
-  itself out for that size rather than being scaled or cropped.
+  requires, sliding in or out rather than cutting. Once the layout settles,
+  each page occupies its whole area and lays itself out for that size rather
+  than being scaled or cropped.
 - **Annotations.** Each keystroke and pointer action is captioned as it
   happens, with a visible pointer for pointer actions. A title introduces each
   chapter.
@@ -45,8 +45,9 @@ The video contains these chapters in order.
   both sessions' edits.
 - **Claude.** One pane holds a conversation with Claude using RemDo's
   [MCP server](../integrations/mcp.md); the other shows the document it
-  writes. End state: the document contains notes that conversation created,
-  whatever their text.
+  writes. The conversation pane is the demo's own chat surface, styled as part
+  of the video rather than as any Claude app. End state: the document contains
+  notes that conversation created, whatever their text.
 
 ## Future
 
