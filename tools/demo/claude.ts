@@ -21,8 +21,10 @@ const MCP_TOOL_PREFIX = `mcp__${MCP_SERVER}__`;
 
 interface StreamEvent {
   type: string;
+  subtype?: string;
+  mcp_servers?: { name: string; status: string }[];
   event?: { type: string; content_block?: { type: string; name?: string }; delta?: { type: string; text?: string } };
-  message?: { content: string | { type: string; is_error?: boolean }[] };
+  message?: { content: string | { type: string; is_error?: boolean; content?: string | { text?: string }[] }[] };
   is_error?: boolean;
   result?: string;
 }
@@ -57,9 +59,16 @@ export async function askClaude(prompt: string, mcpUrl: string, token: string, l
     });
 
     let outcome: StreamEvent | undefined;
+    const toolFailures: string[] = [];
     for await (const line of createInterface({ input: child.stdout })) {
       const event = JSON.parse(line) as StreamEvent;
-      if (event.type === 'stream_event' && event.event) {
+      if (event.type === 'system' && event.subtype === 'init') {
+        const status = event.mcp_servers?.find(({ name }) => name === MCP_SERVER)?.status;
+        if (status !== 'connected') {
+          child.kill();
+          throw new Error(`Claude Code could not connect to RemDo's MCP server at ${mcpUrl} (${status ?? 'missing'}); check that pnpm run dev is running.`);
+        }
+      } else if (event.type === 'stream_event' && event.event) {
         const { type, content_block: block, delta } = event.event;
         if (type === 'content_block_start' && block?.type === 'text') await listener.textStart();
         if (type === 'content_block_start' && block?.type === 'tool_use') {
@@ -68,7 +77,9 @@ export async function askClaude(prompt: string, mcpUrl: string, token: string, l
         if (type === 'content_block_delta' && delta?.type === 'text_delta') await listener.text(delta.text!);
       } else if (event.type === 'user' && Array.isArray(event.message?.content)) {
         for (const block of event.message.content) {
-          if (block.type === 'tool_result') await listener.toolEnd(block.is_error === true);
+          if (block.type !== 'tool_result') continue;
+          await listener.toolEnd(block.is_error === true);
+          if (block.is_error === true) toolFailures.push(toolResultText(block.content));
         }
       } else if (event.type === 'result') {
         outcome = event;
@@ -78,7 +89,17 @@ export async function askClaude(prompt: string, mcpUrl: string, token: string, l
     if (code !== 0 || !outcome || outcome.is_error) {
       throw new Error(`Claude Code failed (exit ${code}): ${outcome?.result ?? stderr.trim()}`);
     }
+    // Claude explains a failed tool call in prose, so the run would otherwise
+    // fail later on a missing note without saying why.
+    if (toolFailures.length > 0) {
+      throw new Error(`RemDo's MCP server failed a tool call: ${toolFailures.join('; ')}\nIf pnpm run dev started before your latest pull, restart it: its MCP server does not reload.`);
+    }
   } finally {
     await rm(workdir, { recursive: true, force: true });
   }
+}
+
+function toolResultText(content: string | { text?: string }[] | undefined): string {
+  if (typeof content === 'string') return content;
+  return (content ?? []).map((part) => part.text ?? '').join(' ');
 }

@@ -57,7 +57,10 @@ export class Stage {
       onFrame: ({ data, viewportWidth }) => {
         stream.latest = data.toString('base64');
         stream.width = viewportWidth;
-        void this.flush(slot, stream);
+        // A run that fails closes the browser mid-frame; only its own error matters then.
+        this.flush(slot, stream).catch((error: unknown) => {
+          if (!this.page.isClosed()) throw error;
+        });
       },
     });
     await this.frameOfWidth(slot, pane.page.viewportSize()!.width);
