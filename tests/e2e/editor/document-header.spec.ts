@@ -18,6 +18,28 @@ test.describe('Document-root header', () => {
     await expect(headerButton).toHaveCSS('opacity', '0');
   });
 
+  test('returns the menu target to the note strip on editor focus and typing', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+    const heading = page.getByRole('heading', { level: 1 });
+    const headerButton = page.getByRole('button', { name: /^Actions for/u });
+    const noteButton = editorLocator(page).locator('.note-controls__button--menu');
+    const input = editorLocator(page).locator('.editor-input');
+
+    await input.evaluate((element) => { element.blur(); });
+    await heading.hover();
+    await expect(headerButton).toHaveCSS('opacity', '1');
+    await input.focus();
+    await expect(noteButton).toBeVisible();
+    await expect(headerButton).toHaveCSS('opacity', '0');
+
+    await page.mouse.move(0, 0);
+    await heading.hover();
+    await expect(headerButton).toHaveCSS('opacity', '1');
+    await page.keyboard.press('ArrowDown');
+    await expect(noteButton).toBeVisible();
+    await expect(headerButton).toHaveCSS('opacity', '0');
+  });
+
   test('renames the document from its menu and restores focus to the button', async ({ page, editor }) => {
     await editor.load('basic');
     const heading = page.getByRole('heading', { level: 1 });
