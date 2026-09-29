@@ -1,0 +1,57 @@
+<section class="landing-connector" aria-labelledby="connector-heading">
+  <div class="landing-container">
+    <div class="connector-introduction">
+      <h2 id="connector-heading">Bring your notes<br>into the conversation</h2>
+      <div><h3>Claude connector</h3><p>Connect RemDo to Claude. Use your notes as context, then save plans, summaries, and lists back to RemDo.</p></div>
+    </div>
+    <div class="connector-demo" data-active-step="0" role="region" aria-label="Claude connector walkthrough">
+      <div class="connector-canvas">
+        <div class="connector-navigation" role="group" aria-label="Claude connector steps" hidden><button type="button" data-step="0" aria-pressed="true"><span>01</span> Connect</button>
+<button type="button" data-step="1" aria-pressed="false"><span>02</span> Ask</button>
+<button type="button" data-step="2" aria-pressed="false"><span>03</span> Review</button>
+<button type="button" data-step="3" aria-pressed="false"><span>04</span> Save</button></div>
+        <div class="connector-stack">
+          <div class="connector-caps" hidden><button type="button" class="connector-cap" data-step="0" aria-label="Show Connect example"></button>
+<button type="button" class="connector-cap" data-step="1" aria-label="Show Ask example"></button>
+<button type="button" class="connector-cap" data-step="2" aria-label="Show Review example"></button>
+<button type="button" class="connector-cap" data-step="3" aria-label="Show Save example"></button></div>
+          <article class="connector-card connector-setup is-active" data-card="0" aria-label="Connect example">
+            <h3>Connect RemDo to Claude</h3>
+            <ol class="connector-steps">
+              <li><span class="connector-step-number">01</span><div><h4>Open Connectors</h4><p>Your profile (bottom left) → Settings → Connectors → Add</p></div></li>
+              <li><span class="connector-step-number">02</span><div><h4>Add a custom connector</h4>
+                <div class="connector-fields"><div><span class="connector-field-label">Name</span><span class="connector-field-value">RemDo</span></div><div><span class="connector-field-label">MCP Server URL</span><span class="connector-field-value">https://remdo.com/mcp</span></div></div>
+                <p class="connector-muted">Continue with the default settings.</p>
+              </div></li>
+              <li><span class="connector-step-number">03</span><div><h4>Connect your account</h4><p>Wait for the checks, then Add → Connect.<br>Sign in to RemDo to finish.</p></div></li>
+            </ol>
+          </article>
+          <article class="connector-card connector-prompt" data-card="1" aria-label="Ask example">
+            <p>Read this project and list the next steps. Save the result to RemDo.<br>https://remdo.com/<wbr>henry/project</p>
+            <span class="connector-send">Send <span>↵</span></span>
+          </article>
+          <article class="connector-card connector-review" data-card="2" aria-label="Review example">
+            <div class="connector-user-message">Read this project and list the next steps. Save the result to RemDo.<br>https://remdo.com/<wbr>henry/project</div>
+            <ul><li>Launch on October 2.</li><li>Lead with one real workflow.</li><li>Finish the homepage draft and walkthrough.</li><li>Test the first-session experience before launch.</li></ul>
+          </article>
+          <article class="connector-card connector-save" data-card="3" aria-label="Save example">
+            <div class="connector-breadcrumb">Home&nbsp; / <span>Project</span></div>
+            <div class="connector-outline"><div class="connector-outline-row"><img src="/landing/connector-note.svg" alt="" width="18" height="28"><strong>Project summary</strong></div>
+<div class="connector-outline-row indented"><img src="/landing/connector-note.svg" alt="" width="18" height="28"><span>Launch on</span><span class="connector-date">October 2</span></div>
+<div class="connector-outline-row indented"><img src="/landing/connector-note.svg" alt="" width="18" height="28"><span>Lead with one real workflow.</span></div>
+<div class="connector-outline-row indented"><img src="/landing/connector-note.svg" alt="" width="18" height="28"><span class="connector-check" aria-hidden="true"></span><span>Finish the homepage draft and walkthrough.</span></div>
+<div class="connector-outline-row indented"><img src="/landing/connector-note.svg" alt="" width="18" height="28"><span class="connector-check" aria-hidden="true"></span><span>Test the first-session experience before launch.</span></div></div>
+          </article>
+          <button class="connector-advance" type="button" aria-label="Next example: Ask" hidden></button>
+        </div>
+        <div class="connector-copy">
+          <div data-copy="0"><h3>Connect RemDo once.</h3><p>Add the RemDo connector to Claude and sign in.</p></div>
+          <div data-copy="1" hidden><h3>Start with<br>your own context.</h3><p>Tell Claude what you need. Claude uses the linked document as context for its response.</p></div>
+          <div data-copy="2" hidden><h3>Check the response.</h3><p>Make sure the response matches the source and includes the details you need.</p></div>
+          <div data-copy="3" hidden><h3>Continue in RemDo.</h3><p>Claude saves the result to your RemDo outline. Continue working from there.</p></div>
+        </div>
+      </div>
+      <p class="landing-visually-hidden connector-status" aria-live="polite" aria-atomic="true"></p>
+    </div>
+  </div>
+</section>

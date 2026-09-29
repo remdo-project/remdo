@@ -104,3 +104,24 @@ test('keeps the newsletter preview from submitting an email', async ({ page }) =
   await expect(email).toHaveValue('visitor@example.test');
   expect(requests).toEqual([]);
 });
+
+test('shows connector examples through desktop controls and the mobile stack', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/');
+  const demo = page.getByRole('region', { name: 'Claude connector walkthrough' });
+  await expect(demo.getByRole('heading', { name: 'Connect RemDo to Claude' })).toBeVisible();
+  await demo.getByRole('button', { name: '02 Ask' }).click();
+  await expect(demo.getByRole('heading', { name: 'Start with your own context.' })).toBeVisible();
+  await demo.getByRole('button', { name: '02 Ask' }).press('End');
+  await expect(demo.getByRole('heading', { name: 'Continue in RemDo.' })).toBeVisible();
+  await expect(demo.getByText('Project summary', { exact: true })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 900 });
+  await expect(demo.getByRole('group', { name: 'Claude connector steps' })).toBeHidden();
+  await demo.getByRole('button', { name: 'Next example: Connect' }).click();
+  await expect(demo.getByRole('heading', { name: 'Connect RemDo to Claude' })).toBeVisible();
+  await demo.getByRole('button', { name: 'Next example: Ask' }).press('ArrowRight');
+  await expect(demo.getByRole('button', { name: 'Next example: Review' })).toBeFocused();
+  await demo.getByRole('button', { name: 'Next example: Review' }).click();
+  await expect(demo.getByText('Launch on October 2.', { exact: true })).toBeVisible();
+});

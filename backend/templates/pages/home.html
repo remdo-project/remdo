@@ -3,6 +3,7 @@
   <meta name="description" content="RemDo is a keyboard-first collaborative outliner for organizing and connecting notes.">
   <link rel="canonical" href="{{ canonical }}">
   <script src="/landing/story-reveal.js" defer></script>
+  <script src="/landing/connector.js" defer></script>
 {% endblock %}
 {% block body %}
 <div class="remdo-landing">
@@ -75,6 +76,7 @@
         </div>
       </div>
     </section>
+    {% include "pages/landing/connector.html" %}
   </main>
   <footer class="remdo-footer landing-existing-footer landing-container">
     <div class="remdo-footer-start">

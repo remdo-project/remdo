@@ -20,6 +20,14 @@ it only when the visitor starts it. A configured
 [home video](../runtime/configuration.md#home-video) replaces the bundled demo
 and uses its associated poster. The product illustrations show example outlines.
 
+The Claude connector walkthrough illustrates Connect, Ask, Review, and Save,
+starting with Connect. Selecting a step brings its card forward and updates
+the desktop explanation. Mobile presents a stack: selecting an exposed card
+opens it; activating the front card advances, as do horizontal swipes and arrow
+keys. It does not connect accounts or send requests. Motion respects reduced
+motion preferences; cards never advance automatically. Without JavaScript,
+all four examples remain readable.
+
 ## Signed-in behavior
 
 1. Home shows document navigation and actions, without a document editor or its

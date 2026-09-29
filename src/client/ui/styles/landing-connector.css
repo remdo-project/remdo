@@ -1,0 +1,496 @@
+.landing-connector {
+  padding-block: 32px 128px;
+  background: var(--landing-ivory);
+  color: var(--landing-ink);
+}
+.connector-introduction {
+  display: grid;
+  grid-template-columns: 1.333fr 1fr;
+  align-items: end;
+  gap: 12.5%;
+  margin-bottom: 64px;
+}
+.connector-introduction h2 {
+  font: 400 62px/66px Tinos, Georgia, serif;
+  letter-spacing: -1.1px;
+}
+.connector-introduction h3 {
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+.connector-introduction p {
+  color: var(--landing-secondary);
+}
+.connector-demo {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 3px;
+  background: url('/landing/connector-background.png') center / cover;
+  color: var(--landing-ivory);
+}
+.connector-demo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgb(18 16 13 / 40%);
+}
+.connector-canvas {
+  padding: 32px;
+}
+.connector-navigation {
+  position: absolute;
+  z-index: 10;
+  top: 32px;
+  left: 276px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgb(18 16 13 / 74%);
+}
+.connector-navigation button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  width: 172px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid rgb(243 239 233 / 18%);
+  border-radius: 8px;
+  background: rgb(243 239 233 / 16%);
+  color: inherit;
+  backdrop-filter: blur(7px);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 6%);
+  cursor: pointer;
+}
+.connector-breadcrumb span {
+  font-weight: 500;
+}
+.connector-navigation button span {
+  opacity: .7;
+  font-size: 13px;
+}
+.connector-navigation button[aria-pressed='true'], .connector-navigation button:hover {
+  background: rgb(243 239 233 / 30%);
+}
+.connector-card {
+  position: relative;
+  width: 680px;
+  max-width: 100%;
+  padding: 28px;
+  margin-block: 24px;
+  border: 1px solid #424242;
+  border-radius: 8px;
+  background: #242424;
+  color: #c9c9c9;
+  box-shadow: 0 18px 40px rgb(0 0 0 / 22%);
+  font-size: 17px;
+  line-height: 26px;
+  transform-origin: top left;
+}
+.connector-card h3 {
+  color: var(--landing-ivory);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 30px;
+  letter-spacing: -.3px;
+}
+.connector-setup {
+  padding: 32px;
+  min-height: 432px;
+}
+.connector-steps {
+  display: grid;
+  gap: 20px;
+  padding: 0;
+  margin: 20px 0 0;
+  list-style: none;
+}
+.connector-steps li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 16px;
+}
+.connector-step-number {
+  display: grid;
+  place-items: center;
+  height: 28px;
+  border-radius: 3px;
+  background: #2e2e2e;
+  color: var(--landing-ivory);
+  font-size: 12px;
+  line-height: 20px;
+}
+.connector-steps h4 {
+  margin: 0 0 4px;
+  color: var(--landing-ivory);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 24px;
+}
+.connector-steps p {
+  font-size: 14px;
+  line-height: 22px;
+}
+.connector-fields {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.connector-field-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #828282;
+}
+.connector-field-value {
+  display: block;
+  padding: 7px 8px;
+  border: 1px solid #424242;
+  border-radius: 3px;
+  background: #2e2e2e;
+  color: var(--landing-ivory);
+  font-size: 16px;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+}
+.connector-muted {
+  color: #828282;
+}
+.connector-prompt {
+  min-height: 166px;
+  padding-top: 25px;
+  background: #2e2e2e;
+}
+.connector-prompt p {
+  font-size: 20px;
+  line-height: 30px;
+  overflow-wrap: anywhere;
+}
+.connector-send {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  margin: 12px 0 0 auto;
+  padding: 8px 16px;
+  border-radius: 3px;
+  background: var(--landing-ivory);
+  color: var(--landing-dark);
+  font-size: 14px;
+  line-height: 20px;
+}
+.connector-review {
+  min-height: 348px;
+}
+.connector-user-message {
+  width: 548px;
+  max-width: 100%;
+  margin-left: auto;
+  padding: 17px 21px;
+  border-radius: 3px;
+  background: #2e2e2e;
+  font-size: 16px;
+  line-height: 25px;
+  overflow-wrap: anywhere;
+}
+.connector-review ul {
+  margin: 30px 0 0;
+  padding-left: 21px;
+  line-height: 31px;
+}
+.connector-save {
+  min-height: 330px;
+  padding: 0;
+  background: #1e1e1e;
+}
+.connector-breadcrumb {
+  display: flex;
+  gap: 10px;
+  padding: 18px 26px;
+  color: #828282;
+  font-size: 14px;
+  line-height: 20px;
+}
+.connector-outline {
+  display: grid;
+  gap: 8px;
+  padding: 20px 28px 28px;
+}
+.connector-outline-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 31px;
+}
+.connector-outline-row img {
+  flex: none;
+}
+.connector-outline-row.indented {
+  padding-left: 28px;
+}
+.connector-check {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  border: 1px solid #828282;
+  border-radius: 3px;
+}
+.connector-date {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgb(9 146 104 / 45%);
+  color: #96f2d7;
+  font-size: 15px;
+  line-height: 23px;
+}
+.connector-copy {
+  display: none;
+}
+.connector-demo.is-interactive {
+  container-type: inline-size;
+  aspect-ratio: 16 / 9;
+}
+.is-interactive .connector-canvas {
+  position: absolute;
+  width: 1280px;
+  height: 720px;
+  padding: 0;
+  transform: scale(tan(atan2(100cqw, 1280px)));
+  transform-origin: top left;
+}
+.is-interactive .connector-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  margin: 0;
+  opacity: .38;
+  transition: transform 320ms ease-out, opacity 320ms ease-out;
+  cursor: pointer;
+}
+.is-interactive .connector-setup {
+  transform: translate(72px, 168px) scale(.9);
+}
+.is-interactive .connector-prompt {
+  transform: translate(32px, 320px) scale(.9);
+}
+.is-interactive .connector-review {
+  transform: translate(208px, 144px) scale(.9);
+}
+.is-interactive .connector-save {
+  transform: translate(256px, 232px) scale(.9);
+}
+.is-interactive .connector-card.is-active {
+  opacity: 1;
+  z-index: 5;
+  cursor: default;
+}
+.is-interactive .connector-setup.is-active {
+  transform: translate(128px, 224px);
+}
+.is-interactive .connector-prompt.is-active {
+  transform: translate(128px, 357px);
+}
+.is-interactive .connector-review.is-active {
+  transform: translate(128px, 266px);
+}
+.is-interactive .connector-save.is-active {
+  transform: translate(128px, 275px);
+}
+.is-interactive .connector-copy {
+  display: block;
+  position: absolute;
+  left: 928px;
+  top: 270px;
+  width: 288px;
+}
+.connector-copy [data-copy='0'] {
+  padding-top: 36px;
+}
+.connector-copy h3 {
+  margin-bottom: 16px;
+  font: 400 36px/40px Tinos, Georgia, serif;
+  letter-spacing: -.4px;
+}
+.connector-copy p {
+  font-size: 16px;
+  line-height: 25px;
+}
+.connector-caps, .connector-advance {
+  display: none;
+}
+.connector-demo [hidden] {
+  display: none;
+}
+@media (max-width: 63.99em) {
+  .landing-connector {
+  padding-bottom: 80px;
+}
+  .connector-introduction {
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+  .connector-introduction h2 {
+  font-size: 40px;
+  line-height: 44px;
+  letter-spacing: 0;
+}
+  .connector-demo {
+  max-width: 640px;
+}
+  .connector-demo::before {
+  display: none;
+}
+  .connector-canvas {
+  padding: 16px;
+}
+  .connector-card {
+  width: 100%;
+  padding: 20px;
+}
+  .connector-card h3 {
+  font-size: 22px;
+  line-height: 28px;
+}
+  .connector-setup {
+  min-height: 520px;
+}
+  .connector-steps li {
+  gap: 12px;
+}
+  .connector-steps h4 {
+  font-size: 16px;
+}
+  .connector-fields {
+  grid-template-columns: 1fr;
+}
+  .connector-field-value {
+  padding-block: 9px;
+}
+  .connector-prompt {
+  min-height: 235px;
+  padding-block: 24px 20px;
+}
+  .connector-prompt p {
+  font-size: 18px;
+  line-height: 27px;
+}
+  .connector-send {
+  min-height: 44px;
+}
+  .connector-review {
+  min-height: 385px;
+  padding-block: 24px;
+}
+  .connector-user-message {
+  padding: 16px;
+}
+  .connector-review ul {
+  margin-top: 24px;
+  font-size: 16px;
+  line-height: 26px;
+}
+  .connector-save {
+  min-height: 333px;
+  padding: 0;
+}
+  .connector-breadcrumb {
+  padding-inline: 20px;
+}
+  .connector-outline {
+  gap: 12px;
+  padding: 20px 20px 24px;
+}
+  .connector-outline-row {
+  align-items: flex-start;
+  min-height: 25px;
+  font-size: 16px;
+  line-height: 25px;
+}
+  .connector-outline-row.indented {
+  padding-left: 16px;
+}
+  .connector-check {
+  margin-top: 5px;
+}
+  .connector-demo.is-interactive {
+  height: var(--connector-height, 640px);
+  aspect-ratio: auto;
+  touch-action: pan-y;
+}
+  .is-interactive .connector-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform: none;
+}
+  .is-interactive .connector-navigation, .is-interactive .connector-copy {
+  display: none;
+}
+  .is-interactive .connector-card {
+  top: var(--connector-top, 84px);
+  left: 16px;
+  width: calc(100% - 32px);
+  transform: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+  .is-interactive .connector-card.is-active {
+  transform: none;
+  visibility: visible;
+  opacity: 1;
+}
+  .is-interactive .connector-caps {
+  display: block;
+}
+  .connector-cap {
+  position: absolute;
+  top: calc(var(--connector-top, 84px) - var(--cap-offset));
+  left: var(--cap-inset);
+  width: calc(100% - 2 * var(--cap-inset));
+  height: 64px;
+  padding: 0;
+  border: 1px solid #424242;
+  border-radius: 8px;
+  background: #242424;
+  box-shadow: 0 18px 40px rgb(0 0 0 / 22%);
+  cursor: pointer;
+  transition: top 320ms ease-out;
+}
+  .connector-cap[data-step='1'] {
+  background: #2e2e2e;
+}
+  .connector-cap[data-step='3'] {
+  background: #1e1e1e;
+}
+  .is-interactive .connector-advance {
+  display: block;
+  position: absolute;
+  z-index: 6;
+  top: var(--connector-top, 84px);
+  left: 16px;
+  width: calc(100% - 32px);
+  height: var(--connector-card-height, 520px);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--landing-ivory);
+  cursor: pointer;
+}
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-interactive .connector-card, .connector-cap {
+  transition: none;
+}
+}
