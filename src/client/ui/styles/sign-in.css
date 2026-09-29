@@ -1,0 +1,119 @@
+body:has(> .remdo-signin) { background: #12100d; }
+.remdo-signin {
+  --signin-dark: #12100d;
+  --signin-ivory: #f3efe9;
+  --signin-muted: #b9b4ae;
+  --signin-outline: #615b54;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 100svh;
+  background: var(--signin-dark);
+  color: var(--signin-ivory);
+  font: 400 16px / 25px 'DM Sans', sans-serif;
+  letter-spacing: -0.1px;
+}
+.remdo-signin *, .remdo-signin *::before, .remdo-signin *::after { box-sizing: border-box; }
+.remdo-signin :where(h1, h2, p) { margin: 0; }
+.remdo-signin a { color: inherit; text-decoration: none; }
+.remdo-signin :where(a, button, input):focus-visible { outline: 2px solid var(--signin-ivory); outline-offset: 4px; }
+.remdo-signin-story {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100svh;
+  padding: 32px 80px 64px;
+  overflow: hidden;
+  background: center / cover no-repeat url('/landing/sign-in-background.png');
+  isolation: isolate;
+}
+.remdo-signin-story::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(18, 16, 13, .12) 45%, rgba(18, 16, 13, .82) 100%);
+  content: '';
+}
+.remdo-signin-navigation {
+  position: absolute;
+  top: 32px;
+  left: 80px;
+  right: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.remdo-signin-wordmark { font-size: 28px; font-weight: 600; line-height: 34px; letter-spacing: -1.2px; }
+.remdo-signin-back { white-space: nowrap; }
+.remdo-signin a:hover { color: var(--signin-muted); }
+.remdo-signin-story-copy { display: flex; flex-direction: column; gap: 20px; max-width: 592px; }
+.remdo-signin-story-title, .remdo-signin-intro h1 {
+  font-family: Tinos, Georgia, serif;
+  font-size: 62px;
+  font-weight: 400;
+  line-height: 66px;
+  letter-spacing: -1.1px;
+}
+.remdo-signin-panel { display: grid; place-items: center; min-width: 0; padding: 64px 24px; }
+.remdo-signin-navigation-mobile { display: none; }
+.remdo-signin-content { width: min(100%, 400px); transform: translateY(17px); }
+.remdo-signin-messages { margin-bottom: 24px; }
+.remdo-signin-intro { display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px; }
+.remdo-signin-intro p { color: var(--signin-muted); }
+.remdo-signin .remdo-account-form { gap: 0; }
+.remdo-signin .remdo-account-form p { display: flex; flex-direction: column; gap: 8px; }
+.remdo-signin .remdo-account-form p + p { margin-top: 20px; }
+.remdo-signin .remdo-account-form > button { margin-top: 24px; }
+.remdo-signin .remdo-account-form label { color: var(--signin-ivory); font-size: 16px; font-weight: 500; line-height: 24px; }
+.remdo-signin .remdo-account-form input:not([type='checkbox'], [type='radio'], [type='hidden']) {
+  width: 100%;
+  height: 56px;
+  padding: 0 16px;
+  border: 1px solid var(--signin-outline);
+  border-radius: 3px;
+  background: var(--signin-dark);
+  color: var(--signin-ivory);
+  font-size: 16px;
+  line-height: 25px;
+}
+.remdo-signin .remdo-account-form input::placeholder { color: var(--signin-muted); opacity: 1; }
+.remdo-signin .remdo-account-button {
+  width: 100%;
+  height: 56px;
+  border: 1px solid var(--signin-outline);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--signin-ivory);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+.remdo-signin .remdo-account-button:hover { background: #27231f; }
+.remdo-signin .remdo-google-button { gap: 12px; border-color: var(--signin-ivory); background: var(--signin-ivory); color: #15120f; }
+.remdo-signin .remdo-google-button:hover { background: #ded8d1; }
+.remdo-signin-google-unavailable { margin-top: 12px; }
+.remdo-signin .remdo-signin-google-unavailable,
+.remdo-signin .remdo-signin-google-unavailable:hover { background: var(--signin-ivory); cursor: default; }
+.remdo-signin-content > form:last-child { margin-top: 12px; }
+@media (max-width: 800px) {
+  .remdo-signin { display: block; }
+  .remdo-signin-story { display: none; }
+  .remdo-signin-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+    padding: 32px 24px max(32px, env(safe-area-inset-bottom));
+  }
+  .remdo-signin-navigation-mobile {
+    position: static;
+    display: flex;
+    flex: none;
+    width: min(100%, 400px);
+    min-height: 44px;
+  }
+  .remdo-signin-navigation-mobile a { display: inline-flex; align-items: center; min-height: 44px; }
+  .remdo-signin-content { margin-block: auto; padding-block: 32px 0; transform: none; }
+  .remdo-signin-intro h1 { font-size: 40px; line-height: 44px; letter-spacing: 0; }
+}

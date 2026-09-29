@@ -1,21 +1,53 @@
-{% extends "allauth/layouts/entrance.html" %}
+{% extends "allauth/layouts/base.html" %}
 {% load allauth %}
 {% block head_title %}Sign in · RemDo{% endblock %}
-{% block content %}
-  <div>
-    <h1 class="remdo-title">Sign in</h1>
-    <p class="remdo-description">Sign in to access your documents.</p>
-  </div>
-  {% url 'account_login' as login_url %}
-  {% element form form=form method="post" action=login_url %}
-    {% slot body %}
-      {% csrf_token %}
-      {% element fields form=form %}{% endelement %}
-      {{ redirect_field }}
-    {% endslot %}
-    {% slot actions %}
-      {% element button type="submit" %}Sign in{% endelement %}
-    {% endslot %}
-  {% endelement %}
-  {% include "accounts/google_login.html" %}
+{% block body %}
+  <main class="remdo-signin">
+    <section class="remdo-signin-story" aria-label="About RemDo">
+      <nav class="remdo-signin-navigation" aria-label="Sign in navigation">
+        <a class="remdo-signin-wordmark" href="/">RemDo</a>
+        <a class="remdo-signin-back" href="/">← Back to website</a>
+      </nav>
+      <div class="remdo-signin-story-copy">
+        <p class="remdo-signin-story-title">A place for your<br>next thought</p>
+        <p>Organize notes and tasks, connect related ideas, and work together in one outline.</p>
+      </div>
+    </section>
+    <section class="remdo-signin-panel" aria-labelledby="remdo-signin-title">
+      <nav class="remdo-signin-navigation remdo-signin-navigation-mobile" aria-label="Sign in navigation">
+        <a class="remdo-signin-wordmark" href="/">RemDo</a>
+        <a class="remdo-signin-back" href="/">← Back to website</a>
+      </nav>
+      <div class="remdo-signin-content">
+        {% if messages %}
+          <div class="remdo-signin-messages" role="status">
+            {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+          </div>
+        {% endif %}
+        <div class="remdo-signin-intro">
+          <h1 id="remdo-signin-title">Sign in</h1>
+          <p>Sign in to access your documents.</p>
+        </div>
+        {% url 'account_login' as login_url %}
+        {% element form form=form method="post" action=login_url %}
+          {% slot body %}
+            {% csrf_token %}
+            {% element fields form=form %}{% endelement %}
+            {{ redirect_field }}
+          {% endslot %}
+          {% slot actions %}
+            {% element button type="submit" %}Sign in{% endelement %}
+          {% endslot %}
+        {% endelement %}
+        {% url 'google_login' as google_login_url %}
+        {% if google_login_url %}
+          {% include "accounts/google_login.html" with icon_url="/landing/google.svg" %}
+        {% else %}
+          <button class="remdo-account-button remdo-google-button remdo-signin-google-unavailable" type="button" disabled>
+            <img src="/landing/google.svg" alt="" width="20" height="20">Sign in with Google
+          </button>
+        {% endif %}
+      </div>
+    </section>
+  </main>
 {% endblock %}
