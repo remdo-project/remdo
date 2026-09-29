@@ -70,8 +70,8 @@ body:has(> .remdo-legal) { background: #12100d; }
   line-height: 20px;
 }
 .remdo-legal-footer nav { display: flex; flex-wrap: wrap; gap: 24px; }
-.remdo-legal-footer a { color: var(--legal-muted); text-decoration: none; }
-.remdo-legal-footer a:hover { text-decoration: underline; }
+.remdo-legal-footer a { color: var(--legal-muted); text-decoration: none; transition: color 150ms ease; }
+.remdo-legal-footer a:is(:hover, :focus-visible) { color: #cbc6c0; text-decoration: none; }
 .remdo-legal a:focus-visible { outline: 2px solid var(--legal-ivory); outline-offset: 6px; }
 @media (max-width: 800px) {
   .remdo-legal { font-size: 17px; line-height: 29px; }

@@ -146,10 +146,15 @@
   gap: 24px;
 }
 
-.landing-footer a:hover {
-  color: var(--landing-ivory);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.landing-footer-legal a {
+  color: var(--landing-muted);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.landing-footer-legal a:is(:hover, :focus-visible) {
+  color: #cbc6c0;
+  text-decoration: none;
 }
 
 .landing-curtain .landing-ending-reserve,
