@@ -28,7 +28,7 @@ export function DocumentMenu({
         ref={triggerRef}
       />
       <Popover offset={4} placement="bottom start">
-        <Menu aria-label="Document actions" className="remdo-menu">
+        <Menu aria-label="Document actions" className="remdo-menu remdo-home-menu">
           <MenuSection>
             <Header>Note</Header>
             {canRename && (

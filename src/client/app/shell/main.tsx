@@ -9,6 +9,7 @@ import { theme } from './theme';
 import '@mantine/core/styles.css';
 import '#client/ui/styles/shared.css';
 import './styles/interaction.css';
+import './styles/workspace.css';
 
 if (!config.isProd) {
   await unregisterServiceWorkers();

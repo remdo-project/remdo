@@ -346,32 +346,47 @@ main.document-route-container {
   padding-inline: 0;
 }
 
-/* Home padding matches the editor pane / document header (`xl`). */
+main.document-route-container:has(.document-home) {
+  padding-block: 0;
+}
+
 .document-home {
-  padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
+  padding: 48px 80px 80px;
   display: flex;
   flex-direction: column;
-  gap: var(--mantine-spacing-lg);
+  gap: 32px;
+}
+
+.document-home-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 56px;
+  margin-bottom: 8px;
 }
 
 .document-home-title {
   margin: 0;
-  font-size: var(--mantine-font-size-xl);
-  color: var(--mantine-color-dark-0);
+  color: #c9c9c9;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 42px;
+  letter-spacing: -0.4px;
 }
 
 .home-group {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--mantine-spacing-xs) / 2);
+  gap: 12px;
 }
 
 .home-group-label {
-  margin: 0 0 calc(var(--mantine-spacing-xs) / 2);
-  font-size: var(--mantine-font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--mantine-color-dark-2);
+  margin: 0;
+  color: #828282;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
 }
 
 .home-doc-list {
@@ -380,32 +395,43 @@ main.document-route-container {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--mantine-spacing-xs) / 2);
+  gap: 0;
 }
 
 .home-doc-row {
   display: flex;
   align-items: center;
-  gap: calc(var(--mantine-spacing-xs) / 2);
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 8px 0 16px;
+  border-radius: 3px;
+}
+
+.home-doc-row:hover,
+.home-doc-row:focus-within {
+  background: #2e2e2e;
 }
 
 .home-doc {
   display: flex;
   align-items: center;
-  gap: var(--mantine-spacing-xs);
+  gap: 8px;
   flex: 1;
   min-width: 0;
   text-align: start;
   background: none;
   border: none;
-  padding: calc(var(--mantine-spacing-xs) / 2) var(--mantine-spacing-xs);
-  color: var(--mantine-color-dark-0);
-  font: inherit;
+  padding: 12px 0;
+  color: #c9c9c9;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
   cursor: pointer;
 }
 
 .home-doc:hover {
-  background: var(--mantine-color-dark-6);
+  background: transparent;
 }
 
 .home-doc-label {
@@ -431,11 +457,11 @@ main.document-route-container {
    stay opaque in every state or the icon disappears. */
 .document-menu-button {
   flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 18px;
+  height: 18px;
   padding: 0;
   border: none;
-  background-color: var(--mantine-color-dark-2);
+  background-color: #828282;
   mask-image: url('/icons/menu-2.svg');
   mask-repeat: no-repeat;
   mask-position: center;
@@ -471,29 +497,59 @@ main.document-route-container {
 
 .home-actions {
   display: flex;
-  gap: var(--mantine-spacing-sm);
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .home-action {
   display: inline-flex;
   align-items: center;
-  gap: var(--mantine-spacing-xs);
-  background: var(--mantine-color-dark-6);
-  border: 1px solid var(--mantine-color-dark-5);
-  border-radius: var(--mantine-radius-sm);
-  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
-  color: var(--mantine-color-dark-0);
-  font: inherit;
+  justify-content: center;
+  min-height: 56px;
+  padding: 16px 24px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #c9c9c9;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  letter-spacing: -0.1px;
   cursor: pointer;
 }
 
+.home-action--secondary {
+  border-color: #424242;
+  background: transparent;
+}
+
+.home-action--primary {
+  background: #2e2e2e;
+}
+
 .home-action:hover {
-  background: var(--mantine-color-dark-5);
+  background: #3b3b3b;
+}
+
+.home-action:focus-visible,
+.home-doc:focus-visible {
+  outline: 2px solid #a5a1e8;
+  outline-offset: 3px;
 }
 
 .home-upload-input {
   display: none;
+}
+
+@media (max-width: 48em) {
+  .document-home {
+    padding: 32px 24px 64px;
+  }
+
+  .document-home-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 48em) {

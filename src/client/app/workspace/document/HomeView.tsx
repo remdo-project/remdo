@@ -1,4 +1,3 @@
-import { IconPlus, IconUpload } from '@tabler/icons-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef } from 'react';
 import type { DocumentNote } from '#note-sdk';
@@ -90,7 +89,29 @@ export function HomeView({
 
   return (
     <section aria-label="Home" className="document-home" data-testid="document-home">
-      <h1 className="document-home-title" ref={headingRef} tabIndex={-1}>Home</h1>
+      <div className="document-home-heading">
+        <h1 className="document-home-title" ref={headingRef} tabIndex={-1}>Home</h1>
+        <div className="home-actions">
+          <button
+            className="home-action home-action--secondary"
+            onClick={() => uploadInputRef.current?.click()}
+            type="button"
+          >
+            Upload document
+          </button>
+          <button className="home-action home-action--primary" onClick={onCreateDocument} type="button">
+            New document
+          </button>
+          <input
+            accept="application/json,.json"
+            aria-label="Upload document"
+            className="home-upload-input"
+            onChange={handleUploadInputChange}
+            ref={uploadInputRef}
+            type="file"
+          />
+        </div>
+      </div>
 
       {sources
         .filter((source) => source.documents.length > 0)
@@ -107,28 +128,6 @@ export function HomeView({
           />
         ))}
 
-      <div className="home-actions">
-        <button className="home-action" onClick={onCreateDocument} type="button">
-          <IconPlus aria-hidden="true" size={16} />
-          <span>New document</span>
-        </button>
-        <button
-          className="home-action"
-          onClick={() => uploadInputRef.current?.click()}
-          type="button"
-        >
-          <IconUpload aria-hidden="true" size={16} />
-          <span>Upload document</span>
-        </button>
-        <input
-          accept="application/json,.json"
-          aria-label="Upload document"
-          className="home-upload-input"
-          onChange={handleUploadInputChange}
-          ref={uploadInputRef}
-          type="file"
-        />
-      </div>
       {documentDialog}
     </section>
   );

@@ -1,0 +1,128 @@
+body:has(#root) {
+  --remdo-font-family: 'DM Sans', sans-serif;
+  --mantine-font-family: 'DM Sans', sans-serif;
+  --mantine-font-family-headings: 'DM Sans', sans-serif;
+  background: #1e1e1e;
+  font-family: 'DM Sans', sans-serif;
+}
+
+body:has(#root) .remdo-backdrop {
+  padding: 0;
+  background: #1e1e1e;
+}
+
+body:has(#root) .remdo-shell {
+  max-width: none;
+  min-height: 100dvh;
+  background: #1e1e1e;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body:has(#root) .remdo-header {
+  padding: 32px 80px 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body:has(#root) .remdo-header-inner {
+  min-height: 40px;
+  padding: 0 0 24px;
+  border-bottom: 1px solid #424242;
+}
+
+body:has(#root) .remdo-header-brand-icon {
+  display: none;
+}
+
+body:has(#root) .remdo-brand-name {
+  color: #c9c9c9;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 34px;
+  letter-spacing: -1.2px;
+}
+
+body:has(#root) .remdo-header-links {
+  gap: 32px;
+}
+
+body:has(#root) .remdo-header-link {
+  color: #828282;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 25px;
+  letter-spacing: -0.1px;
+  transition: color 150ms ease;
+}
+
+body:has(#root) .remdo-header-link:hover,
+body:has(#root) .remdo-header-link:focus-visible {
+  color: #c9c9c9;
+}
+
+body:has(#root) .remdo-footer {
+  margin-inline: 80px;
+  padding-inline: 0;
+  border-color: #424242;
+  color: #828282;
+}
+
+.remdo-home-menu {
+  min-width: 272px;
+  padding: 8px;
+  border-color: #424242;
+  border-radius: 3px;
+  background: #242424;
+  color: #c9c9c9;
+}
+
+.remdo-home-menu header {
+  padding: 0 4px;
+  color: #828282;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 28px;
+}
+
+.remdo-home-menu [role='menuitem'] {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 3px;
+  color: #c9c9c9;
+  font-size: 16px;
+  line-height: 25px;
+}
+
+.remdo-home-menu [role='menuitem'][data-focused] {
+  background: #3b3b3b;
+}
+
+@media (max-width: 48em) {
+  body:has(#root) .remdo-header {
+    padding: 24px 24px 0;
+  }
+
+  body:has(#root) .remdo-header-inner {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  body:has(#root) .remdo-header-navigation {
+    width: auto;
+  }
+
+  body:has(#root) .remdo-header-links {
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  body:has(#root) .remdo-footer {
+    margin-inline: 24px;
+  }
+}
