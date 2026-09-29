@@ -6,13 +6,16 @@ import {
 } from '#client/app/workspace/useDocumentSearchModel';
 import {
   useEditorViewActions,
+  useOpenDocument,
   useZoomPath,
 } from '#client/editor/view/EditorViewProvider';
 import Editor from '#client/editor/shell/Editor';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
+import { DocumentMenu } from './DocumentMenu';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
 import DocumentToolbar from './DocumentToolbar';
 import { resolveDocumentSource } from './resolveDocumentSource';
+import { useDocumentDialogs } from './useDocumentDialogs';
 import '../DocumentRoute.css';
 
 function isVisibleInCurrentView(element: HTMLElement): boolean {
@@ -42,9 +45,13 @@ export default function DocumentWorkspace({
   onSelectDocument: (docId: string) => void;
 }) {
   const shellRef = useRef<HTMLDivElement | null>(null);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const [menuTarget, setMenuTarget] = useState<'header' | 'note'>('header');
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
   const { requestZoomNoteId } = useEditorViewActions();
   const zoomPath = useZoomPath();
+  const openDocumentView = useOpenDocument()?.view;
+  const { documentDialog, openDelete, openRename, openShare } = useDocumentDialogs(headingRef, onSelectHome);
   const userData = useUserData();
   const { userId } = useUserDataRuntime();
   const documentSources = userData.getDocumentSources().getChildren();
@@ -65,6 +72,7 @@ export default function DocumentWorkspace({
   };
 
   const documentLabel = formatNavigationLabel(source.documentLabel);
+  const documentNote = userData.getDocuments().getById(docId);
   const titleItem = zoomPath.at(-1) ?? null;
   const pageTitle = titleItem
     ? `${formatNavigationLabel(titleItem.label)} · ${documentLabel} · ${APP_TITLE}`
@@ -91,7 +99,7 @@ export default function DocumentWorkspace({
   }, [pageTitle]);
 
   return (
-    <div className="document-editor-shell" ref={shellRef}>
+    <div className="document-editor-shell" data-menu-target={menuTarget} ref={shellRef}>
       <DocumentToolbar
         docId={docId}
         documentLabel={source.documentLabel}
@@ -103,15 +111,41 @@ export default function DocumentWorkspace({
         path={zoomPath}
         searchControl={<DocumentSearchInput model={search} />}
       />
+      {zoomNoteId === null && (
+        <div
+          className="location-header"
+          onFocus={() => { setMenuTarget('header'); }}
+          onPointerEnter={() => { setMenuTarget('header'); }}
+        >
+          {documentNote && (
+            <DocumentMenu
+              label={documentLabel}
+              note={documentNote}
+              onDelete={openDelete}
+              onRename={openRename}
+              onShare={openShare}
+              view={openDocumentView}
+            />
+          )}
+          <h1 className="location-header-title" ref={headingRef} tabIndex={-1}>
+            {formatNavigationLabel(source.documentLabel, Number.POSITIVE_INFINITY)}
+          </h1>
+        </div>
+      )}
       {importError?.docId === docId && (
         <Alert closeButtonLabel="Dismiss" color="red" onClose={() => setImportError(null)} title="Could not upload document" withCloseButton>
           {importError.message}
         </Alert>
       )}
       <DocumentSearchResults model={search} />
-      <div className={search.searchModeActive
-        ? 'document-editor-pane document-editor-pane--hidden'
-        : 'document-editor-pane'}>
+      <div
+        className={search.searchModeActive
+          ? 'document-editor-pane document-editor-pane--hidden'
+          : 'document-editor-pane'}
+        onFocus={() => { setMenuTarget('note'); }}
+        onKeyDown={() => { setMenuTarget('note'); }}
+        onPointerMove={() => { setMenuTarget('note'); }}
+      >
         <Editor
           key={docId}
           docId={docId}
@@ -121,6 +155,7 @@ export default function DocumentWorkspace({
           onPendingDocumentImportError={handleImportError}
         />
       </div>
+      {documentDialog}
     </div>
   );
 }
