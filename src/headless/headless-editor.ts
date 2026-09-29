@@ -5,6 +5,7 @@ import {
   syncYjsChangesToLexicalV2__EXPERIMENTAL,
   syncYjsStateToLexicalV2__EXPERIMENTAL,
 } from '@lexical/yjs';
+import type { Provider } from '@lexical/yjs';
 import { createEditor } from 'lexical';
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import WebSocket from 'ws';
@@ -41,6 +42,26 @@ function createHeadlessProviderFactory(authorization: string | undefined) {
     visibleOrigin: resolveCollabServerOrigin(),
     WebSocketPolyfill: HeadlessWebSocket as unknown as typeof globalThis.WebSocket,
   });
+}
+
+// Lexical draws each peer's cursor into the editor's DOM after syncing, which a
+// headless editor lacks, so it syncs as though no peer were present.
+function withoutPeerCursors(provider: Provider): Provider {
+  const { awareness } = provider;
+  return {
+    awareness: {
+      getLocalState: awareness.getLocalState.bind(awareness),
+      getStates: () => new Map(),
+      off: awareness.off.bind(awareness),
+      on: awareness.on.bind(awareness),
+      setLocalState: awareness.setLocalState.bind(awareness),
+      setLocalStateField: awareness.setLocalStateField.bind(awareness),
+    },
+    connect: provider.connect.bind(provider),
+    disconnect: provider.disconnect.bind(provider),
+    off: provider.off.bind(provider),
+    on: provider.on.bind(provider),
+  };
 }
 
 /**
@@ -92,6 +113,7 @@ export async function withHeadlessEditor<T>(
   }
   const editor = createEditor(editorConfig);
   const binding = createBindingV2__EXPERIMENTAL(editor, docId, syncDoc, docMap);
+  const syncProvider = withoutPeerCursors(provider);
   const sharedRoot = binding.root as SharedRoot;
   const observer: SharedRootObserver = (events, transaction) => {
     if (transaction.origin === binding) {
@@ -99,7 +121,7 @@ export async function withHeadlessEditor<T>(
     }
     syncYjsChangesToLexicalV2__EXPERIMENTAL(
       binding,
-      provider,
+      syncProvider,
       events,
       transaction,
       transaction.origin instanceof UndoManager,
@@ -110,7 +132,7 @@ export async function withHeadlessEditor<T>(
     const { prevEditorState, editorState, dirtyElements, dirtyLeaves, normalizedNodes, tags } = payload;
     syncLexicalUpdateToYjsV2__EXPERIMENTAL(
       binding,
-      provider,
+      syncProvider,
       prevEditorState,
       editorState,
       dirtyElements,
@@ -130,7 +152,7 @@ export async function withHeadlessEditor<T>(
     void provider.connect();
     await session.awaitSynced();
     const initialUpdate = waitForEditorUpdate(editor);
-    syncYjsStateToLexicalV2__EXPERIMENTAL(binding, provider);
+    syncYjsStateToLexicalV2__EXPERIMENTAL(binding, syncProvider);
     await initialUpdate;
 
     syncDoc.on('update', recordWrite);

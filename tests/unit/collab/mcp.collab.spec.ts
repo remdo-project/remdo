@@ -3,10 +3,12 @@ import { promisify } from 'node:util';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { describe, expect, it, onTestFinished } from 'vitest';
+import WebSocket from 'ws';
 import * as Y from 'yjs';
 import { config } from '#config';
+import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '#collaboration/runtime';
 import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
-import { resolveApiServerOrigin, resolveMcpServerOrigin } from '#platform/net/origins';
+import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveMcpServerOrigin } from '#platform/net/origins';
 import { ensureCollabTestUser } from './_support/auth';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
@@ -47,6 +49,29 @@ async function storedText(documentId: string): Promise<string> {
   const text = document.get('root-v2', Y.XmlElement).toString();
   document.destroy();
   return text;
+}
+
+// Joins the document as another session whose cursor sits in the outline, as
+// an open editor's does.
+async function joinWithCursor(documentId: string, token: string): Promise<void> {
+  class AuthorizedWebSocket extends WebSocket {
+    constructor(url: string | URL) {
+      super(url, { headers: { Authorization: `Bearer ${token}` } });
+    }
+  }
+  const factory = createProviderFactory({
+    visibleOrigin: resolveCollabServerOrigin(),
+    WebSocketPolyfill: AuthorizedWebSocket as unknown as typeof globalThis.WebSocket,
+  });
+  const { provider, doc } = factory(documentId, new Map());
+  onTestFinished(() => {
+    provider.destroy();
+    doc.destroy();
+  });
+  await provider.connect();
+  await waitForSync(asCollaborationProviderEvents(provider));
+  const position = Y.createRelativePositionFromTypeIndex(doc.get('root-v2', Y.XmlElement), 0);
+  provider.awareness.setLocalState({ name: 'Peer', color: '#228be6', focusing: true, anchorPos: position, focusPos: position, awarenessData: {} });
 }
 
 describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
@@ -93,6 +118,18 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const second = await call(client, 'append_children', { parent: note!.noteAddress, notes: [{ text: 'Second' }] });
     expect(second).toMatchObject({ isError: false });
     expect(await storedText(documentId)).toContain('Second');
+  });
+
+  it('appends while another session has its cursor in the document', async () => {
+    const token = await delegatedToken();
+    const client = await connect(token);
+    const { documentId } = (await call(client, 'create_document', { title: 'Watched' })).value as { documentId: string };
+    await call(client, 'append_children', { parent: documentId, notes: [{ text: 'Existing' }] });
+    await joinWithCursor(documentId, token);
+
+    const appended = await call(client, 'append_children', { parent: documentId, notes: [{ text: 'Added' }] });
+    expect(appended).toMatchObject({ isError: false });
+    expect(await storedText(documentId)).toContain('Added');
   });
 
   it('reads a new document without storing or linking its generated note', async () => {
