@@ -1,4 +1,6 @@
 import { expect, test } from '#e2e/fixtures';
+import { createDocumentPath } from '#document-routes';
+import { createUserDocument } from '../_support/documents';
 import { ensureReady } from '../editor/_support/bridge';
 
 test('owner deletes a document from its Home row after confirming', async ({ page }) => {
@@ -28,4 +30,20 @@ test('owner deletes a document from its Home row after confirming', async ({ pag
   await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
   const listing = await page.request.get('/api/documents');
   expect((await listing.json() as Array<{ id: string }>).map((document) => document.id)).not.toContain(docId);
+});
+
+test('owner deletes the open document from its header and leaves for Home', async ({ page }) => {
+  await page.goto('/');
+  const document = await createUserDocument(page, 'Doomed header');
+  await page.goto(createDocumentPath(document.id));
+  await ensureReady(page);
+
+  await page.getByRole('heading', { level: 1 }).hover();
+  await page.getByRole('button', { name: /^Actions for/u }).click();
+  await page.getByRole('menuitem', { name: 'Delete…' }).click();
+  await page.getByRole('dialog', { name: /^Delete/u }).getByRole('button', { name: 'Delete', exact: true }).click();
+
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+  await expect(page.locator(`[data-home-document-ref="${document.id}"]`)).toHaveCount(0);
 });

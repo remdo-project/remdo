@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTestUserData } from '#tests';
 import { createDocumentPath } from '#document-routes';
@@ -59,6 +59,60 @@ describe('document route', () => {
     await waitFor(() => {
       expect(document.title).toBe('Current Note · routeDoc · RemDo');
     });
+  });
+
+  it('heads the document-root view with the full document name and hides the heading when zoomed', async () => {
+    const name = `Quarterly ${'planning '.repeat(8)}notes`;
+    const createdDocument = await getTestUserData().getDocuments().create(name);
+    renderDocumentRoute(createDocumentPath(createdDocument.getId()));
+
+    expect(await screen.findByRole('heading', { level: 1, name })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom note' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    });
+  });
+
+  it('starts each opened document with the header as the menu target', async () => {
+    const second = await getTestUserData().getDocuments().create('Second Document');
+    renderDocumentRoute(createDocumentPath('testDoc'));
+
+    fireEvent.focus(await screen.findByTestId('editor-input-probe'));
+    expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'note');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Show documents' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Second Document' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe')).toHaveAttribute('data-doc-id', second.getId());
+    });
+    expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'header');
+  });
+
+  it('targets the header while search hides the editor', async () => {
+    renderDocumentRoute(createDocumentPath('testDoc'));
+
+    fireEvent.focus(await screen.findByTestId('editor-input-probe'));
+    expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'note');
+
+    const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
+    act(() => searchInput.focus());
+    fireEvent.change(searchInput, { target: { value: 'note' } });
+
+    await waitFor(() => {
+      expect(document.querySelector('.document-editor-pane--hidden')).not.toBeNull();
+    });
+    expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'header');
+  });
+
+  it('targets the note strip while the document has no header menu', async () => {
+    renderDocumentRoute();
+
+    await screen.findByTestId('editor-probe');
+
+    expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'note');
   });
 
   it('returns to the document URL when zoom is cleared', async () => {
