@@ -5,7 +5,7 @@ import { createDocumentPath } from '#document-routes';
 import { APP_TITLE } from '#client/ui/navigation-label';
 import { useUserData, useUserDataStatus } from '#client/app/user-data/user-data';
 import { HomeView } from './document/HomeView';
-import { buildHomeContent } from './document/home-content';
+import { buildHomeSources } from './document/home-content';
 import { useDocumentActions } from './document/useDocumentActions';
 import './DocumentRoute.css';
 
@@ -17,7 +17,7 @@ export default function Home() {
     void navigate(createDocumentPath(docId));
   }, [navigate]);
   const actions = useDocumentActions({ onSelectDocument: openDocument, userData });
-  const home = buildHomeContent(userData.getDocumentSources().getChildren());
+  const sources = buildHomeSources(userData.getDocumentSources().getChildren());
 
   useEffect(() => {
     document.title = `Home · ${APP_TITLE}`;
@@ -40,7 +40,7 @@ export default function Home() {
         </Alert>
       )}
       <HomeView
-        {...home}
+        sources={sources}
         onCreateDocument={() => { void actions.createDocument(); }}
         onSelectDocument={openDocument}
         onUploadDocument={(file) => { void actions.uploadDocument(file); }}

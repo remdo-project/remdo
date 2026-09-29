@@ -109,7 +109,7 @@ test('Zoom out opens Home by pointer and the current document can be reopened', 
   await expect(page).toHaveURL('/');
   await expect(homeView(page).getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
 
-  await homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).first().click();
+  await homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).click();
   await expect(homeView(page)).toHaveCount(0);
   await expect(editorLocator(page).locator('.editor-input')).toBeVisible();
   await expect(page).toHaveURL(createEditorDocumentPath(editor.docId));

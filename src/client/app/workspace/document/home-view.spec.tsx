@@ -48,9 +48,6 @@ const baseProps = (): HomeViewProps => ({
       documents: [{ id: 'doc-c', label: 'Team notes' }],
     },
   ],
-  favorites: [],
-  tags: [],
-  recents: [],
   onSelectDocument: vi.fn(),
   onCreateDocument: vi.fn(),
   onUploadDocument: vi.fn(),
@@ -85,23 +82,26 @@ describe('home view', () => {
     expect(props.onSelectDocument).toHaveBeenCalledWith('doc-b');
   });
 
-  it('omits the Favorites, Tags, and Recents groups when they are empty', () => {
-    renderHome(baseProps());
-
-    expect(screen.queryByRole('group', { name: 'Favorites' })).toBeNull();
-    expect(screen.queryByRole('group', { name: 'Tags' })).toBeNull();
-    expect(screen.queryByRole('group', { name: 'Recents' })).toBeNull();
-  });
-
-  it('shows entry-point groups that have entries', () => {
+  it('omits a group that has no documents', () => {
     const props = baseProps();
-    props.favorites = [{ id: 'doc-a', label: 'Project Roadmap' }];
-    props.recents = [{ id: 'doc-c', label: 'Team notes' }];
+    props.sources = [...props.sources, { id: 'empty', label: 'Empty server', documents: [] }];
     renderHome(props);
 
-    expect(screen.getByRole('group', { name: 'Favorites' })).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Recents' })).toBeInTheDocument();
-    expect(screen.queryByRole('group', { name: 'Tags' })).toBeNull();
+    expect(screen.getByRole('group', { name: 'Local' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Empty server' })).toBeNull();
+  });
+
+  it('marks only documents the user cannot share as Shared, leaving the accessible name unchanged', () => {
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: docId, canShareWith: docId === 'doc-a' });
+    renderHome(props);
+
+    const owned = screen.getByRole('button', { name: 'Project Roadmap' });
+    const shared = screen.getByRole('button', { name: 'Ideas' });
+    expect(owned).toHaveAccessibleDescription('');
+    expect(shared).toHaveAccessibleDescription('Shared with you');
+    expect(within(shared).getByText('Shared')).toBeInTheDocument();
+    expect(within(owned).queryByText('Shared')).toBeNull();
   });
 
   it('creates a document via the New action', () => {
