@@ -4,6 +4,31 @@
   <meta name="description" content="{{ description }}">
   <link rel="canonical" href="{{ canonical }}">
 {% endblock %}
+{% block body %}
+  {% if request.path == '/privacy/' %}
+    <div class="remdo-legal">
+      <a class="remdo-legal-skip" href="#legal-document">Skip to content</a>
+      <header class="remdo-legal-header">
+        <a class="remdo-legal-wordmark" href="/" aria-label="RemDo home">RemDo</a>
+      </header>
+      <main id="legal-document" class="remdo-legal-document">
+        <article>
+          <h1>{{ title }}</h1>
+          {{ body|safe }}
+        </article>
+        <footer class="remdo-legal-footer">
+          <span>© {% now "Y" %} RemDo</span>
+          <nav aria-label="Legal">
+            <a href="/privacy/" aria-current="page">Privacy</a>
+            <a href="/terms/">Terms</a>
+          </nav>
+        </footer>
+      </main>
+    </div>
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
 {% block content %}
   <main class="remdo-public-page">
     <article>
