@@ -87,7 +87,7 @@ it('identifies itself with the app icon and tells clients how to use RemDo', asy
   });
 });
 
-it('marks reads as read-only and writes as non-destructive so clients can gate confirmation', async () => {
+it('marks reads as read-only, appends and creates as non-destructive, and overwrites as destructive so clients can gate confirmation', async () => {
   const post = await start();
   authorizeStatus = 200;
 
@@ -106,11 +106,11 @@ it('marks reads as read-only and writes as non-destructive so clients can gate c
     },
     rename_document: {
       title: 'Rename document',
-      annotations: { title: 'Rename document', readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+      annotations: { title: 'Rename document', readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
     set_child_list_type: {
       title: 'Set list type',
-      annotations: { title: 'Set list type', readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+      annotations: { title: 'Set list type', readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
   });
 });

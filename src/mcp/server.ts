@@ -48,7 +48,7 @@ const UNCONFIRMED = 'RemDo did not confirm whether the request took effect. '
 
 const readOnly = { readOnlyHint: true, openWorldHint: false } satisfies ToolAnnotations;
 const additiveWrite = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } satisfies ToolAnnotations;
-const idempotentWrite = { ...additiveWrite, idempotentHint: true } satisfies ToolAnnotations;
+const idempotentOverwrite = { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false } satisfies ToolAnnotations;
 
 // The Claude connector directory reads annotations.title; newer clients read the tool's own title.
 function titled(title: string, annotations: ToolAnnotations) {
@@ -145,7 +145,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     }));
 
     server.registerTool('rename_document', {
-      ...titled('Rename document', idempotentWrite),
+      ...titled('Rename document', idempotentOverwrite),
       description: 'Change the title of a RemDo document.',
       inputSchema: {
         documentId: z.string().describe('A documentId.'),
@@ -209,7 +209,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     }));
 
     server.registerTool('set_child_list_type', {
-      ...titled('Set list type', idempotentWrite),
+      ...titled('Set list type', idempotentOverwrite),
       description: 'Convert the list holding a note\'s children to bullet, number, or check. '
         + 'Nested lists keep their own types. A note without children is refused.',
       inputSchema: {
