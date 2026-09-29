@@ -24,6 +24,7 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     await page.goto('/');
     const row = page.getByRole('group', { name: 'Current Server', exact: true })
       .locator(`[data-home-document-ref="${document.id}"]`).locator('..');
+    await expect(row.locator('[data-home-document-ref]')).toHaveAccessibleDescription('');
     await row.hover();
     await row.getByRole('button', { name: /^Actions for/u }).click();
     await page.getByRole('menuitem', { name: 'Share…' }).click();
@@ -38,8 +39,10 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     const peer = await peerContext.newPage();
     await withPageGuards(peer, async () => {
       await peer.goto('/');
-      await peer.getByRole('group', { name: 'Current Server', exact: true })
-        .locator(`[data-home-document-ref="${document.id}"]`).click();
+      const sharedRow = peer.getByRole('group', { name: 'Current Server', exact: true })
+        .locator(`[data-home-document-ref="${document.id}"]`);
+      await expect(sharedRow).toHaveAccessibleDescription('Shared with you');
+      await sharedRow.click();
       const peerEditor = peer.locator('.editor-input');
       await ensureReady(peer);
       await expect(peerEditor).toContainText('Owner content');

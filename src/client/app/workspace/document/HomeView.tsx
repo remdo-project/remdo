@@ -5,9 +5,10 @@ import type { DocumentNote } from '#note-sdk';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentMenu } from './DocumentMenu';
 import { useDocumentDialogs } from './useDocumentDialogs';
-import type { HomeContent, HomeDocumentEntry } from './home-content';
+import type { HomeDocumentEntry, HomeDocumentSource } from './home-content';
 
-export interface HomeViewProps extends HomeContent {
+export interface HomeViewProps {
+  sources: readonly HomeDocumentSource[];
   onSelectDocument: (docId: string) => void;
   onCreateDocument: () => void;
   onUploadDocument: (file: File) => void;
@@ -38,19 +39,24 @@ function DocumentGroup({
         {documents.map((document) => {
           const note = resolveDocument(document.id);
           const label = formatNavigationLabel(document.label);
+          const shared = note !== null && !note.canShareWith();
+          const sharedId = `home-doc-shared-${document.id}`;
           return (
             <li className="home-doc-row" key={document.id}>
               {note && (
                 <DocumentMenu label={label} note={note} onDelete={onDelete} onRename={onRename} onShare={onShare} />
               )}
               <button
+                aria-describedby={shared ? sharedId : undefined}
                 className="home-doc remdo-interaction-surface"
                 data-home-document-ref={document.id}
                 onClick={() => onSelectDocument(document.id)}
                 type="button"
               >
-                {label}
+                <span className="home-doc-label">{label}</span>
+                {shared && <span aria-hidden="true" className="home-doc-shared">Shared</span>}
               </button>
+              {shared && <span hidden id={sharedId}>Shared with you</span>}
             </li>
           );
         })}
@@ -60,14 +66,11 @@ function DocumentGroup({
 }
 
 export function HomeView({
-  favorites,
   onCreateDocument,
   onSelectDocument,
   onUploadDocument,
-  recents,
   resolveDocument,
   sources,
-  tags,
 }: HomeViewProps) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
@@ -85,26 +88,17 @@ export function HomeView({
     }
   };
 
-  // Entry-point groups first, then the document sources; each renders the same
-  // way and is omitted when empty.
-  const groups: Array<{ key: string; label: string; documents: readonly HomeDocumentEntry[] }> = [
-    { key: 'Favorites', label: 'Favorites', documents: favorites },
-    { key: 'Tags', label: 'Tags', documents: tags },
-    { key: 'Recents', label: 'Recents', documents: recents },
-    ...sources.map((source) => ({ key: source.id, label: source.label, documents: source.documents })),
-  ];
-
   return (
     <section aria-label="Home" className="document-home" data-testid="document-home">
       <h1 className="document-home-title" ref={headingRef} tabIndex={-1}>Home</h1>
 
-      {groups
-        .filter((group) => group.documents.length > 0)
-        .map((group) => (
+      {sources
+        .filter((source) => source.documents.length > 0)
+        .map((source) => (
           <DocumentGroup
-            documents={group.documents}
-            key={group.key}
-            label={group.label}
+            documents={source.documents}
+            key={source.id}
+            label={source.label}
             onDelete={openDelete}
             onRename={openRename}
             onSelectDocument={onSelectDocument}

@@ -26,7 +26,7 @@ test.describe('Home', () => {
     await expect(page).toHaveURL('/');
 
     // Keyboard activation of the same document starts at its root, not its old zoom.
-    const row = homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).first();
+    const row = homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`);
     await row.focus();
     await row.press('Enter');
     await expect(page).toHaveURL(documentPath);
@@ -77,7 +77,7 @@ test.describe('Home', () => {
     await expect(page.getByRole('listbox', { name: 'Search results' })).toBeVisible();
     await homeZoomBreadcrumb(page).click();
     await expect(page).toHaveURL('/');
-    await homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).first().click();
+    await homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).click();
     await waitForSynced(page);
     await expect(page.getByRole('combobox', { name: 'Search document' })).toHaveValue('');
     await expect(editorLocator(page)).toBeVisible();
