@@ -321,3 +321,169 @@ describe('account metadata', () => {
     expect(bob.client).not.toBe(alice.client);
   });
 });
+
+describe('document-list change stream', () => {
+  class FakeWebSocket extends EventTarget {
+    static readonly CONNECTING = 0;
+    static readonly OPEN = 1;
+    static readonly CLOSED = 3;
+    static opened: FakeWebSocket[] = [];
+    readyState = FakeWebSocket.CONNECTING;
+    constructor(readonly url: URL) {
+      super();
+      FakeWebSocket.opened.push(this);
+    }
+
+    connect() {
+      this.readyState = FakeWebSocket.OPEN;
+      this.dispatchEvent(new Event('open'));
+    }
+
+    send(data: string) { this.dispatchEvent(new MessageEvent('message', { data })); }
+    close() {
+      this.readyState = FakeWebSocket.CLOSED;
+      this.dispatchEvent(new Event('close'));
+    }
+  }
+
+  const runtimeCleanup: Array<() => void> = [];
+  function watchedAccount(titles: string[]) {
+    const runtime = account();
+    let listings = 0;
+    documentRequests(() => Response.json([{ id: 'shared', title: titles[Math.min(listings++, titles.length - 1)], shareable: false }]));
+    runtimeCleanup.push(new QueryObserver(runtime.client, runtime.documentsQuery).subscribe(() => {}));
+    const stop = runtime.watchDocumentList();
+    const title = () => runtime.userData.getDocuments().getById('shared')?.getText();
+    return { runtime, stop, title, listings: () => listings };
+  }
+
+  beforeEach(() => {
+    FakeWebSocket.opened = [];
+    vi.stubGlobal('WebSocket', FakeWebSocket);
+  });
+  afterEach(() => {
+    for (const cleanup of runtimeCleanup.splice(0)) cleanup();
+    vi.useRealTimers();
+  });
+
+  it('rereads the list when another source reports a change', async () => {
+    const { title } = watchedAccount(['Draft', 'Renamed elsewhere']);
+    await vi.waitFor(() => expect(title()).toBe('Draft'));
+    expect(FakeWebSocket.opened.map((socket) => socket.url.href))
+      .toEqual([`ws://${location.host}/collaboration?document-list`]);
+
+    FakeWebSocket.opened[0]!.send('changed');
+    await vi.waitFor(() => expect(title()).toBe('Renamed elsewhere'));
+  });
+
+  it('rereads the list when the stream connects, covering changes missed while disconnected', async () => {
+    const { title } = watchedAccount(['Draft', 'Renamed while offline']);
+    await vi.waitFor(() => expect(title()).toBe('Draft'));
+
+    FakeWebSocket.opened[0]!.connect();
+    await vi.waitFor(() => expect(title()).toBe('Renamed while offline'));
+  });
+
+  it('rereads a listing already in flight when the stream connects', async () => {
+    const runtime = account();
+    const staleListing = deferred<Response>();
+    let listings = 0;
+    documentRequests(() => listings++ === 0
+      ? staleListing.promise
+      : Response.json([{ id: 'shared', title: 'Renamed while disconnected', shareable: false }]));
+    runtimeCleanup.push(new QueryObserver(runtime.client, runtime.documentsQuery).subscribe(() => {}));
+    runtime.watchDocumentList();
+    await vi.waitFor(() => expect(listings).toBe(1));
+
+    FakeWebSocket.opened[0]!.connect();
+    staleListing.resolve(Response.json([{ id: 'shared', title: 'Draft', shareable: false }]));
+    await vi.waitFor(() => expect(runtime.userData.getDocuments().getById('shared')?.getText())
+      .toBe('Renamed while disconnected'));
+  });
+
+  it('treats a keepalive as liveness rather than a change', async () => {
+    const { title, listings } = watchedAccount(['Draft', 'Renamed elsewhere']);
+    await vi.waitFor(() => expect(title()).toBe('Draft'));
+    FakeWebSocket.opened[0]!.send('keepalive');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(listings()).toBe(1);
+    expect(title()).toBe('Draft');
+  });
+
+  it('replaces a connected stream that falls silent', async () => {
+    vi.useFakeTimers();
+    watchedAccount(['Draft']);
+    FakeWebSocket.opened[0]!.connect();
+    await vi.advanceTimersByTimeAsync(74_000);
+    FakeWebSocket.opened[0]!.send('keepalive');
+    await vi.advanceTimersByTimeAsync(74_999);
+    expect(FakeWebSocket.opened[0]!.readyState).toBe(FakeWebSocket.OPEN);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(FakeWebSocket.opened[0]!.readyState).toBe(FakeWebSocket.CLOSED);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(FakeWebSocket.opened).toHaveLength(2);
+  });
+
+  it('keeps watching a replacement stream when the replaced one reports its close late', async () => {
+    vi.useFakeTimers();
+    watchedAccount(['Draft']);
+    const replaced = FakeWebSocket.opened[0]!;
+    replaced.connect();
+    replaced.close = () => { replaced.readyState = FakeWebSocket.CLOSED; };
+    await vi.advanceTimersByTimeAsync(75_000 + 1000);
+    FakeWebSocket.opened[1]!.connect();
+    replaced.dispatchEvent(new Event('close'));
+
+    await vi.advanceTimersByTimeAsync(75_000 + 1000);
+    expect(FakeWebSocket.opened).toHaveLength(3);
+  });
+
+  it('reopens a closed stream after a growing delay', async () => {
+    vi.useFakeTimers();
+    watchedAccount(['Draft']);
+    FakeWebSocket.opened[0]!.close();
+    await vi.advanceTimersByTimeAsync(999);
+    expect(FakeWebSocket.opened).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(FakeWebSocket.opened).toHaveLength(2);
+
+    FakeWebSocket.opened[1]!.close();
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(FakeWebSocket.opened).toHaveLength(2);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(FakeWebSocket.opened).toHaveLength(3);
+  });
+
+  it('closes the stream without reopening when stopped or signed out', async () => {
+    vi.useFakeTimers();
+    const { stop } = watchedAccount(['Draft']);
+    FakeWebSocket.opened[0]!.connect();
+    stop();
+    expect(FakeWebSocket.opened[0]!.readyState).toBe(FakeWebSocket.CLOSED);
+
+    const pending = watchedAccount(['Draft']);
+    FakeWebSocket.opened[1]!.close();
+    pending.stop();
+
+    const { runtime } = watchedAccount(['Draft']);
+    FakeWebSocket.opened[2]!.connect();
+    runtime.dispose();
+    expect(FakeWebSocket.opened[2]!.readyState).toBe(FakeWebSocket.CLOSED);
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(FakeWebSocket.opened).toHaveLength(3);
+  });
+
+  it('closes a stream stopped while connecting once it connects', async () => {
+    vi.useFakeTimers();
+    const { stop } = watchedAccount(['Draft']);
+    stop();
+    expect(FakeWebSocket.opened[0]!.readyState).toBe(FakeWebSocket.CONNECTING);
+
+    FakeWebSocket.opened[0]!.connect();
+    expect(FakeWebSocket.opened[0]!.readyState).toBe(FakeWebSocket.CLOSED);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(FakeWebSocket.opened).toHaveLength(1);
+  });
+});

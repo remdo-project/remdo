@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Document, DocumentGrant
+from .notices import document_audience, notify_document_list_changed
 from .serializers import (
     ConfigSerializer,
     CurrentUserSerializer,
@@ -43,6 +44,7 @@ class DocumentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+        notify_document_list_changed({self.request.user.pk})
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -60,6 +62,15 @@ class DocumentView(generics.UpdateAPIView, generics.DestroyAPIView):
             return [*super().get_permissions(), IsDocumentOwner()]
         return super().get_permissions()
 
+    def perform_update(self, serializer):
+        serializer.save()
+        notify_document_list_changed(document_audience(serializer.instance))
+
+    def perform_destroy(self, document):
+        audience = document_audience(document)
+        document.delete()
+        notify_document_list_changed(audience)
+
 
 @method_decorator(never_cache, name="dispatch")
 class DocumentShareView(generics.GenericAPIView):
@@ -73,9 +84,11 @@ class DocumentShareView(generics.GenericAPIView):
         document = self.get_object()
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        grant, _ = DocumentGrant.objects.get_or_create(
+        grant, created = DocumentGrant.objects.get_or_create(
             document=document, user=serializer.validated_data["email"]
         )
+        if created:
+            notify_document_list_changed({document.owner_id, grant.user_id})
         return Response(DocumentAccessSerializer(grant).data)
 
 

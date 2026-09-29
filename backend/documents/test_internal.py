@@ -138,3 +138,21 @@ class CollaborationStorageTests(TestCase):
         )
         self.assertEqual(self.client.post(self.base + "/content", **self.headers).status_code, 405)
         self.assertFalse(DocumentContent.objects.exists())
+
+    def test_session_user_requires_secret_session_and_trusted_origin(self):
+        path = "/internal/collaboration/session"
+        trusted = {"HTTP_ORIGIN": "https://app.example"}
+        self.assertEqual(self.client.get(path, **trusted, **self.headers).status_code, 403)
+        self.client.force_login(self.grantee)
+        self.assertEqual(
+            self.client.get(path, **trusted, HTTP_X_REMDO_COLLABORATION_SECRET="wrong").status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.get(path, **trusted, **self.headers).json(),
+            {"userId": str(self.grantee.pk)},
+        )
+        for origin in ("", "https://attacker.example", "null"):
+            self.assertEqual(
+                self.client.get(path, HTTP_ORIGIN=origin, **self.headers).status_code, 403
+            )

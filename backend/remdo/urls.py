@@ -53,6 +53,7 @@ urlpatterns = [
     path("api/documents", views.DocumentListCreateView.as_view()),
     path("api/documents/<str:document_id>", views.DocumentView.as_view()),
     path("api/documents/<str:document_id>/access", views.DocumentShareView.as_view()),
+    path("internal/collaboration/session", internal.session_user),
     path("internal/collaboration/documents/<str:document_id>/authorize", internal.authorize),
     path("internal/collaboration/documents/<str:document_id>/content", internal.content),
     path("api/schema", SpectacularAPIView.as_view()),
