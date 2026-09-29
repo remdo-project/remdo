@@ -71,6 +71,9 @@ export default function DocumentWorkspace({
     }
   };
 
+  const targetHeader = () => {
+    if (!shellRef.current?.querySelector('[data-note-menu]')) setMenuTarget('header');
+  };
   const documentLabel = formatNavigationLabel(source.documentLabel);
   const documentNote = userData.getDocuments().getById(docId);
   const titleItem = zoomPath.at(-1) ?? null;
@@ -118,8 +121,8 @@ export default function DocumentWorkspace({
       {zoomNoteId === null && (
         <div
           className="location-header"
-          onFocus={() => { setMenuTarget('header'); }}
-          onPointerEnter={() => { setMenuTarget('header'); }}
+          onFocus={targetHeader}
+          onPointerEnter={targetHeader}
         >
           {documentNote && (
             <DocumentMenu

@@ -55,7 +55,7 @@ test.describe('Document-root header', () => {
     await page.getByRole('heading', { level: 1 }).hover();
 
     await menu.expectOpen();
-    await expect(page.getByRole('button', { name: /^Actions for/u })).toHaveCSS('opacity', '0');
+    await expect(page.locator('.document-editor-shell')).toHaveAttribute('data-menu-target', 'note');
   });
 
   test('returns the menu target to the note strip on editor focus and typing', async ({ page, editor }) => {
