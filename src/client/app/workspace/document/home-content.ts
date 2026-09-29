@@ -11,19 +11,13 @@ export interface HomeDocumentSource {
   documents: readonly HomeDocumentEntry[];
 }
 
-export interface HomeContent {
-  sources: readonly HomeDocumentSource[];
-}
-
-export function buildHomeContent(documentSources: readonly DocumentSourceNote[]): HomeContent {
-  return {
-    sources: documentSources.map((documentSource) => ({
-      id: documentSource.getId(),
-      label: documentSource.getText(),
-      documents: documentSource.getDocuments().getChildren().map((document) => ({
-        id: document.getId(),
-        label: document.getText(),
-      })),
+export function buildHomeSources(documentSources: readonly DocumentSourceNote[]): HomeDocumentSource[] {
+  return documentSources.map((documentSource) => ({
+    id: documentSource.getId(),
+    label: documentSource.getText(),
+    documents: documentSource.getDocuments().getChildren().map((document) => ({
+      id: document.getId(),
+      label: document.getText(),
     })),
-  };
+  }));
 }

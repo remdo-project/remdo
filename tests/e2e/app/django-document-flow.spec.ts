@@ -56,7 +56,7 @@ test('Django sign-in, document creation, collaboration, reopen, and account isol
   await expect(editor).toContainText('from peer');
   await waitForSynced(page);
   await page.goto('/');
-  await expect(page.locator(`[data-home-document-ref="${docId}"]`).first()).toBeVisible();
+  await expect(page.locator(`[data-home-document-ref="${docId}"]`)).toBeVisible();
   await signOutFromHeader(page);
   await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible();
   await signIn(page, otherAccount);

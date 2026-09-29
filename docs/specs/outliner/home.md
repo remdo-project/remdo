@@ -23,14 +23,12 @@ starts it. Otherwise, it shows an example outline.
 
 1. Home shows document navigation and actions, without a document editor or its
    toolbar. Its heading follows [Location header](./location-header.md).
-2. Home lists the user's accessible documents, owned or [shared with them](../access/access-control.md#document-access),
-   in one list under Current Server.
+2. Home lists the user's [accessible documents](../access/access-control.md#document-access)
+   in one list under Current Server, omitted when the user has none.
 3. Each listed document shows its display name and opens that document when
    activated, landing on its [document-root view](./zoom.md#visibility-and-editing-boundary).
    A document owned by another user also shows a **Shared** marker beside its
    name, which adds to the row's description without changing its accessible name.
-4. A group with no documents is omitted from Home entirely; Home never shows an
-   empty group as a placeholder.
 
 ## Document actions
 

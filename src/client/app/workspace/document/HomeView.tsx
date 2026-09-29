@@ -5,9 +5,10 @@ import type { DocumentNote } from '#note-sdk';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentMenu } from './DocumentMenu';
 import { useDocumentDialogs } from './useDocumentDialogs';
-import type { HomeContent, HomeDocumentEntry } from './home-content';
+import type { HomeDocumentEntry, HomeDocumentSource } from './home-content';
 
-export interface HomeViewProps extends HomeContent {
+export interface HomeViewProps {
+  sources: readonly HomeDocumentSource[];
   onSelectDocument: (docId: string) => void;
   onCreateDocument: () => void;
   onUploadDocument: (file: File) => void;

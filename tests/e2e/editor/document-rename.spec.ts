@@ -9,7 +9,7 @@ test.describe('Document rename', () => {
     await homeZoomBreadcrumb(page).click();
     await expect(page).toHaveURL('/');
 
-    const row = homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).first().locator('..');
+    const row = homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).locator('..');
     const initialName = await row.locator('[data-home-document-ref]').innerText();
     const trigger = row.getByRole('button', { name: `Actions for ${initialName}` });
 
@@ -34,7 +34,7 @@ test.describe('Document rename', () => {
     await editor.load('basic');
     await homeZoomBreadcrumb(page).click();
 
-    const row = homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).first().locator('..');
+    const row = homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).locator('..');
     const initialName = await row.locator('[data-home-document-ref]').innerText();
     const trigger = row.getByRole('button', { name: `Actions for ${initialName}` });
 
@@ -54,7 +54,7 @@ test.describe('Document rename', () => {
     await editor.load('basic');
     await homeZoomBreadcrumb(page).click();
 
-    const row = homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).first().locator('..');
+    const row = homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).locator('..');
     const initialName = await row.locator('[data-home-document-ref]').innerText();
     await row.hover();
     await row.getByRole('button', { name: `Actions for ${initialName}` }).click();
