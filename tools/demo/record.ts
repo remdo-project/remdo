@@ -8,7 +8,8 @@ import type { Browser, BrowserContext } from 'playwright';
 import { chromium } from 'playwright';
 import { config } from '#config';
 import type { DemoAccount } from '../lib/demo-account';
-import { demoAccount, resetDemoAccount } from '../lib/demo-account';
+import { resetDemoAccount } from '../lib/demo-account';
+import { provisionDjangoUser } from '../lib/django-user';
 import { Chat } from './chat';
 import type { OutlineNote } from './pane';
 import { expectOutline, Pane, readOutline, Timing } from './pane';
@@ -16,22 +17,23 @@ import { pacing, script } from './script';
 import { Stage, STAGE_SIZE } from './stage';
 
 const USAGE = [
-  'Usage: pnpm demo:record [--final] [origin]',
-  'Resets the origin\'s user account, whose password REMDO_USER_PASSWORD holds, then records',
-  'the demo video to $DATA_DIR/demo/demo.mp4 with its poster demo.jpg, encoding them with ffmpeg.',
-  'Without --final, the recording runs at a fast pace with a quick encode for iterating on it.',
-  'The Claude chapter runs the signed-in `claude` CLI against the origin\'s MCP server; REMDO_MCP_TOKEN',
-  'supplies its delegated access token, which a local development origin mints itself.',
-  'The origin defaults to https://remdo.com.',
+  'Usage: pnpm demo:record [--final]',
+  'Records the demo video from this checkout\'s running development server (pnpm run dev) as its',
+  'demo account, writing $DATA_DIR/demo/demo.mp4 and its poster demo.jpg with ffmpeg. The Claude',
+  'chapter runs the signed-in `claude` CLI. Without --final, the recording runs at a fast pace with',
+  'a quick encode for iterating on it.',
 ].join('\n');
+// A development-only account, so recording leaves the development user's documents alone.
+const ACCOUNT: DemoAccount = { email: 'demo@example.test', password: 'demo-password-1234' };
 
 async function signIn(browser: Browser, origin: string, account: DemoAccount): Promise<BrowserContext> {
   const context = await browser.newContext({ viewport: STAGE_SIZE, locale: 'en-US' });
+  // The app's own dev-tools switch hides development-only surfaces, as in production.
+  await context.addInitScript(() => localStorage.setItem('remdo-dev-tooling-visible', 'false'));
   const configUrl = new URL('/api/config', origin).href;
   const { csrfToken } = await (await context.request.get(configUrl, { failOnStatusCode: true })).json() as { csrfToken: string };
   await context.request.post(new URL('/api/auth/browser/v1/auth/login', origin).href, {
     data: account,
-    // Django's HTTPS CSRF check requires a same-origin Origin or Referer.
     headers: { 'X-CSRFToken': csrfToken, Origin: origin },
     failOnStatusCode: true,
   });
@@ -52,16 +54,7 @@ async function confirmStoredOutline(browser: Browser, context: BrowserContext, d
 
 const run = promisify(execFile);
 
-// Development instances mint the token directly; other targets need a real
-// delegated grant, which the recorder cannot obtain yet.
-async function mcpToken(origin: string, email: string): Promise<string> {
-  // eslint-disable-next-line node/no-process-env -- a delegated credential, absent from the development config schema.
-  const supplied = process.env.REMDO_MCP_TOKEN;
-  if (supplied) return supplied;
-  const url = new URL(origin);
-  if (url.protocol !== 'http:' || url.port !== String(config.env.PORT)) {
-    throw new Error('REMDO_MCP_TOKEN must hold a delegated access token for the target\'s MCP server.');
-  }
+async function mcpToken(email: string): Promise<string> {
   const { stdout } = await run('./tools/django.sh', ['create_delegated_token', email]);
   return stdout.trim();
 }
@@ -80,19 +73,15 @@ async function encodeForWeb(recording: string, preset: string, video: string): P
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const final = args.includes('--final');
-  const [originArgument = 'https://remdo.com', ...extra] = args.filter((arg) => arg !== '--final');
-  if (extra.length > 0 || originArgument.startsWith('-')) {
+  if (args.some((arg) => arg !== '--final')) {
     throw new Error(USAGE);
   }
   const timing = new Timing(pacing, final ? 1 : pacing.quickPreviewSpeedup);
   const preset = final ? 'slow' : 'veryfast';
-  const origin = new URL(originArgument).origin;
-  // eslint-disable-next-line node/no-process-env -- a deployment secret, absent from the development config schema.
-  const password = process.env.REMDO_USER_PASSWORD;
-  if (!password) {
-    throw new Error('REMDO_USER_PASSWORD must hold the target\'s user account password.');
-  }
-  const account = demoAccount(origin, password);
+  const origin = config.env.APP_ORIGIN;
+  await fetch(new URL('/api/health', origin)).catch(() => {
+    throw new Error(`No development server answers at ${origin}; start it with pnpm run dev.`);
+  });
 
   const outputDir = path.join(config.env.DATA_DIR, 'demo');
   const recording = path.join(outputDir, 'recording.webm');
@@ -104,11 +93,12 @@ async function main(): Promise<void> {
     throw new Error('ffmpeg with libx264 must be on PATH.');
   });
 
-  const mcp = { url: new URL('/mcp', origin).href, token: await mcpToken(origin, account.email) };
-  const { document } = await resetDemoAccount(origin, account);
+  await provisionDjangoUser({ ...ACCOUNT, name: 'Demo' });
+  const mcp = { url: new URL('/mcp', origin).href, token: await mcpToken(ACCOUNT.email) };
+  const { document } = await resetDemoAccount(origin, ACCOUNT);
   const browser = await chromium.launch();
   try {
-    const context = await signIn(browser, origin, account);
+    const context = await signIn(browser, origin, ACCOUNT);
     const documentUrl = new URL(`/n/${document.id}`, origin).href;
     const main = new Pane(await context.newPage(), timing, documentUrl);
     const other = new Pane(await context.newPage(), timing, documentUrl);

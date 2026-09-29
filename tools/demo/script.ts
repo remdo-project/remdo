@@ -1,8 +1,7 @@
 // The demo video, top to bottom. To preview a change, start the local dev
-// server (`pnpm run dev`), record with
-//   REMDO_USER_PASSWORD=user-password-1234 pnpm demo:record http://localhost:4000
-// and open that address signed out: the home page plays the new recording.
-// Add --final for the full-speed video to publish.
+// server (`pnpm run dev`), run `pnpm demo:record`, and open the dev server's
+// address signed out: the home page plays the new recording. Add --final for
+// the full-speed video to publish.
 
 import type { Chat } from './chat';
 import type { Pacing, Pane, PauseLength } from './pane';

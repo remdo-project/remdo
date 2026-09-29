@@ -5,21 +5,20 @@ covers its main capabilities in one run.
 
 ## Recording run
 
-A run takes a target RemDo origin, which defaults to
-`https://remdo.com`, and acts as that origin's
-[`user` account](../runtime/configuration.md#deployment-accounts).
+A run records the checkout's running development instance as a dedicated demo
+account, leaving other accounts' data unchanged.
 
-1. [Reset the account](../../guides/production-deployment.md#reset-the-demo-account).
-2. Perform each [chapter](#chapters) in order through the target's real user
+1. Create the demo account if missing, and reset it to a single empty document.
+2. Perform each [chapter](#chapters) in order through the instance's real user
    interfaces and confirm its end state.
 3. Return the video, playable by current major browsers, and a poster image
    showing its final frame.
 
 ## Authenticity
 
-Everything a recording shows is live behavior of the target origin and of the
+Everything a recording shows is live behavior of the instance and of the
 services a chapter names, except annotations, which are visibly distinct
-from the product.
+from the product. Development-only tooling stays hidden.
 
 ## Presentation
 

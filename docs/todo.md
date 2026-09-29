@@ -264,15 +264,12 @@ RemDo document, minimal but useful for real work.
 
 ### Demo video
 
-The [demo video](specs/demo/demo-video.md) records every chapter, driving the
-Claude chapter with the signed-in `claude` CLI; the recording has run only
-against local development so far.
+The [demo video](specs/demo/demo-video.md) records every chapter from the local
+development instance, driving the Claude chapter with the signed-in `claude`
+CLI.
 
-- **Delegated token for hosted targets.** Only a local development origin mints
-  the MCP token itself; any other origin needs `REMDO_MCP_TOKEN`. Let the
-  recorder obtain a real [delegated access](specs/access/access-control.md#delegated-access)
-  grant by approving consent in its signed-in browser, which needs a client
-  metadata document served over HTTPS.
+- **Development markers.** Recordings still show the dev-tools switch and the
+  footer's "Local development" label, which production lacks.
 - **Real claude.ai footage.** Ask Anthropic whether scripted demo recording
   through a dedicated claude.ai account is acceptable; if so, drive claude.ai
   in place of the demo chat surface.
