@@ -1,11 +1,21 @@
 import { Buffer } from 'node:buffer';
 import { timingSafeEqual } from 'node:crypto';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { Duplex } from 'node:stream';
 import { Server } from '@hocuspocus/server';
 import type { Document } from '@hocuspocus/server';
 import { Database } from '@hocuspocus/extension-database';
 import * as Y from 'yjs';
+import { WebSocketServer } from 'ws';
+import type { WebSocket } from 'ws';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { decodePersistenceMessage, encodePersistenceMessage } from '#platform/net/persistence-barrier';
+import {
+  DOCUMENT_LIST_CHANGED,
+  DOCUMENT_LIST_KEEPALIVE,
+  DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS,
+  DOCUMENT_LIST_PATH,
+} from '#platform/net/document-list-socket';
 
 export const INTERNAL_SECRET_HEADER = 'X-Remdo-Collaboration-Secret';
 
@@ -31,6 +41,13 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
   const deleted = new WeakSet<Document>();
   const retries = new Map<Document, ReturnType<typeof setTimeout>>();
   const retryDelays = new Map<Document, number>();
+  const documentListSockets = new Map<string, Set<WebSocket>>();
+  const documentListServer = new WebSocketServer({ noServer: true });
+  const documentListKeepalive = setInterval(() => {
+    for (const listeners of documentListSockets.values()) {
+      for (const listener of listeners) listener.send(DOCUMENT_LIST_KEEPALIVE);
+    }
+  }, DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS);
   const queuedSaves = new Map<Document, Promise<void>>();
   let revision = 0;
   let stopping = false;
@@ -43,6 +60,59 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
   const endpoint = (id: string, operation: string) =>
     new URL(`/internal/collaboration/documents/${encodeURIComponent(id)}/${operation}`, apiOrigin);
   const internalHeaders = { [INTERNAL_SECRET_HEADER]: secret, Host: new URL(appOrigin).host };
+
+  // A WebSocket, unlike a long-lived HTTP response, holds none of the browser's
+  // few HTTP/1.1 connections per host, so open tabs cannot starve API requests.
+  // Sharing the collaboration path keeps every gateway and proxy rule routing it.
+  async function openDocumentListSocket(request: IncomingMessage, socket: Duplex, head: Buffer) {
+    const reject = (status: string) => socket.end(`HTTP/1.1 ${status}\r\nConnection: close\r\n\r\n`);
+    // Nothing else listens until the upgrade completes, so a client reset while
+    // the session is checked would otherwise crash the hub.
+    const ignoreReset = () => {};
+    socket.on('error', ignoreReset);
+    let session: Awaited<ReturnType<typeof requestDjango>>;
+    try {
+      session = await requestDjango(new URL('/internal/collaboration/session', apiOrigin), {
+        headers: { ...internalHeaders, Cookie: request.headers.cookie ?? '', Origin: request.headers.origin ?? '' },
+        signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
+      });
+    } catch {
+      reject('503 Service Unavailable');
+      return;
+    }
+    if (!session.ok || stopping || socket.destroyed) {
+      reject(session.status === 403 ? '403 Forbidden' : '503 Service Unavailable');
+      return;
+    }
+    const { userId } = JSON.parse(session.body.toString()) as { userId: string };
+    socket.off('error', ignoreReset);
+    documentListServer.handleUpgrade(request, socket, head, (listener) => {
+      const listeners = documentListSockets.get(userId) ?? new Set();
+      documentListSockets.set(userId, listeners);
+      listeners.add(listener);
+      // ws closes the socket after reporting a malformed frame; unhandled, the
+      // report would crash the hub.
+      listener.on('error', () => {});
+      listener.once('close', () => {
+        listeners.delete(listener);
+        if (!listeners.size) documentListSockets.delete(userId);
+      });
+    });
+  }
+
+  async function relayDocumentListNotice(request: IncomingMessage, response: ServerResponse) {
+    if (!authorizedOperator(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()] as string | undefined)) {
+      response.writeHead(403).end();
+      return;
+    }
+    const chunks: Buffer[] = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    const { userIds } = JSON.parse(Buffer.concat(chunks).toString()) as { userIds: string[] };
+    for (const userId of userIds) {
+      for (const listener of documentListSockets.get(userId) ?? []) listener.send(DOCUMENT_LIST_CHANGED);
+    }
+    response.writeHead(204).end();
+  }
 
   async function writeState(document: Document, state: Uint8Array) {
     if (deleted.has(document)) throw new DocumentDeleted();
@@ -142,7 +212,12 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
         }
       },
     })],
-    async onUpgrade({ request, socket }) {
+    async onUpgrade({ request, socket, head }) {
+      if (!stopping && request.url === DOCUMENT_LIST_PATH) {
+        await openDocumentListSocket(request, socket, head);
+        // eslint-disable-next-line no-throw-literal
+        throw null;
+      }
       if (stopping || request.url !== '/collaboration'
         || (!request.headers.origin && !isBearer(request.headers.authorization)
           && !authorizedOperator(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()] as string | undefined))) {
@@ -196,6 +271,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
     async onRequest({ request, response }) {
       if (request.url === '/ready' && request.method === 'GET') {
         response.writeHead(stopping ? 503 : 200).end();
+      } else if (request.url === '/internal/document-list-changed' && request.method === 'POST') {
+        await relayDocumentListNotice(request, response);
       } else response.writeHead(404).end();
       // eslint-disable-next-line no-throw-literal
       throw null;
@@ -208,6 +285,10 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
       stopping = true;
       for (const timer of retries.values()) clearTimeout(timer);
       retries.clear();
+      clearInterval(documentListKeepalive);
+      for (const listeners of documentListSockets.values()) {
+        for (const listener of listeners) listener.terminate();
+      }
       const results = await Promise.allSettled([...server.hocuspocus.documents.values()].map(flush));
       if (results.some(result => result.status === 'rejected')) {
         throw new Error('collaboration.shutdown-store-failed');

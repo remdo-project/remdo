@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { createServer } from 'node:http';
+import { connect as connectSocket } from 'node:net';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
@@ -7,6 +8,7 @@ import WebSocket from 'ws';
 import * as Y from 'yjs';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { createCollaborationServer, INTERNAL_SECRET_HEADER } from './server';
+import { DOCUMENT_LIST_KEEPALIVE, DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS, DOCUMENT_LIST_PATH } from '#platform/net/document-list-socket';
 import { requestPersistence } from '../collaboration/persistence-barrier';
 import { createProviderFactory } from '../collaboration/runtime';
 
@@ -20,6 +22,8 @@ let deletedDocument: string | undefined;
 let savedDocuments: Map<string, Uint8Array>;
 let loaded: number;
 let authorizations: number;
+let sessionHeaders: Array<Record<string, string | string[] | undefined>>;
+let holdSession: Promise<void> | undefined;
 const runtimeCleanup: Array<() => void> = [];
 let stores: Uint8Array[];
 let persisted: Uint8Array;
@@ -32,6 +36,14 @@ const backend = createServer((request, response) => {
   void (async () => {
     expect(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()]).toBe(secret);
     expect(request.headers.host).toBe('remdo.test');
+    if (request.url === '/internal/collaboration/session') {
+      sessionHeaders.push(request.headers);
+      await holdSession;
+      const userId = /user=(\w+)/u.exec(request.headers.cookie ?? '')?.[1];
+      if (userId) response.writeHead(200).end(JSON.stringify({ userId }));
+      else response.writeHead(403).end();
+      return;
+    }
     const name = request.url!.split('/')[4]!;
     if (name === deletedDocument) {
       response.writeHead(404).end();
@@ -67,6 +79,8 @@ beforeEach(async () => {
   savedDocuments = new Map();
   loaded = 0;
   authorizations = 0;
+  sessionHeaders = [];
+  holdSession = undefined;
   stores = [];
   persisted = new Uint8Array();
   holdStore = undefined;
@@ -323,6 +337,107 @@ it('backs off repeated store failures and resets the delay after recovery', asyn
     expect(await persist(provider)).toBe('failed');
     await vi.advanceTimersByTimeAsync(1000);
     await vi.waitFor(() => expect(stores).toHaveLength(7));
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+function openDocumentListSocket(headers: Record<string, string>) {
+  const socket = new WebSocket(`${origin.replace('http:', 'ws:')}${DOCUMENT_LIST_PATH}`, { headers });
+  return new Promise<{ socket: WebSocket; status: number }>((resolve) => {
+    socket.once('open', () => resolve({ socket, status: 101 }));
+    socket.once('unexpected-response', (_request, response) => {
+      response.resume();
+      resolve({ socket, status: response.statusCode! });
+    });
+  });
+}
+
+async function notifyDocumentListChanged(userIds: string[], headers = { [INTERNAL_SECRET_HEADER]: secret }) {
+  const response = await fetch(`${origin}/internal/document-list-changed`, {
+    method: 'POST', headers, body: JSON.stringify({ userIds }),
+  });
+  return response.status;
+}
+
+it('relays a document-list notice only to the notified account\'s signed-in sockets', async () => {
+  const alice = await openDocumentListSocket({ Cookie: 'user=alice', Origin: 'http://remdo.test' });
+  const bob = await openDocumentListSocket({ Cookie: 'user=bob', Origin: 'http://remdo.test' });
+  expect([alice.status, bob.status]).toEqual([101, 101]);
+  expect(sessionHeaders.map(({ cookie, origin }) => [cookie, origin]))
+    .toEqual([['user=alice', 'http://remdo.test'], ['user=bob', 'http://remdo.test']]);
+  const bobMessages: string[] = [];
+  bob.socket.on('message', (data: Buffer) => bobMessages.push(data.toString()));
+
+  const aliceMessage = once(alice.socket, 'message');
+  expect(await notifyDocumentListChanged(['alice'])).toBe(204);
+  expect(String((await aliceMessage)[0])).toBe('changed');
+  expect(bobMessages).toEqual([]);
+
+  const closed = Promise.all([once(alice.socket, 'close'), once(bob.socket, 'close')]);
+  await runtime.stop();
+  await closed;
+});
+
+it('rejects a document-list socket without a session and a notice without the internal secret', async () => {
+  const { status } = await openDocumentListSocket({ Origin: 'http://remdo.test' });
+  expect(status).toBe(403);
+  expect(await notifyDocumentListChanged(['alice'], { [INTERNAL_SECRET_HEADER]: 'wrong' })).toBe(403);
+});
+
+const documentListUpgrade = `GET ${DOCUMENT_LIST_PATH} HTTP/1.1\r\nHost: remdo.test\r\nConnection: Upgrade\r\n`
+  + 'Upgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n'
+  + 'Cookie: user=alice\r\nOrigin: http://remdo.test\r\n\r\n';
+
+it('keeps serving after a client resets its document-list socket during the session check', async () => {
+  let releaseSession!: () => void;
+  holdSession = new Promise((resolve) => { releaseSession = resolve; });
+  const client = connectSocket(runtime.server.address.port, '127.0.0.1');
+  await once(client, 'connect');
+  client.write(documentListUpgrade);
+  await vi.waitFor(() => expect(sessionHeaders).toHaveLength(1));
+  client.resetAndDestroy();
+  releaseSession();
+
+  expect((await fetch(`${origin}/ready`)).status).toBe(200);
+  expect(await notifyDocumentListChanged(['alice'])).toBe(204);
+});
+
+it('keeps serving after a signed-in client sends a malformed document-list frame', async () => {
+  const client = connectSocket(runtime.server.address.port, '127.0.0.1');
+  await once(client, 'connect');
+  client.write(documentListUpgrade);
+  expect(String((await once(client, 'data'))[0])).toMatch(/^HTTP\/1\.1 101 /u);
+  const closed = once(client, 'close');
+  // An unmasked client frame violates the protocol.
+  client.write(Buffer.from([0x81, 0x00]));
+  await closed;
+
+  expect((await fetch(`${origin}/ready`)).status).toBe(200);
+  expect(await notifyDocumentListChanged(['alice'])).toBe(204);
+});
+
+it('sends document-list keepalives to connected sockets', async () => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+  try {
+    const keepalive = createCollaborationServer({
+      port: 0,
+      secret,
+      apiOrigin: `http://127.0.0.1:${(backend.address() as AddressInfo).port}`,
+      appOrigin: 'http://remdo.test',
+    });
+    await keepalive.server.listen();
+    try {
+      const socket = new WebSocket(`ws://127.0.0.1:${keepalive.server.address.port}${DOCUMENT_LIST_PATH}`, {
+        headers: { Cookie: 'user=alice', Origin: 'http://remdo.test' },
+      });
+      await once(socket, 'open');
+      const message = once(socket, 'message');
+      vi.advanceTimersByTime(DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS);
+      expect(String((await message)[0])).toBe(DOCUMENT_LIST_KEEPALIVE);
+    } finally {
+      await keepalive.stop();
+    }
   } finally {
     vi.useRealTimers();
   }

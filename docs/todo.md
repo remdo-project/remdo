@@ -397,9 +397,10 @@ concrete unmet need.
 
 - **Document deletion in open sessions.** [Document deletion](specs/access/access-control.md#document-deletion) ships from
   Home row menus, but other sessions do not learn of it as specified. Django
-  does not notify the collaboration hub, which closes a deleted document's
-  connections only when its next store fails, and hub authorization maps a
-  missing document to the same denial as refused access. An open editor
+  notifies the collaboration hub only of document-list changes; the hub closes
+  a deleted document's connections only when its next store fails, and hub
+  authorization maps a missing document to the same denial as refused access.
+  An open editor
   therefore shows a connection error instead of leaving for Home, which has no
   notice surface. Devices keep their encrypted local copy, since local
   persistence has no per-document purge.

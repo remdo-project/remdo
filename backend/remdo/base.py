@@ -39,6 +39,7 @@ if SENTRY_DSN:
     error_reporting.start(SENTRY_DSN, BUILD_REVISION, origin.hostname)
 
 CSRF_TRUSTED_ORIGINS = [APP_ORIGIN]
+COLLAB_SERVER_ORIGIN = f"http://127.0.0.1:{required('COLLAB_SERVER_PORT')}"
 ALLOWED_HOSTS = [origin.hostname]
 SESSION_COOKIE_NAME = f"remdo_session_{cookie_namespace}"
 CSRF_COOKIE_NAME = f"remdo_csrf_{cookie_namespace}"

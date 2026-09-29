@@ -47,6 +47,17 @@ def authorize(request, document_id):
 
 
 @internal_only
+@require_GET
+def session_user(request):
+    if (
+        not request.user.is_authenticated
+        or request.headers.get("Origin") not in settings.CSRF_TRUSTED_ORIGINS
+    ):
+        return HttpResponse(status=403)
+    return JsonResponse({"userId": str(request.user.pk)})
+
+
+@internal_only
 @require_http_methods(["GET", "PUT"])
 def content(request, document_id):
     document = get_object_or_404(Document, pk=document_id)

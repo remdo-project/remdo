@@ -87,7 +87,8 @@ PostgreSQL runs as a separate service with its own lifecycle.
 
 ## Routing and Origin Boundary
 
-Browser collaboration uses the current same-origin WebSocket endpoint. Django
+Browser collaboration uses the current same-origin collaboration endpoint for
+document WebSockets and the account's document-list change stream. Django
 validates browser origins against the [configured trusted origins](specs/access/access-control.md#csrf-protection).
 
 ### Gateway
@@ -147,6 +148,9 @@ collaboration authorization.
   access-critical metadata, and the current per-user document list. Yjs
   documents hold collaborative document content. Browser-facing app resources
   use authenticated HTTP reads and established server-state cache tooling.
+- Change notices: after committing a document-list change made through the
+  RemDo API, the registry notifies the [Collab Hub](#collab-hub) of each
+  account whose list the change affects. A notice carries no document data.
 - User bootstrap: `/api/current-user` returns the account identity consumed
   under [Authenticated App Access](specs/access/access-control.md#authenticated-app-access). `/api/documents` lists the
   caller's accessible documents.
@@ -164,8 +168,8 @@ the cookie and browser origin, or the token, to Django before loading each
 requested document. Reconnecting repeats authorization; an established
 connection retains its authorization until disconnect.
 
-Private authorization and binary content load/store are loopback-only and
-require the internal collaboration secret.
+Private authorization, binary content load/store, and registry change notices
+are loopback-only and require the internal collaboration secret.
 Public gateways block internal routes and remove internal credential headers
 from browser traffic. Operator tools use the internal credential without a
 browser session, and may open only registered documents.
@@ -195,6 +199,10 @@ The hub saves complete binary Yjs state and serializes saves per document.
 Temporary save failures retain dirty state for retries; dirty documents remain
 loaded. A missing registry row terminates its document connections and releases
 the cached state without retrying or acknowledging a commit.
+The hub relays each registry change notice, best effort, to the notified
+account's connected browser sessions; the
+[document list](specs/outliner/user-data.md#state-and-observation) recovers
+missed notices on reconnect.
 Graceful shutdown attempts every loaded document save while Django remains
 available and reports any persistence failure.
 
