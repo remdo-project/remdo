@@ -51,7 +51,7 @@ export interface Show {
 }
 
 export async function script({ main, ben, chat, chapter, closingCard, split, unsplit, pause }: Show): Promise<void> {
-  await chapter('Outline it', 'Sketch the plan without leaving the keyboard');
+  //await chapter('Outline it', 'Sketch the plan without leaving the keyboard');
   await main.type('Prepare the demo');
   await main.newNote();
   await main.type('Record the demo');
