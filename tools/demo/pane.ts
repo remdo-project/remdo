@@ -9,7 +9,8 @@ export interface OutlineNote {
 /** The script's pacing knobs, in seconds at viewer-facing speed. */
 export interface Pacing {
   typingSpeed: number;
-  afterEachKey: number;
+  betweenSteps: number;
+  keyCaptions: boolean;
   keyCaption: number;
   chapterTitle: number;
   closingCard: number;
@@ -26,8 +27,12 @@ export type PauseLength = 'short' | 'long' | number;
 export class Timing {
   constructor(private readonly pacing: Pacing, private readonly speedup: number) {}
 
-  of(knob: Exclude<keyof Pacing, 'typingSpeed' | 'quickPreviewSpeedup'>): number {
+  of(knob: Exclude<keyof Pacing, 'typingSpeed' | 'quickPreviewSpeedup' | 'keyCaptions'>): number {
     return this.ms(this.pacing[knob]);
+  }
+
+  get keyCaptions(): boolean {
+    return this.pacing.keyCaptions;
   }
 
   typingDelay(): number {
@@ -63,15 +68,7 @@ export class Pane {
   async goHome(): Promise<void> {
     await this.click(this.page.locator('[data-zoom-crumb="home"]'));
     await this.page.getByRole('heading', { name: 'Home' }).waitFor();
-    await this.afterKey();
-  }
-
-  /** Reloads the page, as a visitor does to see documents created elsewhere. */
-  async reload(): Promise<void> {
-    await this.page.reload();
-    await this.page.getByRole('heading', { name: 'Home' }).waitFor();
-    await this.captionActions();
-    await this.afterKey();
+    await this.afterStep();
   }
 
   /** Opens a document by clicking its row on Home; without a title, the first one. */
@@ -85,7 +82,7 @@ export class Pane {
   async share(email: string, title?: string): Promise<void> {
     const name = title ?? await this.documentRow().innerText();
     await this.click(this.page.getByRole('button', { name: `Actions for ${name}` }).first());
-    await this.afterKey();
+    await this.afterStep();
     await this.click(this.page.getByRole('menuitem', { name: 'Share…' }));
     const dialog = this.page.getByRole('dialog');
     await this.click(dialog.getByRole('textbox', { name: 'Invite by email' }));
@@ -94,7 +91,7 @@ export class Pane {
     await dialog.getByText(email).first().waitFor();
     await this.pause('short');
     await this.click(dialog.getByRole('button', { name: 'Done' }));
-    await this.afterKey();
+    await this.afterStep();
   }
 
   /** Puts the caret at the end of the note whose text is `text`. */
@@ -109,19 +106,32 @@ export class Pane {
     await this.press('Control+Enter');
   }
 
+  /** Collapses a selection back to a caret, leaving the document unchanged. */
+  async deselect(): Promise<void> {
+    await this.press('Escape');
+  }
+
+  /** Selects every note in the current view, staying inside a zoomed note. */
+  async selectAll(): Promise<void> {
+    // Each press widens the selection one step: the note's text, the note with
+    // its children, its siblings, then its parent; extra presses do nothing.
+    await this.press('Control+A', 4);
+  }
+
   async captionActions(): Promise<void> {
+    if (!this.timing.keyCaptions) return;
     await this.page.screencast.showActions({ position: 'bottom', duration: this.timing.of('keyCaption') });
   }
 
   async type(text: string): Promise<void> {
     await this.page.keyboard.type(text, { delay: this.timing.typingDelay() });
-    await this.afterKey();
+    await this.afterStep();
   }
 
   async press(key: string, times = 1): Promise<void> {
     for (let pressed = 0; pressed < times; pressed++) {
       await this.page.keyboard.press(key);
-      await this.afterKey();
+      await this.afterStep();
     }
   }
 
@@ -164,6 +174,15 @@ export class Pane {
 
   async fold(): Promise<void> {
     await this.menu('f');
+  }
+
+  /** Folds the whole view so only its top-level notes stay visible. */
+  async foldToTopLevel(): Promise<void> {
+    await this.menu('1');
+  }
+
+  async unfoldAll(): Promise<void> {
+    await this.menu('0');
   }
 
   async zoomIn(): Promise<void> {
@@ -212,13 +231,15 @@ export class Pane {
   // each press for their display duration, so this sequence is captioned as one.
   private async menu(shortcut: string): Promise<void> {
     const keys = ['Shift', 'Shift', shortcut];
-    await this.page.screencast.hideActions();
-    await this.page.screencast.showOverlay(sequenceCaption(keys), { duration: this.timing.of('keyCaption') * keys.length });
+    if (this.timing.keyCaptions) {
+      await this.page.screencast.hideActions();
+      await this.page.screencast.showOverlay(sequenceCaption(keys), { duration: this.timing.of('keyCaption') * keys.length });
+    }
     for (const key of keys) {
       await this.page.keyboard.press(key);
     }
     await this.captionActions();
-    await this.afterKey();
+    await this.afterStep();
   }
 
   // A mouse click is captioned as a click, where a locator click would caption
@@ -247,8 +268,8 @@ export class Pane {
     });
   }
 
-  private async afterKey(): Promise<void> {
-    await this.page.waitForTimeout(this.timing.of('afterEachKey'));
+  private async afterStep(): Promise<void> {
+    await this.page.waitForTimeout(this.timing.of('betweenSteps'));
   }
 }
 

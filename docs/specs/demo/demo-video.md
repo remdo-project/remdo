@@ -27,9 +27,9 @@ from the product. Development-only tooling stays hidden.
   requires, sliding in or out rather than cutting. Once the layout settles,
   each page occupies its whole area and lays itself out for that size rather
   than being scaled or cropped.
-- **Annotations.** Each keystroke and pointer action is captioned as it
-  happens, with a visible pointer for pointer actions. A title introduces each
-  chapter.
+- **Annotations.** A title introduces each chapter. Key captions are
+  optional; when enabled, each key press and pointer action is captioned as it
+  happens, with a visible pointer for pointer actions.
 - **Pacing.** Typing and transitions run at a speed a viewer can follow, and
   each result stays visible long enough to read.
 
@@ -44,8 +44,9 @@ which notes exist, never Claude's wording.
 - **Plan with Claude.** A plain request asks Claude for a short plan in RemDo;
   Claude creates it as a document, which then opens from Home. End state: the
   document holds Claude's plan.
-- **Make it yours.** A step with details is added by keyboard, then folded and
-  zoomed. End state: the details sit under that step.
+- **Make it yours.** A step with details is added by keyboard, and the whole
+  plan folds to its top-level steps, staying folded until the teammate joins.
+  End state: the details sit under that step.
 - **Share it.** The demo account shares the plan with a second account from
   Home. End state: the second account is among the plan's recipients.
 - **Work together.** Both accounts edit the plan side by side, each seeing the
@@ -54,8 +55,9 @@ which notes exist, never Claude's wording.
   Claude reads it from RemDo to summarize it; a follow-up asks Claude to add
   what is missing. End state: Claude read the plan, and it holds more notes
   than before.
-- **Ship it.** The publishing step is checked off, and a closing card tells the
-  viewer the video they are watching is the result.
+- **Ship it.** The view zooms into the publishing step and checks it off with
+  everything under it, and a closing card tells the viewer the video they are
+  watching is the result.
 
 ## Future
 

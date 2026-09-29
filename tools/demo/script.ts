@@ -10,9 +10,12 @@ import type { Pacing, Pane, PauseLength } from './pane';
 // previews play everything `quickPreviewSpeedup` times faster.
 export const pacing: Pacing = {
   // Characters typed per second.
-  typingSpeed: 14,
-  // Pause after a key press before the next step.
-  afterEachKey: 0.45,
+  typingSpeed: 28,
+  // Pause between steps: after typing a phrase, pressing a key, or clicking.
+  betweenSteps: 0.45,
+  // Whether key presses and clicks get a caption at the bottom, with a visible
+  // mouse pointer for clicks.
+  keyCaptions: false,
   // How long a key's caption stays on screen (also slows each press).
   keyCaption: 0.5,
   // How long a chapter title card stays up.
@@ -51,11 +54,10 @@ export async function script({ main, ben, chat, chapter, closingCard, split, uns
   await chapter('Plan with Claude', 'Ask in plain words; Claude writes the plan into RemDo');
   await chat.open();
   await split(chat);
-  await chat.ask('Help me plan a short demo video about RemDo. Just the key steps, in RemDo.');
+  await chat.ask('I\'m filming a short demo of RemDo. Jot down the steps to get it ready in RemDo.');
   await pause(pacing.readReply);
-  await unsplit();
-  await main.reload();
   await main.open();
+  await unsplit();
   await main.expectMoreNotesThan(1);
 
   await chapter('Make it yours', 'Add a step and its details by keyboard');
@@ -69,12 +71,12 @@ export async function script({ main, ben, chat, chapter, closingCard, split, uns
   await main.newNote();
   await main.type('Show Claude and a teammate');
   await main.goTo('Publish the demo video');
-  await main.fold();
+  await main.foldToTopLevel();
   await pause('long');
-  await main.fold();
-  await main.zoomIn();
-  await pause('long');
-  await main.zoomOut();
+  //await main.unfoldAll();
+  //await main.zoomIn();
+  //await pause('long');
+  //await main.zoomOut();
 
   await chapter('Share it', 'Invite a teammate to the plan');
   await main.goHome();
@@ -82,6 +84,7 @@ export async function script({ main, ben, chat, chapter, closingCard, split, uns
   await main.open();
 
   await chapter('Work together', 'Ben edits the same plan, live');
+  await main.unfoldAll();
   await ben.openHome();
   await ben.open();
   await split(ben);
@@ -108,7 +111,11 @@ export async function script({ main, ben, chat, chapter, closingCard, split, uns
   await unsplit();
 
   await main.goTo('Publish the demo video');
+  await main.zoomIn();
+  await pause('long');
+  await main.selectAll();
   await main.check();
+  await main.deselect();
   await pause('long');
   await closingCard('You\'re watching it', 'Planned, shared, and shipped with RemDo');
 }
