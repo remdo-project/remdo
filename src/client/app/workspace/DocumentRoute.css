@@ -390,7 +390,9 @@ main.document-route-container {
 }
 
 .home-doc {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
   flex: 1;
   min-width: 0;
   text-align: start;
@@ -404,6 +406,25 @@ main.document-route-container {
 
 .home-doc:hover {
   background: var(--mantine-color-dark-6);
+}
+
+.home-doc-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-doc-shared {
+  flex: none;
+  padding: 0 0.5rem;
+  border: 1px solid rgb(var(--remdo-accent-rgb) / 0.38);
+  border-radius: var(--mantine-radius-xl);
+  background: rgb(var(--remdo-accent-rgb) / 0.1);
+  color: var(--remdo-accent);
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.4;
 }
 
 /* The More icon is painted by background-color through a mask, so the fill must

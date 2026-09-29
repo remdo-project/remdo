@@ -23,14 +23,13 @@ starts it. Otherwise, it shows an example outline.
 
 1. Home shows document navigation and actions, without a document editor or its
    toolbar. Its heading follows [Location header](./location-header.md).
-2. Home lists the user's accessible documents under Current Server.
+2. Home lists the user's accessible documents, owned or [shared with them](../access/access-control.md#document-access),
+   in one list under Current Server.
 3. Each listed document shows its display name and opens that document when
    activated, landing on its [document-root view](./zoom.md#visibility-and-editing-boundary).
-4. Home presents three additional entry-point groups alongside the document
-   list: **Favorites**, **Tags**, and **Recents**. Favorites lists entries from
-   favoriting, Tags from tagging, and Recents from visit history. An entry may
-   target a document or a note within one.
-5. A group with no entries is omitted from Home entirely; Home never shows an
+   A document owned by another user also shows a **Shared** marker beside its
+   name, which adds to the row's description without changing its accessible name.
+4. A group with no documents is omitted from Home entirely; Home never shows an
    empty group as a placeholder.
 
 ## Document actions
@@ -54,10 +53,6 @@ uses the cached local document list.
 
 ## Future
 
-- **Entry-point backing sources.** Implement favoriting, tagging, and
-  visit-history sources for the corresponding groups, replacing the current
-  Favorites and Recents document-list slices and empty Tags source, and support
-  document- and note-target entries.
-- **Home content in the sidebar.** Also surface Home's document, Favorites,
-  Tags, and Recents groups in a persistent navigation sidebar; its division of
-  responsibility with Home remains open.
+- **Home content in the sidebar.** Also surface Home's document list in a
+  persistent navigation sidebar; its division of responsibility with Home
+  remains open.

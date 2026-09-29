@@ -13,32 +13,17 @@ export interface HomeDocumentSource {
 
 export interface HomeContent {
   sources: readonly HomeDocumentSource[];
-  favorites: readonly HomeDocumentEntry[];
-  tags: readonly HomeDocumentEntry[];
-  recents: readonly HomeDocumentEntry[];
 }
 
-// Builds Home's content from the live document sources. Favorites and Recents
-// are static placeholder slices of the real document list; Tags is left empty to
-// exercise the hide-when-empty rule. Their replacement is tracked in
-// docs/specs/outliner/home.md#future. A document listed here also appears under
-// its source group — an entry-point group is a shortcut into the same documents,
-// so overlap (and a shared data-home-document-ref) is expected, as it will be
-// with real favorites/recents.
 export function buildHomeContent(documentSources: readonly DocumentSourceNote[]): HomeContent {
-  const sources: HomeDocumentSource[] = documentSources.map((documentSource) => ({
-    id: documentSource.getId(),
-    label: documentSource.getText(),
-    documents: documentSource.getDocuments().getChildren().map((document) => ({
-      id: document.getId(),
-      label: document.getText(),
-    })),
-  }));
-  const allDocuments = sources.flatMap((source) => source.documents);
   return {
-    sources,
-    favorites: allDocuments.slice(0, 2),
-    recents: allDocuments.slice(2, 5),
-    tags: [],
+    sources: documentSources.map((documentSource) => ({
+      id: documentSource.getId(),
+      label: documentSource.getText(),
+      documents: documentSource.getDocuments().getChildren().map((document) => ({
+        id: document.getId(),
+        label: document.getText(),
+      })),
+    })),
   };
 }
