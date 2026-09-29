@@ -88,7 +88,7 @@ export async function script({ main, ben, chat, chapter, closingCard, split, uns
   await ben.open();
   await split(ben);
   await ben.goTo('Publish the demo video');
-  await ben.unfoldAll();
+  await ben.fold();
   await ben.goTo('Show Claude and a teammate');
   await ben.newNote();
   await ben.type('I\'ll do the voice-over');

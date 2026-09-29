@@ -45,8 +45,8 @@ which notes exist, never Claude's wording.
   request asks Claude to fill it, and its notes appear there live beside the
   conversation. End state: the document holds Claude's plan.
 - **Make it yours.** A step with details is added by keyboard, and the whole
-  plan folds to its top-level steps, staying folded until the teammate unfolds
-  it.
+  plan folds to its top-level steps, staying folded apart from the step the
+  teammate later unfolds to work in.
   End state: the details sit under that step.
 - **Share it.** The demo account shares the plan with a second account from
   the document's own menu. End state: the second account is among the plan's recipients.

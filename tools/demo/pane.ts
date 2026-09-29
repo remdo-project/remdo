@@ -165,6 +165,7 @@ export class Pane {
     await this.press('Alt+Shift+ArrowUp');
   }
 
+  /** Folds or unfolds the note at the caret. */
   async fold(): Promise<void> {
     await this.menu('f');
   }
