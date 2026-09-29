@@ -1,10 +1,8 @@
 import type { Browser, Page } from 'playwright';
-import type { Pane } from './pane';
+import type { Pane, Timing } from './pane';
 
 export const STAGE_SIZE = { width: 1280, height: 720 };
 const HALF_SIZE = { width: STAGE_SIZE.width / 2, height: STAGE_SIZE.height };
-const CHAPTER_MS = 2200;
-const TRANSITION_MS = 900;
 const FRAME_QUALITY = 90;
 
 export type Slot = 'main' | 'extra';
@@ -41,13 +39,13 @@ interface Stream {
 export class Stage {
   private readonly streams = new Map<Slot, Stream>();
 
-  private constructor(readonly page: Page, private readonly pace: number) {}
+  private constructor(readonly page: Page, private readonly timing: Timing) {}
 
-  static async open(browser: Browser, pace: number): Promise<Stage> {
+  static async open(browser: Browser, timing: Timing): Promise<Stage> {
     const page = await browser.newPage({ viewport: STAGE_SIZE });
     await page.setContent(STAGE_HTML);
-    await page.evaluate((ms) => document.documentElement.style.setProperty('--transition', `${ms}ms`), Math.round(TRANSITION_MS * pace));
-    return new Stage(page, pace);
+    await page.evaluate((ms) => document.documentElement.style.setProperty('--transition', `${ms}ms`), timing.of('splitScreen'));
+    return new Stage(page, timing);
   }
 
   async show(slot: Slot, pane: Pane): Promise<void> {
@@ -82,8 +80,8 @@ export class Stage {
   }
 
   async chapter(title: string, description?: string): Promise<void> {
-    await this.page.screencast.showChapter(title, { description, duration: this.paced(CHAPTER_MS) });
-    await this.page.waitForTimeout(this.paced(CHAPTER_MS));
+    await this.page.screencast.showChapter(title, { description, duration: this.timing.of('chapterTitle') });
+    await this.page.waitForTimeout(this.timing.of('chapterTitle'));
   }
 
   private async resizeSlots(main: string, extra: string): Promise<void> {
@@ -91,7 +89,7 @@ export class Stage {
       document.getElementById('main')!.style.width = mainWidth!;
       document.getElementById('extra')!.style.width = extraWidth!;
     }, [main, extra]);
-    await this.page.waitForTimeout(this.paced(TRANSITION_MS));
+    await this.page.waitForTimeout(this.timing.of('splitScreen'));
   }
 
   // Frames are pushed one at a time and superseded ones are dropped, so a slow
@@ -117,9 +115,5 @@ export class Stage {
     while (stream.width !== width || stream.flushing || stream.latest !== undefined) {
       await this.page.waitForTimeout(50);
     }
-  }
-
-  private paced(ms: number): number {
-    return Math.round(ms * this.pace);
   }
 }

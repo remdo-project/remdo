@@ -9,9 +9,10 @@ import { chromium } from 'playwright';
 import { config } from '#config';
 import type { DemoAccount } from '../lib/demo-account';
 import { demoAccount, resetDemoAccount } from '../lib/demo-account';
+import { Chat } from './chat';
 import type { OutlineNote } from './pane';
-import { expectOutline, Pane, readOutline } from './pane';
-import { CHAPTERS } from './scenario';
+import { expectOutline, Pane, readOutline, Timing } from './pane';
+import { pacing, script } from './script';
 import { Stage, STAGE_SIZE } from './stage';
 
 const USAGE = [
@@ -23,8 +24,6 @@ const USAGE = [
   'supplies its delegated access token, which a local development origin mints itself.',
   'The origin defaults to https://remdo.com.',
 ].join('\n');
-const QUICK = { pace: 0.2, preset: 'veryfast' };
-const FINAL = { pace: 1, preset: 'slow' };
 
 async function signIn(browser: Browser, origin: string, account: DemoAccount): Promise<BrowserContext> {
   const context = await browser.newContext({ viewport: STAGE_SIZE, locale: 'en-US' });
@@ -43,8 +42,8 @@ async function signIn(browser: Browser, origin: string, account: DemoAccount): P
 async function confirmStoredOutline(browser: Browser, context: BrowserContext, documentUrl: string, expected: OutlineNote[]): Promise<void> {
   const fresh = await browser.newContext({ viewport: STAGE_SIZE, storageState: await context.storageState() });
   try {
-    const pane = new Pane(await fresh.newPage(), 1);
-    await pane.openDocument(documentUrl);
+    const pane = new Pane(await fresh.newPage(), new Timing(pacing, 1), documentUrl);
+    await pane.openDocument();
     await expectOutline(pane.page, expected);
   } finally {
     await fresh.close();
@@ -85,7 +84,8 @@ async function main(): Promise<void> {
   if (extra.length > 0 || originArgument.startsWith('-')) {
     throw new Error(USAGE);
   }
-  const mode = final ? FINAL : QUICK;
+  const timing = new Timing(pacing, final ? 1 : pacing.quickPreviewSpeedup);
+  const preset = final ? 'slow' : 'veryfast';
   const origin = new URL(originArgument).origin;
   // eslint-disable-next-line node/no-process-env -- a deployment secret, absent from the development config schema.
   const password = process.env.REMDO_USER_PASSWORD;
@@ -110,26 +110,32 @@ async function main(): Promise<void> {
   try {
     const context = await signIn(browser, origin, account);
     const documentUrl = new URL(`/n/${document.id}`, origin).href;
-    const main = new Pane(await context.newPage(), mode.pace);
-    const extra = new Pane(await context.newPage(), mode.pace);
-    await main.openDocument(documentUrl);
-    const stage = await Stage.open(browser, mode.pace);
+    const main = new Pane(await context.newPage(), timing, documentUrl);
+    const other = new Pane(await context.newPage(), timing, documentUrl);
+    await main.openDocument();
+    const stage = await Stage.open(browser, timing);
     await stage.show('main', main);
-    await stage.show('extra', extra);
+    await stage.show('extra', other);
     await main.captionActions();
-    await extra.captionActions();
+    await other.captionActions();
 
     await stage.page.screencast.start({ path: recording, size: STAGE_SIZE });
     try {
-      for (const chapter of CHAPTERS) {
-        await chapter({ stage, main, extra, documentUrl, mcp });
-      }
+      await script({
+        main,
+        other,
+        chat: new Chat(other, mcp),
+        chapter: async (title, description) => stage.chapter(title, description),
+        split: async () => stage.split(main, other),
+        unsplit: async () => stage.unsplit(main),
+        pause: async (length) => main.pause(length),
+      });
       await stage.page.screenshot({ path: partials[1], type: 'jpeg', quality: 85 });
     } finally {
       await stage.page.screencast.stop();
     }
     await confirmStoredOutline(browser, context, documentUrl, await readOutline(main.page));
-    await encodeForWeb(recording, mode.preset, partials[0]);
+    await encodeForWeb(recording, preset, partials[0]);
     await rename(partials[0], video);
     await rename(partials[1], poster);
     console.info(`Recorded ${video} and ${poster}`);

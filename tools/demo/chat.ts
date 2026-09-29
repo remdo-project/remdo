@@ -92,26 +92,31 @@ const CHAT_HTML = `<!doctype html>
 
 type ChatMethod = 'textStart' | 'text' | 'toolStart' | 'toolEnd';
 
-/** Opens the chat page in `pane`, ready for the visitor to type into. */
-export async function openChat(pane: Pane): Promise<void> {
-  await pane.page.setContent(CHAT_HTML);
-  await pane.page.locator('textarea').focus();
-  await pane.captionActions();
-}
+/** The chat page shown in a pane, answered live by Claude through RemDo's MCP server. */
+export class Chat {
+  constructor(private readonly pane: Pane, private readonly mcp: { url: string; token: string }) {}
 
-/** Types `prompt` into the chat and streams Claude's live answer into it. */
-export async function askInChat(pane: Pane, prompt: string, mcpUrl: string, token: string): Promise<void> {
-  await pane.type(prompt);
-  await pane.press('Enter');
-  const call = async (method: ChatMethod, argument?: string | boolean): Promise<void> => {
-    await pane.page.evaluate(([name, value]) => {
+  async open(): Promise<void> {
+    await this.pane.page.setContent(CHAT_HTML);
+    await this.pane.page.locator('textarea').focus();
+    await this.pane.captionActions();
+  }
+
+  /** Types `prompt` into the chat and streams Claude's live answer into it. */
+  async ask(prompt: string): Promise<void> {
+    await this.pane.type(prompt);
+    await this.pane.press('Enter');
+    await askClaude(prompt, this.mcp.url, this.mcp.token, {
+      textStart: async () => this.call('textStart'),
+      text: async (delta) => this.call('text', delta),
+      toolStart: async (name) => this.call('toolStart', name),
+      toolEnd: async (failed) => this.call('toolEnd', failed),
+    });
+  }
+
+  private async call(method: ChatMethod, argument?: string | boolean): Promise<void> {
+    await this.pane.page.evaluate(([name, value]) => {
       (window as unknown as { chat: Record<string, (value?: unknown) => void> }).chat[name as string]!(value);
     }, [method, argument] as const);
-  };
-  await askClaude(prompt, mcpUrl, token, {
-    textStart: async () => call('textStart'),
-    text: async (delta) => call('text', delta),
-    toolStart: async (name) => call('toolStart', name),
-    toolEnd: async (failed) => call('toolEnd', failed),
-  });
+  }
 }
