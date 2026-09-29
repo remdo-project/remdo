@@ -46,8 +46,9 @@ The video contains these chapters in order.
   both sessions' edits.
 - **Claude.** One pane holds a conversation with Claude using RemDo's
   [MCP server](../integrations/mcp.md); the other shows the document it
-  writes. End state: the document contains notes that conversation created,
-  whatever their text.
+  writes. The conversation pane is the demo's own chat surface, styled as part
+  of the video rather than as any Claude app. End state: the document contains
+  notes that conversation created, whatever their text.
 
 ## Future
 

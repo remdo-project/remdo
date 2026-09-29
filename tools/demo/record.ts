@@ -9,8 +9,9 @@ import { chromium } from 'playwright';
 import { config } from '#config';
 import type { DemoAccount } from '../lib/demo-account';
 import { demoAccount, resetDemoAccount } from '../lib/demo-account';
-import { expectOutline, Pane } from './pane';
-import { CHAPTERS, FINAL_OUTLINE } from './scenario';
+import type { OutlineNote } from './pane';
+import { expectOutline, Pane, readOutline } from './pane';
+import { CHAPTERS } from './scenario';
 import { Stage, STAGE_SIZE } from './stage';
 
 const USAGE = [
@@ -18,6 +19,8 @@ const USAGE = [
   'Resets the origin\'s user account, whose password REMDO_USER_PASSWORD holds, then records',
   'the demo video to $DATA_DIR/demo/demo.mp4 with its poster demo.jpg, encoding them with ffmpeg.',
   'Without --final, the recording runs at a fast pace with a quick encode for iterating on it.',
+  'The Claude chapter runs the signed-in `claude` CLI against the origin\'s MCP server; REMDO_MCP_TOKEN',
+  'supplies its delegated access token, which a local development origin mints itself.',
   'The origin defaults to https://remdo.com.',
 ].join('\n');
 const QUICK = { pace: 0.2, preset: 'veryfast' };
@@ -37,18 +40,32 @@ async function signIn(browser: Browser, origin: string, account: DemoAccount): P
 }
 
 // A fresh context has no local copy, so the outline it shows comes from the server.
-async function confirmStoredOutline(browser: Browser, context: BrowserContext, documentUrl: string): Promise<void> {
+async function confirmStoredOutline(browser: Browser, context: BrowserContext, documentUrl: string, expected: OutlineNote[]): Promise<void> {
   const fresh = await browser.newContext({ viewport: STAGE_SIZE, storageState: await context.storageState() });
   try {
     const pane = new Pane(await fresh.newPage(), 1);
     await pane.openDocument(documentUrl);
-    await expectOutline(pane.page, FINAL_OUTLINE);
+    await expectOutline(pane.page, expected);
   } finally {
     await fresh.close();
   }
 }
 
 const run = promisify(execFile);
+
+// Development instances mint the token directly; other targets need a real
+// delegated grant, which the recorder cannot obtain yet.
+async function mcpToken(origin: string, email: string): Promise<string> {
+  // eslint-disable-next-line node/no-process-env -- a delegated credential, absent from the development config schema.
+  const supplied = process.env.REMDO_MCP_TOKEN;
+  if (supplied) return supplied;
+  const url = new URL(origin);
+  if (url.protocol !== 'http:' || url.port !== String(config.env.PORT)) {
+    throw new Error('REMDO_MCP_TOKEN must hold a delegated access token for the target\'s MCP server.');
+  }
+  const { stdout } = await run('./tools/django.sh', ['create_delegated_token', email]);
+  return stdout.trim();
+}
 
 async function ffmpeg(...args: string[]): Promise<void> {
   await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args]);
@@ -87,6 +104,7 @@ async function main(): Promise<void> {
     throw new Error('ffmpeg with libx264 must be on PATH.');
   });
 
+  const mcp = { url: new URL('/mcp', origin).href, token: await mcpToken(origin, account.email) };
   const { document } = await resetDemoAccount(origin, account);
   const browser = await chromium.launch();
   try {
@@ -104,13 +122,13 @@ async function main(): Promise<void> {
     await stage.page.screencast.start({ path: recording, size: STAGE_SIZE });
     try {
       for (const chapter of CHAPTERS) {
-        await chapter({ stage, main, extra, documentUrl });
+        await chapter({ stage, main, extra, documentUrl, mcp });
       }
       await stage.page.screenshot({ path: partials[1], type: 'jpeg', quality: 85 });
     } finally {
       await stage.page.screencast.stop();
     }
-    await confirmStoredOutline(browser, context, documentUrl);
+    await confirmStoredOutline(browser, context, documentUrl, await readOutline(main.page));
     await encodeForWeb(recording, mode.preset, partials[0]);
     await rename(partials[0], video);
     await rename(partials[1], poster);

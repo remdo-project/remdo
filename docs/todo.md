@@ -264,29 +264,18 @@ RemDo document, minimal but useful for real work.
 
 ### Demo video
 
-The [demo video](specs/demo/demo-video.md) records the outlining and
-collaboration chapters, the latter as two sessions of the `user` account; the
-recording has run only against local development so far.
+The [demo video](specs/demo/demo-video.md) records every chapter, driving the
+Claude chapter with the signed-in `claude` CLI; the recording has run only
+against local development so far.
 
-- **Claude.** The chapter's pane shows claude.ai signed out, which an automated
-  browser meets as a bot-verification page, and the chapter checks no end
-  state. Choose how the conversation pane is driven:
-  1. **(Recommended)** The Claude API's MCP connector pointed at the target's
-     `/mcp`, rendered in a repository-owned chat pane that names Claude and
-     the API without imitating claude.ai. It uses the same model with real MCP
-     effects through Anthropic's programmatic access path.
-  2. Scripted claude.ai in a signed-in browser profile. It shows the real
-     product, but UI changes and sign-in checks make it fragile; check
-     Anthropic's current consumer terms on scripted access first.
-  3. A person records the claude.ai conversation manually while the script
-     records RemDo, then the two are aligned. It is authentic but not
-     repeatable.
-
-  Option 1 needs a delegated access token for the `user` account
-  obtained without a person completing the consent screen during the run.
-  Decide how a script obtains and stores it; this belongs to
-  [delegated access](specs/access/access-control.md#delegated-access), not to
-  demo recording.
+- **Delegated token for hosted targets.** Only a local development origin mints
+  the MCP token itself; any other origin needs `REMDO_MCP_TOKEN`. Let the
+  recorder obtain a real [delegated access](specs/access/access-control.md#delegated-access)
+  grant by approving consent in its signed-in browser, which needs a client
+  metadata document served over HTTPS.
+- **Real claude.ai footage.** Ask Anthropic whether scripted demo recording
+  through a dedicated claude.ai account is acceptable; if so, drive claude.ai
+  in place of the demo chat surface.
 
 Open question: whether a local-origin run also serves as a CI smoke check.
 

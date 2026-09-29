@@ -1,3 +1,4 @@
+import { askInChat, openChat } from './chat';
 import type { OutlineNote, Pane } from './pane';
 import type { Stage } from './stage';
 
@@ -6,6 +7,7 @@ export interface Show {
   main: Pane;
   extra: Pane;
   documentUrl: string;
+  mcp: { url: string; token: string };
 }
 
 const OUTLINED: OutlineNote[] = [
@@ -31,11 +33,6 @@ const COLLABORATED: OutlineNote[] = [
     ],
   },
   { text: 'Groceries', children: [{ text: 'Milk' }] },
-];
-
-export const FINAL_OUTLINE: OutlineNote[] = [
-  COLLABORATED[0]!,
-  { text: 'Groceries', children: [{ text: 'Milk' }, { text: 'Bread' }] },
 ];
 
 async function runMenuAction(pane: Pane, shortcut: string): Promise<void> {
@@ -93,12 +90,18 @@ async function collaboration({ stage, main, extra, documentUrl }: Show): Promise
 
   await main.expectOutline(COLLABORATED);
   await extra.expectOutline(COLLABORATED);
+  await stage.unsplit(main);
 }
 
-// Claude is not connected yet; the pane previews where its conversation appears.
-async function claude({ stage, main, extra }: Show): Promise<void> {
+const hasWeekendTrip = (outline: OutlineNote[]): boolean =>
+  outline.some((note) => note.text === 'Weekend trip' && (note.children?.length ?? 0) > 0);
+
+async function claude({ stage, main, extra, mcp }: Show): Promise<void> {
+  await openChat(extra);
   await stage.chapter('Ask Claude', 'Claude reads and writes your outlines');
-  await extra.page.goto('https://claude.ai/new', { waitUntil: 'domcontentloaded' });
+  await stage.split(main, extra);
+  await askInChat(extra, 'Add a top-level note "Weekend trip" to my RemDo document, with three things to pack under it.', mcp.url, mcp.token);
+  await main.expectOutlineWhere('a top-level "Weekend trip" with items', hasWeekendTrip);
   await main.pause(3000);
   await stage.unsplit(main);
 }
@@ -107,9 +110,10 @@ async function closing({ stage, main }: Show): Promise<void> {
   await stage.chapter('Keep going', 'Back to a single pane');
   await main.press('Control+End');
   await main.press('Enter');
-  await main.type('Bread');
+  await main.press('Shift+Tab');
+  await main.type('Share the video');
   await main.pause(1500);
-  await main.expectOutline(FINAL_OUTLINE);
+  await main.expectOutlineWhere('the outline ending with "Share the video"', (outline) => outline.at(-1)?.text === 'Share the video');
 }
 
 export const CHAPTERS = [outlining, collaboration, claude, closing];

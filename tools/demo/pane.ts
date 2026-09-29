@@ -59,6 +59,10 @@ export class Pane {
     await expectOutline(this.page, expected);
   }
 
+  async expectOutlineWhere(description: string, holds: (outline: OutlineNote[]) => boolean): Promise<void> {
+    await waitForOutline(this.page, description, holds);
+  }
+
   private paced(ms: number): number {
     return Math.round(ms * this.pace);
   }
@@ -75,11 +79,15 @@ function sequenceCaption(keys: string[]): string {
 }
 
 export async function expectOutline(page: Page, expected: OutlineNote[]): Promise<void> {
+  await waitForOutline(page, JSON.stringify(expected), (actual) => isDeepStrictEqual(actual, expected));
+}
+
+async function waitForOutline(page: Page, description: string, holds: (outline: OutlineNote[]) => boolean): Promise<void> {
   const deadline = Date.now() + OUTLINE_TIMEOUT_MS;
   let actual = await readOutline(page);
-  while (!isDeepStrictEqual(actual, expected)) {
+  while (!holds(actual)) {
     if (Date.now() > deadline) {
-      throw new Error(`Outline not reached.\nExpected: ${JSON.stringify(expected)}\nActual:   ${JSON.stringify(actual)}`);
+      throw new Error(`Outline not reached.\nExpected: ${description}\nActual:   ${JSON.stringify(actual)}`);
     }
     await page.waitForTimeout(250);
     actual = await readOutline(page);
@@ -88,7 +96,7 @@ export async function expectOutline(page: Page, expected: OutlineNote[]): Promis
 
 // Row depth counts the children-wrappers enclosing a row; the page function
 // stays free of named inner functions, which tsx would reference as `__name`.
-async function readOutline(page: Page): Promise<OutlineNote[]> {
+export async function readOutline(page: Page): Promise<OutlineNote[]> {
   const rows = await page.locator('.editor-container [data-lexical-editor] li.list-item:not(.list-nested-item)').evaluateAll(
     (items) => items.map((item) => {
       let depth = 0;
