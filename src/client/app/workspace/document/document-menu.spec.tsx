@@ -97,6 +97,19 @@ describe('document menu', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
+  it('leaves accelerators with modifier keys to the browser', async () => {
+    const view = openView();
+    renderMenu({ view });
+    const menu = await openMenu();
+
+    fireEvent.keyDown(menu, { key: '5', metaKey: true });
+    fireEvent.keyDown(menu, { key: 'o', ctrlKey: true });
+
+    expect(view.foldToLevel).not.toHaveBeenCalled();
+    expect(view.zoomOut).not.toHaveBeenCalled();
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+  });
+
   it('ignores the view accelerators when no view is open', async () => {
     renderMenu();
     const menu = await openMenu();
