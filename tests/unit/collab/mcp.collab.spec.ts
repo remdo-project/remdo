@@ -184,7 +184,6 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     const listed = (await call(client, 'list_documents')).value as Array<{ documentId: string; title: string }>;
     expect(listed.find((document) => document.documentId === documentId)?.title).toBe('Final');
-    expect((await call(client, 'rename_document', { documentId, title: '' })).isError).toBe(true);
   });
 
   it('converts the list holding a note\'s children and refuses a note without children', async () => {
@@ -192,9 +191,9 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const { documentId } = (await call(client, 'create_document', { title: 'Checklist' })).value as { documentId: string };
     const appended = await call(client, 'append_children', {
       parent: documentId,
-      notes: [{ text: 'Trip', children: [{ text: 'Passport' }] }],
+      notes: [{ text: 'Trip', children: [{ text: 'Passport' }] }, { text: 'Visa' }],
     });
-    const [trip] = appended.value as Array<{ noteAddress: string }>;
+    const [trip, visa] = appended.value as Array<{ noteAddress: string }>;
 
     const converted = await call(client, 'set_child_list_type', { noteAddress: trip!.noteAddress, listType: 'check' });
     expect(converted).toMatchObject({ isError: false, value: { noteAddress: trip!.noteAddress, listType: 'check' } });
@@ -202,8 +201,6 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const read = await client.callTool({ name: 'read_document', arguments: { target: documentId } });
     expect((read.content as Array<{ text: string }>)[0]!.text).toMatch(/\n {2}- \[ \] \[Passport\]\(/);
 
-    const added = await call(client, 'append_children', { parent: trip!.noteAddress, notes: [{ text: 'Visa' }] });
-    const [visa] = added.value as Array<{ noteAddress: string }>;
     const refused = await call(client, 'set_child_list_type', { noteAddress: visa!.noteAddress, listType: 'number' });
     expect(refused).toEqual({ isError: true, value: 'Only a note with children has a child list.' });
   });

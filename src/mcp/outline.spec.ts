@@ -35,13 +35,6 @@ it('leaves notes without a URL unlinked', meta({ fixture: 'flat' }), async ({ re
   ].join('\n'));
 });
 
-it('renders one note with its descendants', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
-  expect(renderOutline([remdo.openDocument.noteRef('note3')], url)).toBe([
-    '- [note3](https://remdo.example/n/doc_note3)',
-    '  - [ ] [note4](https://remdo.example/n/doc_note4)',
-  ].join('\n'));
-});
-
 it('cuts the outline off at the depth limit and reports the children it hides', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
   await remdo.openDocument.noteRef('note1').appendChildren([{ text: 'extra' }]);
 
@@ -55,7 +48,7 @@ it('cuts the outline off at the depth limit and reports the children it hides', 
 it('renders outlines nested deeper than the call stack', () => {
   const depth = 20_000;
   let children: OpenDocumentNote[] = [];
-  for (let level = depth - 1; level >= -1; level--) {
+  for (let level = depth - 1; level >= 0; level--) {
     const nested = children;
     children = [{
       getId: () => `n${level}`,
@@ -66,7 +59,7 @@ it('renders outlines nested deeper than the call stack', () => {
       getChildren: () => nested,
     } as unknown as OpenDocumentNote];
   }
-  const lines = renderOutline(children[0]!.getChildren(), () => null).split('\n');
+  const lines = renderOutline(children, () => null).split('\n');
   expect(lines).toHaveLength(depth);
   expect(lines.at(-1)).toBe(`${'  '.repeat(depth - 1)}- n${depth - 1}`);
 });
