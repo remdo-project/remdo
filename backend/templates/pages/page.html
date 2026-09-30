@@ -1,14 +1,39 @@
 {% extends "base.html" %}
+{% block styles %}
+  {{ block.super }}
+  {% include "site_styles.html" %}
+{% endblock %}
 {% block head_title %}{{ title }} · RemDo{% endblock %}
 {% block extra_head %}
   <meta name="description" content="{{ description }}">
   <link rel="canonical" href="{{ canonical }}">
 {% endblock %}
-{% block content %}
-  <main class="remdo-public-page">
-    <article>
-      <h1>{{ title }}</h1>
-      {{ body|safe }}
-    </article>
-  </main>
+{% block body_class %}remdo-landing landing-legal{% endblock %}
+{% block body %}
+<header class="landing-legal-navigation landing-container">
+  <a class="landing-wordmark" href="/" aria-label="RemDo home">RemDo</a>
+  <nav aria-label="Primary" class="landing-legal-links">
+    <a href="/about/"{% if request.path == '/about/' %} aria-current="page"{% endif %}>About</a>
+    {% if user.is_authenticated %}
+      {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
+      <a href="/sign-out/">Logout</a>
+    {% else %}
+      <a href="{% url 'account_login' %}">Sign in</a>
+    {% endif %}
+  </nav>
+</header>
+<main class="landing-legal-column">
+  <article class="landing-legal-article">
+    <h1>{{ title }}</h1>
+    {{ body|safe }}
+  </article>
+</main>
+<footer class="landing-legal-footer">
+  <span>© {% now "Y" %} RemDo</span>
+  <nav aria-label="Footer">
+    <a href="/privacy/"{% if request.path == '/privacy/' %} aria-current="page"{% endif %}>Privacy</a>
+    <a href="/terms/"{% if request.path == '/terms/' %} aria-current="page"{% endif %}>Terms</a>
+    <a href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">Source</a>
+  </nav>
+</footer>
 {% endblock %}
