@@ -2,62 +2,51 @@
 {% block extra_head %}
   <meta name="description" content="RemDo is a keyboard-first collaborative outliner for organizing and connecting notes.">
   <link rel="canonical" href="{{ canonical }}">
+  <link rel="preload" href="/site-assets/fonts/tinos-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/site-assets/fonts/dm-sans-400.woff2" as="font" type="font/woff2" crossorigin>
 {% endblock %}
-{% block content %}
-  <main class="remdo-home">
-    <div class="remdo-home-intro">
-      <p class="remdo-home-eyebrow">Keyboard-first collaborative outliner</p>
-      <h1 class="remdo-home-title">RemDo</h1>
-      <p class="remdo-home-lead">
-        An open-source workspace for people whose work depends on information spread across many
-        tools. Start with whatever part you remember and follow its connections to related
-        information.
-      </p>
-      <p class="remdo-home-lead">
-        Today, RemDo is a keyboard-first collaborative outliner: structure information, link notes and
-        documents, search within documents, edit together in real time, and work offline.
-      </p>
-      <p class="remdo-home-lead">Fully open source and designed to keep self-hosting a first-class option.</p>
-      <ul class="remdo-home-features">
-        <li>Keyboard-first outlining</li>
-        <li>Links between notes and documents</li>
-        <li>Real-time collaboration</li>
-        <li>Works offline</li>
-      </ul>
-      {% include "accounts/google_login.html" %}
-    </div>
-    {% if video %}
-    <figure class="remdo-home-preview remdo-home-video">
-      <video aria-label="RemDo demo" controls playsinline poster="{{ video.poster }}" preload="none">
-        <source src="{{ video.url }}" type="video/mp4">
-      </video>
-    </figure>
-    {% else %}
-    <figure aria-label="Example RemDo outline" class="remdo-home-preview" role="img">
-      <div class="remdo-home-preview-bar">Home / <strong>Today</strong></div>
-      <ul class="remdo-home-outline">
-        <li>
-          <strong>Today</strong> · <span class="remdo-home-date">Sep 23, 2026</span>
-          <ul>
-            <li class="remdo-home-task">Review the opening scene with Maya</li>
-            <li class="remdo-home-task">Send Nina the Aster concepts</li>
-          </ul>
-        </li>
-        <li>
-          <strong>This week</strong>
-          <ul>
-            <li><u>Atlas launch</u> · Prepare for October 2</li>
-            <li>Writing · <u>The cost of lost context</u></li>
-          </ul>
-        </li>
-        <li>
-          <strong>Already done</strong>
-          <ul>
-            <li class="remdo-home-task" data-done>Synthesize the customer conversations</li>
-          </ul>
-        </li>
-      </ul>
-    </figure>
-    {% endif %}
+{% block body %}
+<div class="remdo-landing">
+  <a class="landing-skip" href="#landing-main">Skip to content</a>
+  <header class="landing-navigation landing-container">
+    <a class="landing-wordmark" href="/" aria-label="RemDo home">RemDo</a>
+    <nav class="landing-navigation-links" aria-label="Primary">
+      <a class="landing-repository" href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">
+        <img src="/site-assets/github.svg" alt="" width="20" height="20"><span>remdo-project/remdo</span>
+      </a>
+      <a href="/about/">About</a>
+      <a class="landing-sign-in" href="{% url 'account_login' %}">Sign in</a>
+    </nav>
+  </header>
+  <main id="landing-main">
+    <section class="landing-hero landing-container" aria-labelledby="landing-title">
+      <div class="landing-introduction">
+        <h1 id="landing-title" class="landing-title">Keyboard-first collaborative outliner</h1>
+        <div class="landing-hero-actions">
+          {% include "pages/landing/sign_in.html" %}
+          <a class="landing-button landing-button--outline" href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">
+            <img src="/site-assets/github.svg" alt="" width="20" height="20">Star us on GitHub
+          </a>
+        </div>
+      </div>
+      {% if video %}
+      <div class="landing-video-background">
+        <img class="landing-video-artwork" src="/site-assets/hero-background.webp" alt="" width="1672" height="941" fetchpriority="high">
+        <video class="landing-video" aria-label="RemDo demo" controls playsinline poster="{{ video.poster }}" preload="none">
+          <source src="{{ video.url }}" type="video/mp4">
+        </video>
+      </div>
+      {% endif %}
+    </section>
   </main>
+  <footer class="remdo-footer landing-footer landing-container">
+    <div class="remdo-footer-start">
+      <span>© {% now "Y" %} RemDo</span>
+      <nav aria-label="Footer" class="remdo-footer-links">
+        <a href="/about/">About</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a>
+        <a href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">Source</a>
+      </nav>
+    </div>
+  </footer>
+</div>
 {% endblock %}

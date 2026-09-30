@@ -13,6 +13,237 @@
   --landing-dark-outline: #615b54;
   --landing-footer-black: #080808;
   --landing-radius: 3px;
+  --landing-gutter: clamp(24px, 5.5556vw, 80px);
   --landing-font-sans: 'DM Sans', system-ui, sans-serif;
   --landing-font-serif: Tinos, 'Times New Roman', Times, serif;
+}
+
+body:has(> .remdo-landing) {
+  background: var(--landing-dark-surface);
+}
+.remdo-landing {
+  min-height: 100svh;
+  background: var(--landing-dark-surface);
+  color: var(--landing-light-text);
+  font-family: var(--landing-font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 25px;
+  letter-spacing: -0.1px;
+}
+.remdo-landing *, .remdo-landing *::before, .remdo-landing *::after {
+  box-sizing: border-box;
+}
+.remdo-landing :where(h1, h2, h3, p) {
+  margin: 0;
+}
+.remdo-landing :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+.remdo-landing :where(button, input) {
+  font: inherit;
+}
+.remdo-landing :where(a, button, input):focus-visible {
+  outline: 2px solid var(--landing-light-text);
+  outline-offset: 4px;
+}
+.landing-container {
+  width: calc(100% - 2 * var(--landing-gutter));
+  max-width: 1280px;
+  margin-inline: auto;
+}
+.landing-visually-hidden, .landing-skip:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.landing-skip:focus {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  left: var(--landing-gutter);
+  padding: 8px;
+  background: var(--landing-light-text);
+  color: var(--landing-primary-text);
+}
+.landing-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 32px;
+}
+.landing-wordmark {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 34px;
+  letter-spacing: -1.2px;
+}
+.landing-navigation-links, .landing-repository, .landing-hero-actions {
+  display: flex;
+  align-items: center;
+}
+.landing-navigation-links {
+  gap: 40px;
+}
+.landing-repository {
+  gap: 12px;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+}
+.landing-sign-in {
+  font-weight: 500;
+  line-height: 24px;
+}
+.landing-navigation a:hover {
+  color: var(--landing-muted-light-text);
+}
+.landing-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 80px;
+  padding-top: 80px;
+}
+.landing-introduction {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  width: 100%;
+}
+.landing-title {
+  max-width: 1120px;
+  font-family: var(--landing-font-serif);
+  font-size: clamp(64px, 7.2222vw, 104px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -2px;
+  text-align: center;
+  text-wrap: balance;
+}
+.landing-hero-actions {
+  gap: 12px;
+}
+.landing-hero-actions .remdo-stack {
+  margin: 0;
+}
+.landing-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 16px 24px;
+  border: 0;
+  border-radius: var(--landing-radius);
+  background: var(--landing-light-text);
+  color: var(--landing-primary-text);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  letter-spacing: -0.1px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.landing-button--outline {
+  border: 1px solid var(--landing-dark-outline);
+  background: transparent;
+  color: var(--landing-light-text);
+}
+.landing-button:hover {
+  background: #ded8d1;
+}
+.landing-button--outline:hover {
+  background: #27231f;
+}
+/* Google's branding rules allow only its Light, Dark, and Neutral button themes and the standard-colour G. */
+.remdo-landing .remdo-google-button {
+  min-height: 56px;
+  padding: 16px 24px;
+  border: 0;
+  border-radius: var(--landing-radius);
+  background: #f2f2f2;
+  color: #1f1f1f;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  letter-spacing: -0.1px;
+}
+.remdo-landing .remdo-google-button:hover {
+  background: color-mix(in srgb, #1f1f1f 8%, #f2f2f2);
+}
+.landing-video-background {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 2.8125% 5%;
+  overflow: hidden;
+  border-radius: var(--landing-radius);
+}
+.landing-video-artwork {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.landing-video {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-width: 0;
+  border: 1px solid var(--landing-dark-outline);
+  border-radius: var(--landing-radius);
+  background: var(--landing-dark-surface);
+}
+.remdo-landing .landing-footer {
+  margin-top: 80px;
+  padding-block: 32px;
+}
+@media (max-width: 47.99em) {
+  .landing-navigation {
+    padding-block: 32px 24px;
+  }
+  .landing-navigation-links {
+    gap: 8px;
+  }
+  .landing-navigation-links a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: 8px;
+  }
+  .landing-navigation .landing-repository {
+    display: none;
+  }
+  .landing-hero {
+    gap: 40px;
+    padding-top: 40px;
+  }
+  .landing-title {
+    font-size: 48px;
+    line-height: 50px;
+    letter-spacing: 0;
+  }
+  .landing-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .landing-hero-actions .landing-button, .landing-hero-actions .remdo-google-button {
+    width: 100%;
+  }
+  .landing-video-background {
+    padding: 9px 16px;
+  }
 }

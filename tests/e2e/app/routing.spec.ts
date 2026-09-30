@@ -120,12 +120,29 @@ test.describe('Routing', () => {
     await page.goto('/');
 
     await expectPath(page, '/');
-    await expect(page.getByRole('heading', { level: 1, name: 'RemDo' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Keyboard-first collaborative outliner' })).toBeVisible();
     await expect(page.locator('script[type="module"]')).toHaveCount(0);
     await page.getByRole('navigation').getByRole('link', { name: 'Sign in', exact: true }).click();
     await expectPath(page, '/accounts/login/');
     await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
     expect(userDataRequests).toEqual([]);
+  });
+
+  unauthenticatedTest('lets keyboard users skip the public home navigation', async ({ page }) => {
+    await page.goto('/');
+
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('link', { name: 'Skip to content', exact: true })).toBeFocused();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Sign in with Google', exact: true })).toBeFocused();
+  });
+
+  unauthenticatedTest('keeps Google sign-in available on a phone-width public home', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.goto('/');
+
+    await expect(page.getByRole('button', { name: 'Sign in with Google', exact: true })).toBeVisible();
   });
 
   test('sends a visit to the stored app page address to Home', async ({ page }) => {
@@ -139,7 +156,7 @@ test.describe('Routing', () => {
     await page.goto('/app-shell/');
 
     await expectPath(page, '/');
-    await expect(page.getByRole('heading', { level: 1, name: 'RemDo' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Keyboard-first collaborative outliner' })).toBeVisible();
   });
 
   unauthenticatedTest('uses native sign-in and preserves protected destinations when signed out', async ({ page }) => {
