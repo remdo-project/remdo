@@ -273,13 +273,14 @@ review can focus on one area at a time.
 1. Foundations: tokens, fonts, image assets, route plumbing.
 2. Navigation and hero.
 3. Story, signup preview, product illustrations.
-4. Chat links, team, FAQ, closing sections.
+4. Chat links, FAQ, closing sections.
 5. Terms, Privacy, About.
 6. Sign-in.
 
 Decide content changes and contract exceptions in the commit that introduces
 them. The app shell and editor re-theme is a separate change, and the app's
-signed-out screen follows it.
+signed-out screen follows it. The Figma Team section moves to the About page,
+where its bios are reconciled with the current team list.
 
 ### Demo video
 
