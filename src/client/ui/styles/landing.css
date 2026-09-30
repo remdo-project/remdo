@@ -42,10 +42,31 @@
   outline-offset: 4px;
 }
 .landing-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 28px;
   font-weight: 600;
   line-height: 34px;
   letter-spacing: -1.2px;
+}
+/* A mask, not an <img>: logo.svg follows prefers-color-scheme (ink on light
+   schemes) while the page is always dark. The crop is the mark's bounds in the
+   SVG's 192 viewBox. */
+.landing-wordmark::before {
+  --mark-height: 20px;
+  content: '';
+  flex: none;
+  width: calc(var(--mark-height) * 1.1917);
+  height: var(--mark-height);
+  background: currentColor;
+  mask: url('/logo.svg') no-repeat;
+  mask-size: calc(var(--mark-height) * 1.6);
+  mask-position: calc(var(--mark-height) * -0.2417) calc(var(--mark-height) * -0.3333);
+  -webkit-mask: url('/logo.svg') no-repeat;
+  -webkit-mask-size: calc(var(--mark-height) * 1.6);
+  -webkit-mask-position: calc(var(--mark-height) * -0.2417) calc(var(--mark-height) * -0.3333);
+  transform: translateY(-1px);
 }
 .landing-container {
   width: calc(100% - 2 * var(--landing-gutter));

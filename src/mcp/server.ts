@@ -143,7 +143,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       websiteUrl: appOrigin,
       icons: [
         { src: new URL('/icon-192.png', appOrigin).href, mimeType: 'image/png', sizes: ['192x192'] },
-        { src: new URL('/logo.svg', appOrigin).href, mimeType: 'image/svg+xml', sizes: ['any'] },
+        { src: new URL('/icon-512.png', appOrigin).href, mimeType: 'image/png', sizes: ['512x512'] },
       ],
     }, { instructions: INSTRUCTIONS });
 
