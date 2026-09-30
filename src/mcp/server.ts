@@ -3,7 +3,8 @@ import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { CallToolResult, JSONRPCMessage, ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { NewNote, NoteListType } from '#note-sdk';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
@@ -46,13 +47,32 @@ const UNAVAILABLE = 'RemDo is unavailable. Try again later.';
 const UNCONFIRMED = 'RemDo did not confirm whether the request took effect. '
   + 'Check with list_documents before retrying.';
 
-const readOnly = { readOnlyHint: true, openWorldHint: false } satisfies ToolAnnotations;
+const readOnly = { readOnlyHint: true, destructiveHint: false, openWorldHint: false } satisfies ToolAnnotations;
 const additiveWrite = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } satisfies ToolAnnotations;
 const idempotentOverwrite = { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false } satisfies ToolAnnotations;
+
+const oauthSecuritySchemes = [{ type: 'oauth2', scopes: ['openid'] }];
 
 // The Claude connector directory reads annotations.title; newer clients read the tool's own title.
 function titled(title: string, annotations: ToolAnnotations) {
   return { title, annotations: { ...annotations, title } };
+}
+
+function withOAuthSchemes(message: JSONRPCMessage): JSONRPCMessage {
+  if (!('result' in message) || !Array.isArray(message.result.tools)) return message;
+  const tools = (message.result.tools as Array<{ _meta?: object }>).map((tool) => ({
+    ...tool,
+    securitySchemes: oauthSecuritySchemes,
+    _meta: { ...tool._meta, securitySchemes: oauthSecuritySchemes },
+  }));
+  return { ...message, result: { ...message.result, tools } };
+}
+
+// The SDK's tools/list drops fields it does not know, but ChatGPT reads securitySchemes at the top level of the
+// tool descriptor; _meta mirrors it for clients that read only _meta.
+function advertiseOAuth(transport: Transport) {
+  const send = transport.send.bind(transport);
+  transport.send = (message, options) => send(withOAuthSchemes(message), options);
 }
 
 function countNotes(notes: readonly NewNote[]): number {
@@ -253,6 +273,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     }
     const server = createTools(authorization);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, maxRequestBodySize: MAX_REQUEST_BYTES });
+    advertiseOAuth(transport);
     response.on('close', () => {
       void transport.close();
       void server.close();
