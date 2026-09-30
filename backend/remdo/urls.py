@@ -21,11 +21,13 @@ from documents import internal, views
 from drf_spectacular.views import SpectacularAPIView
 
 from .app_page import app_page, home_page
+from .domain_verification import openai_apps_challenge
 from .public_pages import public_page
 
 admin.site.login = secure_admin_login(require_safe(admin.site.login))
 
 urlpatterns = [
+    path(".well-known/openai-apps-challenge", openai_apps_challenge),
     path("", home_page),
     path("app-shell/", app_page),
     re_path(r"^n/", app_page),
