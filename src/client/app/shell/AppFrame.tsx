@@ -58,10 +58,9 @@ function AppFrameContent() {
   }, [authenticated]);
   const headerLinks = connectionUnavailable ? null : (
     <>
-      <a className="remdo-header-link" href="/about/">About</a>
       {signedIn && (
         <Link className="remdo-header-link" to="/sign-out">
-          Logout
+          Log out
         </Link>
       )}
       {signedOut && (

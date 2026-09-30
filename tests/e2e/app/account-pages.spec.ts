@@ -7,16 +7,16 @@ import type { Page } from '@playwright/test';
 async function presentation(page: Page) {
   // The computed styles below are read once, so a snapshot taken before the
   // stylesheet applies would compare unstyled defaults against styled ones.
-  await expect(page.locator('body')).toHaveCSS('font-family', /sans-serif/u);
+  await expect(page.locator('.remdo-signin')).toHaveCSS('font-family', /DM Sans/u);
   return page.evaluate(() => {
     const style = (selector: string, properties: string[]) => {
       const computed = getComputedStyle(document.querySelector(selector)!);
       return properties.map(property => computed.getPropertyValue(property));
     };
     return {
-      body: style('body', ['font-family', 'font-size', 'color', 'background-color', 'margin']),
-      header: style('header', ['background-color', 'backdrop-filter']),
-      card: style('.remdo-card', ['width', 'padding', 'border', 'border-radius', 'background-color']),
+      page: style('.remdo-signin', ['font-family', 'font-size', 'color', 'background-color']),
+      navigation: style('.remdo-signin-navigation', ['background-color', 'backdrop-filter']),
+      content: style('.remdo-signin-content', ['width', 'padding', 'border', 'border-radius', 'background-color']),
       title: style('h1', ['font-family', 'font-size', 'font-weight', 'line-height']),
       action: style('.remdo-account-button', ['background-color', 'color', 'border-radius', 'height']),
     };
@@ -36,9 +36,8 @@ for (const width of [1280, 390]) {
     const id = await createFixtureDocument({ email: alice.email, title: 'Alice private document' });
     await page.goto(`/n/${id}`);
     await page.waitForURL(/\/accounts\/login\//u);
-    await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Sign in', exact: true }).click();
     const loginPresentation = await presentation(page);
-    expect(loginPresentation.body[4]).toBe('0px');
+    await expect(page.locator('body')).toHaveCSS('margin', '0px');
     await page.getByLabel('Email:', { exact: true }).fill(alice.email);
     await page.getByLabel('Password:', { exact: true }).fill('wrong-password');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
@@ -65,7 +64,7 @@ for (const width of [1280, 390]) {
     await page.getByRole('button', { name: 'Sign out and discard', exact: true }).click();
     await expect(page.getByRole('status')).toContainText("You're signed out");
     expect(await presentation(page)).toEqual(loginPresentation);
-    await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Sign in', exact: true }).click();
+    await page.getByRole('link', { name: 'Sign in', exact: true }).click();
     await page.getByLabel('Email:', { exact: true }).fill(bob.email);
     await page.getByLabel('Password:', { exact: true }).fill(bob.password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
@@ -81,7 +80,7 @@ for (const width of [1280, 390]) {
     await expect(page.getByRole('button', { name: 'Alice private document', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
     await page.goto('/about/');
-    await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link')).toHaveText(['About', 'Logout']);
+    await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link')).toHaveText(['Log out']);
   });
 }
 

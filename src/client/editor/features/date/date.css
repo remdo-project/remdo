@@ -24,11 +24,12 @@
   /* Claim natural width so a caret-sized overlay target cannot collapse the grid. */
   width: max-content;
   border: 1px solid var(--mantine-color-dark-4);
-  border-radius: var(--mantine-radius-sm);
+  border-radius: 3px;
   background: var(--mantine-color-dark-7);
   box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
   padding: 0.5rem;
-  font-size: var(--mantine-font-size-sm);
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .date-picker-header {
@@ -36,16 +37,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.25rem;
-  margin-bottom: 0.35rem;
+  height: 32px;
 }
 
 .date-picker-select {
   border: 1px solid transparent;
-  border-radius: var(--mantine-radius-xs);
+  border-radius: 3px;
   background: transparent;
   color: var(--mantine-color-dark-0);
   cursor: pointer;
-  font-weight: 600;
+  font: inherit;
   padding: 0.1rem 0.2rem;
 }
 
@@ -67,9 +68,9 @@
 
 .date-picker-nav {
   border: 0;
-  border-radius: var(--mantine-radius-xs);
+  border-radius: 3px;
   background: transparent;
-  color: var(--mantine-color-dark-1);
+  color: var(--mantine-color-dark-0);
   cursor: pointer;
   font-size: var(--mantine-font-size-md);
   line-height: 1;
@@ -90,11 +91,17 @@
   border-collapse: collapse;
 }
 
+.date-picker-grid td {
+  padding: 0;
+}
+
 .date-picker-weekday {
-  font-size: var(--mantine-font-size-xs);
-  font-weight: 500;
-  color: var(--mantine-color-dimmed);
-  padding: 0.2rem 0;
+  height: 28px;
+  padding: 0;
+  color: var(--mantine-color-dark-2);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
 }
 
 /* A div with role="button" (see DatePickerPopover.tsx), so the centering a
@@ -106,7 +113,7 @@
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: var(--mantine-radius-xs);
+  border-radius: 3px;
   color: var(--mantine-color-dark-0);
   cursor: pointer;
   user-select: none;

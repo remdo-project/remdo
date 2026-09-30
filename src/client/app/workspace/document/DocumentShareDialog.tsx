@@ -47,14 +47,14 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
   const recipients = sharing?.recipients ?? [];
 
   return (
-    <RemdoDialog onClose={onClose} title={`Share “${sharing?.name ?? openingName}”`} wide>
-      <Stack gap="lg">
+    <RemdoDialog onClose={onClose} title={`Share “${sharing?.name ?? openingName}”`}>
+      <Stack className="remdo-share-dialog" gap="lg">
         <Stack component="section" gap="sm">
           <Text component="h3" fw={600} size="sm">People with access</Text>
           {!sharing && <Text c="dimmed" size="sm">This document is no longer available.</Text>}
           {sharing && recipients.length === 0 && <Text c="dimmed" size="sm">Only you have access.</Text>}
           {recipients.map((recipient) => (
-                <Stack gap={0} key={recipient.getId()}>
+                <Stack className="remdo-share-recipient" gap={0} key={recipient.getId()}>
                   <Text size="sm">{recipient.getText()}</Text>
                   {recipient.getName() && <Text c="dimmed" size="xs">{recipient.getEmail()}</Text>}
                 </Stack>
@@ -65,7 +65,7 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
           )}
 
           <form aria-busy={pending} onSubmit={(event) => { event.preventDefault(); void submit(); }}>
-            <Group align="flex-end" gap="sm" wrap="nowrap">
+            <Stack gap="md">
               <TextInput
                 autoFocus
                 disabled={pending}
@@ -75,9 +75,10 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
                 style={{ flex: 1 }}
                 type="email"
                 value={email}
+                withAsterisk={false}
               />
-              <Button loading={pending} type="submit">Invite</Button>
-            </Group>
+              <Button className="remdo-share-invite" loading={pending} type="submit">Invite</Button>
+            </Stack>
           </form>
         </Stack>
 

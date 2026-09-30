@@ -1,7 +1,6 @@
-import { Alert, Button } from '@mantine/core';
+import { Button } from '@mantine/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useRevalidator } from 'react-router-dom';
-import CenteredCardPage from '#client/ui/CenteredCardPage';
 import { createSignInPath } from './post-auth-path';
 import { LOGGED_OUT_STATE_KEY } from './useLogout';
 import { CONFIRMED_SIGN_OUT_KEY, PENDING_SIGN_OUT_STORAGE_KEY, hasConfirmedSignOut, hasPendingSignOut, revokeServerSession } from './client';
@@ -70,33 +69,57 @@ export default function LoginRoute() {
   }, [signedOut]);
 
   return (
-    <CenteredCardPage description="Sign in to access your documents." title="Sign in" titleRef={signedOut ? titleRef : undefined}>
-      {pending ? (
-        <Alert color="yellow" role="status" title="Sign-out incomplete">
-          {online
-            ? revokeFailed
-              ? 'The server could not be reached. Try signing in again.'
-              : 'Local data cleared. Signing in finishes signing out first.'
-            : 'Local data cleared. Connect to finish signing out.'}
-        </Alert>
-      ) : (signedOut || hasConfirmedSignOut()) && (
-        <Alert color="blue" role="status" title="You're signed out">
-          This device's local data was cleared.
-        </Alert>
-      )}
-      {pending ? (
-        <Button
-          className="remdo-account-button"
-          disabled={!online}
-          loading={signingIn}
-          onClick={() => { void signIn(); }}
-          type="button"
-        >
-          Sign in
-        </Button>
-      ) : (
-        <Button className="remdo-account-button" component="a" href={signInPath}>Sign in</Button>
-      )}
-    </CenteredCardPage>
+    <main className="remdo-signin remdo-signin-session">
+      <section aria-label="About RemDo" className="remdo-signin-story">
+        <nav aria-label="Sign in navigation" className="remdo-signin-navigation">
+          <a className="remdo-signin-wordmark" href="/">RemDo</a>
+          <a className="remdo-signin-back" href="/">← Back to website</a>
+        </nav>
+        <div className="remdo-signin-story-copy">
+          <p className="remdo-signin-story-title">A place for your<br />next thought</p>
+          <p>Organize notes and tasks, connect related ideas, and work together in one outline.</p>
+        </div>
+      </section>
+      <section aria-labelledby="remdo-signin-title" className="remdo-signin-panel">
+        <nav aria-label="Sign in navigation" className="remdo-signin-navigation remdo-signin-navigation-mobile">
+          <a className="remdo-signin-wordmark" href="/">RemDo</a>
+          <a className="remdo-signin-back" href="/">← Back to website</a>
+        </nav>
+        <div className="remdo-signin-content">
+          <div className="remdo-signin-intro">
+            <h1 id="remdo-signin-title" ref={signedOut ? titleRef : undefined} tabIndex={signedOut ? -1 : undefined}>Sign in</h1>
+            <p>Sign in to access your documents.</p>
+          </div>
+          {pending ? (
+            <div className="remdo-signin-session-message" role="status">
+              <strong>Sign-out incomplete</strong>
+              <p>{online
+                ? revokeFailed
+                  ? 'The server could not be reached. Try signing in again.'
+                  : 'Local data cleared. Signing in finishes signing out first.'
+                : 'Local data cleared. Connect to finish signing out.'}</p>
+            </div>
+          ) : (signedOut || hasConfirmedSignOut()) && (
+            <div className="remdo-signin-session-message" role="status">
+              <strong>You're signed out</strong>
+              <p>This device's local data was cleared.</p>
+            </div>
+          )}
+          {pending ? (
+            <Button
+              className="remdo-account-button"
+              disabled={!online}
+              loading={signingIn}
+              onClick={() => { void signIn(); }}
+              type="button"
+            >
+              Sign in
+            </Button>
+          ) : (
+            <Button className="remdo-account-button" component="a" href={signInPath}>Sign in</Button>
+          )}
+        </div>
+      </section>
+    </main>
   );
 }

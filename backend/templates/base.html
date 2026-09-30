@@ -27,10 +27,9 @@
               <nav aria-label="Primary" class="remdo-header-navigation">
                 <div class="remdo-header-links">
                   {% block header_links %}
-                  <a class="remdo-header-link" href="/about/"{% if request.path == '/about/' %} aria-current="page"{% endif %}>About</a>
                   {% if user.is_authenticated %}
                     {% if user.is_staff %}<a class="remdo-header-link" href="/admin/">Admin</a>{% endif %}
-                    <a class="remdo-header-link" href="/sign-out/">Logout</a>
+                    <a class="remdo-header-link" href="/sign-out/">Log out</a>
                   {% else %}
                     {% url 'account_login' as login_url %}
                     <a class="remdo-header-link" href="{{ login_url }}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}"{% if request.path == login_url %} aria-current="page"{% endif %}>Sign in</a>
@@ -47,7 +46,7 @@
               <nav aria-label="Footer" class="remdo-footer-links">
                 <a href="/privacy/"{% if request.path == '/privacy/' %} aria-current="page"{% endif %}>Privacy</a>
                 <a href="/terms/"{% if request.path == '/terms/' %} aria-current="page"{% endif %}>Terms</a>
-                <a href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">Source</a>
+                {% block footer_source %}<a href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">Source</a>{% endblock %}
               </nav>
             </div>
             {% block footer_end %}{% endblock %}

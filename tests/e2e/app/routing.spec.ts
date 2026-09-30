@@ -84,16 +84,20 @@ test.describe('Routing', () => {
     await expect(page.locator('.document-editor-shell')).toBeVisible();
   });
 
-  test('opens server-rendered About from Home and document navigation', async ({ page }) => {
+  test('keeps workspace navigation focused and serves About at its direct URL', async ({ page }) => {
     const document = await createUserDocument(page, 'About navigation');
 
     for (const path of ['/', `/n/${document.id}`]) {
       await page.goto(path);
-      await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'About', exact: true }).click();
-      await expectPath(page, '/about/');
-      await expect(page.getByRole('article')).toBeVisible();
-      await expect(page.locator('script[type="module"]')).toHaveCount(0);
+      const navigation = page.getByRole('navigation', { name: 'Primary' });
+      await expect(navigation.getByRole('link', { name: 'Log out', exact: true })).toBeVisible();
+      await expect(navigation.getByRole('link', { name: 'About', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('navigation', { name: 'Footer' }).getByRole('link')).toHaveText(['Privacy', 'Terms']);
     }
+    await page.goto('/about/');
+    await expectPath(page, '/about/');
+    await expect(page.getByRole('article')).toBeVisible();
+    await expect(page.locator('script[type="module"]')).toHaveCount(0);
   });
 
   test('reloads Home while its document listing is pending', async ({ page }) => {
@@ -212,7 +216,7 @@ test.describe('Routing', () => {
       await new Promise(() => {});
     });
 
-    await page.getByRole('link', { name: 'Logout', exact: true }).click();
+    await page.getByRole('link', { name: 'Log out', exact: true }).click();
 
     await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible();
     await page.unrouteAll({ behavior: 'ignoreErrors' });
@@ -231,7 +235,7 @@ test.describe('Routing', () => {
 
     // The peer stops using its local data as soon as the broadcast lands; the
     // login view follows a loader round-trip, so allow for a slow one.
-    await expect(peer.getByRole('link', { name: 'Logout' })).toBeHidden({ timeout: 15_000 });
+    await expect(peer.getByRole('link', { name: 'Log out' })).toBeHidden({ timeout: 15_000 });
     await expect(peer.getByRole('heading', { level: 1, name: 'Sign in', exact: true })).toBeVisible({ timeout: 15_000 });
     // The peer reaches the login view on the sign-out broadcast, which precedes
     // revocation; until it is confirmed the status reports an incomplete
@@ -254,5 +258,5 @@ unauthenticatedTest('renders repository public pages without loading the app', a
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'RemDo home', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', { name: 'About', exact: true })).toBeFocused();
+  await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeFocused();
 });

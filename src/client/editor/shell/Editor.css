@@ -59,7 +59,7 @@
   --remdo-indent: var(--mantine-spacing-sm);
   --bullet-width: 0.4em;
   --bullet-gap: 0.6em;
-  --checkbox-width: 0.85em;
+  --checkbox-width: 16px;
   --checkbox-gap: 0.35em;
   /* Horizontal space a note's text sits past its bullet (bullet width + gap).
      Shared so other surfaces can anchor text to the same column. */
@@ -111,7 +111,7 @@
   position: absolute;
   left: calc(0px - var(--remdo-structural-highlight-inset));
   right: calc(0px - var(--remdo-structural-highlight-inset));
-  border-radius: var(--mantine-radius-sm);
+  border-radius: 3px;
   background: var(--remdo-selection-color);
   pointer-events: none;
   opacity: 0;
@@ -141,6 +141,26 @@
 
 .text-bold {
   font-weight: 700;
+}
+
+.remote-cursor {
+  width: 1px;
+  background-color: var(--lexical-cursor-color);
+  z-index: 10;
+}
+
+.remote-cursor-name {
+  position: absolute;
+  top: -16px;
+  left: -2px;
+  padding: 2px;
+  background-color: var(--lexical-cursor-color);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 12px;
+  white-space: nowrap;
 }
 
 .text-italic {
@@ -412,8 +432,7 @@
 }
 
 .note-menu-shortcut {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
+  text-decoration: none;
 }
 
 .trigger-picker-anchor,
@@ -428,23 +447,21 @@
 }
 
 .note-link-picker {
-  min-width: 16rem;
-  max-width: 24rem;
+  width: min(624px, calc(100vw - 48px));
   border: 1px solid var(--mantine-color-dark-4);
-  border-radius: var(--mantine-radius-sm);
+  border-radius: 3px;
   background: var(--mantine-color-dark-7);
   box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
-  padding: 0.25rem;
+  padding: 6px;
 }
 
 .note-link-picker__item,
 .note-link-picker__empty {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-  border-radius: var(--mantine-radius-xs);
-  padding: 0.25rem 0.4rem;
-  line-height: 1.25;
+  gap: 2px;
+  padding: 10px;
+  line-height: 24px;
 }
 
 .note-link-picker__item {
@@ -453,6 +470,9 @@
 
 .note-link-picker__empty {
   cursor: default;
+  padding: 0;
+  color: var(--mantine-color-dark-2);
+  font-size: 16px;
 }
 
 .note-link-picker__item--active {
@@ -461,13 +481,13 @@
 
 .note-link-picker__title {
   color: var(--mantine-color-dark-0);
-  font-size: var(--mantine-font-size-sm);
+  font-size: 16px;
 }
 
-.note-link-picker__context,
-.note-link-picker__empty {
+.note-link-picker__context {
   color: var(--mantine-color-dark-2);
-  font-size: var(--mantine-font-size-xs);
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .remdo-outline li.list-item.list-nested-item::before,
@@ -539,7 +559,7 @@
    bottom. The pinned group sits beside — never over — the scroll region so a
    focused scrolled button is never hidden behind it. */
 .mobile-action-toolbar {
-  --mobile-action-toolbar-fill: color-mix(in srgb, var(--mantine-color-dark-7) 72%, transparent);
+  --mobile-action-toolbar-fill: var(--mantine-color-dark-7);
   position: fixed;
   left: 0;
   right: 0;
@@ -547,15 +567,11 @@
   z-index: 5;
   display: flex;
   align-items: center;
-  padding: 6px 8px;
-  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  padding: 8px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   background-color: var(--mobile-action-toolbar-fill);
-  /* Same frosted-glass material as the shell/header; -webkit- prefix so the
-     blur renders on iOS Safari (the toolbar's primary target), which the
-     project prefixes by hand (no autoprefixer). */
-  backdrop-filter: blur(var(--remdo-glass-blur));
-  -webkit-backdrop-filter: blur(var(--remdo-glass-blur));
-  border-top: 1px solid var(--mantine-color-dark-4);
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: 3px;
 }
 
 /* Scroll shell hosts the fade masks; the inner element does the scrolling. */
@@ -591,7 +607,7 @@
 
 .mobile-action-toolbar__scroll {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
   overflow-x: auto;
   min-width: 0;
@@ -605,10 +621,10 @@
 
 .mobile-action-toolbar__divider {
   flex: 0 0 auto;
-  align-self: stretch;
+  height: 24px;
   width: 1px;
   margin: 6px;
-  background-color: color-mix(in srgb, var(--mantine-color-dark-0) 14%, transparent);
+  background-color: var(--mantine-color-dark-4);
 }
 
 /* Pinned group. The layout emits it in visual/DOM order (inner→outer), so the
@@ -619,7 +635,7 @@
 .mobile-action-toolbar__pinned {
   flex: 0 0 auto;
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
 }
 
@@ -637,12 +653,12 @@
   color: var(--mantine-color-dark-0);
   background-color: transparent;
   border: none;
-  border-radius: var(--mantine-radius-sm);
+  border-radius: 3px;
   cursor: pointer;
 }
 
 .mobile-action-toolbar__button[aria-disabled="true"] {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: default;
 }
 

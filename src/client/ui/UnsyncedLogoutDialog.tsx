@@ -23,7 +23,7 @@ export default function UnsyncedLogoutDialog({
           <Button onClick={onCancel} variant="default">
             Cancel
           </Button>
-          <Button color="red" onClick={onConfirm}>
+          <Button className="remdo-danger-button" color="red" onClick={onConfirm}>
             Sign out and discard
           </Button>
         </Group>

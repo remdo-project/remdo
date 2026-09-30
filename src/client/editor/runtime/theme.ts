@@ -8,6 +8,10 @@ export const editorTheme: EditorThemeClasses = {
   noteBody: 'note-body',
   noteBodyWrapper: 'note-body-wrapper',
   link: 'text-link',
+  collaboration: {
+    cursor: 'remote-cursor',
+    cursorName: 'remote-cursor-name',
+  },
   text: {
     bold: 'text-bold',
     italic: 'text-italic',

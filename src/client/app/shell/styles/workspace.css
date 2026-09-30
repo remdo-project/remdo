@@ -29,9 +29,14 @@ body:has(#root) .remdo-header {
 }
 
 body:has(#root) .remdo-header-inner {
-  min-height: 40px;
+  min-height: 65px;
   padding: 0 0 24px;
   border-bottom: 1px solid #424242;
+}
+
+body:has(#root) .remdo-header-brand-link,
+body:has(#root) .remdo-header-link {
+  min-height: 40px;
 }
 
 body:has(#root) .remdo-header-brand-icon {
@@ -71,6 +76,224 @@ body:has(#root) .remdo-footer {
   color: #828282;
 }
 
+body:has(#root .remdo-signin-session) .remdo-header,
+body:has(#root .remdo-signin-session) .remdo-footer {
+  display: none;
+}
+
+body:has(#root .remdo-signin-session) .remdo-shell {
+  background: #12100d;
+}
+
+.remdo-signin-session-message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 24px;
+  padding-left: 16px;
+  border-left: 1px solid #615b54;
+  color: #b9b4ae;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.remdo-signin-session-message strong {
+  color: #f3efe9;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+body:has(#root) .remdo-signout .remdo-card-page {
+  max-width: 405px;
+  padding-top: 48px;
+}
+
+body:has(#root) .remdo-signout .remdo-card {
+  padding: 24px;
+  border-color: #424242;
+  border-radius: 3px;
+  background: #242424;
+}
+
+body:has(#root) .remdo-signout .remdo-stack {
+  gap: 16px;
+}
+
+body:has(#root) .remdo-signout .remdo-title {
+  color: #c9c9c9;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 33px;
+}
+
+body:has(#root) .remdo-signout .remdo-description {
+  color: #828282;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+body:has(#root) .remdo-signout .mantine-Button-root {
+  height: 48px;
+  border: 1px solid #424242;
+  border-radius: 3px;
+  background: #2e2e2e;
+  color: #c9c9c9;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+body:has(#root) .remdo-modal {
+  max-width: 405px;
+  border-color: #424242;
+  border-radius: 3px;
+  background: #242424;
+}
+
+body:has(#root) .remdo-dialog {
+  padding: 24px;
+  color: #c9c9c9;
+}
+
+body:has(#root) .remdo-dialog-header {
+  margin-bottom: 16px;
+}
+
+body:has(#root) .remdo-dialog-title {
+  color: #c9c9c9;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 33px;
+}
+
+body:has(#root) .remdo-dialog-close {
+  width: 24px;
+  height: 33px;
+  border-radius: 3px;
+  color: #828282;
+  font-size: 22px;
+}
+
+body:has(#root) .remdo-dialog-close[data-hovered] {
+  background: #3b3b3b;
+  color: #c9c9c9;
+}
+
+body:has(#root) .remdo-dialog .mantine-Stack-root {
+  gap: 16px;
+}
+
+body:has(#root) .remdo-dialog .remdo-share-recipient {
+  gap: 0;
+}
+
+body:has(#root) .remdo-dialog .mantine-Group-root {
+  gap: 8px;
+}
+
+body:has(#root) .remdo-dialog .mantine-InputWrapper-label {
+  margin-bottom: 8px;
+  color: #c9c9c9;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+body:has(#root) .remdo-dialog .mantine-Input-input {
+  min-height: 44px;
+  border: 1px solid #424242;
+  border-radius: 3px;
+  background: #2e2e2e;
+  color: #c9c9c9;
+  font-size: 16px;
+}
+
+body:has(#root) .remdo-dialog .mantine-InputWrapper-error {
+  color: #ffc9c9;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+body:has(#root) .remdo-dialog .mantine-Input-input[data-error] {
+  border-color: #e03131;
+}
+
+body:has(#root) .remdo-dialog .mantine-Alert-root {
+  padding: 12px;
+  border: 0;
+  border-radius: 3px;
+  background: rgb(201 42 42 / 15%);
+  color: #ffc9c9;
+}
+
+body:has(#root) .remdo-dialog .mantine-Alert-title,
+body:has(#root) .remdo-dialog .mantine-Alert-message {
+  color: #ffc9c9;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+body:has(#root) .remdo-dialog [role='status'] {
+  color: #828282;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+body:has(#root) .remdo-dialog .mantine-Button-root {
+  min-width: 140px;
+  height: 48px;
+  padding-inline: 16px;
+  border: 1px solid #424242;
+  border-radius: 3px;
+  background: #2e2e2e;
+  color: #c9c9c9;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+body:has(#root) .remdo-signout .mantine-Button-root:hover {
+  background: #3b3b3b;
+}
+
+body:has(#root) .remdo-dialog .mantine-Button-root:disabled {
+  opacity: 0.4;
+}
+
+body:has(#root) .remdo-dialog .mantine-Button-root:hover:not(:disabled) {
+  background: #3b3b3b;
+}
+
+body:has(#root) .remdo-dialog .remdo-danger-button {
+  background: #e03131;
+  color: #f8f9fa;
+}
+
+body:has(#root) .remdo-dialog .remdo-danger-button:hover:not(:disabled) {
+  background: #c92a2a;
+}
+
+body:has(#root) .remdo-dialog .remdo-share-invite {
+  width: 160px;
+}
+
+body:has(#root) .remdo-share-dialog section h3 {
+  margin: 0;
+  color: #c9c9c9;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+body:has(#root) .remdo-share-dialog section .mantine-Text-root {
+  line-height: 24px;
+}
+
+body:has(#root) .remdo-share-dialog .mantine-Input-wrapper:has(input:disabled),
+body:has(#root) .remdo-share-dialog .mantine-InputWrapper-root:has(input:disabled) .mantine-InputWrapper-label {
+  opacity: 0.45;
+}
+
 .remdo-home-menu {
   min-width: 272px;
   padding: 8px;
@@ -100,6 +323,34 @@ body:has(#root) .remdo-footer {
 }
 
 .remdo-home-menu [role='menuitem'][data-focused] {
+  background: #3b3b3b;
+}
+
+body:has(#root) .note-menu-dropdown {
+  min-width: 280px;
+  padding: 8px;
+  border-color: #424242;
+  border-radius: 3px;
+  background: #242424;
+}
+
+body:has(#root) .note-menu-dropdown header {
+  padding: 4px 8px;
+  color: #828282;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+body:has(#root) .note-menu-dropdown [role='menuitem'] {
+  min-height: 36px;
+  padding: 6px 8px;
+  border-radius: 3px;
+  color: #c9c9c9;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+body:has(#root) .note-menu-dropdown [role='menuitem'][data-focused] {
   background: #3b3b3b;
 }
 

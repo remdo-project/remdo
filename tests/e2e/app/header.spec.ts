@@ -17,23 +17,19 @@ test('header controls are reachable by keyboard on a narrow screen', async ({ pa
   }
 });
 
-unauthenticatedTest('opens About from the native sign-in header', async ({ page }) => {
+unauthenticatedTest('returns to the website from the native sign-in navigation', async ({ page }) => {
   await page.goto('/accounts/login/');
-  const navigation = page.getByRole('navigation', { name: 'Primary' });
-  await expect(navigation.getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute('aria-current', 'page');
-  await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'About', exact: true }).click();
-  await expect(page).toHaveURL(/\/about\/$/u);
-  await expect(page.getByRole('article')).toBeVisible();
-  await expect(navigation.getByRole('link')).toHaveText(['About', 'Sign in']);
-  await expect(navigation.getByRole('link', { name: 'About', exact: true })).toHaveAttribute('aria-current', 'page');
-  await navigation.getByRole('link', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Sign in navigation' }).getByRole('link', { name: '← Back to website', exact: true }).click();
+  await expect(page).toHaveURL(new URL('/', page.url()).href);
+  await expect(page.getByRole('heading', { level: 1, name: 'Keyboard-first collaborative outliner' })).toBeVisible();
+  await page.getByRole('navigation').getByRole('link', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
 });
 
 test('public pages link to Home through the brand and retain staff navigation', async ({ page }) => {
   await page.goto('/about/');
   const navigation = page.getByRole('navigation', { name: 'Primary' });
-  await expect(navigation.getByRole('link')).toHaveText(['About', 'Admin', 'Logout']);
+  await expect(navigation.getByRole('link')).toHaveText(['Admin', 'Log out']);
   // Entering from a Django page cold-loads the SPA and its session.
   await page.getByRole('link', { name: 'RemDo home', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible({ timeout: 15_000 });
@@ -42,7 +38,7 @@ test('public pages link to Home through the brand and retain staff navigation', 
 
 test('public-page sign-out link opens the app without revoking the session until confirmed', async ({ page }) => {
   await page.goto('/about/');
-  await page.getByRole('link', { name: 'Logout', exact: true }).click();
+  await page.getByRole('link', { name: 'Log out', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sign out of RemDo?' })).toBeVisible({ timeout: 15_000 });
   await page.reload();
   await page.getByRole('link', { name: 'Cancel', exact: true }).click();

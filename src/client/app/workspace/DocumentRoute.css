@@ -66,13 +66,14 @@
   gap: 0.15rem;
   max-width: 16rem;
   border: 1px solid transparent;
-  border-radius: var(--mantine-radius-sm);
+  border-radius: 3px;
   background: transparent;
-  --interaction-radius: var(--mantine-radius-sm);
+  --interaction-radius: 3px;
 }
 
 .document-header-doc-combobox[data-open] .document-header-doc-combo {
   min-width: 10rem;
+  min-height: 44px;
   background: var(--mantine-color-dark-6);
   border-color: var(--mantine-color-dark-4);
 }
@@ -96,7 +97,7 @@
 }
 
 .document-header-doc-combobox[data-open] .document-header-doc-input {
-  padding: 0.15rem 0.4rem;
+  padding: 9px 12px;
   cursor: text;
   text-decoration: none;
   field-sizing: fixed;
@@ -132,17 +133,28 @@
   opacity: 0.5;
 }
 
-.document-header-doc-dropdown {
+.document-header-doc-dropdown.remdo-menu {
   min-width: 10rem;
+  width: min(624px, calc(100vw - 48px));
   max-height: 16rem;
   overflow: auto;
+  padding: 6px;
   border-color: #424242;
+  border-radius: 3px;
   background: #242424;
   color: #c9c9c9;
 }
 
-.document-header-doc-dropdown [role='option'] {
-  white-space: nowrap;
+.document-header-doc-dropdown.remdo-menu [role='option'] {
+  padding: 10px;
+  border-radius: 0;
+  font-size: 16px;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+}
+
+.document-header-doc-dropdown.remdo-menu [role='option'][data-selected] {
+  font-weight: 700;
 }
 
 .document-header-search .mantine-Input-input:focus,
@@ -177,57 +189,39 @@
   display: none;
 }
 
-/* Anchor results to the editor outline's first note, both axes, so opening
-   search doesn't shift the first row:
-   - Horizontal: the `xl` inline padding matches the editor pane, and each result's
-     text is indented by the note-text indent (list indent + bullet allowance) via
-     the shared `.remdo-outline` variables.
-   - Vertical: the editor pane offsets its first note by `lg` (its padding-top).
-     Each result card adds its own padding-top (`--result-card-padding`) on top of
-     this section, so the section's padding-top is `lg` minus that, keeping the
-     first result's text on the editor's note-text row. */
+/* Results share the workspace typography; only the active row has a border. */
 .document-search-results {
-  --remdo-indent: var(--mantine-spacing-sm);
-  --remdo-bullet-allowance: calc(0.4em + 0.6em);
-  /* Internal card padding (half of spacing-xs); shared with the vertical-anchor
-     formula below so the two stay in sync. */
-  --result-card-padding: calc(var(--mantine-spacing-xs) / 2);
-  padding: calc(var(--mantine-spacing-lg) - var(--result-card-padding))
-    var(--mantine-spacing-xl)
-    var(--mantine-spacing-md);
+  padding: 0 0 24px;
 }
 
 .document-search-results-list {
   margin: 0;
   padding: 0;
-  padding-inline-start: var(--remdo-indent);
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--mantine-spacing-xs) / 2);
+  gap: 20px;
 }
 
-/* Each result is its own card surface; the active focus ring (below) overlays on
-   top of it. The 1px border is offset out of the inline-start padding so the
-   match text still lands on the editor's note-text column. */
 .document-search-results-item {
-  background: var(--mantine-color-dark-6);
-  border: 1px solid var(--mantine-color-dark-5);
-  border-radius: var(--mantine-radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
   color: var(--mantine-color-dark-0);
   cursor: pointer;
-  padding: var(--result-card-padding);
-  padding-inline-start: calc(var(--remdo-bullet-allowance) - 1px);
+  padding: 12px;
+  font-size: 18px;
+  line-height: 28px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   min-width: 0;
 }
 
-/* Active result: focus ring overlaid on the card surface. */
 .document-search-results-item[data-search-result-active='true'] {
-  --interaction-radius: var(--mantine-radius-sm);
-  border-radius: var(--interaction-radius);
-  box-shadow: var(--focus-ring, 0 0 0 1px rgb(111 138 255 / 0.42), 0 0 0 3px rgb(111 138 255 / 0.11), 0 0 22px 5px rgb(111 138 255 / 0.12));
+  border-color: rgb(111 138 255 / 42%);
 }
 
 /* Primary line: the matched note's text. No list marker — text formatting only.
@@ -241,10 +235,9 @@
 }
 
 .document-search-result-mark {
-  background: var(--mantine-color-yellow-light, rgb(255 224 102 / 0.28));
+  background: #733c00;
   color: inherit;
-  border-radius: var(--mantine-radius-xs);
-  padding: 0 0.05rem;
+  padding: 0;
 }
 
 /* Body preview: one line of the matched note's body, windowed onto the match.
@@ -252,7 +245,8 @@
    wrapped so every row keeps the same height. */
 .document-search-result-body {
   overflow: hidden;
-  font-size: var(--mantine-font-size-xs);
+  font-size: 14px;
+  line-height: 20px;
   color: var(--mantine-color-dark-2);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -266,8 +260,9 @@
   flex-wrap: nowrap;
   min-width: 0;
   gap: 0.15rem;
-  font-size: var(--mantine-font-size-xs);
-  color: var(--mantine-color-dark-2);
+  font-size: 14px;
+  line-height: 20px;
+  color: #a5a1e8;
 }
 
 .document-search-result-crumb-separator {
@@ -308,9 +303,10 @@
    checkboxes, counters) so previews match the editor. Only preview-local scale
    and color are set here. */
 .document-search-result-children.remdo-outline {
-  margin-top: 0.1rem;
-  font-size: var(--mantine-font-size-xs);
-  color: var(--mantine-color-dark-1);
+  margin-top: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--mantine-color-dark-0);
 }
 
 .document-search-result-children .list-item {
@@ -318,20 +314,23 @@
 }
 
 .document-search-result-children-more {
-  margin-top: 0.05rem;
-  font-size: var(--mantine-font-size-xs);
-  color: var(--mantine-color-dark-3);
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--mantine-color-dark-2);
 }
 
 .document-search-results-empty {
   margin: 0;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--mantine-color-dark-2);
 }
 
 .document-search-results-truncation {
   margin: 0;
-  padding-inline-start: calc(var(--remdo-bullet-allowance) - 1px);
-  font-size: var(--mantine-font-size-xs);
+  font-size: 14px;
+  line-height: 20px;
   color: var(--mantine-color-dark-2);
 }
 
@@ -649,16 +648,6 @@ main.document-route-container:has(.document-editor-shell) {
   background: #3b3b3b;
 }
 
-.document-editor-shell .document-search-results {
-  padding: 0 0 24px;
-}
-
-.document-editor-shell .document-search-results-item {
-  border-color: #424242;
-  background: #242424;
-  color: #c9c9c9;
-}
-
 .document-editor-shell .editor-root {
   color: #c9c9c9;
   font-family: 'DM Sans', sans-serif;
@@ -674,7 +663,7 @@ main.document-route-container:has(.document-editor-shell) {
 }
 
 .document-editor-shell .editor-root li.list-item[data-note-checked='true'] {
-  color: #828282;
+  color: #c9c9c9;
 }
 
 .document-editor-shell .editor-root .note-body {
@@ -707,15 +696,20 @@ main.document-route-container:has(.document-editor-shell) {
 }
 
 .document-editor-shell .editor-root .date-node:hover {
-  background: rgb(9 146 104 / 60%);
-  color: #b5ffe9;
+  background: rgb(12 166 120 / 60%);
+  color: #c3fae8;
+}
+
+.document-editor-shell .editor-root .date-node[data-date-token-selected='true'] {
+  background: var(--remdo-selection-color);
+  color: #f8f9fa;
 }
 
 .document-editor-shortcut-hint {
   margin: auto 0 0;
   color: #828282;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 14px;
+  line-height: 20px;
 }
 
 @media (max-width: 48em) {
