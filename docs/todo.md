@@ -282,6 +282,13 @@ them. The app shell and editor re-theme is a separate change, and the app's
 signed-out screen follows it. The Figma Team section moves to the About page,
 where its bios are reconciled with the current team list.
 
+Structural follow-ups, before Terms and Privacy:
+
+- Load the site styles from their own stylesheet entry, so the app does not
+  download them through `shared.css`.
+- Mark the site body through a `body_class` block in `base.html` instead of
+  `body:has(> .remdo-landing)` and its wrapper element.
+
 ### Demo video
 
 The [demo video](specs/demo/demo-video.md) records every chapter from the local
