@@ -194,11 +194,15 @@ test('production launcher serves login, collaboration, and persistent data throu
     const reopened = await fresh.newPage();
     await reopened.goto(documentUrl);
     await expect(reopened).toHaveURL(/\/accounts\/login\//u);
-    const stylesheet = reopened.locator('link[rel="stylesheet"]');
-    await expect(stylesheet).toHaveAttribute('href', /^\/app-assets\/shared-.*\.css$/u);
-    const styles = await fresh.request.get((await stylesheet.getAttribute('href'))!);
-    expect(styles.status()).toBe(200);
-    expect(styles.headers()['content-type']).toContain('text/css');
+    const stylesheets = reopened.locator('link[rel="stylesheet"]');
+    await expect(stylesheets).toHaveCount(2);
+    await expect(stylesheets.first()).toHaveAttribute('href', /^\/app-assets\/shared-.*\.css$/u);
+    await expect(stylesheets.last()).toHaveAttribute('href', /^\/app-assets\/site-.*\.css$/u);
+    for (const href of await stylesheets.evaluateAll(links => links.map(link => link.getAttribute('href')!))) {
+      const styles = await fresh.request.get(href);
+      expect(styles.status()).toBe(200);
+      expect(styles.headers()['content-type']).toContain('text/css');
+    }
     await expect(reopened.locator('body')).toHaveCSS('margin', '0px');
     await reopened.getByLabel('Email:', { exact: true }).fill(email);
     await reopened.getByLabel('Password:', { exact: true }).fill(password);

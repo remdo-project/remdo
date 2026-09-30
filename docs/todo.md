@@ -279,8 +279,10 @@ review can focus on one area at a time.
 
 Decide content changes and contract exceptions in the commit that introduces
 them. The app shell and editor re-theme is a separate change, and the app's
-signed-out screen follows it. The Figma Team section moves to the About page,
-where its bios are reconciled with the current team list.
+signed-out screen follows it. The other allauth pages (connected apps,
+delegation refused, closed sign-up, OIDC authorization) keep the card layout
+and the old header and footer until they follow. The Figma Team section moves
+to the About page, where its bios are reconciled with the current team list.
 
 Structural follow-ups, before Terms and Privacy:
 

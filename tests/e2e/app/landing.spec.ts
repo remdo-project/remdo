@@ -22,6 +22,24 @@ test('keeps collaboration, note links, and tasks visible in responsive illustrat
   }
 });
 
+test('sign-in shows its story beside the form on wide screens and drops it on narrower ones', async ({ page }) => {
+  await page.goto('/accounts/login/');
+  const story = page.getByText('A place for your next thought.', { exact: true });
+  const google = page.getByRole('button', { name: 'Sign in with Google' });
+  const email = page.getByLabel('Email:', { exact: true });
+  const signInLink = page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Sign in', exact: true });
+
+  for (const [width, beside] of [[1440, true], [1024, true], [768, false], [390, false]] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+    if (beside) await expect(story).toBeVisible();
+    else await expect(story).toBeHidden();
+    await expect(signInLink).toBeInViewport({ ratio: 1 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+    expect((await google.boundingBox())!.y).toBeLessThan((await email.boundingBox())!.y);
+  }
+});
+
 test.describe('story text', () => {
   const colorOf = (paragraph: Locator) => paragraph.evaluate((element) => getComputedStyle(element).color);
   const brightnessOf = (color: string) => color.match(/\d+/gu)!.slice(0, 3).map(Number).reduce((sum, channel) => sum + channel, 0);
