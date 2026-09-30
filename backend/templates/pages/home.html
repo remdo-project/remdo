@@ -8,128 +8,16 @@
 {% block body %}
 <div class="remdo-landing">
   <a class="landing-skip" href="#landing-main">Skip to content</a>
-  <header class="landing-navigation landing-container">
-    <a class="landing-wordmark" href="/" aria-label="RemDo home">RemDo</a>
-    <nav class="landing-navigation-links" aria-label="Primary">
-      <a class="landing-repository" href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">
-        <img src="/site-assets/github.svg" alt="" width="20" height="20"><span>remdo-project/remdo</span>
-      </a>
-      <a href="/about/">About</a>
-      <a class="landing-sign-in" href="{% url 'account_login' %}">Sign in</a>
-    </nav>
-  </header>
+  {% include "pages/landing/navigation.html" %}
   <main id="landing-main">
-    <section class="landing-hero landing-container" aria-labelledby="landing-title">
-      <div class="landing-introduction">
-        <h1 id="landing-title" class="landing-title">Keyboard-first collaborative outliner</h1>
-        <div class="landing-hero-actions">
-          {% include "pages/landing/sign_in.html" %}
-          <a class="landing-button landing-button--outline" href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">
-            <img src="/site-assets/github.svg" alt="" width="20" height="20">Star us on GitHub
-          </a>
-        </div>
-      </div>
-      {% if video %}
-      <div class="landing-video-background">
-        <img class="landing-video-artwork" src="/site-assets/hero-background.webp" alt="" width="1672" height="941" fetchpriority="high">
-        <video class="landing-video" aria-label="RemDo demo" controls playsinline poster="{{ video.poster }}" preload="none">
-          <source src="{{ video.url }}" type="video/mp4">
-        </video>
-      </div>
-      {% endif %}
-    </section>
-    <section class="landing-story landing-container" aria-label="About RemDo">
-      <p>RemDo is an open-source workspace for keeping information connected. It starts with a keyboard-first collaborative outliner: a place to organize notes, follow links between documents, and work through ideas together.</p>
-      <p>Today, you can structure notes, search within documents, edit together in real time, and work offline. RemDo is still early. The outliner is the starting point for the wider workspace we’re building.</p>
-      <p>Our vision is to connect the context scattered across your tools, from meeting notes to emails and calendars. Those connections are still in development, with privacy and the option to self-host guiding the work.</p>
-      <div class="landing-signup">
-        <h2 id="landing-signup-heading">Don’t miss what we ship next.</h2>
-        {# TODO: The signup has no subscription endpoint, and the privacy policy does not cover the emails it would collect. Enable it once both exist (probe: the button no longer has `disabled`). #}
-        <div class="landing-signup-fields" role="group" aria-labelledby="landing-signup-heading">
-          <label class="landing-visually-hidden" for="landing-email">Your email address</label>
-          <input id="landing-email" type="email" name="email" autocomplete="email" placeholder="Your email address" aria-describedby="landing-signup-note">
-          <button class="landing-button" type="button" disabled>Keep me posted</button>
-        </div>
-        <p id="landing-signup-note">Get an email when we release something new.</p>
-      </div>
-    </section>
+    {% include "pages/landing/hero.html" %}
+    {% include "pages/landing/story.html" %}
     <div class="landing-light">
-      <section class="landing-features" aria-labelledby="landing-features-title">
-        <div class="landing-container">
-          <h2 id="landing-features-title">From first thought to shared plan</h2>
-          <div class="landing-feature-grid">
-            <article class="landing-feature">
-              <div class="landing-feature-copy"><h3>Collaborate</h3><p>Work in the same outline with your team. See edits as they happen and keep plans, decisions and next steps together.</p></div>
-              {% include "pages/landing/artifacts/collaborate.html" %}
-            </article>
-            <article class="landing-feature">
-              <div class="landing-feature-copy"><h3>Connect</h3><p>Type @ to link a related note. Nest supporting ideas underneath and follow connected thoughts without losing their context.</p></div>
-              {% include "pages/landing/artifacts/connect.html" %}
-            </article>
-            <article class="landing-feature">
-              <div class="landing-feature-copy"><h3>Write</h3><p>Capture notes and tasks from your keyboard. Add a new line, move it into place and build an outline as you go.</p></div>
-              {% include "pages/landing/artifacts/write.html" %}
-            </article>
-          </div>
-        </div>
-      </section>
-      <section class="landing-chat landing-container" aria-labelledby="landing-chat-title">
-        <div class="landing-chat-introduction">
-          <h2 id="landing-chat-title">Bring your notes into the conversation.</h2>
-          <div class="landing-chat-copy"><h3>Chat links</h3><p>Paste a RemDo link into your chat to give it context. Ask for a summary or next steps, then bring the result back into your outline.</p></div>
-        </div>
-        <img class="landing-chat-background" src="/site-assets/chat-background.webp" alt="" width="1672" height="941" loading="lazy" decoding="async">
-      </section>
-      <section class="landing-faq landing-container" aria-labelledby="landing-faq-title">
-        <h2 id="landing-faq-title">Frequently asked questions.</h2>
-        <div class="landing-faq-list">
-          <details class="landing-faq-item" open>
-            <summary>Is RemDo still in early development?</summary>
-            <p>Yes. The core outliner is available, while the wider workspace is still taking shape. Features, the interface, and how the product works may change as development continues.</p>
-          </details>
-          <details class="landing-faq-item">
-            <summary>What can I do with RemDo today?</summary>
-            <p>Organize notes in an outline, link notes and documents, and search within a document. You can also edit together in real time and work offline.</p>
-          </details>
-          <details class="landing-faq-item">
-            <summary>Can I use RemDo offline?</summary>
-            <p>Yes, if you have a remembered session and the document is already stored on your device. You can keep editing and searching it; local changes sync when you reconnect.</p>
-          </details>
-          <details class="landing-faq-item">
-            <summary>Can I work with other people?</summary>
-            <p>Yes. Document owners can share with other accounts on the same RemDo server, then edit together in real time. Sending someone a document link alone does not give them access.</p>
-          </details>
-          <details class="landing-faq-item">
-            <summary>Is RemDo open source?</summary>
-            <p>Yes. RemDo is available under the MIT License, and you can inspect the code on GitHub. Self-hosting is supported if you want to run your own instance.</p>
-          </details>
-          <details class="landing-faq-item">
-            <summary>Does RemDo connect to email and calendars?</summary>
-            <p>Not yet. Connections to email, calendars, and external files are part of the longer-term vision and are still under development. Today’s product focuses on RemDo notes and documents.</p>
-          </details>
-        </div>
-      </section>
+      {% include "pages/landing/features.html" %}
+      {% include "pages/landing/chat.html" %}
+      {% include "pages/landing/faq.html" %}
     </div>
   </main>
-  <div class="landing-ending">
-    <img class="landing-ending-glow" src="/site-assets/footer-glow.webp" alt="" width="1536" height="1024" loading="lazy" decoding="async">
-    <section class="landing-cta" aria-labelledby="landing-cta-title">
-      <div class="landing-cta-card">
-        <h2 id="landing-cta-title">Try RemDo now.</h2>
-        {% include "pages/landing/sign_in.html" %}
-      </div>
-    </section>
-    <footer class="landing-footer landing-container">
-      <div class="landing-footer-brand">
-        <span class="landing-footer-wordmark">RemDo</span>
-        <p>A keyboard-first collaborative outliner.<br>Keep notes, tasks, and ideas connected.</p>
-        <a class="landing-footer-github" href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer" aria-label="RemDo on GitHub"><img src="/site-assets/github.svg" alt="" width="20" height="20"></a>
-      </div>
-      <div class="landing-footer-bottom">
-        <span>© {% now "Y" %} RemDo</span>
-        <nav aria-label="Footer"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
-      </div>
-    </footer>
-  </div>
+  {% include "pages/landing/ending.html" %}
 </div>
 {% endblock %}

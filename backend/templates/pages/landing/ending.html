@@ -1,0 +1,20 @@
+<div class="landing-ending">
+  <img class="landing-ending-glow" src="/site-assets/footer-glow.webp" alt="" width="1536" height="1024" loading="lazy" decoding="async">
+  <section class="landing-cta" aria-labelledby="landing-cta-title">
+    <div class="landing-cta-card">
+      <h2 id="landing-cta-title">Try RemDo now.</h2>
+      {% include "pages/landing/sign_in.html" %}
+    </div>
+  </section>
+  <footer class="landing-footer landing-container">
+    <div class="landing-footer-brand">
+      <span class="landing-wordmark">RemDo</span>
+      <p>A keyboard-first collaborative outliner.<br>Keep notes, tasks, and ideas connected.</p>
+      <a class="landing-footer-github" href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer" aria-label="RemDo on GitHub"><img src="/site-assets/github.svg" alt="" width="20" height="20"></a>
+    </div>
+    <div class="landing-footer-bottom">
+      <span>© {% now "Y" %} RemDo</span>
+      <nav aria-label="Footer"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
+    </div>
+  </footer>
+</div>

@@ -122,7 +122,7 @@
   border-radius: 2.4px;
 }
 
-.landing-artifact-note--today {
+.landing-artifact-row--dated > .landing-artifact-note {
   flex: none;
   width: 78.4px;
 }

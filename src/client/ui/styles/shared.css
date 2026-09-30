@@ -8,6 +8,11 @@
 @import './public-page.css';
 @import './footer.css';
 @import './landing.css';
+@import './landing-navigation.css';
+@import './landing-hero.css';
+@import './landing-story.css';
+@import './landing-features.css';
 @import './landing-artifacts.css';
-@import './landing-sections.css';
+@import './landing-chat.css';
+@import './landing-faq.css';
 @import './landing-ending.css';

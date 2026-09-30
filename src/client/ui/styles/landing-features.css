@@ -1,0 +1,41 @@
+.landing-features {
+  padding-block: 48px 128px;
+}
+.landing-features h2 {
+  margin-bottom: 64px;
+}
+.landing-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+.landing-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.landing-feature .landing-copy {
+  flex: 1;
+}
+@media (max-width: 63.99em) {
+  .landing-feature-grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+  .landing-feature {
+    width: 100%;
+    max-width: 640px;
+  }
+  .landing-feature .landing-copy {
+    flex: none;
+  }
+}
+@media (max-width: 47.99em) {
+  .landing-features {
+    padding-bottom: 80px;
+  }
+  .landing-features h2 {
+    margin-bottom: 40px;
+  }
+}
