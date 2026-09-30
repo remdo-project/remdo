@@ -38,6 +38,42 @@
       </div>
       {% endif %}
     </section>
+    <section class="landing-story landing-container" aria-label="About RemDo">
+      <p>RemDo is an open-source workspace for keeping information connected. It starts with a keyboard-first collaborative outliner: a place to organize notes, follow links between documents, and work through ideas together.</p>
+      <p>Today, you can structure notes, search within documents, edit together in real time, and work offline. RemDo is still early. The outliner is the starting point for the wider workspace we’re building.</p>
+      <p>Our vision is to connect the context scattered across your tools, from meeting notes to emails and calendars. Those connections are still in development, with privacy and the option to self-host guiding the work.</p>
+      <div class="landing-signup">
+        <h2 id="landing-signup-heading">Don’t miss what we ship next.</h2>
+        {# TODO: The signup has no subscription endpoint, and the privacy policy does not cover the emails it would collect. Enable it once both exist (probe: the button no longer has `disabled`). #}
+        <div class="landing-signup-fields" role="group" aria-labelledby="landing-signup-heading">
+          <label class="landing-visually-hidden" for="landing-email">Your email address</label>
+          <input id="landing-email" type="email" name="email" autocomplete="email" placeholder="Your email address" aria-describedby="landing-signup-note">
+          <button class="landing-button" type="button" disabled>Keep me posted</button>
+        </div>
+        <p id="landing-signup-note">Get an email when we release something new.</p>
+      </div>
+    </section>
+    <div class="landing-light">
+      <section class="landing-features" aria-labelledby="landing-features-title">
+        <div class="landing-container">
+          <h2 id="landing-features-title">From first thought to shared plan</h2>
+          <div class="landing-feature-grid">
+            <article class="landing-feature">
+              <div class="landing-feature-copy"><h3>Collaborate</h3><p>Work in the same outline with your team. See edits as they happen and keep plans, decisions and next steps together.</p></div>
+              {% include "pages/landing/artifacts/collaborate.html" %}
+            </article>
+            <article class="landing-feature">
+              <div class="landing-feature-copy"><h3>Connect</h3><p>Type @ to link a related note. Nest supporting ideas underneath and follow connected thoughts without losing their context.</p></div>
+              {% include "pages/landing/artifacts/connect.html" %}
+            </article>
+            <article class="landing-feature">
+              <div class="landing-feature-copy"><h3>Write</h3><p>Capture notes and tasks from your keyboard. Add a new line, move it into place and build an outline as you go.</p></div>
+              {% include "pages/landing/artifacts/write.html" %}
+            </article>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
   <footer class="remdo-footer landing-footer landing-container">
     <div class="remdo-footer-start">
