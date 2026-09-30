@@ -87,32 +87,57 @@ it('identifies itself with the app icon and tells clients how to use RemDo', asy
   });
 });
 
-it('marks reads as read-only, appends and creates as non-destructive, and overwrites as destructive so clients can gate confirmation', async () => {
+it('advertises complete safety annotations and OAuth requirements for every tool', async () => {
   const post = await start();
   authorizeStatus = 200;
 
-  const { tools } = await rpc(post, 'tools/list', {}) as { tools: Array<{ name: string; title?: string; annotations?: object }> };
+  const { tools } = await rpc(post, 'tools/list', {}) as {
+    tools: Array<{ name: string; title?: string; annotations?: object; _meta?: object }>;
+  };
 
   expect(Object.fromEntries(tools.map(({ name, title, annotations }) => [name, { title, annotations }]))).toMatchObject({
-    list_documents: { title: 'List documents', annotations: { title: 'List documents', readOnlyHint: true } },
-    read_document: { title: 'Read document', annotations: { title: 'Read document', readOnlyHint: true } },
+    list_documents: {
+      title: 'List documents',
+      annotations: { title: 'List documents', readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    },
+    read_document: {
+      title: 'Read document',
+      annotations: { title: 'Read document', readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    },
     create_document: {
       title: 'Create document',
-      annotations: { title: 'Create document', readOnlyHint: false, destructiveHint: false },
+      annotations: { title: 'Create document', readOnlyHint: false, destructiveHint: false, openWorldHint: false },
     },
     append_children: {
       title: 'Append notes',
-      annotations: { title: 'Append notes', readOnlyHint: false, destructiveHint: false },
+      annotations: { title: 'Append notes', readOnlyHint: false, destructiveHint: false, openWorldHint: false },
     },
     rename_document: {
       title: 'Rename document',
-      annotations: { title: 'Rename document', readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+      annotations: {
+        title: 'Rename document',
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
     },
     set_child_list_type: {
       title: 'Set list type',
-      annotations: { title: 'Set list type', readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+      annotations: {
+        title: 'Set list type',
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
     },
   });
+  for (const tool of tools) {
+    expect(tool._meta).toMatchObject({
+      securitySchemes: [{ type: 'oauth2', scopes: ['openid'] }],
+    });
+  }
 });
 
 it.each([
