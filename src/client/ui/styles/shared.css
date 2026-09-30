@@ -1,6 +1,7 @@
 @import '@mantine/core/styles/baseline.css';
 @import '@mantine/core/styles/global.css';
 @import '@mantine/core/styles/default-css-variables.css';
+@import './fonts.css';
 @import './tokens.css';
 @import './shell.css';
 @import './header.css';

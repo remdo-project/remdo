@@ -5,10 +5,10 @@
   justify-content: space-between;
   gap: var(--mantine-spacing-xs) var(--mantine-spacing-lg);
   margin-top: auto;
-  padding: 16px 32px;
-  border-top: 1px solid rgb(255 255 255 / 7%);
-  font-size: 13px;
-  line-height: 1.5;
+  padding-block: 1.5rem 2rem;
+  border-top: 1px solid var(--mantine-color-dark-4);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   color: var(--mantine-color-dark-1);
 }
 
@@ -33,7 +33,7 @@
 
 .remdo-footer a:hover,
 .remdo-footer a:focus-visible {
-  color: var(--mantine-color-gray-0);
+  color: var(--mantine-color-dark-0);
   text-decoration: underline;
 }
 

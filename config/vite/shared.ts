@@ -78,13 +78,13 @@ export function createViteSharedConfig() {
       privateRouteGuard,
       ...(config.env.SENTRY_DSN ? [errorReportForwarding(config.env.SENTRY_DSN)] : []),
       VitePWA({
-        includeAssets: ['icons/*.svg', 'logo.svg'],
+        includeAssets: ['icons/*.svg', 'logo.svg', 'site-assets/fonts/dm-sans-*.woff2'],
         registerType: 'autoUpdate',
         manifest: {
           name: 'RemDo',
           short_name: 'RemDo',
-          background_color: '#17151f',
-          theme_color: '#17151f',
+          background_color: '#1e1e1e',
+          theme_color: '#1e1e1e',
           icons: [
             {
               src: 'icon-192.png',

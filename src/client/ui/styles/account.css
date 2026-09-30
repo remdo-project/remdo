@@ -120,7 +120,7 @@
 .remdo-account-button-accent {
   border-color: transparent;
   background: var(--remdo-accent);
-  color: var(--remdo-backdrop);
+  color: var(--remdo-surface);
 }
 
 .remdo-account-button-accent:hover {

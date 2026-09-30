@@ -278,11 +278,12 @@ review can focus on one area at a time.
 6. Sign-in.
 
 Decide content changes and contract exceptions in the commit that introduces
-them. The app shell and editor re-theme is a separate change, and the app's
-signed-out screen follows it. The other allauth pages (connected apps,
-delegation refused, closed sign-up, OIDC authorization) keep the card layout
-and the old header and footer until they follow. The Figma Team section moves
-to the About page, where its bios are reconciled with the current team list.
+them. The app shell re-theme is a separate change. The editor surface
+(document location strip, rows, menus, interaction states) and the app's
+signed-out screen follow it; the signed-out screen and the other allauth pages
+(connected apps, delegation refused, closed sign-up, OIDC authorization) keep
+their card layout until then. The Figma Team section moves to the About page,
+where its bios are reconciled with the current team list.
 
 Structural follow-ups, before Terms and Privacy:
 
@@ -301,6 +302,9 @@ CLI.
   because Playwright draws the pointer only together with the captions.
 - **Development markers.** Recordings still show the dev-tools switch and the
   footer's "Local development" label, which production lacks.
+- **Pre-redesign look.** The chapters and the chat mock (`tools/demo/chat.ts`)
+  predate the site and app re-theme; re-record them once the editor surface
+  follows the Figma workspace frames.
 - **Real claude.ai footage.** Ask Anthropic whether scripted demo recording
   through a dedicated claude.ai account is acceptable; if so, drive claude.ai
   in place of the demo chat surface.

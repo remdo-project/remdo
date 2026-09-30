@@ -6,7 +6,7 @@
   background-color: var(--mantine-color-dark-6);
   box-sizing: border-box;
   position: relative;
-  padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl);
+  padding: var(--mantine-spacing-lg) var(--remdo-body-inset);
   --note-control-size: 0.85em;
   --note-control-gap: 0.35em;
   --note-controls-strip-width: calc(var(--note-control-size) * 2 + var(--note-control-gap));
@@ -133,7 +133,7 @@
 .editor-placeholder {
   position: absolute;
   top: var(--mantine-spacing-lg);
-  left: var(--mantine-spacing-xl);
+  left: var(--remdo-body-inset);
   color: var(--mantine-color-dark-3);
   pointer-events: none;
   user-select: none;
@@ -550,9 +550,8 @@
   padding: 6px 8px;
   padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
   background-color: var(--mobile-action-toolbar-fill);
-  /* Same frosted-glass material as the shell/header; -webkit- prefix so the
-     blur renders on iOS Safari (the toolbar's primary target), which the
-     project prefixes by hand (no autoprefixer). */
+  /* -webkit- prefix so the blur renders on iOS Safari (the toolbar's primary
+     target), which the project prefixes by hand (no autoprefixer). */
   backdrop-filter: blur(var(--remdo-glass-blur));
   -webkit-backdrop-filter: blur(var(--remdo-glass-blur));
   border-top: 1px solid var(--mantine-color-dark-4);

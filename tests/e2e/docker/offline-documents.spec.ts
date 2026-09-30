@@ -60,6 +60,7 @@ test('reopens persisted content offline and delivers offline edits after reconne
     // Online, the server decides what `/` shows; offline, the stored app page opens Home.
     await offline.goto('/');
     await expect(offline.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
+    await expect.poll(() => offline.evaluate(async () => (await document.fonts.load('400 16px "DM Sans"')).length)).toBeGreaterThan(0);
     await offline.goto(`/n/${docId}`);
     await waitForEditableEditor(offline);
     await expect(offline.locator('.editor-input')).toContainText('Offline persisted document');
