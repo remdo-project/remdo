@@ -14,6 +14,7 @@ def required(name):
 
 
 DEBUG = False
+OPENAI_APPS_CHALLENGE = os.environ.get("OPENAI_APPS_CHALLENGE", "")
 BUILD_REVISION = os.environ.get("BUILD_REVISION", "").strip()
 DATA_DIR = Path(required("DATA_DIR")).resolve()
 DATA_DIR.mkdir(parents=True, exist_ok=True)

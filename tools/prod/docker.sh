@@ -91,7 +91,7 @@ if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
 fi
 
 DOCKER_ENV_ARGS=(-e APP_ORIGIN="${APP_ORIGIN}" -e DATABASE_URL="${DATABASE_URL:-}")
-for optional_variable in REMDO_ADMIN_PASSWORD REMDO_USER_PASSWORD GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET SENTRY_DSN; do
+for optional_variable in REMDO_ADMIN_PASSWORD REMDO_USER_PASSWORD GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET SENTRY_DSN OPENAI_APPS_CHALLENGE; do
   if [[ -n "${!optional_variable:-}" ]]; then
     DOCKER_ENV_ARGS+=(-e "${optional_variable}=${!optional_variable}")
   fi

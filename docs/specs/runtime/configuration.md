@@ -140,6 +140,13 @@ Both unset leaves it disabled and unrouted; setting only one fails at startup.
 Google must allow `<APP_ORIGIN>/accounts/google/login/callback/` as a redirect
 URI.
 
+## OpenAI app domain verification
+
+`OPENAI_APPS_CHALLENGE` is an optional server-only environment variable. When
+non-empty, unauthenticated `GET /.well-known/openai-apps-challenge` returns its
+exact value as `text/plain`, without trimming or adding a newline. Unset or empty
+returns 404.
+
 ## Home video
 
 `HOME_VIDEO_URL` locates the [demo video](../demo/demo-video.md), in MP4, that the
