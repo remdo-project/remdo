@@ -1,5 +1,5 @@
 /* Colours copied from the outliner's semantic palette, so the illustrations read as the real editor. */
-.landing-artifact {
+.landing-artifact, .landing-assistant {
   --outliner-bg: #1e1e1e;
   --outliner-panel: #242424;
   --outliner-border: #424242;
@@ -13,6 +13,8 @@
   --outliner-collab-wolf: #006496;
   --outliner-collab-wolf-selection: rgb(0 100 150 / 30%);
   --outliner-collab-label: #fff;
+}
+.landing-artifact {
   position: relative;
   container-type: inline-size;
   width: 100%;

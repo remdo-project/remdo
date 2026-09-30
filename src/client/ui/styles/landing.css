@@ -135,6 +135,12 @@
   font-weight: 500;
   line-height: 24px;
 }
+.landing-link {
+  display: inline-block;
+  margin-top: 16px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 .landing-copy p {
   color: var(--landing-secondary-text);
 }

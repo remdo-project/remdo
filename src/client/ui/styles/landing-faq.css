@@ -59,6 +59,13 @@
   color: var(--landing-secondary-text);
   text-align: center;
 }
+.landing-faq details p a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.landing-faq details p a:hover {
+  color: var(--landing-primary-text);
+}
 @media (max-width: 47.99em) {
   .landing-faq {
     gap: 40px;
