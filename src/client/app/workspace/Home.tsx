@@ -25,7 +25,7 @@ export default function Home() {
   }, []);
 
   return (
-    <Container className="document-route-container" component="main" fluid py="xs">
+    <Container className="document-route-container" component="main" fluid>
       {status.error && (
         <Alert color="red" title="Could not load documents">
           <Stack align="flex-start" gap="xs">

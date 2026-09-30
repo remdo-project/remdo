@@ -262,24 +262,6 @@ RemDo document, minimal but useful for real work.
   `src/platform/net/django-request.ts` was confirmed only against gunicorn;
   fakes and the Docker E2E path did not reproduce the crash deterministically.
 
-### Landing redesign
-
-The public pages, the app shell, and the shared header and footer follow the
-[final Figma design](https://www.figma.com/design/doTT65AwFC2WqcvUBh1Tjn/).
-Remaining:
-
-- **Editor surface.** Restyle the document location strip, rows, menus, and
-  interaction states to the workspace frames.
-- **Team section.** The Figma Team section moves to the About page, where its
-  bios are reconciled with the current team list.
-- **Cross-fade page loads.** Cross-document view transitions throw an unhandled
-  "Transition was aborted" error when the next page has not opted in (the login
-  handoff, Django administration), which fails the harness and reaches users'
-  consoles. Revisit with `pageswap` and `pagereveal` handling.
-- **App header links appear on hydration.** Rendering About on the server
-  would end the pop-in but changes the [connection-unavailable
-  state](architecture.md#shared-presentation), which hides the header links.
-
 ### Demo video
 
 The [demo video](specs/demo/demo-video.md) records every chapter from the local
