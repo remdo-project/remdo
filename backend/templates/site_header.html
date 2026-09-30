@@ -1,0 +1,13 @@
+<header class="landing-site-header landing-container">
+  <a class="landing-wordmark" href="/" aria-label="RemDo home">RemDo</a>
+  <nav aria-label="Primary" class="landing-site-links">
+    <a href="/about/"{% if request.path == '/about/' %} aria-current="page"{% endif %}>About</a>
+    {% if user.is_authenticated %}
+      {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
+      <a href="/sign-out/">Logout</a>
+    {% else %}
+      {% url 'account_login' as login_url %}
+      <a href="{{ login_url }}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}"{% if request.path == login_url %} aria-current="page"{% endif %}>Sign in</a>
+    {% endif %}
+  </nav>
+</header>

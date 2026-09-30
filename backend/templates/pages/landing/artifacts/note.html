@@ -1,0 +1,13 @@
+<div class="landing-artifact-note">
+  <img class="landing-artifact-handle" src="/site-assets/note-handle.svg" alt="">
+  {% if checked %}
+    <span class="landing-artifact-checkbox"><img src="/site-assets/checkbox-check.svg" alt=""></span>
+  {% elif checkbox %}
+    <span class="landing-artifact-checkbox"></span>
+  {% endif %}
+  {% if heading %}
+    <p class="landing-artifact-heading">{{ text }}</p>
+  {% else %}
+    <p class="landing-artifact-text{% if link %} landing-artifact-text--link{% elif checked %} landing-artifact-text--completed{% endif %}">{{ text }}</p>
+  {% endif %}
+</div>

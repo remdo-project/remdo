@@ -1,0 +1,29 @@
+<figure class="landing-artifact" role="img" aria-label="Tom and Henry collaborate on a launch plan, with their cursors and selected text visible in the same outline.">
+  <div class="landing-artifact-scene" aria-hidden="true">
+    <img class="landing-artifact-background" src="/site-assets/collaborate.webp" alt="" loading="lazy" decoding="async">
+    <div class="landing-artifact-window">
+      <p class="landing-artifact-document">Atlas (launch)</p>
+      <div class="landing-artifact-row landing-artifact-row--spaced">
+        {% include "pages/landing/artifacts/note.html" with text="Launch plan" heading=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        {% include "pages/landing/artifacts/note.html" with text="Review the draft" checkbox=True only %}
+        <span class="landing-artifact-peer landing-artifact-peer--tom"><span class="landing-artifact-peer-name">Tom</span></span>
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        <span class="landing-artifact-peer-selection"></span>
+        {% include "pages/landing/artifacts/note.html" with text="Send the final draft to Maya" checkbox=True only %}
+        <span class="landing-artifact-peer landing-artifact-peer--henry"><span class="landing-artifact-peer-name">Henry</span></span>
+      </div>
+      <div class="landing-artifact-row">
+        {% include "pages/landing/artifacts/note.html" with text="Next steps" heading=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        {% include "pages/landing/artifacts/note.html" with text="Prepare the launch checklist" checkbox=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        {% include "pages/landing/artifacts/note.html" with text="Customer conversations" link=True only %}
+      </div>
+    </div>
+  </div>
+</figure>

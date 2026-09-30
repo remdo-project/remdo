@@ -1,0 +1,153 @@
+@import './landing-fonts.css';
+
+:root {
+  --landing-page: #f3efe9;
+  --landing-primary-text: #15120f;
+  --landing-secondary-text: #6f6a65;
+  --landing-text-resting: #807a74;
+  --landing-border: #cec7c0;
+  --landing-dark-surface: #12100d;
+  --landing-light-text: #f3efe9;
+  --landing-muted-light-text: #b9b4ae;
+  --landing-dark-outline: #615b54;
+  --landing-footer-black: #080808;
+  --landing-radius: 3px;
+  --landing-gutter: clamp(24px, 5.5556vw, 80px);
+  --landing-font-sans: 'DM Sans', system-ui, sans-serif;
+  --landing-font-serif: Tinos, 'Times New Roman', Times, serif;
+}
+
+.remdo-landing {
+  min-height: 100svh;
+  background: var(--landing-dark-surface);
+  color: var(--landing-light-text);
+  font-family: var(--landing-font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 25px;
+  letter-spacing: -0.1px;
+}
+.remdo-landing :where(h1, h2, h3, p) {
+  margin: 0;
+}
+.remdo-landing :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+.remdo-landing :where(button, input) {
+  font: inherit;
+}
+.remdo-landing :where(a, button, input):focus-visible {
+  outline: 2px solid var(--landing-light-text);
+  outline-offset: 4px;
+}
+.landing-wordmark {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 34px;
+  letter-spacing: -1.2px;
+}
+.landing-container {
+  width: calc(100% - 2 * var(--landing-gutter));
+  max-width: 1280px;
+  margin-inline: auto;
+}
+.landing-visually-hidden, .landing-skip:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.landing-skip:focus {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  left: var(--landing-gutter);
+  padding: 8px;
+  background: var(--landing-light-text);
+  color: var(--landing-primary-text);
+}
+.landing-button, .remdo-landing .remdo-google-button {
+  min-height: 56px;
+  padding: 16px 24px;
+  border: 0;
+  border-radius: var(--landing-radius);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  letter-spacing: -0.1px;
+}
+.landing-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--landing-light-text);
+  color: var(--landing-primary-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+.landing-button--outline {
+  border: 1px solid var(--landing-dark-outline);
+  background: transparent;
+  color: var(--landing-light-text);
+}
+.landing-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.landing-button:not(:disabled):hover {
+  background: #ded8d1;
+}
+.landing-button--outline:not(:disabled):hover {
+  background: #27231f;
+}
+/* Google's branding rules allow only its Light, Dark, and Neutral button themes and the standard-colour G. */
+.remdo-landing .remdo-google-button {
+  background: #f2f2f2;
+  color: #1f1f1f;
+}
+.remdo-landing .remdo-google-button:hover {
+  background: color-mix(in srgb, #1f1f1f 8%, #f2f2f2);
+}
+.landing-light {
+  background: var(--landing-page);
+  color: var(--landing-primary-text);
+}
+.landing-light :where(a, button, input, summary):focus-visible {
+  outline-color: var(--landing-primary-text);
+}
+/* Type shared by the sections on the light surface. */
+.landing-features h2, .landing-chat h2, .landing-faq h2 {
+  font-family: var(--landing-font-serif);
+  font-size: 62px;
+  font-weight: 400;
+  line-height: 66px;
+  letter-spacing: -1.1px;
+}
+.landing-copy h3 {
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+.landing-link {
+  display: inline-block;
+  margin-top: 16px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.landing-copy p {
+  color: var(--landing-secondary-text);
+}
+@media (max-width: 47.99em) {
+  .landing-features h2, .landing-chat h2, .landing-faq h2 {
+    font-size: 40px;
+    line-height: 44px;
+    letter-spacing: 0;
+  }
+}

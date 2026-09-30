@@ -12,8 +12,10 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
+from django.urls import path as route
 
 from .models import User
+from .views import LoginView
 
 
 class DeploymentAccountTests(TestCase):
@@ -92,6 +94,10 @@ class DeploymentAccountTests(TestCase):
         self.assertFalse(User.objects.filter(email="admin@example.test").exists())
 
 
+class NoGoogleLoginUrls:
+    urlpatterns = [route("accounts/login/", LoginView.as_view(), name="account_login")]
+
+
 @override_settings(
     ALLOWED_HOSTS=["testserver"], CSRF_TRUSTED_ORIGINS=["http://testserver"], DEBUG=True
 )
@@ -140,6 +146,39 @@ class LoginPageTests(TestCase):
         self.assertEqual(cookie["max-age"], 3600)
         self.assertTrue(cookie["expires"])
         self.assertFalse(self.client.session.get_expire_at_browser_close())
+
+    def test_page_offers_google_before_the_password_form(self):
+        content = self.client.get("/accounts/login/").content.decode()
+        self.assertRegex(content, r'(?s)Sign in with Google.*?>\s*or\s*<.*?name="login"')
+
+    @override_settings(ROOT_URLCONF=NoGoogleLoginUrls)
+    def test_page_shows_only_the_password_form_when_google_is_unconfigured(self):
+        response = self.client.get("/accounts/login/")
+        self.assertContains(response, 'name="login"')
+        self.assertNotContains(response, "Sign in with Google")
+        self.assertNotRegex(response.content.decode(), r">\s*or\s*<")
+
+    def test_page_keeps_the_requested_destination_in_its_link_and_forms(self):
+        response = self.client.get("/accounts/login/?next=/n/exampleDoc")
+        self.assertContains(
+            response,
+            '<a href="/accounts/login/?next=/n/exampleDoc" aria-current="page">Sign in</a>',
+            html=True,
+        )
+        self.assertContains(
+            response, '<input type="hidden" name="next" value="/n/exampleDoc">', html=True, count=2
+        )
+
+    def test_page_links_the_site_header_and_footer(self):
+        response = self.client.get("/accounts/login/")
+        self.assertContains(response, '<a href="/about/">About</a>', html=True)
+        self.assertContains(response, '<a href="/privacy/">Privacy</a>', html=True)
+        self.assertContains(response, '<a href="/terms/">Terms</a>', html=True)
+        self.assertContains(
+            response,
+            '<a href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">Source</a>',
+            html=True,
+        )
 
     def test_login_requires_csrf_and_rejects_untrusted_origins(self):
         self.assertEqual(self.client.post("/accounts/login/", {}).status_code, 403)
@@ -322,13 +361,21 @@ class LoginPageTests(TestCase):
                         "src/client/ui/styles/shared.css": {
                             "file": "app-assets/shared-test.js",
                             "css": ["app-assets/shared-test.css"],
-                        }
+                        },
+                        "src/client/ui/styles/site.css": {
+                            "file": "app-assets/site-test.css",
+                            "isEntry": True,
+                        },
                     }
                 )
             )
             with override_settings(FRONTEND_USE_SOURCE=False, FRONTEND_MANIFEST=manifest):
                 response = self.client.get("/accounts/login/")
+        content = response.content.decode()
         self.assertContains(response, 'href="/app-assets/shared-test.css"')
+        self.assertLess(
+            content.index("/app-assets/shared-test.css"), content.index("/app-assets/site-test.css")
+        )
         self.assertNotContains(response, "<script")
         self.assertContains(response, 'autocomplete="current-password"')
 

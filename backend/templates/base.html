@@ -14,7 +14,7 @@
     {% endblock %}
     {% block extra_head %}{% endblock %}
   </head>
-  <body>
+  <body class="{% block body_class %}{% endblock %}">
     {% block body %}
       <div class="remdo-backdrop">
         <div class="remdo-shell">

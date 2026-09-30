@@ -1,0 +1,15 @@
+<section class="landing-story landing-container" aria-label="About RemDo">
+  <p>Finding where Picasso spent the summer of 1911 takes seconds. Finding what you agreed last Tuesday takes far longer.</p>
+  <p>The answer is scattered across notes, emails and shared files. RemDo connects those pieces without moving them. Follow the connections from any one of them, and add your own. Keep your tools; your data stays where you want it.</p>
+  {% include "pages/landing/status.html" %}
+  <div class="landing-signup">
+    <h2 id="landing-signup-heading">Hear when email and calendar connections ship.</h2>
+    {# TODO: The signup has no subscription endpoint, and the privacy policy does not cover the emails it would collect. Enable it once both exist (probe: the button no longer has `disabled`). #}
+    <div class="landing-signup-fields" role="group" aria-labelledby="landing-signup-heading">
+      <label class="landing-visually-hidden" for="landing-email">Your email address</label>
+      <input id="landing-email" type="email" name="email" autocomplete="email" placeholder="Your email address" aria-describedby="landing-signup-note">
+      <button class="landing-button" type="button" disabled>Keep me posted</button>
+    </div>
+    <p id="landing-signup-note">Get an email when we release something new.</p>
+  </div>
+</section>

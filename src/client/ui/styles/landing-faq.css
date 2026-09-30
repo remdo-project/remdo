@@ -1,0 +1,83 @@
+.landing-faq {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 64px;
+  padding-block: 32px 128px;
+}
+.landing-faq h2 {
+  text-align: center;
+}
+.landing-faq-list {
+  width: 100%;
+  max-width: 896px;
+  border-top: 1px solid var(--landing-border);
+}
+.landing-faq details {
+  border-bottom: 1px solid var(--landing-border);
+}
+.landing-faq summary {
+  display: grid;
+  grid-template-columns: 24px 1fr 24px;
+  gap: 16px;
+  padding-block: 24px;
+  color: var(--landing-secondary-text);
+  font-size: 22px;
+  line-height: 32px;
+  letter-spacing: -0.2px;
+  text-align: center;
+  list-style: none;
+  cursor: pointer;
+}
+.landing-faq summary:focus-visible {
+  outline: 2px solid currentcolor;
+  outline-offset: -2px;
+}
+.landing-faq summary::-webkit-details-marker {
+  display: none;
+}
+.landing-faq summary::before {
+  content: '';
+}
+.landing-faq summary::after {
+  content: '+';
+  content: '+' / '';
+  color: var(--landing-secondary-text);
+}
+.landing-faq summary:hover, .landing-faq details[open] summary {
+  color: var(--landing-primary-text);
+}
+.landing-faq details[open] summary {
+  padding-bottom: 16px;
+}
+.landing-faq details[open] summary::after {
+  content: '\2212';
+  content: '\2212' / '';
+}
+.landing-faq details p {
+  padding: 0 40px 24px;
+  color: var(--landing-secondary-text);
+  text-align: center;
+}
+.landing-faq details p a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.landing-faq details p a:hover {
+  color: var(--landing-primary-text);
+}
+@media (max-width: 47.99em) {
+  .landing-faq {
+    gap: 40px;
+    padding-bottom: 80px;
+  }
+  .landing-faq summary {
+    grid-template-columns: 16px 1fr 16px;
+    gap: 8px;
+    font-size: 18px;
+    line-height: 26px;
+  }
+  .landing-faq details p {
+    padding-inline: 0;
+  }
+}

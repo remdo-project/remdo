@@ -14,6 +14,8 @@ describe('vite shared config', () => {
     fs.mkdirSync(path.join(root, 'public/playground'), { recursive: true });
     fs.writeFileSync(path.join(root, 'public/playground/index.html'), '<h1>Explorer</h1>');
     fs.writeFileSync(path.join(root, 'public/logo.svg'), '<svg/>');
+    fs.mkdirSync(path.join(root, 'public/site-assets'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'public/site-assets/asset.txt'), 'site asset');
     const receivedHeaders: http.IncomingHttpHeaders[] = [];
     const djangoPages: Record<string, string> = { '/about/': 'Public page from Django' };
     for (const url of ['/', '/n/example', '/sign-out', '/dev/lexical-demo']) djangoPages[url] = 'App page from Django';
@@ -50,6 +52,8 @@ describe('vite shared config', () => {
       expect(await explorer.text()).toContain('<h1>Explorer</h1>');
       const logo = await fetch(new URL('/logo.svg?version=1', origin));
       expect(await logo.text()).toBe('<svg/>');
+      const siteAsset = await fetch(new URL('/site-assets/asset.txt', origin));
+      expect(await siteAsset.text()).toBe('site asset');
       for (const url of ['/internal/collaboration/documents/private/authorize', '/%69nternal/collaboration/documents/private/content']) {
         const before = receivedHeaders.length;
         const response = await fetch(new URL(url, origin));

@@ -5,6 +5,7 @@ from django.conf import settings
 
 register = template.Library()
 SHARED_STYLES = "src/client/ui/styles/shared.css"
+SITE_STYLES = "src/client/ui/styles/site.css"
 APP_ENTRY = "src/client/app/shell/main.tsx"
 
 
@@ -12,11 +13,23 @@ def load_manifest():
     return json.loads(settings.FRONTEND_MANIFEST.read_text())
 
 
+def entry_styles_urls(entry):
+    if settings.FRONTEND_USE_SOURCE:
+        return [f"/{entry}"]
+    chunk = load_manifest()[entry]
+    # A stylesheet nothing else imports is emitted as the entry file itself.
+    assets = [chunk["file"]] if chunk["file"].endswith(".css") else chunk["css"]
+    return [f"/{asset}" for asset in assets]
+
+
 @register.simple_tag
 def shared_styles_urls():
-    if settings.FRONTEND_USE_SOURCE:
-        return [f"/{SHARED_STYLES}"]
-    return [f"/{asset}" for asset in load_manifest()[SHARED_STYLES]["css"]]
+    return entry_styles_urls(SHARED_STYLES)
+
+
+@register.simple_tag
+def site_styles_urls():
+    return entry_styles_urls(SITE_STYLES)
 
 
 @register.simple_tag

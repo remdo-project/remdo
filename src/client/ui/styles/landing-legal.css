@@ -1,0 +1,96 @@
+.landing-legal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 96px;
+  padding-block: 48px;
+}
+.landing-legal-article {
+  color: var(--landing-muted-light-text);
+  font-size: 18px;
+  line-height: 30px;
+  letter-spacing: -0.1px;
+}
+.landing-legal-article h1, .landing-legal-article h2 {
+  color: var(--landing-light-text);
+  font-family: var(--landing-font-serif);
+  font-weight: 400;
+}
+.landing-legal-article h1 {
+  font-size: 62px;
+  line-height: 66px;
+  letter-spacing: -1.1px;
+}
+.landing-legal-article h2 {
+  margin-top: 48px;
+  margin-bottom: 16px;
+  font-size: 36px;
+  line-height: 42px;
+  letter-spacing: -0.4px;
+}
+.landing-legal-article p, .landing-legal-article ul, .landing-legal-article ol {
+  margin-bottom: 16px;
+}
+.landing-legal-article ul, .landing-legal-article ol {
+  padding-left: 27px;
+}
+.landing-legal-article li + li {
+  margin-top: 12px;
+}
+.landing-legal-article > h1 + p {
+  margin-top: 32px;
+}
+.landing-legal-article > h1 + p:has(> strong:first-child), .landing-legal-article > h1 + p:has(> em:only-child) {
+  margin-top: 16px;
+  margin-bottom: 32px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--landing-dark-outline);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+}
+.landing-legal-article > :last-child {
+  margin-bottom: 0;
+}
+.landing-legal-article strong {
+  color: var(--landing-light-text);
+  font-weight: 600;
+}
+.landing-legal-article a {
+  color: var(--landing-light-text);
+  text-decoration: underline;
+  text-underline-position: from-font;
+}
+.landing-legal-article a:hover {
+  color: var(--landing-muted-light-text);
+}
+.landing-legal-column {
+  width: calc(100% - 2 * var(--landing-gutter));
+  max-width: 720px;
+}
+.landing-legal .landing-site-footer {
+  width: calc(100% - 2 * var(--landing-gutter));
+  max-width: 720px;
+  padding-top: 24px;
+  border-top: 1px solid var(--landing-dark-outline);
+}
+@media (max-width: 47.99em) {
+  .landing-legal {
+    gap: 56px;
+    padding-block: 24px 40px;
+  }
+  .landing-legal-article {
+    font-size: 16px;
+    line-height: 26px;
+  }
+  .landing-legal-article h1 {
+    font-size: 40px;
+    line-height: 44px;
+    letter-spacing: 0;
+  }
+  .landing-legal-article h2 {
+    margin-top: 40px;
+    font-size: 28px;
+    line-height: 34px;
+  }
+}

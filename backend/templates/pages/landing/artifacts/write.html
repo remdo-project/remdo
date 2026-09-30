@@ -1,0 +1,31 @@
+<figure class="landing-artifact" role="img" aria-label="An outline for September 23, 2026 shows a completed launch note, upcoming tasks, and a text caret after Add one more idea.">
+  <div class="landing-artifact-scene" aria-hidden="true">
+    <img class="landing-artifact-background" src="/site-assets/write.webp" alt="" loading="lazy" decoding="async">
+    <div class="landing-artifact-window">
+      <p class="landing-artifact-document">Alex (this week)</p>
+      <div class="landing-artifact-row landing-artifact-row--dated">
+        {% include "pages/landing/artifacts/note.html" with text="Today" heading=True only %}
+        <span class="landing-artifact-date">Sep 23, 2026</span>
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        {% include "pages/landing/artifacts/note.html" with text="Draft the launch note" checked=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        {% include "pages/landing/artifacts/note.html" with text="Review the opening scene" checkbox=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        {% include "pages/landing/artifacts/note.html" with text="Send the final draft" checkbox=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--later">
+        {% include "pages/landing/artifacts/note.html" with text="Later" heading=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        {% include "pages/landing/artifacts/note.html" with text="Plan next week" checkbox=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        <span class="landing-artifact-caret landing-artifact-caret--writing"></span>
+        {% include "pages/landing/artifacts/note.html" with text="Add one more idea" only %}
+      </div>
+    </div>
+  </div>
+</figure>

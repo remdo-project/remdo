@@ -1,0 +1,20 @@
+<section class="landing-hero landing-container" aria-label="Introduction">
+  <div class="landing-introduction">
+    <h1 class="landing-title">Start from what you remember.</h1>
+    <p class="landing-subline">Your tools already hold what you know. RemDo helps them work together: notes and AI assistants today, email, calendar and files next.</p>
+    <div class="landing-hero-actions">
+      {% include "pages/landing/sign_in.html" %}
+      <a class="landing-button landing-button--outline" href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">
+        <img src="/site-assets/github.svg" alt="" width="20" height="20">Star us on GitHub
+      </a>
+    </div>
+  </div>
+  {% if video %}
+  <div class="landing-video-background">
+    <img class="landing-video-artwork" src="/site-assets/hero-background.webp" alt="" width="1672" height="941" fetchpriority="high">
+    <video class="landing-video" aria-label="RemDo demo" controls playsinline poster="{{ video.poster }}" preload="none">
+      <source src="{{ video.url }}" type="video/mp4">
+    </video>
+  </div>
+  {% endif %}
+</section>

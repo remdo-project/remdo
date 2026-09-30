@@ -1,63 +1,26 @@
 {% extends "base.html" %}
-{% block extra_head %}
-  <meta name="description" content="RemDo is a keyboard-first collaborative outliner for organizing and connecting notes.">
-  <link rel="canonical" href="{{ canonical }}">
+{% block styles %}
+  {{ block.super }}
+  {% include "site_styles.html" %}
 {% endblock %}
-{% block content %}
-  <main class="remdo-home">
-    <div class="remdo-home-intro">
-      <p class="remdo-home-eyebrow">Keyboard-first collaborative outliner</p>
-      <h1 class="remdo-home-title">RemDo</h1>
-      <p class="remdo-home-lead">
-        An open-source workspace for people whose work depends on information spread across many
-        tools. Start with whatever part you remember and follow its connections to related
-        information.
-      </p>
-      <p class="remdo-home-lead">
-        Today, RemDo is a keyboard-first collaborative outliner: structure information, link notes and
-        documents, search within documents, edit together in real time, and work offline.
-      </p>
-      <p class="remdo-home-lead">Fully open source and designed to keep self-hosting a first-class option.</p>
-      <ul class="remdo-home-features">
-        <li>Keyboard-first outlining</li>
-        <li>Links between notes and documents</li>
-        <li>Real-time collaboration</li>
-        <li>Works offline</li>
-      </ul>
-      {% include "accounts/google_login.html" %}
-    </div>
-    {% if video %}
-    <figure class="remdo-home-preview remdo-home-video">
-      <video aria-label="RemDo demo" controls playsinline poster="{{ video.poster }}" preload="none">
-        <source src="{{ video.url }}" type="video/mp4">
-      </video>
-    </figure>
-    {% else %}
-    <figure aria-label="Example RemDo outline" class="remdo-home-preview" role="img">
-      <div class="remdo-home-preview-bar">Home / <strong>Today</strong></div>
-      <ul class="remdo-home-outline">
-        <li>
-          <strong>Today</strong> · <span class="remdo-home-date">Sep 23, 2026</span>
-          <ul>
-            <li class="remdo-home-task">Review the opening scene with Maya</li>
-            <li class="remdo-home-task">Send Nina the Aster concepts</li>
-          </ul>
-        </li>
-        <li>
-          <strong>This week</strong>
-          <ul>
-            <li><u>Atlas launch</u> · Prepare for October 2</li>
-            <li>Writing · <u>The cost of lost context</u></li>
-          </ul>
-        </li>
-        <li>
-          <strong>Already done</strong>
-          <ul>
-            <li class="remdo-home-task" data-done>Synthesize the customer conversations</li>
-          </ul>
-        </li>
-      </ul>
-    </figure>
-    {% endif %}
-  </main>
+{% block extra_head %}
+  <meta name="description" content="RemDo is a keyboard-first collaborative outliner that links your notes and works with your AI assistant. Email, calendar and file connections are next.">
+  <link rel="canonical" href="{{ canonical }}">
+  <link rel="preload" href="/site-assets/fonts/tinos-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/site-assets/fonts/dm-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+{% endblock %}
+{% block body_class %}remdo-landing{% endblock %}
+{% block body %}
+<a class="landing-skip" href="#landing-main">Skip to content</a>
+{% include "pages/landing/navigation.html" %}
+<main id="landing-main">
+  {% include "pages/landing/hero.html" %}
+  {% include "pages/landing/story.html" %}
+  <div class="landing-light">
+    {% include "pages/landing/features.html" %}
+    {% include "pages/landing/chat.html" %}
+    {% include "pages/landing/faq.html" %}
+  </div>
+</main>
+{% include "pages/landing/ending.html" %}
 {% endblock %}

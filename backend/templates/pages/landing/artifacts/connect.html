@@ -1,0 +1,40 @@
+<figure class="landing-artifact" role="img" aria-label="Typing @Atlas opens related notes, including Atlas launch and Finish the Atlas homepage draft, within an outline of research and ideas.">
+  <div class="landing-artifact-scene" aria-hidden="true">
+    <img class="landing-artifact-background" src="/site-assets/connect.webp" alt="" loading="lazy" decoding="async">
+    <div class="landing-artifact-window">
+      <p class="landing-artifact-document">Notes (research &amp; ideas)</p>
+      <div class="landing-artifact-row">
+        {% include "pages/landing/artifacts/note.html" with text="Keep the context close" heading=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        {% include "pages/landing/artifacts/note.html" with text="Customer conversations" link=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        <span class="landing-artifact-caret landing-artifact-caret--link"></span>
+        {% include "pages/landing/artifacts/note.html" with text="@Atlas" only %}
+      </div>
+      <div class="landing-artifact-row">
+        {% include "pages/landing/artifacts/note.html" with text="Supporting ideas" heading=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        {% include "pages/landing/artifacts/note.html" with text="Review the opening scene" checkbox=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        {% include "pages/landing/artifacts/note.html" with text="Collect the next questions" checkbox=True only %}
+      </div>
+      <div class="landing-artifact-row landing-artifact-row--nested">
+        {% include "pages/landing/artifacts/note.html" with text="Launch checklist" only %}
+      </div>
+      <div class="landing-artifact-results">
+        <div class="landing-artifact-result landing-artifact-result--selected">
+          <p class="landing-artifact-result-title">Atlas launch</p>
+          <p class="landing-artifact-result-context">This week</p>
+        </div>
+        <div class="landing-artifact-result">
+          <p class="landing-artifact-result-title">Finish the Atlas homepage draft</p>
+          <p class="landing-artifact-result-context">Today</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</figure>

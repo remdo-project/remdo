@@ -63,7 +63,7 @@ test('returning browsers revalidate files and retain server navigation responses
     await retiredRoutePage.close();
   }
 
-  for (const url of ['/sw.js', '/manifest.webmanifest', '/logo.svg', '/django-static/admin/css/base.css']) {
+  for (const url of ['/sw.js', '/manifest.webmanifest', '/logo.svg', '/site-assets/hero-background.webp', '/django-static/admin/css/base.css']) {
     const response = await page.request.get(url);
     expect(response.status(), url).toBe(200);
     expect(response.headers()['cache-control'], url).toBe('no-cache');

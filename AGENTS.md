@@ -57,10 +57,15 @@ change. Do not add update-tracking sections to durable documents.
   and commit there. Commit authority includes that branch creation.
 - A skill specification may grant autonomous repository authority only by
   declaring its permitted effects, scope, and lifecycle.
-  Undeclared staging or unstaging, branch or ref changes, stashing, resets, and
-  index rewrites require an explicit user request.
-- Staged versus unstaged state does not signal completion, approval, protection,
-  or task scope; edit files required by the task regardless of that state.
+  Undeclared branch or ref changes, stashing, and resets require an explicit
+  user request.
+- The index is the developer's review ledger: staged content is what they have
+  reviewed, and the working-tree diff is what changed since. Leave the index
+  unchanged, whatever its state, unless the developer asks, an invoked skill
+  declares the effect, or an authorized commit needs it. Commit with explicit
+  paths (`git commit -- <paths>`) so the commit holds exactly the authorized
+  paths, and add only the new files that commit needs. Staged state never limits
+  edits: edit files required by the task regardless of it.
 - Ordinary `git fetch` is allowed. Pulling, rebasing, opening a pull request,
   and fetches with caller-supplied mutating refspecs require explicit user
   authority. Pushing always requires a separate explicit user request.

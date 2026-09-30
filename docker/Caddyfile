@@ -65,7 +65,7 @@
 			}
 		}
 
-		@app_assets path /app-assets/* /icons/* /logo.svg /icon-192.png /icon-512.png /icon-maskable-512.png /manifest.webmanifest /sw.js /workbox-*.js /registerSW.js
+		@app_assets path /app-assets/* /site-assets/* /icons/* /logo.svg /icon-192.png /icon-512.png /icon-maskable-512.png /manifest.webmanifest /sw.js /workbox-*.js /registerSW.js
 		handle @app_assets {
 			root * /srv/remdo
 			file_server

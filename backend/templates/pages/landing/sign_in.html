@@ -1,0 +1,6 @@
+{% url 'google_login' as google_login_url %}
+{% if google_login_url %}
+{% include "accounts/google_login.html" %}
+{% else %}
+<a class="landing-button" href="{% url 'account_login' %}">Sign in</a>
+{% endif %}
