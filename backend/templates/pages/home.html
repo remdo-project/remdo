@@ -1,23 +1,26 @@
 {% extends "base.html" %}
+{% block styles %}
+  {{ block.super }}
+  {% include "site_styles.html" %}
+{% endblock %}
 {% block extra_head %}
   <meta name="description" content="RemDo is a keyboard-first collaborative outliner for organizing and connecting notes.">
   <link rel="canonical" href="{{ canonical }}">
   <link rel="preload" href="/site-assets/fonts/tinos-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/site-assets/fonts/dm-sans-400.woff2" as="font" type="font/woff2" crossorigin>
 {% endblock %}
+{% block body_class %}remdo-landing{% endblock %}
 {% block body %}
-<div class="remdo-landing">
-  <a class="landing-skip" href="#landing-main">Skip to content</a>
-  {% include "pages/landing/navigation.html" %}
-  <main id="landing-main">
-    {% include "pages/landing/hero.html" %}
-    {% include "pages/landing/story.html" %}
-    <div class="landing-light">
-      {% include "pages/landing/features.html" %}
-      {% include "pages/landing/chat.html" %}
-      {% include "pages/landing/faq.html" %}
-    </div>
-  </main>
-  {% include "pages/landing/ending.html" %}
-</div>
+<a class="landing-skip" href="#landing-main">Skip to content</a>
+{% include "pages/landing/navigation.html" %}
+<main id="landing-main">
+  {% include "pages/landing/hero.html" %}
+  {% include "pages/landing/story.html" %}
+  <div class="landing-light">
+    {% include "pages/landing/features.html" %}
+    {% include "pages/landing/chat.html" %}
+    {% include "pages/landing/faq.html" %}
+  </div>
+</main>
+{% include "pages/landing/ending.html" %}
 {% endblock %}

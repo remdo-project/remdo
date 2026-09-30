@@ -80,6 +80,10 @@ class AppPageTests(TestCase):
                             "file": "app-assets/shared-test.js",
                             "css": ["app-assets/shared-test.css"],
                         },
+                        "src/client/ui/styles/site.css": {
+                            "file": "app-assets/site-test.css",
+                            "isEntry": True,
+                        },
                     }
                 )
             )
@@ -97,6 +101,7 @@ class AppPageTests(TestCase):
         )
         self.assertNotIn("/@vite/client", content)
         self.assertNotIn("/app-assets/shared-test.css", content)
+        self.assertNotIn("/app-assets/site-test.css", content)
 
 
 class HomePageTests(TestCase):
@@ -115,6 +120,29 @@ class HomePageTests(TestCase):
         self.assertNotContains(response, 'type="module"')
         self.assertIn("no-store", response.headers["Cache-Control"])
         self.assertEqual(self.client.post("/").status_code, 405)
+
+    def test_public_home_loads_the_site_styles_after_the_shared_styles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "manifest.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "src/client/ui/styles/shared.css": {
+                            "file": "app-assets/shared-test.js",
+                            "css": ["app-assets/shared-test.css"],
+                        },
+                        "src/client/ui/styles/site.css": {
+                            "file": "app-assets/site-test.css",
+                            "isEntry": True,
+                        },
+                    }
+                )
+            )
+            with override_settings(FRONTEND_USE_SOURCE=False, FRONTEND_MANIFEST=manifest):
+                content = self.client.get("/").content.decode()
+        self.assertLess(
+            content.index("/app-assets/shared-test.css"), content.index("/app-assets/site-test.css")
+        )
 
     def test_public_home_omits_the_video_frame_when_none_is_configured(self):
         response = self.client.get("/")

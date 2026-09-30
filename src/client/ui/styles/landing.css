@@ -17,9 +17,6 @@
   --landing-font-serif: Tinos, 'Times New Roman', Times, serif;
 }
 
-body:has(> .remdo-landing) {
-  background: var(--landing-dark-surface);
-}
 .remdo-landing {
   min-height: 100svh;
   background: var(--landing-dark-surface);
