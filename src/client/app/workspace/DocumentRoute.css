@@ -352,9 +352,9 @@
    The shell's `main` width rule and Mantine's single-class
    `.mantine-Container-root` gutter both lose to this selector. */
 .remdo-shell > .remdo-slot > main.document-route-container {
-  width: auto;
-  max-width: none;
-  margin-inline: calc(-1 * var(--remdo-body-inset));
+  width: calc(100% - 2 * var(--remdo-gutter) + 2 * var(--remdo-body-inset));
+  max-width: calc(80rem + 2 * var(--remdo-body-inset));
+  margin-inline: auto;
   padding-inline: 0;
 }
 

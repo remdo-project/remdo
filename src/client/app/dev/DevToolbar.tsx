@@ -27,7 +27,7 @@ function buildUrl(host: HostContext, portOffset: number, path = ''): string {
   return `${host.protocol}//${host.hostname}:${host.basePort + portOffset}${path}`;
 }
 
-export function DevToolbarLinks({ linkClassName }: { linkClassName?: string }) {
+export function DevToolbarLinks() {
   const host = resolveHost();
   const vitestUrl = buildUrl(host, 2, '/__vitest__/');
   const lexicalUrl = `${host.protocol}//${host.hostname}:3000/?isCollab=true&collabEndpoint=ws://${host.hostname}:1234`;
@@ -36,21 +36,18 @@ export function DevToolbarLinks({ linkClassName }: { linkClassName?: string }) {
     <>
       <DevVisibilityControl />
       <DevVisibilityGate>
-        <Anchor className={linkClassName} href={vitestUrl}>
+        <Anchor href={vitestUrl}>
           <Icon icon={IconBrandVite} />
           Vitest
         </Anchor>
-        <Anchor className={linkClassName} href={lexicalUrl}>
+        <Anchor href={lexicalUrl}>
           Lexical
         </Anchor>
-        <Link
-          to={DEV_LEXICAL_DEMO_ROUTE}
-          className={linkClassName}
-        >
+        <Link to={DEV_LEXICAL_DEMO_ROUTE}>
           Lexical Demo
         </Link>
         {/* Use the exact file path: Vite dev serves public/ files by exact path only. */}
-        <Anchor className={linkClassName} href="/playground/index.html">
+        <Anchor href="/playground/index.html">
           Playground
         </Anchor>
       </DevVisibilityGate>

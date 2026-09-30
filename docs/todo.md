@@ -285,12 +285,15 @@ signed-out screen follow it; the signed-out screen and the other allauth pages
 their card layout until then. The Figma Team section moves to the About page,
 where its bios are reconciled with the current team list.
 
-Structural follow-ups, before Terms and Privacy:
+Follow-ups:
 
-- Load the site styles from their own stylesheet entry, so the app does not
-  download them through `shared.css`.
-- Mark the site body through a `body_class` block in `base.html` instead of
-  `body:has(> .remdo-landing)` and its wrapper element.
+- **Cross-fade page loads.** Cross-document view transitions throw an unhandled
+  "Transition was aborted" error when the next page has not opted in (the login
+  handoff, Django administration), which fails the harness and reaches users'
+  consoles. Revisit with `pageswap` and `pagereveal` handling.
+- **App header links appear on hydration.** Rendering About on the server
+  would end the pop-in but changes the [connection-unavailable
+  state](architecture.md#shared-presentation), which hides the header links.
 
 ### Demo video
 

@@ -1,9 +1,6 @@
 .remdo-shell {
   display: flex;
   flex-direction: column;
-  width: calc(100% - 2 * var(--remdo-gutter));
-  max-width: 80rem;
-  margin: 0 auto;
   /* `dvh` tracks the visible viewport as mobile browser chrome collapses/expands,
      so a short route doesn't get a shell taller than the screen (which `vh` — the
      large viewport — would cause). */
@@ -12,7 +9,7 @@
 
 .remdo-shell > main,
 .remdo-shell > .remdo-slot > main {
-  width: 100%;
+  width: calc(100% - 2 * var(--remdo-gutter));
 }
 
 /* Server-rendered chrome regions the app fills; their contents lay out as if

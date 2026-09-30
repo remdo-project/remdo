@@ -40,6 +40,19 @@ test('sign-in shows its story beside the form on wide screens and drops it on na
   }
 });
 
+test('places the wordmark at the same spot on every public page', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const wordmark = page.getByRole('link', { name: 'RemDo home', exact: true });
+  const boxes = [];
+  for (const path of ['/', '/privacy/', '/accounts/login/']) {
+    await page.goto(path);
+    boxes.push(await wordmark.boundingBox());
+  }
+  expect(boxes[0]).not.toBeNull();
+  expect(boxes[1]).toEqual(boxes[0]);
+  expect(boxes[2]).toEqual(boxes[0]);
+});
+
 test.describe('story text', () => {
   const colorOf = (paragraph: Locator) => paragraph.evaluate((element) => getComputedStyle(element).color);
   const brightnessOf = (color: string) => color.match(/\d+/gu)!.slice(0, 3).map(Number).reduce((sum, channel) => sum + channel, 0);

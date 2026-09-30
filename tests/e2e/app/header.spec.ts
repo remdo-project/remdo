@@ -17,6 +17,22 @@ test('header controls are reachable by keyboard on a narrow screen', async ({ pa
   }
 });
 
+test('keeps the wordmark and footer links where the public pages put them', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const chrome = async () => ({
+    wordmark: await page.getByRole('link', { name: 'RemDo home', exact: true }).boundingBox(),
+    footerLinks: await page.getByRole('navigation', { name: 'Footer' }).boundingBox().then((box) => box && { x: box.x, width: box.width }),
+  });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
+  const app = await chrome();
+  await page.goto('/about/');
+  const pub = await chrome();
+  expect(app.wordmark).not.toBeNull();
+  expect(pub.wordmark).toEqual(app.wordmark);
+  expect(pub.footerLinks).toEqual(app.footerLinks);
+});
+
 unauthenticatedTest('opens About from the native sign-in header', async ({ page }) => {
   await page.goto('/accounts/login/');
   const navigation = page.getByRole('navigation', { name: 'Primary' });

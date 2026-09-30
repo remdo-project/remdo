@@ -7,15 +7,12 @@
       <p class="landing-cta-note">Free and open source. Self-host if you prefer.</p>
     </div>
   </section>
-  <footer class="landing-footer landing-container">
-    <div class="landing-footer-brand">
-      <span class="landing-wordmark">RemDo</span>
+  <div class="landing-footer">
+    <div class="landing-footer-brand site-container">
+      <span class="site-wordmark">RemDo</span>
       <p>A keyboard-first collaborative outliner.<br>Keep notes, tasks, and ideas connected.</p>
       <a class="landing-footer-github" href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer" aria-label="RemDo on GitHub"><img src="/site-assets/github.svg" alt="" width="20" height="20"></a>
     </div>
-    <div class="landing-footer-bottom">
-      <span>© {% now "Y" %} RemDo</span>
-      <nav aria-label="Footer"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
-    </div>
-  </footer>
+    {% include "site_footer.html" %}
+  </div>
 </div>

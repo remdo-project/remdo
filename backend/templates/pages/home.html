@@ -11,7 +11,7 @@
 {% block body_class %}remdo-landing{% endblock %}
 {% block body %}
 <a class="landing-skip" href="#landing-main">Skip to content</a>
-{% include "pages/landing/navigation.html" %}
+{% include "site_header.html" with repository=True %}
 <main id="landing-main">
   {% include "pages/landing/hero.html" %}
   {% include "pages/landing/story.html" %}

@@ -4,6 +4,5 @@
 @import './fonts.css';
 @import './tokens.css';
 @import './shell.css';
-@import './header.css';
 @import './account.css';
-@import './footer.css';
+@import './chrome.css';

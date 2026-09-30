@@ -16,6 +16,10 @@
 }
 
 .remdo-landing {
+  --chrome-text: var(--landing-light-text);
+  --chrome-muted: var(--landing-muted-light-text);
+  --chrome-line: var(--landing-dark-outline);
+  --chrome-rule: transparent;
   min-height: 100svh;
   background: var(--landing-dark-surface);
   color: var(--landing-light-text);
@@ -38,12 +42,6 @@
 .remdo-landing :where(a, button, input):focus-visible {
   outline: 2px solid var(--landing-light-text);
   outline-offset: 4px;
-}
-.landing-wordmark {
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 34px;
-  letter-spacing: -1.2px;
 }
 .landing-container {
   width: calc(100% - 2 * var(--landing-gutter));
