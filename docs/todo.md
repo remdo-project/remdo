@@ -262,6 +262,25 @@ RemDo document, minimal but useful for real work.
   `src/platform/net/django-request.ts` was confirmed only against gunicorn;
   fakes and the Docker E2E path did not reproduce the crash deterministically.
 
+### Landing redesign
+
+Migrate the public pages to the
+[final Figma design](https://www.figma.com/design/doTT65AwFC2WqcvUBh1Tjn/), with
+[PR #712](https://github.com/remdo-project/remdo/pull/712) as reference. Ship one
+PR with a commit per surface and kind of change, each passing its own checks, so
+review can focus on one area at a time.
+
+1. Foundations: tokens, fonts, image assets, route plumbing.
+2. Navigation and hero.
+3. Story, signup preview, product illustrations.
+4. Chat links, team, FAQ, closing sections.
+5. Terms, Privacy, About.
+6. Sign-in.
+
+Decide content changes and contract exceptions in the commit that introduces
+them. The app shell and editor re-theme is a separate change, and the app's
+signed-out screen follows it.
+
 ### Demo video
 
 The [demo video](specs/demo/demo-video.md) records every chapter from the local
