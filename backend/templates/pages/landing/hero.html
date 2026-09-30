@@ -12,9 +12,14 @@
   {% if video %}
   <div class="landing-video-background">
     <img class="landing-video-artwork" src="/site-assets/hero-background.webp" alt="" width="1672" height="941" fetchpriority="high">
-    <video class="landing-video" aria-label="RemDo demo" controls playsinline poster="{{ video.poster }}" preload="none">
+    <video class="landing-video" aria-label="RemDo demo" controls playsinline poster="{{ video.poster }}" preload="metadata">
       <source src="{{ video.url }}" type="video/mp4">
     </video>
+    <button class="landing-video-play" type="button" hidden>
+      <svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true" focusable="false"><path d="M8.5 5.5v13l11-6.5z"/></svg>
+      <span>Watch demo<span class="landing-video-duration"></span></span>
+    </button>
+    <script src="/site-assets/landing-video.js" defer></script>
   </div>
   {% endif %}
 </section>
