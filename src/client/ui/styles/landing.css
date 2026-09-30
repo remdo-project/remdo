@@ -1,0 +1,18 @@
+@import './landing-fonts.css';
+
+:root {
+  --landing-page: #f3efe9;
+  --landing-primary-text: #15120f;
+  --landing-secondary-text: #6f6a65;
+  --landing-border: #cec7c0;
+  --landing-button-fill: #15120f;
+  --landing-button-text: #f3efe9;
+  --landing-dark-surface: #12100d;
+  --landing-light-text: #f3efe9;
+  --landing-muted-light-text: #b9b4ae;
+  --landing-dark-outline: #615b54;
+  --landing-footer-black: #080808;
+  --landing-radius: 3px;
+  --landing-font-sans: 'DM Sans', system-ui, sans-serif;
+  --landing-font-serif: Tinos, 'Times New Roman', Times, serif;
+}

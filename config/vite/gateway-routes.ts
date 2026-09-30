@@ -7,7 +7,7 @@ const frontendFiles = new Set([
 
 export function shouldProxyToDjango(url: string): boolean {
   const pathname = url.split('?')[0]!;
-  if (frontendFiles.has(pathname) || pathname.startsWith('/icons/')
+  if (frontendFiles.has(pathname) || pathname.startsWith('/icons/') || pathname.startsWith('/site-assets/')
     || pathname === '/playground' || pathname.startsWith('/playground/')) {
     return false;
   }
