@@ -82,7 +82,7 @@ it('identifies itself with the app icon and tells clients how to use RemDo', asy
     websiteUrl: 'https://remdo.example',
     icons: [
       { src: 'https://remdo.example/icon-192.png', mimeType: 'image/png', sizes: ['192x192'] },
-      { src: 'https://remdo.example/logo.svg', mimeType: 'image/svg+xml', sizes: ['any'] },
+      { src: 'https://remdo.example/icon-512.png', mimeType: 'image/png', sizes: ['512x512'] },
     ],
   });
 });

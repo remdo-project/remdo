@@ -26,12 +26,34 @@
 }
 
 .site-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--chrome-text);
   font-size: 1.75rem;
   font-weight: 600;
   line-height: 2.125rem;
   letter-spacing: -0.075rem;
   text-decoration: none;
+}
+
+/* A mask, not an <img>: logo.svg follows prefers-color-scheme (ink on light
+   schemes) while the pages are always dark. The crop is the mark's bounds in the
+   SVG's 192 viewBox. */
+.site-wordmark::before {
+  --mark-height: 20px;
+  content: '';
+  flex: none;
+  width: calc(var(--mark-height) * 1.1917);
+  height: var(--mark-height);
+  background: currentColor;
+  mask: url('/logo.svg') no-repeat;
+  mask-size: calc(var(--mark-height) * 1.6);
+  mask-position: calc(var(--mark-height) * -0.2417) calc(var(--mark-height) * -0.3333);
+  -webkit-mask: url('/logo.svg') no-repeat;
+  -webkit-mask-size: calc(var(--mark-height) * 1.6);
+  -webkit-mask-position: calc(var(--mark-height) * -0.2417) calc(var(--mark-height) * -0.3333);
+  transform: translateY(-1px);
 }
 
 .site-links {
@@ -75,9 +97,7 @@
 }
 
 a.site-wordmark {
-  display: inline-flex;
   flex-shrink: 0;
-  align-items: center;
   min-width: 44px;
   min-height: 44px;
 }
