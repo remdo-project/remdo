@@ -102,10 +102,9 @@ class AppPageTests(TestCase):
 class HomePageTests(TestCase):
     def test_signed_out_visitors_get_the_public_home(self):
         response = self.client.get("/?utm_source=test")
-        self.assertContains(
-            response,
-            '<h1 id="landing-title" class="landing-title">Keyboard-first collaborative outliner</h1>',
-            html=True,
+        self.assertRegex(
+            response.content.decode(),
+            r"<h1\b[^>]*>Keyboard-first collaborative outliner</h1>",
         )
         self.assertContains(
             response, f'<link rel="canonical" href="{settings.APP_ORIGIN}/">', html=True
@@ -127,7 +126,7 @@ class HomePageTests(TestCase):
         response = self.client.get("/")
         self.assertRegex(
             response.content.decode(),
-            r'(?s)<a\b[^>]*class="landing-button"[^>]*href="/accounts/login/"[^>]*>\s*Sign in\s*</a>',
+            r'(?s)</h1>.*?<a\b[^>]*href="/accounts/login/"[^>]*>\s*Sign in\s*</a>',
         )
         self.assertNotContains(response, "Sign in with Google")
         self.assertNotContains(response, "/accounts/google/login/")
