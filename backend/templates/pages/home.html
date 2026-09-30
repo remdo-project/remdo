@@ -7,12 +7,11 @@
   <meta name="description" content="RemDo is a keyboard-first collaborative outliner that links your notes and works with your AI assistant. Email, calendar and file connections are next.">
   <link rel="canonical" href="{{ canonical }}">
   <link rel="preload" href="/site-assets/fonts/tinos-400.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="/site-assets/fonts/dm-sans-400.woff2" as="font" type="font/woff2" crossorigin>
 {% endblock %}
 {% block body_class %}remdo-landing{% endblock %}
 {% block body %}
 <a class="landing-skip" href="#landing-main">Skip to content</a>
-{% include "pages/landing/navigation.html" %}
+{% include "site_header.html" with repository=True %}
 <main id="landing-main">
   {% include "pages/landing/hero.html" %}
   {% include "pages/landing/story.html" %}

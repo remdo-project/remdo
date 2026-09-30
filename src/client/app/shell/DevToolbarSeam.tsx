@@ -12,13 +12,13 @@ const LazyDevToolbarLinks = import.meta.env.DEV
   : null;
 
 // Bare links — for a caller that already provides the surrounding header group.
-export function DevToolbarLinksSeam({ linkClassName }: { linkClassName?: string }) {
+export function DevToolbarLinksSeam() {
   if (!LazyDevToolbarLinks) {
     return null;
   }
   return (
     <Suspense fallback={null}>
-      <LazyDevToolbarLinks linkClassName={linkClassName} />
+      <LazyDevToolbarLinks />
     </Suspense>
   );
 }

@@ -66,16 +66,16 @@
   display: flex;
   flex-direction: column;
   gap: 30px;
-  padding-block: 133px 23px;
+  padding-top: 133px;
 }
 .landing-footer-brand {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 12px;
-  max-width: 420px;
 }
 .landing-footer-brand p {
+  max-width: 420px;
   color: var(--landing-muted-light-text);
 }
 .landing-footer-github {
@@ -83,21 +83,6 @@
   align-items: center;
   width: 44px;
   height: 44px;
-}
-.landing-footer-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 24px;
-  border-top: 1px solid var(--landing-dark-outline);
-  color: var(--landing-muted-light-text);
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0;
-}
-.landing-footer-bottom nav {
-  display: flex;
-  gap: 24px;
 }
 .landing-footer a:hover {
   color: var(--landing-light-text);
@@ -123,11 +108,7 @@
   .landing-footer {
     padding-top: 104px;
   }
-  .landing-footer-bottom {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .landing-footer-bottom a, .landing-footer-github {
+  .landing-footer-github {
     display: flex;
     align-items: center;
     min-height: 44px;

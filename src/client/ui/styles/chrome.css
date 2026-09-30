@@ -1,0 +1,159 @@
+:root {
+  --chrome-text: var(--mantine-color-dark-0);
+  --chrome-muted: var(--mantine-color-dark-1);
+  --chrome-line: var(--mantine-color-dark-4);
+  --chrome-rule: var(--chrome-line);
+  --chrome-subtle: var(--mantine-color-dark-3);
+  --chrome-surface: var(--remdo-surface);
+  --chrome-hover: var(--mantine-color-dark-6);
+  --chrome-error: #f2a59d;
+}
+
+.site-container {
+  width: calc(100% - 2 * var(--remdo-gutter));
+  max-width: 80rem;
+  margin-inline: auto;
+}
+
+.site-header-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-block: 1.875rem 1.375rem;
+  border-bottom: 1px solid var(--chrome-rule);
+}
+
+.site-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--chrome-text);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 2.125rem;
+  letter-spacing: -0.075rem;
+  text-decoration: none;
+}
+
+/* A mask, not an <img>: logo.svg follows prefers-color-scheme (ink on light
+   schemes) while the pages are always dark. The crop is the mark's bounds in the
+   SVG's 192 viewBox. */
+.site-wordmark::before {
+  --mark-height: 20px;
+  content: '';
+  flex: none;
+  width: calc(var(--mark-height) * 1.1917);
+  height: var(--mark-height);
+  background: currentColor;
+  mask: url('/logo.svg') no-repeat;
+  mask-size: calc(var(--mark-height) * 1.6);
+  mask-position: calc(var(--mark-height) * -0.2417) calc(var(--mark-height) * -0.3333);
+  -webkit-mask: url('/logo.svg') no-repeat;
+  -webkit-mask-size: calc(var(--mark-height) * 1.6);
+  -webkit-mask-position: calc(var(--mark-height) * -0.2417) calc(var(--mark-height) * -0.3333);
+  transform: translateY(-1px);
+}
+
+.site-links {
+  display: flex;
+  flex: 1 1 max-content;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.site-footer {
+  margin-top: auto;
+}
+
+.site-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-xs) 1.5rem;
+  padding-block: 1.5rem 2rem;
+  border-top: 1px solid var(--chrome-line);
+  color: var(--chrome-muted);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  letter-spacing: 0;
+}
+
+.site-footer-start,
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mantine-spacing-xs) 1.5rem;
+}
+
+.remdo-footer-mismatch {
+  color: var(--mantine-color-yellow-4);
+}
+
+a.site-wordmark {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.site-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mantine-spacing-xs);
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--chrome-muted);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.site-footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.remdo-footer-build a,
+.remdo-footer-mismatch a {
+  text-decoration: underline;
+  text-decoration-color: rgb(255 255 255 / 25%);
+}
+
+.site-links a:hover,
+.site-links a:focus-visible,
+.site-links a[aria-current='page'] {
+  color: var(--chrome-text);
+}
+
+.site-footer a:hover,
+.site-footer a:focus-visible,
+.site-footer a[aria-current='page'] {
+  color: var(--chrome-text);
+  text-decoration: underline;
+}
+
+.site-wordmark:focus-visible,
+.site-links a:focus-visible,
+.site-footer a:focus-visible {
+  outline: 2px solid var(--chrome-text);
+  outline-offset: 2px;
+}
+
+@media (max-width: 47.99em) {
+  .site-footer a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .site-footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

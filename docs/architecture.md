@@ -39,9 +39,11 @@ network-only.
 
 Django owns every page's header and footer, including the app page's. On the
 app page, the SPA renders state only it knows into designated header and footer
-regions. The SPA and server-rendered pages share theme values
-and styles; account pages load their presentation assets without the editor
-runtime.
+regions. Every page renders the same header and footer layout, so the wordmark,
+links, and footer row keep their places across page types and differ only in
+the colors of the page's surface. The SPA and server-rendered pages share
+theme values and styles; account pages load their presentation assets without
+the editor runtime.
 
 The header links to About and to the current session action. Pages other than
 the app page link Admin for staff, then “Logout” when Django recognizes a

@@ -1,13 +1,24 @@
-<header class="landing-site-header landing-container">
-  <a class="landing-wordmark" href="/" aria-label="RemDo home">RemDo</a>
-  <nav aria-label="Primary" class="landing-site-links">
-    <a href="/about/"{% if request.path == '/about/' %} aria-current="page"{% endif %}>About</a>
-    {% if user.is_authenticated %}
-      {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
-      <a href="/sign-out/">Logout</a>
-    {% else %}
-      {% url 'account_login' as login_url %}
-      <a href="{{ login_url }}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}"{% if request.path == login_url %} aria-current="page"{% endif %}>Sign in</a>
-    {% endif %}
-  </nav>
+{% url 'account_login' as login_url %}
+<header class="site-header">
+  <div class="site-header-inner site-container">
+    <a class="site-wordmark" href="/" aria-label="RemDo home">RemDo</a>
+    <nav aria-label="Primary" class="site-links">
+      {% if slots %}
+        <span class="remdo-slot" data-slot="header-links"></span>
+      {% else %}
+        {% if repository %}
+          <a class="site-repository" href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">
+            <img src="/site-assets/github.svg" alt="" width="20" height="20"><span>remdo-project/remdo</span>
+          </a>
+        {% endif %}
+        <a href="/about/"{% if request.path == '/about/' %} aria-current="page"{% endif %}>About</a>
+        {% if user.is_authenticated %}
+          {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
+          <a href="/sign-out/">Logout</a>
+        {% else %}
+          <a href="{{ login_url }}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}"{% if request.path == login_url %} aria-current="page"{% endif %}>Sign in</a>
+        {% endif %}
+      {% endif %}
+    </nav>
+  </div>
 </header>

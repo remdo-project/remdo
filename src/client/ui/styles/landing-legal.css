@@ -1,9 +1,6 @@
 .landing-legal {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 96px;
-  padding-block: 48px;
 }
 .landing-legal-article {
   color: var(--landing-muted-light-text);
@@ -67,17 +64,11 @@
 .landing-legal-column {
   width: calc(100% - 2 * var(--landing-gutter));
   max-width: 720px;
-}
-.landing-legal .landing-site-footer {
-  width: calc(100% - 2 * var(--landing-gutter));
-  max-width: 720px;
-  padding-top: 24px;
-  border-top: 1px solid var(--landing-dark-outline);
+  margin: 96px auto;
 }
 @media (max-width: 47.99em) {
-  .landing-legal {
-    gap: 56px;
-    padding-block: 24px 40px;
+  .landing-legal-column {
+    margin-block: 56px;
   }
   .landing-legal-article {
     font-size: 16px;

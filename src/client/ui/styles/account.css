@@ -1,57 +1,73 @@
 .remdo-card-page {
-  max-width: 540px;
-  margin-inline: auto;
-  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
-}
-
-.remdo-card {
-  padding: var(--mantine-spacing-xl);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-md);
-  background: var(--mantine-color-body);
+  max-width: 25rem;
+  margin: auto;
+  padding: 3rem 0;
 }
 
 .remdo-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--mantine-spacing-md);
+  gap: 1.5rem;
 }
 
-.remdo-title {
+h1.remdo-title {
   margin: 0;
-  font-size: var(--mantine-h1-font-size);
-  line-height: var(--mantine-h1-line-height);
-  font-weight: var(--mantine-h1-font-weight);
+  color: var(--chrome-text);
+  font-family: var(--remdo-font-serif);
+  font-size: 3.875rem;
+  font-weight: 400;
+  line-height: 4.125rem;
+  letter-spacing: -0.069rem;
 }
 
 .remdo-description {
   margin: 0;
-  font-size: var(--mantine-font-size-sm);
-  color: var(--mantine-color-dimmed);
+  color: var(--chrome-muted);
+}
+
+.remdo-title + .remdo-description {
+  margin-top: 0.5rem;
+}
+
+.remdo-description a {
+  color: var(--chrome-text);
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.remdo-account-form {
+  gap: 1.25rem;
 }
 
 .remdo-account-form p {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   margin: 0;
 }
 
 .remdo-account-form label {
-  font-size: var(--mantine-font-size-sm);
   font-weight: 500;
+  line-height: 1.5rem;
 }
 
-.remdo-account-form input:not([type='checkbox'], [type='radio'], [type='hidden']),
-.remdo-account-form select,
-.remdo-account-form textarea {
+.remdo-account-form input:not([type='checkbox'], [type='radio'], [type='hidden']) {
+  box-sizing: border-box;
   display: block;
   width: 100%;
-  min-height: 2.25rem;
-  padding: 0.375rem var(--mantine-spacing-sm);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
-  background: var(--mantine-color-default);
-  color: var(--mantine-color-text);
+  height: 3.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--chrome-subtle);
+  border-radius: 3px;
+  background: var(--chrome-surface);
+  color: var(--chrome-text);
   font: inherit;
-  font-size: var(--mantine-font-size-sm);
+  line-height: 1.5rem;
+}
+
+.remdo-account-form input::placeholder {
+  color: var(--chrome-muted);
+  opacity: 1;
 }
 
 .remdo-account-form input[type='checkbox'],
@@ -59,42 +75,52 @@
   accent-color: var(--remdo-accent);
 }
 
+.remdo-account-form input[aria-invalid='true'] {
+  border-color: var(--chrome-error);
+}
+
 .remdo-account-form .helptext {
   display: block;
-  color: var(--mantine-color-dimmed);
-  font-size: var(--mantine-font-size-xs);
+  color: var(--chrome-muted);
+  font-size: 0.875rem;
 }
 
 .remdo-account-form .errorlist {
-  margin: 0;
-  padding-left: var(--mantine-spacing-lg);
-  color: var(--mantine-color-red-4);
-  font-size: var(--mantine-font-size-sm);
+  margin: 0 0 -0.75rem;
+  padding: 0;
+  color: var(--chrome-error);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  list-style: none;
 }
 
-.remdo-account-form [aria-invalid='true'] {
-  border-color: var(--mantine-color-red-4);
-}
-
-.remdo-account-button {
+button.remdo-account-button,
+a.remdo-account-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.25rem;
-  padding: 0 var(--mantine-spacing-lg);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-md);
-  background: var(--mantine-color-dark-6);
-  color: var(--mantine-color-white);
+  min-height: 3.5rem;
+  padding: 0 1.5rem;
+  border: 1px solid var(--chrome-line);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--chrome-text);
   font: inherit;
-  font-size: var(--mantine-font-size-sm);
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 1.5rem;
+  letter-spacing: -0.1px;
   text-decoration: none;
   cursor: pointer;
 }
 
 .remdo-account-button:hover {
-  background: var(--mantine-color-dark-7);
+  background: var(--chrome-hover);
+}
+
+.remdo-account-button:disabled,
+.remdo-account-button[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 /* Google's dark-theme button colors and spacing are fixed by its branding guidelines. */
@@ -113,16 +139,14 @@
 
 .remdo-account-form :focus-visible,
 .remdo-account-button:focus-visible {
-  outline: 2px solid var(--remdo-accent);
-  outline-offset: 2px;
+  outline: 2px solid var(--chrome-text);
+  outline-offset: 4px;
 }
 
-.remdo-account-button-accent {
-  border-color: transparent;
-  background: var(--remdo-accent);
-  color: var(--remdo-backdrop);
-}
-
-.remdo-account-button-accent:hover {
-  background: var(--remdo-accent-hover);
+@media (max-width: 47.99em) {
+  h1.remdo-title {
+    font-size: 2.5rem;
+    line-height: 2.75rem;
+    letter-spacing: 0;
+  }
 }

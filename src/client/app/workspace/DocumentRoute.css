@@ -1,23 +1,21 @@
-/* The document fills the width of the app-shell card — no reading-column cap. A
+/* The document fills the width of the page shell — no reading-column cap. A
    cap would manufacture empty margins to solve a measure problem we don't yet
    have: an outliner is scanned more than read, indentation shortens nested
    notes, and the wide space is better spent by real components (a sidebar, a
    second doc pane) once they exist — at which point the document narrows because
-   something is there, not because of an artificial limit. The card surface and
-   elevation come from the page shell; the document body just adds its own inset. */
+   something is there, not because of an artificial limit. The page shell owns the
+   gutters; the document body adds only `--remdo-body-inset`. */
 .document-editor-shell {
   padding-block: var(--mantine-spacing-sm) var(--mantine-spacing-md);
 }
 
-/* The document label / search / actions read as a quiet strip. A subtle inset
-   hairline — inset to the editor's `xl` body padding so it sits over the note
-   column, stopping short of the card edges — separates it from the outline
-   without the heaviness of a full-width divider. The `xl` inline padding matches
-   the editor pane and search results (the shared body inset), keeping the label
-   row column-aligned with the notes. */
+/* The document label / search / actions read as a quiet strip. A hairline
+   inset by `--remdo-body-inset` separates it from the outline, which shares that
+   inset with the editor pane and search results, keeping the label row
+   column-aligned with the notes. */
 .document-header {
   position: relative;
-  padding: 0 var(--mantine-spacing-xl) var(--mantine-spacing-sm);
+  padding: 0 var(--remdo-body-inset) var(--mantine-spacing-sm);
   margin-bottom: var(--mantine-spacing-xs);
   min-height: 1.9rem;
   display: flex;
@@ -29,8 +27,8 @@
 .document-header::after {
   content: '';
   position: absolute;
-  left: var(--mantine-spacing-xl);
-  right: var(--mantine-spacing-xl);
+  left: var(--remdo-body-inset);
+  right: var(--remdo-body-inset);
   bottom: 0;
   height: 1px;
   background: var(--mantine-color-dark-5);
@@ -190,7 +188,7 @@
 
 /* Anchor results to the editor outline's first note, both axes, so opening
    search doesn't shift the first row:
-   - Horizontal: the `xl` inline padding matches the editor pane, and each result's
+   - Horizontal: the body inset matches the editor pane, and each result's
      text is indented by the note-text indent (list indent + bullet allowance) via
      the shared `.remdo-outline` variables.
    - Vertical: the editor pane offsets its first note by `lg` (its padding-top).
@@ -204,7 +202,7 @@
      formula below so the two stay in sync. */
   --result-card-padding: calc(var(--mantine-spacing-xs) / 2);
   padding: calc(var(--mantine-spacing-lg) - var(--result-card-padding))
-    var(--mantine-spacing-xl)
+    var(--remdo-body-inset)
     var(--mantine-spacing-md);
 }
 
@@ -347,15 +345,22 @@
 }
 
 /* The route container contributes no inline gutter: the body inset is owned by
-   the editor pane / document header (`xl`), which the search results anchor to.
-   Element+class beats Mantine's single-class `.mantine-Container-root` gutter. */
-main.document-route-container {
+   the editor pane / document header (`--remdo-body-inset`), which the search
+   results anchor to. The container extends into the page gutter by that inset,
+   so the note controls hang inside the editor while its text and the header
+   strip stay on the shell's edge.
+   The shell's `main` width rule and Mantine's single-class
+   `.mantine-Container-root` gutter both lose to this selector. */
+.remdo-shell > .remdo-slot > main.document-route-container {
+  width: calc(100% - 2 * var(--remdo-gutter) + 2 * var(--remdo-body-inset));
+  max-width: calc(80rem + 2 * var(--remdo-body-inset));
+  margin-inline: auto;
   padding-inline: 0;
 }
 
-/* Home padding matches the editor pane / document header (`xl`). */
+/* Home padding matches the editor pane / document header. */
 .document-home {
-  padding: var(--mantine-spacing-lg) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
+  padding: var(--mantine-spacing-lg) var(--remdo-body-inset) var(--mantine-spacing-xl);
   display: flex;
   flex-direction: column;
   gap: var(--mantine-spacing-lg);
@@ -374,7 +379,7 @@ main.document-route-container {
 .location-header {
   display: flex;
   align-items: center;
-  padding: var(--mantine-spacing-xs) var(--mantine-spacing-xl) 0;
+  padding: var(--mantine-spacing-xs) var(--remdo-body-inset) 0;
 }
 
 .location-header-title {

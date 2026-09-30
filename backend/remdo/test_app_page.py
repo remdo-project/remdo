@@ -37,6 +37,12 @@ class AppPageTests(TestCase):
         self.assertEqual(self.client.post("/app-shell/").status_code, 405)
         self.assertEqual(self.client.get("/sign-out/extra").status_code, 404)
 
+    def test_app_page_leaves_its_header_links_and_footer_status_to_the_app(self):
+        response = self.client.get("/n/example")
+        self.assertContains(response, 'data-slot="header-links"')
+        self.assertContains(response, 'data-slot="footer-status"')
+        self.assertNotContains(response, 'href="/about/"')
+
     def test_page_is_identical_for_every_visitor(self):
         anonymous = self.client.get("/n/example")
         self.client.force_login(
@@ -114,6 +120,7 @@ class HomePageTests(TestCase):
         self.assertContains(response, 'name="description"')
         self.assertContains(response, 'href="/accounts/login/"')
         self.assertNotContains(response, 'id="root"')
+        self.assertNotContains(response, "data-slot=")
         self.assertNotContains(response, 'type="module"')
         self.assertIn("no-store", response.headers["Cache-Control"])
         self.assertEqual(self.client.post("/").status_code, 405)

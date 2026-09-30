@@ -211,8 +211,8 @@ against the [document registry](architecture.md#document-registry).
 
 ## Frosted-glass material follow-ups
 
-- The frosted-glass surfaces (app shell, header, mobile toolbar) use a
-  translucent `color-mix` fill that relies on `backdrop-filter` for legibility,
+- The frosted-glass mobile toolbar uses a translucent `color-mix` fill that
+  relies on `backdrop-filter` for legibility,
   with no `@supports (backdrop-filter)` opaque fallback and no
   `prefers-reduced-transparency` handling. Where the blur is inert (some Android
   WebViews, reduce-transparency settings) content shows through. This is a

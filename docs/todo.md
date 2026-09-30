@@ -264,32 +264,21 @@ RemDo document, minimal but useful for real work.
 
 ### Landing redesign
 
-Migrate the public pages to the
-[final Figma design](https://www.figma.com/design/doTT65AwFC2WqcvUBh1Tjn/), with
-[PR #712](https://github.com/remdo-project/remdo/pull/712) as reference. Ship one
-PR with a commit per surface and kind of change, each passing its own checks, so
-review can focus on one area at a time.
+The public pages, the app shell, and the shared header and footer follow the
+[final Figma design](https://www.figma.com/design/doTT65AwFC2WqcvUBh1Tjn/).
+Remaining:
 
-1. Foundations: tokens, fonts, image assets, route plumbing.
-2. Navigation and hero.
-3. Story, signup preview, product illustrations.
-4. Chat links, FAQ, closing sections.
-5. Terms, Privacy, About.
-6. Sign-in.
-
-Decide content changes and contract exceptions in the commit that introduces
-them. The app shell and editor re-theme is a separate change, and the app's
-signed-out screen follows it. The other allauth pages (connected apps,
-delegation refused, closed sign-up, OIDC authorization) keep the card layout
-and the old header and footer until they follow. The Figma Team section moves
-to the About page, where its bios are reconciled with the current team list.
-
-Structural follow-ups, before Terms and Privacy:
-
-- Load the site styles from their own stylesheet entry, so the app does not
-  download them through `shared.css`.
-- Mark the site body through a `body_class` block in `base.html` instead of
-  `body:has(> .remdo-landing)` and its wrapper element.
+- **Editor surface.** Restyle the document location strip, rows, menus, and
+  interaction states to the workspace frames.
+- **Team section.** The Figma Team section moves to the About page, where its
+  bios are reconciled with the current team list.
+- **Cross-fade page loads.** Cross-document view transitions throw an unhandled
+  "Transition was aborted" error when the next page has not opted in (the login
+  handoff, Django administration), which fails the harness and reaches users'
+  consoles. Revisit with `pageswap` and `pagereveal` handling.
+- **App header links appear on hydration.** Rendering About on the server
+  would end the pop-in but changes the [connection-unavailable
+  state](architecture.md#shared-presentation), which hides the header links.
 
 ### Demo video
 
@@ -301,6 +290,9 @@ CLI.
   because Playwright draws the pointer only together with the captions.
 - **Development markers.** Recordings still show the dev-tools switch and the
   footer's "Local development" label, which production lacks.
+- **Pre-redesign look.** The chapters and the chat mock (`tools/demo/chat.ts`)
+  predate the site and app re-theme; re-record them once the editor surface
+  follows the Figma workspace frames.
 - **Real claude.ai footage.** Ask Anthropic whether scripted demo recording
   through a dedicated claude.ai account is acceptable; if so, drive claude.ai
   in place of the demo chat surface.

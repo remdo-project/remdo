@@ -4,15 +4,24 @@ import { provisionDjangoUser } from '../../../tools/lib/django-user';
 import { createFixtureDocument } from '../../../tools/lib/fixture-document';
 import type { Page } from '@playwright/test';
 
-// The app's signed-out screen keeps the pre-redesign look until the app shell
-// adopts the site theme, so only what both surfaces still share is compared.
+// Colors follow each surface's palette, so only typography and control
+// geometry are compared between the Django sign-in and the app's signed-out screen.
 async function sharedSignIn(page: Page) {
   // The stylesheet must apply before the page is read, or unstyled defaults pass.
   await expect(page.locator('body')).toHaveCSS('margin', '0px');
   await expect(page.getByText('Sign in to access your documents.')).toBeVisible();
+  const main = page.getByRole('main');
   return {
     title: await page.getByRole('heading', { level: 1 }).innerText(),
     links: await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: /^(About|Sign in)$/u }).allInnerTexts(),
+    titleStyle: await main.getByRole('heading', { level: 1 }).evaluate((element) => {
+      const style = getComputedStyle(element);
+      return [style.fontFamily, style.fontSize, style.fontWeight, style.lineHeight, style.letterSpacing];
+    }),
+    actionStyle: await main.locator('button, a').filter({ hasText: /^\s*Sign in\s*$/u }).evaluate((element) => {
+      const style = getComputedStyle(element);
+      return [Math.round(element.getBoundingClientRect().height), style.borderTopWidth, style.borderRadius, style.fontSize, style.fontWeight, style.backgroundColor];
+    }),
   };
 }
 
