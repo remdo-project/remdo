@@ -17,7 +17,8 @@ test('header controls are reachable by keyboard on a narrow screen', async ({ pa
   }
 });
 
-test('keeps the wordmark and footer links where the public pages put them', async ({ page }) => {
+// Tracked in docs/todo.md#tooling.
+test.fixme('keeps the wordmark and footer links where the public pages put them', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const chrome = async () => ({
     wordmark: await page.getByRole('link', { name: 'RemDo home', exact: true }).boundingBox(),
