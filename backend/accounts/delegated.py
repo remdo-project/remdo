@@ -207,7 +207,11 @@ def protected_resource_metadata(request):
 def mcp_user(request):
     """The user an access token issued for the MCP server (RFC 8707) acts as."""
     token = delegated_token(request.headers.get("Authorization", ""))
-    if token is None or mcp_resource() not in token.get_resources():
+    if (
+        token is None
+        or mcp_resource() not in token.get_resources()
+        or "openid" not in token.get_scopes()
+    ):
         return HttpResponse(status=401)
     return JsonResponse({"userId": str(token.user.pk)})
 
