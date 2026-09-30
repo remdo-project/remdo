@@ -49,3 +49,15 @@ test.describe('story text', () => {
     });
   });
 });
+
+test('reveals a FAQ answer when its question is activated', async ({ page }) => {
+  await page.goto('/');
+  const question = page.getByText('Can I use RemDo offline?', { exact: true });
+  const answer = page.getByText(/if you have a remembered session/u);
+
+  await expect(answer).toBeHidden();
+  await question.click();
+  await expect(answer).toBeVisible();
+  await question.click();
+  await expect(answer).toBeHidden();
+});

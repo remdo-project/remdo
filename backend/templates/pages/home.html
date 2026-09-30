@@ -73,16 +73,63 @@
           </div>
         </div>
       </section>
+      <section class="landing-chat landing-container" aria-labelledby="landing-chat-title">
+        <div class="landing-chat-introduction">
+          <h2 id="landing-chat-title">Bring your notes into the conversation.</h2>
+          <div class="landing-chat-copy"><h3>Chat links</h3><p>Paste a RemDo link into your chat to give it context. Ask for a summary or next steps, then bring the result back into your outline.</p></div>
+        </div>
+        <img class="landing-chat-background" src="/site-assets/chat-background.webp" alt="" width="1672" height="941" loading="lazy" decoding="async">
+      </section>
+      <section class="landing-faq landing-container" aria-labelledby="landing-faq-title">
+        <h2 id="landing-faq-title">Frequently asked questions.</h2>
+        <div class="landing-faq-list">
+          <details class="landing-faq-item" open>
+            <summary>Is RemDo still in early development?</summary>
+            <p>Yes. The core outliner is available, while the wider workspace is still taking shape. Features, the interface, and how the product works may change as development continues.</p>
+          </details>
+          <details class="landing-faq-item">
+            <summary>What can I do with RemDo today?</summary>
+            <p>Organize notes in an outline, link notes and documents, and search within a document. You can also edit together in real time and work offline.</p>
+          </details>
+          <details class="landing-faq-item">
+            <summary>Can I use RemDo offline?</summary>
+            <p>Yes, if you have a remembered session and the document is already stored on your device. You can keep editing and searching it; local changes sync when you reconnect.</p>
+          </details>
+          <details class="landing-faq-item">
+            <summary>Can I work with other people?</summary>
+            <p>Yes. Document owners can share with other accounts on the same RemDo server, then edit together in real time. Sending someone a document link alone does not give them access.</p>
+          </details>
+          <details class="landing-faq-item">
+            <summary>Is RemDo open source?</summary>
+            <p>Yes. RemDo is available under the MIT License, and you can inspect the code on GitHub. Self-hosting is supported if you want to run your own instance.</p>
+          </details>
+          <details class="landing-faq-item">
+            <summary>Does RemDo connect to email and calendars?</summary>
+            <p>Not yet. Connections to email, calendars, and external files are part of the longer-term vision and are still under development. Today’s product focuses on RemDo notes and documents.</p>
+          </details>
+        </div>
+      </section>
     </div>
   </main>
-  <footer class="remdo-footer landing-footer landing-container">
-    <div class="remdo-footer-start">
-      <span>© {% now "Y" %} RemDo</span>
-      <nav aria-label="Footer" class="remdo-footer-links">
-        <a href="/about/">About</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a>
-        <a href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">Source</a>
-      </nav>
-    </div>
-  </footer>
+  <div class="landing-ending">
+    <img class="landing-ending-glow" src="/site-assets/footer-glow.webp" alt="" width="1536" height="1024" loading="lazy" decoding="async">
+    <section class="landing-cta" aria-labelledby="landing-cta-title">
+      <div class="landing-cta-card">
+        <h2 id="landing-cta-title">Try RemDo now.</h2>
+        {% include "pages/landing/sign_in.html" %}
+      </div>
+    </section>
+    <footer class="landing-footer landing-container">
+      <div class="landing-footer-brand">
+        <span class="landing-footer-wordmark">RemDo</span>
+        <p>A keyboard-first collaborative outliner.<br>Keep notes, tasks, and ideas connected.</p>
+        <a class="landing-footer-github" href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer" aria-label="RemDo on GitHub"><img src="/site-assets/github.svg" alt="" width="20" height="20"></a>
+      </div>
+      <div class="landing-footer-bottom">
+        <span>© {% now "Y" %} RemDo</span>
+        <nav aria-label="Footer"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
+      </div>
+    </footer>
+  </div>
 </div>
 {% endblock %}

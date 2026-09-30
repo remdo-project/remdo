@@ -131,18 +131,20 @@ test.describe('Routing', () => {
   unauthenticatedTest('lets keyboard users skip the public home navigation', async ({ page }) => {
     await page.goto('/');
 
+    const introduction = page.getByRole('region', { name: 'Keyboard-first collaborative outliner' });
     await page.keyboard.press('Tab');
     await expect(page.getByRole('link', { name: 'Skip to content', exact: true })).toBeFocused();
     await page.keyboard.press('Enter');
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Sign in with Google', exact: true })).toBeFocused();
+    await expect(introduction.getByRole('button', { name: 'Sign in with Google', exact: true })).toBeFocused();
   });
 
   unauthenticatedTest('keeps Google sign-in available on a phone-width public home', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 800 });
     await page.goto('/');
 
-    await expect(page.getByRole('button', { name: 'Sign in with Google', exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Keyboard-first collaborative outliner' })
+      .getByRole('button', { name: 'Sign in with Google', exact: true })).toBeVisible();
   });
 
   test('sends a visit to the stored app page address to Home', async ({ page }) => {

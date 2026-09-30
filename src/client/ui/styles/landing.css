@@ -6,8 +6,6 @@
   --landing-secondary-text: #6f6a65;
   --landing-text-resting: #807a74;
   --landing-border: #cec7c0;
-  --landing-button-fill: #15120f;
-  --landing-button-text: #f3efe9;
   --landing-dark-surface: #12100d;
   --landing-light-text: #f3efe9;
   --landing-muted-light-text: #b9b4ae;
@@ -287,11 +285,16 @@ body:has(> .remdo-landing) {
   background: var(--landing-page);
   color: var(--landing-primary-text);
 }
+.landing-light :where(a, button, input, summary):focus-visible {
+  outline-color: var(--landing-primary-text);
+}
 .landing-features {
   padding-block: 48px 128px;
 }
 .landing-features h2 {
   margin-bottom: 64px;
+}
+.landing-features h2, .landing-chat h2, .landing-faq h2 {
   font-family: var(--landing-font-serif);
   font-size: 62px;
   font-weight: 400;
@@ -312,18 +315,14 @@ body:has(> .remdo-landing) {
 .landing-feature-copy {
   flex: 1;
 }
-.landing-feature h3 {
+.landing-feature h3, .landing-chat-copy h3 {
   margin-bottom: 8px;
   font-size: 16px;
   font-weight: 500;
   line-height: 24px;
 }
-.landing-feature-copy p {
+.landing-feature-copy p, .landing-chat-copy p {
   color: var(--landing-secondary-text);
-}
-.remdo-landing .landing-footer {
-  margin-top: 80px;
-  padding-block: 32px;
 }
 @media (max-width: 63.99em) {
   .landing-feature-grid {
@@ -405,6 +404,8 @@ body:has(> .remdo-landing) {
   }
   .landing-features h2 {
     margin-bottom: 40px;
+  }
+  .landing-features h2, .landing-chat h2, .landing-faq h2 {
     font-size: 40px;
     line-height: 44px;
     letter-spacing: 0;
