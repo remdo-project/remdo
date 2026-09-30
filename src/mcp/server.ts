@@ -46,13 +46,20 @@ const UNAVAILABLE = 'RemDo is unavailable. Try again later.';
 const UNCONFIRMED = 'RemDo did not confirm whether the request took effect. '
   + 'Check with list_documents before retrying.';
 
-const readOnly = { readOnlyHint: true, openWorldHint: false } satisfies ToolAnnotations;
+const readOnly = { readOnlyHint: true, destructiveHint: false, openWorldHint: false } satisfies ToolAnnotations;
 const additiveWrite = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } satisfies ToolAnnotations;
 const idempotentOverwrite = { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false } satisfies ToolAnnotations;
 
+const oauthSecuritySchemes = [{ type: 'oauth2', scopes: ['openid'] }];
+
 // The Claude connector directory reads annotations.title; newer clients read the tool's own title.
+// MCP SDK 1.x exposes extension metadata through _meta; ChatGPT reads securitySchemes there for compatibility.
 function titled(title: string, annotations: ToolAnnotations) {
-  return { title, annotations: { ...annotations, title } };
+  return {
+    title,
+    annotations: { ...annotations, title },
+    _meta: { securitySchemes: oauthSecuritySchemes },
+  };
 }
 
 function countNotes(notes: readonly NewNote[]): number {
