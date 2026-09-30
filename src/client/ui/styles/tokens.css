@@ -2,6 +2,7 @@
    rings); the bare channels serve translucent accent fills. */
 :root {
   --remdo-font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --remdo-font-serif: Tinos, 'Times New Roman', Times, serif;
   --remdo-font-family-monospace: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
   --mantine-font-family: var(--remdo-font-family);
   --mantine-font-family-headings: var(--remdo-font-family);

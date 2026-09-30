@@ -64,20 +64,7 @@
   max-width: none;
 }
 .landing-signin-heading {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   margin-bottom: 8px;
-}
-.landing-signin-heading h1 {
-  font-family: var(--landing-font-serif);
-  font-size: 62px;
-  font-weight: 400;
-  line-height: 66px;
-  letter-spacing: -1.1px;
-}
-.landing-signin-heading p {
-  color: var(--landing-muted-light-text);
 }
 .landing-signin-divider {
   display: flex;
@@ -92,64 +79,6 @@
   flex: 1;
   height: 1px;
   background: var(--landing-dark-outline);
-}
-.landing-signin .remdo-account-form {
-  gap: 20px;
-}
-.landing-signin .remdo-account-form p {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.landing-signin .remdo-account-form label {
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 24px;
-}
-.landing-signin .remdo-account-form input:not([type='checkbox'], [type='radio'], [type='hidden']) {
-  box-sizing: border-box;
-  height: 56px;
-  padding: 12px 16px;
-  border: 1px solid var(--landing-secondary-text);
-  border-radius: var(--landing-radius);
-  background: var(--landing-dark-surface);
-  color: var(--landing-light-text);
-  font-size: 16px;
-  line-height: 24px;
-}
-.landing-signin .remdo-account-form input::placeholder {
-  color: var(--landing-muted-light-text);
-  opacity: 1;
-}
-.landing-signin .remdo-account-form input[aria-invalid='true'] {
-  border-color: #f2a59d;
-}
-.landing-signin .remdo-account-form .errorlist {
-  margin: 0 0 -12px;
-  padding: 0;
-  color: #f2a59d;
-  font-size: 14px;
-  line-height: 20px;
-  list-style: none;
-}
-.landing-signin .remdo-account-form .remdo-account-button {
-  min-height: 56px;
-  padding: 16px 24px;
-  border: 1px solid var(--landing-dark-outline);
-  border-radius: var(--landing-radius);
-  background: transparent;
-  color: var(--landing-light-text);
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 24px;
-  letter-spacing: -0.1px;
-}
-.landing-signin .remdo-account-form .remdo-account-button:hover {
-  background: #27231f;
-}
-.landing-signin .remdo-account-form :focus-visible {
-  outline: 2px solid var(--landing-light-text);
-  outline-offset: 4px;
 }
 @media (max-width: 63.99em) {
   .landing-signin {
@@ -168,12 +97,5 @@
   }
   .landing-signin .site-footer-inner {
     width: calc(100% - 2 * var(--landing-gutter));
-  }
-}
-@media (max-width: 47.99em) {
-  .landing-signin-heading h1 {
-    font-size: 40px;
-    line-height: 44px;
-    letter-spacing: 0;
   }
 }

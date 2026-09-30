@@ -81,7 +81,7 @@ function ConnectionUnavailable() {
       description="The RemDo app server can’t be reached right now."
       title="Connection unavailable"
     >
-      <Button onClick={armRetryBudget} type="button">
+      <Button className="remdo-account-button" onClick={armRetryBudget} type="button">
         Retry
       </Button>
     </CenteredCardPage>

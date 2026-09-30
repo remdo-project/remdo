@@ -3,6 +3,10 @@
   --chrome-muted: var(--mantine-color-dark-1);
   --chrome-line: var(--mantine-color-dark-4);
   --chrome-rule: var(--chrome-line);
+  --chrome-subtle: var(--mantine-color-dark-3);
+  --chrome-surface: var(--remdo-surface);
+  --chrome-hover: var(--mantine-color-dark-6);
+  --chrome-error: #f2a59d;
 }
 
 .site-container {

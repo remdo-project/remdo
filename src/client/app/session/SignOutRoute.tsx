@@ -7,8 +7,8 @@ export default function SignOutRoute() {
   const { requestLogout } = useLogout();
   return (
     <CenteredCardPage title="Sign out of RemDo?" description="Signing out clears this device's local data.">
-      <Button onClick={requestLogout}>Sign out</Button>
-      <Button component={Link} to="/" variant="default">Cancel</Button>
+      <Button className="remdo-account-button" onClick={requestLogout}>Sign out</Button>
+      <Button className="remdo-account-button" component={Link} to="/">Cancel</Button>
     </CenteredCardPage>
   );
 }

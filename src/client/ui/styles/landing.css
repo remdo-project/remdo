@@ -12,7 +12,7 @@
   --landing-radius: 3px;
   --landing-gutter: var(--remdo-gutter);
   --landing-font-sans: 'DM Sans', system-ui, sans-serif;
-  --landing-font-serif: Tinos, 'Times New Roman', Times, serif;
+  --landing-font-serif: var(--remdo-font-serif);
 }
 
 .remdo-landing {
@@ -20,6 +20,9 @@
   --chrome-muted: var(--landing-muted-light-text);
   --chrome-line: var(--landing-dark-outline);
   --chrome-rule: transparent;
+  --chrome-subtle: var(--landing-secondary-text);
+  --chrome-surface: var(--landing-dark-surface);
+  --chrome-hover: #27231f;
   min-height: 100svh;
   background: var(--landing-dark-surface);
   color: var(--landing-light-text);

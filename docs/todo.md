@@ -270,9 +270,6 @@ Remaining:
 
 - **Editor surface.** Restyle the document location strip, rows, menus, and
   interaction states to the workspace frames.
-- **Signed-out screen and other allauth pages.** The app's signed-out screen,
-  connected apps, delegation refused, closed sign-up, and OIDC authorization
-  keep their card layout; the Figma file has no frames for them.
 - **Team section.** The Figma Team section moves to the About page, where its
   bios are reconciled with the current team list.
 - **Cross-fade page loads.** Cross-document view transitions throw an unhandled
