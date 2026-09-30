@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlencode, urlsplit
 
 from allauth.core.context import request_context
-from allauth.idp.oidc.models import Client
+from allauth.idp.oidc.models import Client, Token
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -64,11 +64,11 @@ class DelegatedAccessTests(TestCase):
             }
         )
 
-    def grant(self, redirect_uri=REDIRECT_URI, resource=None):
+    def grant(self, redirect_uri=REDIRECT_URI, resource=None, client_id=CLIENT_ID):
         requested = {} if resource is None else {"resource": resource}
         self.client.force_login(self.user)
         page = self.client.get(
-            f"/identity/o/authorize?{self.authorize_query(redirect_uri=redirect_uri, **requested)}"
+            f"/identity/o/authorize?{self.authorize_query(client_id=client_id, redirect_uri=redirect_uri, **requested)}"
         )
         self.assertEqual(page.status_code, 200, page.content[:500])
         signed = re.search(rb'name="request" value="([^"]+)"', page.content).group(1).decode()
@@ -90,7 +90,7 @@ class DelegatedAccessTests(TestCase):
                 "grant_type": "authorization_code",
                 "code": code,
                 "redirect_uri": redirect_uri,
-                "client_id": CLIENT_ID,
+                "client_id": client_id,
                 "code_verifier": VERIFIER,
                 **requested,
             },
@@ -134,6 +134,37 @@ class DelegatedAccessTests(TestCase):
         tokens = self.grant(resource=mcp_resource())
         renewed = self.refresh(tokens["refresh_token"]).json()
         self.assertEqual(self.authorize_mcp(renewed["access_token"]).status_code, 200)
+
+    def test_mcp_requires_openid_even_with_the_correct_resource(self):
+        value = self.grant(resource=mcp_resource())["access_token"]
+        token = Token.objects.lookup(Token.Type.ACCESS_TOKEN, value)
+        for scopes in ([], ["profile"], ["not-openid"]):
+            with self.subTest(scopes=scopes):
+                token.set_scopes(scopes)
+                token.save()
+                self.assertEqual(self.authorize_mcp(value).status_code, 401)
+                self.assertEqual(self.documents(value).status_code, 200)
+
+    def test_chatgpt_cimd_code_flow_with_pkce_and_resource_reaches_mcp(self):
+        client_id = "https://chatgpt.com/oauth/test-callback/client.json"
+        redirect_uri = "https://chatgpt.com/connector/oauth/test-callback"
+        # Public-client, callback-specific CIMD flow; no RFC 9207 dependency.
+        metadata = {
+            "client_id": client_id,
+            "client_name": "ChatGPT",
+            "redirect_uris": [redirect_uri],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "token_endpoint_auth_method": "none",
+        }
+        with patch("allauth.idp.oidc.internal.cimd.fetch_metadata", return_value=metadata):
+            tokens = self.grant(
+                redirect_uri=redirect_uri, resource=mcp_resource(), client_id=client_id
+            )
+        self.assertEqual(tokens["scope"], "openid")
+        response = self.authorize_mcp(tokens["access_token"])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"userId": str(self.user.pk)})
 
     def test_granted_token_acts_as_the_user_on_the_api_and_collaboration(self):
         tokens = self.grant()
@@ -183,13 +214,6 @@ class DelegatedAccessTests(TestCase):
         device = self.client.post("/identity/o/api/device/code", {"client_id": CLIENT_ID})
         self.assertEqual(device.status_code, 404)
         self.assertEqual(self.client.get("/identity/o/logout").status_code, 404)
-        discovery = self.client.get("/.well-known/openid-configuration").json()
-        self.assertEqual(discovery["response_types_supported"], ["code"])
-        self.assertNotIn("device_authorization_endpoint", discovery)
-        self.assertNotIn("end_session_endpoint", discovery)
-        self.assertEqual(discovery["scopes_supported"], ["openid"])
-        self.assertIs(discovery["client_id_metadata_document_supported"], True)
-        self.assertIn("none", discovery["token_endpoint_auth_methods_supported"])
 
     def test_access_is_granted_only_after_consent_through_the_code_flow(self):
         self.grant()
@@ -319,3 +343,24 @@ class ProtectedResourceMetadataTests(TestCase):
         metadata = self.client.get("/.well-known/oauth-protected-resource/mcp").json()
         self.assertEqual(metadata["resource"], f"{settings.APP_ORIGIN}/mcp")
         self.assertEqual(metadata["authorization_servers"], ["http://testserver"])
+        self.assertEqual(metadata["bearer_methods_supported"], ["header"])
+        self.assertEqual(metadata["scopes_supported"], ["openid"])
+
+    def test_discovery_supports_the_public_cimd_pkce_flow(self):
+        discovery = self.client.get("/.well-known/openid-configuration").json()
+        self.assertEqual(discovery["issuer"], "http://testserver")
+        self.assertEqual(
+            discovery["authorization_endpoint"], "http://testserver/identity/o/authorize"
+        )
+        self.assertEqual(discovery["token_endpoint"], "http://testserver/identity/o/api/token")
+        self.assertEqual(discovery["jwks_uri"], "http://testserver/.well-known/jwks.json")
+        self.assertEqual(discovery["response_types_supported"], ["code"])
+        self.assertEqual(
+            discovery["grant_types_supported"], ["authorization_code", "refresh_token"]
+        )
+        self.assertIn("S256", discovery["code_challenge_methods_supported"])
+        self.assertEqual(discovery["scopes_supported"], ["openid"])
+        self.assertIs(discovery["client_id_metadata_document_supported"], True)
+        self.assertIn("none", discovery["token_endpoint_auth_methods_supported"])
+        self.assertNotIn("device_authorization_endpoint", discovery)
+        self.assertNotIn("end_session_endpoint", discovery)

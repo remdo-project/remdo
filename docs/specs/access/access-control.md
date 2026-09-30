@@ -189,7 +189,7 @@ A delegated access token authenticates as its user on the RemDo API and on
 [collaboration connections](../../architecture.md#collaboration-credentials-and-paths),
 under that user's current [document access](#document-access), without a
 browser origin. The [MCP server](../integrations/mcp.md) accepts only tokens
-issued for it as their target resource
+with the `openid` scope and issued for it as their target resource
 ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)); the API and
 collaboration connections accept a token whatever its resource, so the MCP
 server acts with the token it received. Account pages, sign-out,
