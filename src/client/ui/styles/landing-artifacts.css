@@ -8,10 +8,10 @@
   border-radius: 3px;
   color: #c9c9c9;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11.52px;
+  font-size: 14.4px;
   font-weight: 400;
   font-variation-settings: 'opsz' 14;
-  line-height: 17.92px;
+  line-height: 22.4px;
   letter-spacing: 0;
 }
 
@@ -169,20 +169,26 @@
   flex: none;
 }
 
+.landing-artifact-inline {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+
 .landing-artifact-peer {
   position: absolute;
-  top: 1.6px;
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
   width: 0.8px;
   height: 22.4px;
 }
 
 .landing-artifact-peer--tom {
-  left: 176px;
   background: #c84b00;
 }
 
 .landing-artifact-peer--henry {
-  left: 195.2px;
   background: #006496;
 }
 
@@ -201,27 +207,22 @@
 
 .landing-artifact-peer-selection {
   position: absolute;
-  top: 4px;
-  left: 127.2px;
-  width: 68px;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
   height: 17.6px;
   background: rgb(0 100 150 / 30%);
 }
 
 .landing-artifact-caret {
   position: absolute;
-  top: 4px;
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
   width: 0.8px;
   height: 17.6px;
   background: #c9c9c9;
-}
-
-.landing-artifact-caret--link {
-  left: 95.2px;
-}
-
-.landing-artifact-caret--writing {
-  left: 173.6px;
 }
 
 .landing-artifact-results {

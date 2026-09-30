@@ -37,6 +37,7 @@ body:has(#root) .remdo-header-inner {
 body:has(#root) .remdo-header-brand-link,
 body:has(#root) .remdo-header-link {
   min-height: 40px;
+  text-decoration: none;
 }
 
 body:has(#root) .remdo-header-brand-icon {
@@ -49,6 +50,12 @@ body:has(#root) .remdo-brand-name {
   font-weight: 600;
   line-height: 34px;
   letter-spacing: -1.2px;
+  transition: color 150ms ease;
+}
+
+body:has(#root) .remdo-header-brand-link:hover .remdo-brand-name,
+body:has(#root) .remdo-header-brand-link:focus-visible .remdo-brand-name {
+  color: #dedede;
 }
 
 body:has(#root) .remdo-header-links {
@@ -66,7 +73,7 @@ body:has(#root) .remdo-header-link {
 
 body:has(#root) .remdo-header-link:hover,
 body:has(#root) .remdo-header-link:focus-visible {
-  color: #c9c9c9;
+  color: #a3a3a3;
 }
 
 body:has(#root) .remdo-footer {
@@ -74,6 +81,17 @@ body:has(#root) .remdo-footer {
   padding-inline: 0;
   border-color: #424242;
   color: #828282;
+}
+
+body:has(#root) .remdo-footer a {
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+body:has(#root) .remdo-footer a:hover,
+body:has(#root) .remdo-footer a:focus-visible {
+  color: #a3a3a3;
+  text-decoration: none;
 }
 
 body:has(#root .remdo-signin-session) .remdo-header,

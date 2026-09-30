@@ -90,10 +90,7 @@
   outline: none;
   text-overflow: ellipsis;
   cursor: pointer;
-}
-
-.document-header-doc-combo:hover .document-header-doc-input {
-  text-decoration: underline;
+  transition: color 150ms ease;
 }
 
 .document-header-doc-combobox[data-open] .document-header-doc-input {
@@ -287,10 +284,13 @@
   color: inherit;
   cursor: pointer;
   text-align: start;
+  transition: color 150ms ease;
 }
 
-.document-search-result-crumb--ancestor:hover {
-  text-decoration: underline;
+.document-search-result-crumb--ancestor:hover,
+.document-search-result-crumb--ancestor:focus-visible {
+  color: #bab7ef;
+  text-decoration: none;
 }
 
 .document-search-result-crumb--ellipsis {
@@ -593,6 +593,13 @@ main.document-route-container:has(.document-editor-shell) {
 
 .document-editor-shell .document-header-breadcrumbs button {
   color: #828282;
+  transition: color 150ms ease;
+}
+
+.document-editor-shell .document-header-breadcrumbs button[data-zoom-crumb]:hover,
+.document-editor-shell .document-header-breadcrumbs button[data-zoom-crumb]:focus-visible {
+  color: #a3a3a3;
+  text-decoration: none;
 }
 
 .document-editor-shell .document-header-breadcrumbs li + li::before {
@@ -612,6 +619,13 @@ main.document-route-container:has(.document-editor-shell) {
 
 .document-editor-shell .document-header-doc-combo:hover .document-header-doc-input {
   text-decoration: none;
+}
+
+.document-editor-shell .document-header-doc-combobox:not([data-open]) .document-header-doc-combo:hover .document-header-doc-input,
+.document-editor-shell .document-header-doc-combobox:not([data-open]) .document-header-doc-input:focus-visible,
+.document-editor-shell .document-header-doc-menu[data-hovered],
+.document-editor-shell .document-header-doc-menu[data-focus-visible] {
+  color: #dedede;
 }
 
 .document-editor-shell .document-header-actions {
