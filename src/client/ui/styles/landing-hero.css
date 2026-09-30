@@ -22,6 +22,15 @@
   text-align: center;
   text-wrap: balance;
 }
+.landing-subline {
+  max-width: 640px;
+  color: var(--landing-muted-light-text);
+  font-size: 20px;
+  line-height: 30px;
+  letter-spacing: -0.2px;
+  text-align: center;
+  text-wrap: balance;
+}
 .landing-hero-actions {
   display: flex;
   align-items: center;
@@ -55,6 +64,10 @@
   background: var(--landing-dark-surface);
 }
 @media (max-width: 47.99em) {
+  .landing-subline {
+    font-size: 18px;
+    line-height: 28px;
+  }
   .landing-hero {
     gap: 40px;
     padding-top: 40px;

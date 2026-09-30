@@ -172,7 +172,7 @@ test('confirmed logout removes the offline entry so the root serves the public h
   await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
   const response = await page.goto('/');
   expect(response!.fromServiceWorker()).toBe(false);
-  await expect(page.getByRole('heading', { level: 1, name: 'Keyboard-first collaborative outliner' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Introduction' })).toBeVisible();
 });
 
 test('a session that ended elsewhere removes the offline entry so the root serves the public home', async ({ page, context }) => {
@@ -180,7 +180,7 @@ test('a session that ended elsewhere removes the offline entry so the root serve
   await waitForServiceWorkerControl(page);
   await context.clearCookies();
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1, name: 'Keyboard-first collaborative outliner' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Introduction' })).toBeVisible();
   await expect(page.locator('script[type="module"]')).toHaveCount(0);
   expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
 });

@@ -9,6 +9,7 @@
 .landing-story > p {
   width: 100%;
   max-width: 1000px;
+  text-wrap: balance;
   font-size: 36px;
   line-height: 50px;
   letter-spacing: -0.7px;

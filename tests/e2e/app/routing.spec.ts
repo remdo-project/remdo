@@ -120,7 +120,7 @@ test.describe('Routing', () => {
     await page.goto('/');
 
     await expectPath(page, '/');
-    await expect(page.getByRole('heading', { level: 1, name: 'Keyboard-first collaborative outliner' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Introduction' })).toBeVisible();
     await expect(page.locator('script[type="module"]')).toHaveCount(0);
     await page.getByRole('navigation').getByRole('link', { name: 'Sign in', exact: true }).click();
     await expectPath(page, '/accounts/login/');
@@ -131,7 +131,7 @@ test.describe('Routing', () => {
   unauthenticatedTest('lets keyboard users skip the public home navigation', async ({ page }) => {
     await page.goto('/');
 
-    const introduction = page.getByRole('region', { name: 'Keyboard-first collaborative outliner' });
+    const introduction = page.getByRole('region', { name: 'Introduction' });
     await page.keyboard.press('Tab');
     await expect(page.getByRole('link', { name: 'Skip to content', exact: true })).toBeFocused();
     await page.keyboard.press('Enter');
@@ -143,7 +143,7 @@ test.describe('Routing', () => {
     await page.setViewportSize({ width: 390, height: 800 });
     await page.goto('/');
 
-    await expect(page.getByRole('region', { name: 'Keyboard-first collaborative outliner' })
+    await expect(page.getByRole('region', { name: 'Introduction' })
       .getByRole('button', { name: 'Sign in with Google', exact: true })).toBeVisible();
   });
 
@@ -158,7 +158,7 @@ test.describe('Routing', () => {
     await page.goto('/app-shell/');
 
     await expectPath(page, '/');
-    await expect(page.getByRole('heading', { level: 1, name: 'Keyboard-first collaborative outliner' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Introduction' })).toBeVisible();
   });
 
   unauthenticatedTest('uses native sign-in and preserves protected destinations when signed out', async ({ page }) => {

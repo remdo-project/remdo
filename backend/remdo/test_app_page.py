@@ -107,10 +107,7 @@ class AppPageTests(TestCase):
 class HomePageTests(TestCase):
     def test_signed_out_visitors_get_the_public_home(self):
         response = self.client.get("/?utm_source=test")
-        self.assertRegex(
-            response.content.decode(),
-            r"<h1\b[^>]*>Keyboard-first collaborative outliner</h1>",
-        )
+        self.assertContains(response, 'aria-label="Introduction"')
         self.assertContains(
             response, f'<link rel="canonical" href="{settings.APP_ORIGIN}/">', html=True
         )

@@ -56,6 +56,12 @@
   letter-spacing: -2px;
   text-align: center;
 }
+.landing-cta-note {
+  color: var(--landing-muted-light-text);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+}
 .landing-footer {
   display: flex;
   flex-direction: column;
