@@ -45,6 +45,16 @@ class PublicPageTests(SimpleTestCase):
         self.write_page(title="Updated privacy")
         self.assertContains(self.client.get("/privacy/"), "Updated privacy")
 
+    def test_footer_links_the_terms_and_the_source_repository(self):
+        self.write_page()
+        response = self.client.get("/privacy/")
+        self.assertContains(response, '<a href="/terms/">Terms</a>', html=True)
+        self.assertContains(
+            response,
+            '<a href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">Source</a>',
+            html=True,
+        )
+
     def test_docs_pages_are_served_under_docs(self):
         self.write_page("docs/mcp", title="Connect an assistant")
         response = self.client.get("/docs/mcp/")
