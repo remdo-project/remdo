@@ -108,8 +108,10 @@ describe('prod Docker launcher', () => {
         GOOGLE_CLIENT_ID: '',
         GOOGLE_CLIENT_SECRET: '',
         SENTRY_DSN: '',
+        OPENAI_APPS_CHALLENGE: '',
         HOST: '',
         REMDO_ADMIN_PASSWORD: '',
+        REMDO_USER_PASSWORD: '',
         PATH: `${binDir}:${process.env.PATH}`,
         PORT: '9999',
         PORT_BASE: '9000',
@@ -400,6 +402,15 @@ describe('prod Docker launcher', () => {
     expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toMatchObject({
       GOOGLE_CLIENT_ID: 'launcher-google-client',
       GOOGLE_CLIENT_SECRET: 'launcher-google-secret',
+    });
+  });
+
+  it('forwards the exact OpenAI app challenge to the container', () => {
+    const { result, dockerCalls } = runLauncher({ OPENAI_APPS_CHALLENGE: '  verification-token.<&>' });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toMatchObject({
+      OPENAI_APPS_CHALLENGE: '  verification-token.<&>',
     });
   });
 

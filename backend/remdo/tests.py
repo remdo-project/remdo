@@ -204,6 +204,21 @@ class ConfigurationTests(SimpleTestCase):
         self.assertEqual(postgres["database"], "django.db.backends.postgresql")
         self.assertEqual(postgres["persistent"], [600, True])
 
+    def test_openai_apps_challenge_environment(self):
+        report = """
+import json
+from django.test import Client
+response = Client(HTTP_HOST='remdo.example').get('/.well-known/openai-apps-challenge')
+print(json.dumps({'status': response.status_code, 'body': response.content.decode() if response.status_code == 200 else None}))
+"""
+        self.assertEqual(self.settings(report=report), {"status": 404, "body": None})
+        for token in ("verification-token", "  verification-token.<&>\n", ""):
+            with self.subTest(token=token):
+                self.assertEqual(
+                    self.settings(report=report, OPENAI_APPS_CHALLENGE=token),
+                    {"status": 200 if token else 404, "body": token or None},
+                )
+
     def test_production_client_address_trust_matches_the_hosting_boundary(self):
         for environment, expected in (
             ({}, ["198.51.100.1"] * 3),

@@ -24,6 +24,7 @@ class Command(BaseCommand):
             expires_at=timezone.now() + timezone.timedelta(hours=1),
         )
         token.set_resources([mcp_resource()])
+        token.set_scopes(["openid"])
         token.set_value(value)
         token.save()
         self.stdout.write(value)

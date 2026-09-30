@@ -37,8 +37,9 @@ operation's owner defines its behavior.
   does not change the document, so it omits the URL of a note whose ID
   [load-time normalization](../outliner/note-ids.md#persisted-json-and-normalization)
   would first have to store.
-- Each tool declares a title and whether it only reads or changes the user's
-  data, so clients can require confirmation before changes.
+- Each tool declares a title, that it requires the user's authorization, and
+  whether it only reads or changes the user's data, so clients can require
+  confirmation before changes.
 - A failed tool call returns a tool error naming its cause.
 
 ## Limits
