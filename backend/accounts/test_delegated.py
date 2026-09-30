@@ -155,7 +155,8 @@ class DelegatedAccessTests(TestCase):
             "redirect_uris": [redirect_uri],
             "grant_types": ["authorization_code", "refresh_token"],
             "response_types": ["code"],
-            "token_endpoint_auth_method": "none",
+            "token_endpoint_auth_methods_supported": ["none", "private_key_jwt"],
+            "token_endpoint_auth_method": "private_key_jwt",
         }
         with patch("allauth.idp.oidc.internal.cimd.fetch_metadata", return_value=metadata):
             tokens = self.grant(
