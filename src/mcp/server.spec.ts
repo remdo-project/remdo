@@ -87,15 +87,13 @@ it('identifies itself with the app icon and tells clients how to use RemDo', asy
   });
 });
 
-it('advertises complete safety annotations and OAuth requirements for every tool', async () => {
+it('declares read-only, destructive, and open-world hints for every tool so clients can gate confirmation', async () => {
   const post = await start();
   authorizeStatus = 200;
 
-  const { tools } = await rpc(post, 'tools/list', {}) as {
-    tools: Array<{ name: string; title?: string; annotations?: object; _meta?: object }>;
-  };
+  const { tools } = await rpc(post, 'tools/list', {}) as { tools: Array<{ name: string; title?: string; annotations?: object }> };
 
-  expect(Object.fromEntries(tools.map(({ name, title, annotations }) => [name, { title, annotations }]))).toMatchObject({
+  expect(Object.fromEntries(tools.map(({ name, title, annotations }) => [name, { title, annotations }]))).toEqual({
     list_documents: {
       title: 'List documents',
       annotations: { title: 'List documents', readOnlyHint: true, destructiveHint: false, openWorldHint: false },
@@ -133,10 +131,18 @@ it('advertises complete safety annotations and OAuth requirements for every tool
       },
     },
   });
+});
+
+it('advertises the OAuth requirement of every tool at the descriptor top level and in _meta', async () => {
+  const post = await start();
+  authorizeStatus = 200;
+
+  const { tools } = await rpc(post, 'tools/list', {}) as { tools: object[] };
+
+  const securitySchemes = [{ type: 'oauth2', scopes: ['openid'] }];
+  expect(tools.length).toBeGreaterThan(0);
   for (const tool of tools) {
-    expect(tool._meta).toMatchObject({
-      securitySchemes: [{ type: 'oauth2', scopes: ['openid'] }],
-    });
+    expect(tool).toMatchObject({ securitySchemes, _meta: { securitySchemes } });
   }
 });
 
