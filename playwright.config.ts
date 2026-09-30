@@ -15,6 +15,7 @@ export default defineConfig({
       command: 'pnpm run dev:api',
       name: 'api',
       url: new URL('/api/health', resolveApiServerOrigin()).href,
+      env: { HOME_VIDEO_URL: '/tests/e2e/_support/home-video/demo.mp4' },
     },
     collaborationWebServer,
     {

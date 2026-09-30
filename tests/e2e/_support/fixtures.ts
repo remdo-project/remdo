@@ -199,7 +199,14 @@ export async function withPageGuards(
 }
 
 export const guardedTest = base.extend({
-  page: ({ page }, apply, testInfo) => withPageGuards(page, apply, testInfo),
+  page: async ({ page }, apply, testInfo) => {
+    // The home video's poster URL derives from the video's; a missing file is a console error.
+    await page.route('**/home-video/demo.jpg', (route) => route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg"/>',
+    }));
+    await withPageGuards(page, apply, testInfo);
+  },
 });
 
 export const test = guardedTest.extend({

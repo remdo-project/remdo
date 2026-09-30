@@ -16,8 +16,10 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 ## Public introduction
 
 When a [home video](../runtime/configuration.md#home-video) is configured, the
-public introduction offers it with its poster, playing it only when the visitor
-starts it.
+public introduction offers it with its poster and a play button that states the
+video's duration once known, playing it only when the visitor starts it. A click
+anywhere on the video starts it. Once started, the video shows the browser's
+standard playback controls, and the play button shows again whenever it is paused.
 
 ## Signed-in behavior
 
