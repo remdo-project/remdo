@@ -264,29 +264,17 @@ RemDo document, minimal but useful for real work.
 
 ### Landing redesign
 
-Migrate the public pages to the
-[final Figma design](https://www.figma.com/design/doTT65AwFC2WqcvUBh1Tjn/), with
-[PR #712](https://github.com/remdo-project/remdo/pull/712) as reference. Ship one
-PR with a commit per surface and kind of change, each passing its own checks, so
-review can focus on one area at a time.
+The public pages, the app shell, and the shared header and footer follow the
+[final Figma design](https://www.figma.com/design/doTT65AwFC2WqcvUBh1Tjn/).
+Remaining:
 
-1. Foundations: tokens, fonts, image assets, route plumbing.
-2. Navigation and hero.
-3. Story, signup preview, product illustrations.
-4. Chat links, FAQ, closing sections.
-5. Terms, Privacy, About.
-6. Sign-in.
-
-Decide content changes and contract exceptions in the commit that introduces
-them. The app shell re-theme is a separate change. The editor surface
-(document location strip, rows, menus, interaction states) and the app's
-signed-out screen follow it; the signed-out screen and the other allauth pages
-(connected apps, delegation refused, closed sign-up, OIDC authorization) keep
-their card layout until then. The Figma Team section moves to the About page,
-where its bios are reconciled with the current team list.
-
-Follow-ups:
-
+- **Editor surface.** Restyle the document location strip, rows, menus, and
+  interaction states to the workspace frames.
+- **Signed-out screen and other allauth pages.** The app's signed-out screen,
+  connected apps, delegation refused, closed sign-up, and OIDC authorization
+  keep their card layout; the Figma file has no frames for them.
+- **Team section.** The Figma Team section moves to the About page, where its
+  bios are reconciled with the current team list.
 - **Cross-fade page loads.** Cross-document view transitions throw an unhandled
   "Transition was aborted" error when the next page has not opted in (the login
   handoff, Django administration), which fails the harness and reaches users'
