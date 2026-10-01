@@ -7,8 +7,8 @@
   box-sizing: border-box;
   position: relative;
   padding: var(--mantine-spacing-lg) var(--remdo-body-inset);
-  --note-control-size: 0.85em;
-  --note-control-gap: 0.35em;
+  --note-control-size: 0.85rem;
+  --note-control-gap: 0.35rem;
   --note-controls-strip-width: calc(var(--note-control-size) * 2 + var(--note-control-gap));
   --note-controls-track-gap: var(--note-control-gap);
   --note-controls-track-width: calc(var(--note-controls-strip-width) + var(--note-controls-track-gap));
@@ -56,7 +56,8 @@
    `.remdo-outline` so any surface (the editor, the search result preview) renders
    notes identically. `.editor-root` carries this class plus editor-only chrome. */
 .remdo-outline {
-  --remdo-indent: var(--mantine-spacing-sm);
+  --remdo-indent: var(--mantine-spacing-xs);
+  --remdo-nested-indent: 0.875rem;
   --bullet-width: 0.4em;
   --bullet-gap: 0.6em;
   --checkbox-width: 0.85em;
@@ -70,10 +71,10 @@
 }
 
 .editor-root {
-  min-height: 240px;
+  min-height: 20rem;
   font-family: var(--mantine-font-family);
-  font-size: var(--mantine-font-size-md);
-  line-height: 1.6;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
   color: var(--mantine-color-dark-0);
 }
 
@@ -87,6 +88,12 @@
   margin-inline-start: 0;
   padding-left: var(--remdo-indent);
   padding-inline-start: var(--remdo-indent);
+}
+
+.remdo-outline li.list-nested-item > ul,
+.remdo-outline li.list-nested-item > ol {
+  padding-left: var(--remdo-nested-indent);
+  padding-inline-start: var(--remdo-nested-indent);
 }
 
 .editor-input {
@@ -178,7 +185,7 @@
 }
 
 .remdo-outline li.list-item {
-  --list-line-height: 1.6em;
+  --list-line-height: 1.75rem;
   --indicator-color: var(--mantine-color-dark-2);
   --checkbox-color: var(--mantine-color-dark-2);
   --bullet-left: 0rem;
@@ -188,7 +195,7 @@
   --bullet-mask-repeat: no-repeat;
   list-style-type: none;
   position: relative;
-  padding-left: var(--remdo-bullet-allowance);
+  padding: var(--remdo-row-padding) 0 var(--remdo-row-padding) var(--remdo-bullet-allowance);
   cursor: text;
   background-repeat: no-repeat;
 }
@@ -224,7 +231,7 @@
   content: '';
   position: absolute;
   left: var(--bullet-left);
-  top: calc((var(--list-line-height) - var(--bullet-width)) / 2);
+  top: calc(var(--remdo-row-padding) + (var(--list-line-height) - var(--bullet-width)) / 2);
   width: var(--bullet-width);
   height: var(--bullet-width);
   background-color: var(--indicator-color);
@@ -246,7 +253,7 @@
   content: '';
   position: absolute;
   left: var(--checkbox-left);
-  top: calc((var(--list-line-height) - var(--checkbox-width)) / 2);
+  top: calc(var(--remdo-row-padding) + (var(--list-line-height) - var(--checkbox-width)) / 2);
   width: var(--checkbox-width);
   height: var(--checkbox-width);
   background-color: var(--checkbox-color);
@@ -291,7 +298,7 @@
   overflow: visible;
   line-height: var(--list-line-height);
   height: var(--list-line-height);
-  top: 0;
+  top: var(--remdo-row-padding);
 }
 
 .remdo-outline li.list-item.list-item-checked,
@@ -345,6 +352,13 @@
   li.list-nested-item[data-note-under-checked='true']
   li.list-item:not([data-note-checked='true']) {
   color: var(--mantine-color-dark-2);
+}
+
+/* A top-level note's subtree is set off from the next top-level note; a folded
+   note has no subtree to set off. */
+.remdo-outline > :is(ul, ol) > li.list-item:not([data-folded='true'], .list-nested-item) + li.list-nested-item + li.list-item:not(.list-nested-item),
+.remdo-outline > :is(ul, ol) > li.list-item:not([data-folded='true'], .list-nested-item) + li.note-body-wrapper + li.list-nested-item + li.list-item:not(.list-nested-item) {
+  margin-top: 0.75rem;
 }
 
 .note-controls-layer {
@@ -413,7 +427,8 @@
 
 .note-menu-shortcut {
   text-decoration: underline;
-  text-decoration-thickness: 2px;
+  text-decoration-thickness: from-font;
+  text-underline-position: from-font;
 }
 
 .trigger-picker-anchor,
@@ -477,6 +492,7 @@
 }
 
 .remdo-outline li.list-item.list-nested-item {
+  padding-block: 0;
   cursor: default;
 }
 

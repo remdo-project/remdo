@@ -102,6 +102,7 @@ function EditorRuntime({
           <RichTextPlugin
             contentEditable={
               <ContentEditable
+                aria-label="Outline"
                 className="editor-input"
                 autoCapitalize="sentences"
                 autoCorrect="on"

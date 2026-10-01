@@ -16,14 +16,14 @@ export default function UnsyncedLogoutDialog({
   return (
     <RemdoDialog onClose={onCancel} title="Sign out and discard unsaved changes?">
       <Stack gap="md">
-        <Text size="sm">
+        <Text>
           {`Some changes have not reached the server. Signing out erases this device's local copy, and they cannot be recovered.`}
         </Text>
-        <Group justify="flex-end">
+        <Group gap={8} justify="flex-end">
           <Button onClick={onCancel} variant="default">
             Cancel
           </Button>
-          <Button color="red" onClick={onConfirm}>
+          <Button className="remdo-dialog-danger" onClick={onConfirm}>
             Sign out and discard
           </Button>
         </Group>

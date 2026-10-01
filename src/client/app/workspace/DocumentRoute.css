@@ -6,7 +6,7 @@
    something is there, not because of an artificial limit. The page shell owns the
    gutters; the document body adds only `--remdo-body-inset`. */
 .document-editor-shell {
-  padding-block: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  padding-block: 0 var(--mantine-spacing-md);
 }
 
 /* The document label / search / actions read as a quiet strip. A hairline
@@ -15,9 +15,8 @@
    column-aligned with the notes. */
 .document-header {
   position: relative;
-  padding: 0 var(--remdo-body-inset) var(--mantine-spacing-sm);
-  margin-bottom: var(--mantine-spacing-xs);
-  min-height: 1.9rem;
+  padding: 1.5rem var(--remdo-body-inset) calc(1.5rem + 1px);
+  margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -31,7 +30,7 @@
   right: var(--remdo-body-inset);
   bottom: 0;
   height: 1px;
-  background: var(--mantine-color-dark-5);
+  background: var(--chrome-line);
 }
 
 .document-header-breadcrumbs {
@@ -43,22 +42,27 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--mantine-spacing-sm);
+  gap: 1.5rem;
+  min-height: 2.5rem;
   flex-shrink: 0;
 }
 
 .document-header-search {
+  --input-height: 2.5rem;
+  --input-fz: 0.875rem;
+  --interaction-radius: 3px;
   min-width: 11rem;
-  width: 18rem;
+  width: 19rem;
   max-width: 24vw;
-  --interaction-radius: var(--mantine-radius-sm);
 }
 
 /* Give the search field slightly more prominence: a lighter fill and stronger
    border lift it off the header strip so it reads as the primary action there. */
 .document-header-search .mantine-Input-input {
-  background-color: var(--mantine-color-dark-6);
+  height: 2.5rem;
   border-color: var(--mantine-color-dark-4);
+  border-radius: 3px;
+  background-color: var(--mantine-color-dark-6);
 }
 
 .document-header-doc-combobox {
@@ -196,14 +200,16 @@
      this section, so the section's padding-top is `lg` minus that, keeping the
      first result's text on the editor's note-text row. */
 .document-search-results {
-  --remdo-indent: var(--mantine-spacing-sm);
+  --remdo-indent: var(--mantine-spacing-xs);
   --remdo-bullet-allowance: calc(0.4em + 0.6em);
   /* Internal card padding (half of spacing-xs); shared with the vertical-anchor
      formula below so the two stay in sync. */
   --result-card-padding: calc(var(--mantine-spacing-xs) / 2);
-  padding: calc(var(--mantine-spacing-lg) - var(--result-card-padding))
+  padding: calc(var(--mantine-spacing-lg) + var(--remdo-row-padding) - var(--result-card-padding))
     var(--remdo-body-inset)
     var(--mantine-spacing-md);
+  font-size: 1.125rem;
+  line-height: 1.75rem;
 }
 
 .document-search-results-list {
@@ -360,17 +366,28 @@
 
 /* Home padding matches the editor pane / document header. */
 .document-home {
-  padding: var(--mantine-spacing-lg) var(--remdo-body-inset) var(--mantine-spacing-xl);
+  padding: 3rem var(--remdo-body-inset) 2.5rem;
   display: flex;
   flex-direction: column;
-  gap: var(--mantine-spacing-lg);
 }
 
-.document-home-title,
-.location-header-title {
+.home-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  min-height: 3.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.document-home-title {
   margin: 0;
-  font-size: var(--mantine-font-size-xl);
   color: var(--mantine-color-dark-0);
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 2.625rem;
+  letter-spacing: -0.025rem;
 }
 
 /* The heading sits on the note column. The menu button, styled with the other
@@ -384,20 +401,27 @@
 
 .location-header-title {
   min-width: 0;
+  margin: 0;
   overflow-wrap: anywhere;
+  color: var(--mantine-color-dark-0);
+  font-size: var(--mantine-font-size-xl);
 }
 
 .home-group {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--mantine-spacing-xs) / 2);
+  gap: 0.75rem;
+}
+
+.home-group + .home-group {
+  margin-top: 2rem;
 }
 
 .home-group-label {
-  margin: 0 0 calc(var(--mantine-spacing-xs) / 2);
-  font-size: var(--mantine-font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.25rem;
   color: var(--mantine-color-dark-2);
 }
 
@@ -407,17 +431,25 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--mantine-spacing-xs) / 2);
 }
 
 .home-doc-row {
   display: flex;
   align-items: center;
-  gap: calc(var(--mantine-spacing-xs) / 2);
+  gap: 0.625rem;
+  min-height: 3.5rem;
+  padding-inline: 1rem 0.5rem;
+  border-radius: 3px;
+}
+
+.home-doc-row:hover,
+.home-doc-row:focus-within {
+  background: var(--chrome-hover);
 }
 
 .home-doc {
   display: flex;
+  align-self: stretch;
   align-items: center;
   gap: var(--mantine-spacing-xs);
   flex: 1;
@@ -425,14 +457,12 @@
   text-align: start;
   background: none;
   border: none;
-  padding: calc(var(--mantine-spacing-xs) / 2) var(--mantine-spacing-xs);
+  padding: 0;
   color: var(--mantine-color-dark-0);
   font: inherit;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
   cursor: pointer;
-}
-
-.home-doc:hover {
-  background: var(--mantine-color-dark-6);
 }
 
 .home-doc-label {
@@ -503,25 +533,8 @@
 
 .home-actions {
   display: flex;
-  gap: var(--mantine-spacing-sm);
   flex-wrap: wrap;
-}
-
-.home-action {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--mantine-spacing-xs);
-  background: var(--mantine-color-dark-6);
-  border: 1px solid var(--mantine-color-dark-5);
-  border-radius: var(--mantine-radius-sm);
-  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
-  color: var(--mantine-color-dark-0);
-  font: inherit;
-  cursor: pointer;
-}
-
-.home-action:hover {
-  background: var(--mantine-color-dark-5);
+  gap: 0.75rem;
 }
 
 .home-upload-input {

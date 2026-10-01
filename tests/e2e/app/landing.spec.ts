@@ -46,7 +46,8 @@ test('places the wordmark at the same spot on every public page', async ({ page 
   const boxes = [];
   for (const path of ['/', '/privacy/', '/accounts/login/']) {
     await page.goto(path);
-    boxes.push(await wordmark.boundingBox());
+    // Positions only: the width changes while DM Sans replaces the fallback font.
+    boxes.push(await wordmark.boundingBox().then((box) => box && { x: box.x, y: box.y, height: box.height }));
   }
   expect(boxes[0]).not.toBeNull();
   expect(boxes[1]).toEqual(boxes[0]);

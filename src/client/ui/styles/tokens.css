@@ -12,6 +12,7 @@
   --remdo-accent-hover: #c3bffb;
   --remdo-surface: #1e1e1e;
   --remdo-gutter: clamp(24px, 5.5556vw, 80px);
+  --remdo-row-padding: 0.125rem;
   --remdo-body-inset: min(var(--mantine-spacing-xl), var(--remdo-gutter));
   --remdo-glass-blur: 16px;
   /* Active-affordance fill, shared by surfaces outside the editor container. */

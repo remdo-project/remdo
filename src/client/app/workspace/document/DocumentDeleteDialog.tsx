@@ -33,14 +33,14 @@ export function DocumentDeleteDialog({
   return (
     <RemdoDialog isDismissable={!pending} onClose={onClose} title={`Delete “${name}”?`}>
       <Stack gap="md">
-        <Text size="sm">
+        <Text>
           The document and its content are deleted for everyone it is shared with. This cannot be undone.
         </Text>
         {error && <Alert color="red" role="alert" variant="light">{error}</Alert>}
         {pending && <span role="status">Deleting…</span>}
-        <Group justify="flex-end">
+        <Group gap={8} justify="flex-end">
           <Button disabled={pending} onClick={onClose} variant="default">Cancel</Button>
-          <Button color="red" disabled={pending} onClick={() => { void confirm(); }}>Delete</Button>
+          <Button className="remdo-dialog-danger" disabled={pending} onClick={() => { void confirm(); }}>Delete</Button>
         </Group>
       </Stack>
     </RemdoDialog>

@@ -264,12 +264,17 @@ RemDo document, minimal but useful for real work.
 
 ### Landing redesign
 
-The public pages, the app shell, and the shared header and footer follow the
+The public pages, the app shell, the shared header and footer, the document
+page, Home, the menus, and the dialogs follow the
 [final Figma design](https://www.figma.com/design/doTT65AwFC2WqcvUBh1Tjn/).
 Remaining:
 
-- **Editor surface.** Restyle the document location strip, rows, menus, and
-  interaction states to the workspace frames.
+- **Editor surface.** Restyle the search results and the sync, touch, and
+  collaboration states. Decide what the frames leave open: the
+  [location header](specs/outliner/location-header.md) requires a visible
+  document heading that the outline frame omits, bold top-level notes and a
+  "Press Shift twice for note actions" hint appear only in the mock, and
+  Favorites and Recents groups have no product behind them.
 - **Team section.** The Figma Team section moves to the About page, where its
   bios are reconciled with the current team list.
 - **Cross-fade page loads.** Cross-document view transitions throw an unhandled
@@ -483,13 +488,6 @@ concrete unmet need.
   is insufficient.
 
 ### Tooling
-
-- **Shared chrome E2E flake.** Reassess or stabilize the
-  [header geometry test](../tests/e2e/app/header.spec.ts) before re-enabling it; it is marked `fixme` to
-  unblock CI. The app can be measured with fallback fonts while About uses DM
-  Sans, producing different wordmark and footer widths. Waiting for
-  `document.fonts.ready` alone still reproduces the failure. Preserve useful
-  coverage of [shared presentation](architecture.md#shared-presentation).
 
 - **Development setup and workflow.** Allow per-checkout backend settings
   overrides and reduce setup and launcher complexity in [local development](guides/local-development.md).

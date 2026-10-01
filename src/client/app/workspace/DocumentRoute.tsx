@@ -53,7 +53,7 @@ export default function DocumentRoute() {
   const { navigateHome, navigateToDocument, navigateToZoomNote } = useDocumentRouteNavigation(docId);
 
   return (
-    <Container className="document-route-container" component="main" fluid py="xs">
+    <Container className="document-route-container" component="main" fluid>
       <EditorViewProvider
         docId={docId}
         onZoomNoteIdChange={navigateToZoomNote}

@@ -16,6 +16,24 @@ test.describe('Home', () => {
     await expect(page).toHaveTitle('Home · RemDo');
   });
 
+  test('places the document actions beside the heading above 56px document rows', async ({ page, editor }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const home = homeView(page);
+    const [heading, upload, create, row] = [
+      await home.getByRole('heading', { name: 'Home', level: 1 }).boundingBox(),
+      await home.getByRole('button', { name: 'Upload document', exact: true }).boundingBox(),
+      await home.getByRole('button', { name: 'New document', exact: true }).boundingBox(),
+      await home.getByRole('listitem').first().boundingBox(),
+    ];
+
+    expect(upload!.x).toBeGreaterThan(heading!.x + heading!.width);
+    expect(create!.x).toBeGreaterThan(upload!.x + upload!.width);
+    expect(upload!.y + upload!.height / 2).toBeCloseTo(heading!.y + heading!.height / 2, 0);
+    expect(row!.height).toBe(56);
+  });
+
   test('opens a listed document at its root and preserves Home in browser history', async ({ page, editor }) => {
     await editor.load('basic');
     const documentPath = createEditorDocumentPath(editor.docId);

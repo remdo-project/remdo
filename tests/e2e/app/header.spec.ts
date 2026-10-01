@@ -17,12 +17,13 @@ test('header controls are reachable by keyboard on a narrow screen', async ({ pa
   }
 });
 
-// Tracked in docs/todo.md#tooling.
-test.fixme('keeps the wordmark and footer links where the public pages put them', async ({ page }) => {
+test('keeps the wordmark and footer links where the public pages put them', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  // Positions only: text widths change while DM Sans replaces the fallback font,
+  // and the development server declares that font twice.
   const chrome = async () => ({
-    wordmark: await page.getByRole('link', { name: 'RemDo home', exact: true }).boundingBox(),
-    footerLinks: await page.getByRole('navigation', { name: 'Footer' }).boundingBox().then((box) => box && { x: box.x, width: box.width }),
+    wordmark: await page.getByRole('link', { name: 'RemDo home', exact: true }).boundingBox().then((box) => box && { x: box.x, y: box.y, height: box.height }),
+    footerStart: await page.getByText(/© \d{4} RemDo/u).boundingBox().then((box) => box && { x: box.x, height: box.height }),
   });
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
@@ -31,7 +32,8 @@ test.fixme('keeps the wordmark and footer links where the public pages put them'
   const pub = await chrome();
   expect(app.wordmark).not.toBeNull();
   expect(pub.wordmark).toEqual(app.wordmark);
-  expect(pub.footerLinks).toEqual(app.footerLinks);
+  expect(app.footerStart).not.toBeNull();
+  expect(pub.footerStart).toEqual(app.footerStart);
 });
 
 unauthenticatedTest('opens About from the native sign-in header', async ({ page }) => {
