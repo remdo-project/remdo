@@ -39,7 +39,7 @@ test('associates server validation with the email field and allows correcting it
   await expect(email).not.toHaveAttribute('aria-invalid', 'true');
 });
 
-test('keeps Today / Next after the story and links both invitations to its one signup', async ({ page }) => {
+test('keeps Today / Next after the story and links each invitation to the section and its signup', async ({ page }) => {
   await page.goto('/');
   const story = page.getByRole('region', { name: 'About RemDo' });
   const next = page.getByRole('region', { name: 'What works today and what comes next' });
@@ -47,11 +47,16 @@ test('keeps Today / Next after the story and links both invitations to its one s
   const block = await next.boundingBox();
   expect(prose!.y + prose!.height).toBeLessThan(block!.y);
   await expect(page.getByRole('form', { name: 'Hear about the big steps.' })).toHaveCount(1);
-  await page.getByRole('link', { name: 'Not ready yet? Keep me posted' }).click();
-  await expect(page).toHaveURL(/#landing-signup$/u);
-  await expect(page.getByRole('textbox', { name: 'Your email address' })).toBeInViewport();
-  await page.getByRole('link', { name: 'Waiting for something? Keep me posted' }).click();
-  await expect(page.getByRole('textbox', { name: 'Your email address' })).toBeInViewport();
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const name of ['Keep me posted', 'Waiting for something? Keep me posted']) {
+      await page.getByRole('link', { name, exact: true }).click();
+      await expect(page).toHaveURL(/#landing-signup$/u);
+      await expect(next.getByRole('heading', { name: 'Today', exact: true })).toBeInViewport();
+      await expect(next.getByRole('heading', { name: 'Next', exact: true })).toBeInViewport();
+      await expect(page.getByRole('textbox', { name: 'Your email address' })).toBeInViewport();
+    }
+  }
 });
 
 test('keeps collaboration, note links, and tasks visible in responsive illustration crops', async ({ page }) => {
