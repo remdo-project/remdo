@@ -1,18 +1,8 @@
 import type { LexicalEditor } from 'lexical';
 import { act } from '@testing-library/react';
-import { CONTROLLED_TEXT_INSERTION_COMMAND } from 'lexical';
+import { CONTROLLED_TEXT_INSERTION_COMMAND, IS_APPLE } from 'lexical';
 import type { RemdoTestApi } from '#client/editor/dev';
 import { getRootElementOrThrow } from './selection';
-
-interface NavigatorWithUAData extends Navigator {
-  userAgentData?: { platform?: string };
-}
-
-const APPLE_PATTERN = /Mac(?:intosh)?|iPhone|iPad|iPod/i;
-const navigatorRef =
-  typeof navigator === 'undefined' ? null : (navigator as NavigatorWithUAData);
-const platformSource = navigatorRef?.userAgentData?.platform ?? navigatorRef?.userAgent ?? '';
-const IS_APPLE = APPLE_PATTERN.test(platformSource);
 
 interface PressKeyOptions {
   key: string;
