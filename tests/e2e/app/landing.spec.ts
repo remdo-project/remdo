@@ -5,9 +5,11 @@ for (const width of [390, 1440]) {
   test(`saves a product update request through the native form at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/');
-    const signup = page.getByRole('form', { name: 'Hear when something new ships.' });
+    const signup = page.getByRole('form', { name: 'Hear about the big steps.' });
+    const status = page.getByRole('region', { name: 'What works today and what comes next' });
+    await expect(status.locator(':scope > div').last().getByRole('form')).toHaveCount(1);
     const email = signup.getByRole('textbox', { name: 'Your email address' });
-    await expect(signup.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', '/privacy/');
+    await expect(page.locator('#landing-signup').getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', '/privacy/');
     await email.fill(`landing-${width}@example.test`);
     await email.press('Enter');
     await expect(page.getByRole('status')).toHaveText('Thanks for your interest. Your request has been saved.');
@@ -22,7 +24,7 @@ for (const width of [390, 1440]) {
 
 test('associates server validation with the email field and allows correcting it', async ({ page }) => {
   await page.goto('/');
-  const signup = page.getByRole('form', { name: 'Hear when something new ships.' });
+  const signup = page.getByRole('form', { name: 'Hear about the big steps.' });
   await signup.evaluate((element: HTMLFormElement) => { element.noValidate = true; });
   await signup.getByRole('textbox', { name: 'Your email address' }).fill('not-an-email');
   await signup.getByRole('button', { name: 'Keep me posted' }).click();
@@ -35,6 +37,21 @@ test('associates server validation with the email field and allows correcting it
   await email.press('Enter');
   await expect(page.getByRole('status')).toHaveText('Thanks for your interest. Your request has been saved.');
   await expect(email).not.toHaveAttribute('aria-invalid', 'true');
+});
+
+test('keeps Today / Next after the story and links both invitations to its one signup', async ({ page }) => {
+  await page.goto('/');
+  const story = page.getByRole('region', { name: 'About RemDo' });
+  const next = page.getByRole('region', { name: 'What works today and what comes next' });
+  const prose = await story.locator(':scope > p').last().boundingBox();
+  const block = await next.boundingBox();
+  expect(prose!.y + prose!.height).toBeLessThan(block!.y);
+  await expect(page.getByRole('form', { name: 'Hear about the big steps.' })).toHaveCount(1);
+  await page.getByRole('link', { name: 'Not ready yet? Keep me posted' }).click();
+  await expect(page).toHaveURL(/#landing-signup$/u);
+  await expect(page.getByRole('textbox', { name: 'Your email address' })).toBeInViewport();
+  await page.getByRole('link', { name: 'Waiting for something? Keep me posted' }).click();
+  await expect(page.getByRole('textbox', { name: 'Your email address' })).toBeInViewport();
 });
 
 test('keeps collaboration, note links, and tasks visible in responsive illustration crops', async ({ page }) => {

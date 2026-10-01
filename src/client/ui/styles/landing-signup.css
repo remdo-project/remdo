@@ -1,0 +1,70 @@
+.landing-signup {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--landing-secondary-text);
+  text-align: left;
+}
+.landing-signup h4 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 30px;
+  letter-spacing: -0.3px;
+}
+.landing-signup p {
+  margin: 12px 0;
+  color: var(--landing-muted-light-text);
+  font-size: 14px;
+  line-height: 22px;
+  letter-spacing: 0;
+}
+.landing-signup form > label {
+  display: block;
+  margin-top: 22px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.landing-signup-fields {
+  display: grid;
+  gap: 10px;
+}
+.landing-signup input[type='email'] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 56px;
+  padding: 12px 16px;
+  border: 1px solid var(--landing-secondary-text);
+  border-radius: var(--landing-radius);
+  background: var(--landing-dark-surface);
+  color: var(--landing-light-text);
+  font: inherit;
+  font-size: 14px;
+}
+.landing-signup input::placeholder {
+  color: var(--landing-muted-light-text);
+  opacity: 1;
+}
+.landing-signup .landing-button {
+  width: 100%;
+  min-height: 44px;
+  font-size: 13px;
+}
+.landing-signup #landing-signup-note, .landing-signup .landing-signup-privacy {
+  font-size: 11px;
+  line-height: 18px;
+}
+.landing-signup a, .landing-posted-link {
+  color: var(--landing-muted-light-text);
+  text-underline-offset: 3px;
+}
+.landing-posted-link {
+  font-size: 13px;
+  line-height: 20px;
+}
+.landing-signup #landing-signup-error {
+  color: var(--landing-light-text);
+  font-size: 12px;
+  line-height: 20px;
+}

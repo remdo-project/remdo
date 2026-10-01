@@ -16,7 +16,9 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 ## Public introduction
 
 The public introduction offers **Keep me posted** for occasional RemDo product
-updates. Its native form records a validated, normalized email address and
+milestone updates. The invitation lives inside Next in the Today/Next section
+after the story, with quiet links from the hero and ending. Its native form
+records a validated, normalized email address and
 request time in the serving instance's database, independently of accounts.
 Submission creates no account, document, session, or email verification and
 sends no email. New requests are unconfirmed; existing account holders use the
