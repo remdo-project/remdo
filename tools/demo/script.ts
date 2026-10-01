@@ -10,7 +10,7 @@ import type { Pacing, Pane, PauseLength } from './pane';
 // previews play everything `quickPreviewSpeedup` times faster.
 export const pacing: Pacing = {
   // Characters typed per second.
-  typingSpeed: 28,
+  typingSpeed: 50,
   // Pause between steps: after typing a phrase, pressing a key, or clicking.
   betweenSteps: 0.45,
   // Whether key presses and clicks get a caption at the bottom, with a visible
