@@ -1,11 +1,13 @@
 {% extends "base.html" %}
-{% block head_title %}RemDo — Find and reconnect information across your tools{% endblock %}
+{% block head_title %}RemDo — Start from what you remember{% endblock %}
 {% block styles %}
   {{ block.super }}
   {% include "site_styles.html" %}
 {% endblock %}
 {% block extra_head %}
-  <meta name="description" content="RemDo is a keyboard-first collaborative outliner that links your notes and works with your AI assistant. Email, calendar and file connections are next.">
+  <meta name="description" content="Reconnect the notes, conversations and files around your work — without moving everything into one place.">
+  <meta property="og:title" content="RemDo — Start from what you remember">
+  <meta property="og:description" content="Reconnect the notes, conversations and files around your work — without moving everything into one place.">
   <link rel="canonical" href="{{ canonical }}">
   <link rel="preload" href="/site-assets/fonts/tinos-400.woff2" as="font" type="font/woff2" crossorigin>
 {% endblock %}
