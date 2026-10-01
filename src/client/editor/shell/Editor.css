@@ -356,8 +356,8 @@
 
 /* A top-level note's subtree is set off from the next top-level note; a folded
    note has no subtree to set off. */
-.remdo-outline > ul > li.list-item:not([data-folded='true'], .list-nested-item) + li.list-nested-item + li.list-item:not(.list-nested-item),
-.remdo-outline > ul > li.list-item:not([data-folded='true'], .list-nested-item) + li.note-body-wrapper + li.list-nested-item + li.list-item:not(.list-nested-item) {
+.remdo-outline > :is(ul, ol) > li.list-item:not([data-folded='true'], .list-nested-item) + li.list-nested-item + li.list-item:not(.list-nested-item),
+.remdo-outline > :is(ul, ol) > li.list-item:not([data-folded='true'], .list-nested-item) + li.note-body-wrapper + li.list-nested-item + li.list-item:not(.list-nested-item) {
   margin-top: 0.75rem;
 }
 
@@ -427,7 +427,8 @@
 
 .note-menu-shortcut {
   text-decoration: underline;
-  text-decoration-thickness: 2px;
+  text-decoration-thickness: from-font;
+  text-underline-position: from-font;
 }
 
 .trigger-picker-anchor,

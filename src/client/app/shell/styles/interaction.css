@@ -28,25 +28,31 @@
 
 .remdo-menu {
   border: 1px solid var(--mantine-color-dark-4);
-  border-radius: var(--mantine-radius-sm);
+  border-radius: 3px;
   background: var(--mantine-color-dark-7);
   box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
-  padding: 0.25rem;
+  padding: 0.5rem;
   outline: none;
 }
 
+.remdo-menu[role='menu'] {
+  min-width: 17.5rem;
+}
+
 .remdo-menu header {
-  padding: 0.25rem 0.4rem 0.1rem;
+  padding: 0.25rem 0.5rem;
   color: var(--mantine-color-dark-2);
-  font-size: var(--mantine-font-size-xs);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 .remdo-menu [role='menuitem'],
 .remdo-menu [role='option'] {
-  border-radius: var(--mantine-radius-xs);
-  padding: 0.25rem 0.4rem;
+  border-radius: 3px;
+  padding: 0.375rem 0.5rem;
   color: var(--mantine-color-dark-0);
-  font-size: var(--mantine-font-size-sm);
+  font-size: 1rem;
+  line-height: 1.5rem;
   outline: none;
   cursor: pointer;
 }
