@@ -378,6 +378,12 @@ Open question: whether a local-origin run also serves as a CI smoke check.
   [mobile toolbar](specs/outliner/mobile-toolbar.md#actions) with the same
   add-or-focus semantics as the key gesture, and cover both surfaces.
 
+- **Keyboard reference.** Build the
+  [keyboard reference](specs/outliner/keyboard-reference.md): the document-view
+  control and non-modal panel, the four shortcut groups with the platform
+  switch, absence on touch devices, and coverage that each entry's binding
+  matches what the editor honors.
+
 ### UX direction
 
 These proposals guide the next UX slices; unresolved choices remain proposals
