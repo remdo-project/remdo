@@ -59,7 +59,7 @@ to the next numbered phase.
      [target behavior](../../../documentation.md#target-behavior), retain that behavior and its owners and continue to
      **Execute the established change**. Otherwise, update only owners whose
      behavior must change under [Specification structure](../../../documentation.md#specification-structure), and surface
-     unresolved behavior, concerns, and [tracked gaps](../../../todo.md#tracked-follow-up).
+     unresolved behavior, concerns, and [tracked gaps](../../../todo.md).
    - **Review:** When target behavior changes or specification feedback is
      pending, present the changed behavior and its owners for developer review,
      keeping specification edits uncommitted. Only approval of that presentation

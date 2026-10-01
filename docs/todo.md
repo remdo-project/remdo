@@ -1,28 +1,20 @@
 # RemDo TODO
 
-This ledger is RemDo's near-term backlog and single entry point for
-[tracked follow-up](documentation.md#target-behavior). It also holds cross-cutting temporary state.
+This ledger is RemDo's entry point for [tracked follow-up](documentation.md#target-behavior) and holds
+cross-cutting temporary state.
 
-The closed [legacy backlog](legacy-backlog.md) holds earlier unresolved
-entries. Continue checking its entries for duplicates and review suppression
-until they are resolved or migrated.
+Record code-local work in [tracked comments](../CONTRIBUTING.md#code-comments), long-horizon work in the owning
+specification's [`Future`](documentation.md#future) section, and near-term work here or in a temporary
+migration ledger linked from here. These locations and unresolved entries in
+the [legacy backlog](legacy-backlog.md) form the tracking record. Record each item once.
 
-## Tracked follow-up
+Run `pnpm run todo:list` when selecting maintenance work or auditing follow-up;
+inspect its candidate `TODO` and `FIXME` comments under the tracked-comment
+convention.
 
-Record code-local follow-up in [tracked comments](../CONTRIBUTING.md#code-comments), long-horizon
-follow-up in the owning specification's [`Future`](documentation.md#future)
-section, and other work intended to be done soon in this backlog or a temporary
-migration ledger explicitly linked from it. Together, these locations form the
-tracking record; do not duplicate an item between them.
-
-Run `pnpm run todo:list` when selecting maintenance work or auditing tracked
-follow-up. It lists candidate `TODO` and `FIXME` occurrences in tracked
-non-documentation files; inspect the results under the tracked-comment
-convention above.
-
-A reviewer suppresses a finding as already tracked only when the tracking
-record covers the reported gap. Within this backlog, group related items under
-short topic headings. Remove rejected or obsolete items and empty sections.
+Suppress review findings as already tracked only when the tracking record
+covers the reported gap. Group related backlog items under short topic
+headings; remove rejected or obsolete items and empty sections.
 
 ## Backlog
 
@@ -351,7 +343,7 @@ Open question: whether a local-origin run also serves as a CI smoke check.
   package name, plugin contribution framework, or second-adapter implementation.
 
   At the start and close of each slice, locate related entries across
-  the [tracking record](#tracked-follow-up), the
+  the [tracking record](#remdo-todo), the
   [legacy backlog](legacy-backlog.md), and relevant Git history. Treat them as
   informative evidence rather than requirements or a predetermined API, then
   migrate, rewrite, or remove them according to current owners and what remains
