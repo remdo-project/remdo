@@ -50,20 +50,15 @@ async function openDocument(url: string, docId: string, headers: Record<string, 
   return { document, provider, close };
 }
 
-function createAdmin(name: string): void {
+function createAdmin(name: string, accountEmail = email): void {
   docker('exec', '-e', `DJANGO_SUPERUSER_PASSWORD=${password}`, name,
-    'python', 'manage.py', 'createsuperuser', '--noinput', '--email', email);
+    'python', 'manage.py', 'createsuperuser', '--noinput', '--email', accountEmail);
 }
 
 function bundleDigest(): string {
   return docker('exec', container, 'python', '-c',
     "import hashlib; from pathlib import Path; p=Path('/data/secrets.json'); assert p.stat().st_mode & 0o777 == 0o600; print(hashlib.sha256(p.read_bytes()).hexdigest())");
 }
-
-// page.route cannot intercept a request the service worker's fetch handler
-// answers, and `/api/` is a NetworkOnly runtime-caching route. Once the worker
-// claims the page, the build-revision override below is bypassed at random.
-test.use({ serviceWorkers: 'block' });
 
 test('retained Docker runtime data is private to the invoking user', () => {
   const directory = fs.statSync(path.resolve('data/docker-test-runtime'));
@@ -133,9 +128,45 @@ print(json.dumps({'allowed': statuses, 'blocked': login(first, '192.0.2.100'),
   });
 }
 
+test.describe('build revision', () => {
+  // page.route cannot intercept service-worker requests, including NetworkOnly
+  // `/api/` requests. Block the worker only where configuration is overridden.
+  test.use({ serviceWorkers: 'block' });
+
+  test('identifies the built frontend and warns when the server revision differs', async ({ page }) => {
+    setExpectedConsoleIssues(page, ['Service Worker registration blocked by Playwright'], { mode: 'allowContains' });
+    const accountEmail = 'build-revision@production.example.test';
+    await waitForHealth(page.request);
+    createAdmin(container, accountEmail);
+    await page.goto('/accounts/login/');
+    await page.getByLabel('Email:', { exact: true }).fill(accountEmail);
+    await page.getByLabel('Password:', { exact: true }).fill(password);
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+    const revision = process.env.BUILD_REVISION || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+    const buildLink = page.getByRole('link', { name: `#${revision.slice(0, 8)}`, exact: true });
+    await expect(buildLink).toHaveAttribute('href', `https://github.com/remdo-project/remdo/commit/${revision}`);
+    const otherRevision = 'abcdef0123456789abcdef0123456789abcdef0123';
+    await page.route('**/api/config', async (route) => {
+      const response = await route.fetch();
+      const configuration = await response.json();
+      expect(configuration.buildRevision).toBe(revision);
+      await route.fulfill({ response, json: { ...configuration, buildRevision: otherRevision } });
+    });
+    await page.reload();
+    const warning = page.getByRole('status').filter({ hasText: 'App and server builds differ' });
+    await expect(warning).toBeVisible();
+    await expect(warning.getByRole('link', { name: '#abcdef01', exact: true }))
+      .toHaveAttribute('href', `https://github.com/remdo-project/remdo/commit/${otherRevision}`);
+    await page.unroute('**/api/config');
+    await page.reload();
+    await expect(warning).toHaveCount(0);
+    await expect(buildLink).toBeVisible();
+  });
+});
+
 test('production launcher serves login, collaboration, and persistent data through its published port', async ({ page, browser }) => {
   test.setTimeout(90_000);
-  setExpectedConsoleIssues(page, ['Service Worker registration blocked by Playwright'], { mode: 'allowContains' });
   const origin = process.env.DOCKER_TEST_ORIGIN!;
   await waitForHealth(page.request);
   createAdmin(container);
@@ -148,25 +179,6 @@ test('production launcher serves login, collaboration, and persistent data throu
   expect((await page.request.get('/django-static/admin/css/base.css')).status()).toBe(200);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
-  const revision = process.env.BUILD_REVISION || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-  const buildLink = page.getByRole('link', { name: `#${revision.slice(0, 8)}`, exact: true });
-  await expect(buildLink).toHaveAttribute('href', `https://github.com/remdo-project/remdo/commit/${revision}`);
-  const otherRevision = 'abcdef0123456789abcdef0123456789abcdef0123';
-  await page.route('**/api/config', async (route) => {
-    const response = await route.fetch();
-    const configuration = await response.json();
-    expect(configuration.buildRevision).toBe(revision);
-    await route.fulfill({ response, json: { ...configuration, buildRevision: otherRevision } });
-  });
-  await page.reload();
-  const warning = page.getByRole('status').filter({ hasText: 'App and server builds differ' });
-  await expect(warning).toBeVisible();
-  await expect(warning.getByRole('link', { name: '#abcdef01', exact: true }))
-    .toHaveAttribute('href', `https://github.com/remdo-project/remdo/commit/${otherRevision}`);
-  await page.unroute('**/api/config');
-  await page.reload();
-  await expect(warning).toHaveCount(0);
-  await expect(buildLink).toBeVisible();
   await page.getByRole('button', { name: 'New document', exact: true }).click();
   const editor = page.locator('.editor-input');
   await expect(editor).toBeVisible();

@@ -23,6 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
+      - uses: ./.github/actions/setup-python
 
       - name: Run collaboration unit tests
         run: TEST_TIMEOUT=$((60 * 10)) pnpm run test:collab --shard=${{ matrix.shard }}/${{ strategy.job-total }}
