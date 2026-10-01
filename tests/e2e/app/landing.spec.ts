@@ -82,14 +82,78 @@ test.describe('story text', () => {
   });
 });
 
-test('reveals a FAQ answer when its question is activated', async ({ page }) => {
+test('reveals at most one FAQ answer at a time and allows closing every answer', async ({ page }) => {
   await page.goto('/');
-  const question = page.getByText('Can I use RemDo offline?', { exact: true });
-  const answer = page.getByText(/if you have a remembered session/u);
+  const faq = page.getByRole('region', { name: 'Frequently asked questions.' });
+  const visibleAnswers = faq.locator('p:visible');
 
-  await expect(answer).toBeHidden();
-  await question.click();
-  await expect(answer).toBeVisible();
-  await question.click();
-  await expect(answer).toBeHidden();
+  await expect(visibleAnswers).toHaveCount(1);
+  await expect(visibleAnswers).toContainText('The outliner works today');
+  await faq.getByText('Is RemDo still in early development?', { exact: true }).click();
+  await expect(visibleAnswers).toHaveCount(0);
+
+  for (const question of await faq.locator('summary').all()) {
+    await question.click();
+    await expect(visibleAnswers).toHaveCount(1);
+    await expect(question.locator('..').getByRole('paragraph')).toBeVisible();
+  }
+
+  const offline = faq.getByText('Can I use RemDo offline?', { exact: true });
+  const collaboration = faq.getByText('Can I work with other people?', { exact: true });
+  await offline.focus();
+  await page.keyboard.press('Enter');
+  await expect(visibleAnswers).toHaveCount(1);
+  await expect(visibleAnswers).toContainText('if you have a remembered session');
+  await collaboration.focus();
+  await page.keyboard.press('Space');
+  await expect(visibleAnswers).toHaveCount(1);
+  await expect(visibleAnswers).toContainText('Document owners can share');
+  await expect(collaboration).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(visibleAnswers).toHaveCount(0);
+});
+
+test.describe('home video', () => {
+  const surface = { position: { x: 16, y: 16 } };
+
+  test('starts from a click anywhere on it and then offers the browser controls', async ({ page }) => {
+    await page.goto('/');
+    const video = page.getByLabel('RemDo demo');
+
+    await expect(page.getByRole('button', { name: 'Watch demo · 0:10', exact: true })).toBeVisible();
+    await expect(video).toHaveJSProperty('controls', false);
+    await video.click(surface);
+
+    await expect(video).toHaveJSProperty('paused', false);
+    await expect(video).toHaveJSProperty('controls', true);
+    await expect(page.getByRole('button', { name: 'Watch demo · 0:10', exact: true })).toBeHidden();
+  });
+
+  test('shows the play button again while paused and resumes from it', async ({ page }) => {
+    await page.goto('/');
+    const video = page.getByLabel('RemDo demo');
+    const play = page.getByRole('button', { name: 'Watch demo · 0:10', exact: true });
+
+    await video.click(surface);
+    await expect(video).toHaveJSProperty('paused', false);
+    await video.click(surface);
+    await expect(video).toHaveJSProperty('paused', true);
+    await expect(play).toBeVisible();
+
+    await play.click();
+    await expect(video).toHaveJSProperty('paused', false);
+    await expect(play).toBeHidden();
+  });
+
+  test('hands keyboard focus to the video when the play button starts it', async ({ page }) => {
+    await page.goto('/');
+    const video = page.getByLabel('RemDo demo');
+
+    await page.getByRole('button', { name: 'Watch demo · 0:10', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    await expect(video).toBeFocused();
+    await page.keyboard.press('Space');
+
+    await expect(video).toHaveJSProperty('paused', true);
+  });
 });

@@ -152,6 +152,7 @@ class HomePageTests(TestCase):
         response = self.client.get("/")
         self.assertNotContains(response, "<video")
         self.assertNotContains(response, "landing-video-background")
+        self.assertNotContains(response, "landing-video.js")
 
     @override_settings(ROOT_URLCONF=NoGoogleLoginUrls)
     def test_public_home_offers_plain_sign_in_when_google_is_unconfigured(self):
@@ -172,8 +173,11 @@ class HomePageTests(TestCase):
             html=True,
         )
         self.assertContains(response, 'poster="https://share.example.test/media/demo.jpg?v=2"')
-        self.assertContains(response, 'preload="none"')
+        self.assertContains(response, 'preload="metadata"')
         self.assertNotContains(response, "autoplay")
+        self.assertContains(
+            response, '<script src="/site-assets/landing-video.js" defer></script>', html=True
+        )
 
     def test_signed_out_entry_targets_go_to_sign_in(self):
         for url in ("/?next=%2Fn%2Fexample", "/?doc=example"):
