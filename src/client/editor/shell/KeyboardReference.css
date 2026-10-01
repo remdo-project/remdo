@@ -1,0 +1,118 @@
+.keyboard-reference {
+  position: relative;
+  flex: none;
+}
+
+.keyboard-reference-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: 3px;
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-dark-1);
+  cursor: pointer;
+}
+
+.keyboard-reference-toggle[data-hovered],
+.keyboard-reference-toggle[aria-expanded='true'] {
+  background: var(--mantine-color-dark-5);
+  color: var(--mantine-color-dark-0);
+}
+
+.keyboard-reference-toggle[data-focus-visible] {
+  outline: 2px solid var(--indicator-highlight-color);
+  outline-offset: 2px;
+}
+
+.keyboard-reference-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 20;
+  width: min(22.5rem, calc(100vw - 2rem));
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: 3px;
+  background: var(--mantine-color-dark-7);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+  overflow: hidden;
+}
+
+.keyboard-reference-dialog {
+  max-height: min(30rem, calc(100vh - 11rem));
+  overflow-y: auto;
+  outline: none;
+}
+
+.keyboard-reference-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.75rem;
+  background: var(--mantine-color-dark-7);
+}
+
+.keyboard-reference-title {
+  margin: 0;
+  color: var(--mantine-color-dark-0);
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.5rem;
+}
+
+.keyboard-reference-list {
+  padding: 0 1rem 1rem;
+}
+
+.keyboard-reference-group + .keyboard-reference-group {
+  margin-top: 1.5rem;
+}
+
+.keyboard-reference-group-title,
+.keyboard-reference-group-note {
+  margin: 0;
+  color: var(--mantine-color-dark-2);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+}
+
+.keyboard-reference-entries {
+  margin: 0;
+}
+
+.keyboard-reference-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.5rem;
+}
+
+.keyboard-reference-entry dt {
+  color: var(--mantine-color-dark-0);
+  font-size: 0.9375rem;
+}
+
+.keyboard-reference-entry dd {
+  display: flex;
+  flex: none;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.keyboard-reference-entry .mantine-Kbd-root {
+  min-width: 1.75rem;
+  border-bottom-width: 1px;
+  font-family: var(--remdo-font-family);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  text-align: center;
+}

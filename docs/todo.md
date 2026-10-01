@@ -378,11 +378,12 @@ Open question: whether a local-origin run also serves as a CI smoke check.
   [mobile toolbar](specs/outliner/mobile-toolbar.md#actions) with the same
   add-or-focus semantics as the key gesture, and cover both surfaces.
 
-- **Keyboard reference.** Build the
-  [keyboard reference](specs/outliner/keyboard-reference.md): the document-view
-  control and non-modal panel, the four shortcut groups with the platform
-  switch, absence on touch devices, and coverage that each entry's binding
-  matches what the editor honors.
+- **Keyboard reference binding coverage.** The
+  [keyboard reference](specs/outliner/keyboard-reference.md) is checked against
+  the editor only for toggle checked and move up/down, whose chords it shares
+  with the keymap. Cover the remaining entries, Lexical's built-in editing
+  bindings and the other owners' keys, with checks that press what the
+  reference shows.
 
 ### UX direction
 

@@ -10,6 +10,7 @@ import {
   useZoomPath,
 } from '#client/editor/view/EditorViewProvider';
 import Editor from '#client/editor/shell/Editor';
+import { KeyboardReference } from '#client/editor/shell/KeyboardReference';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentMenu } from './DocumentMenu';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
@@ -121,6 +122,7 @@ export default function DocumentWorkspace({
         docId={docId}
         documentLabel={source.documentLabel}
         documentSources={documentSources}
+        keyboardReference={<KeyboardReference onClose={focusEditorInput} />}
         onSelectDocument={openDocument}
         onSelectHome={onSelectHome}
         onSelectNoteId={requestZoomNoteId}

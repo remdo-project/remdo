@@ -21,12 +21,14 @@ export default function DocumentToolbar({
   onSelectHome,
   onSelectNoteId,
   onStatusHostChange,
+  keyboardReference,
   path,
   searchControl,
 }: {
   docId: string;
   documentLabel: string;
   documentSources: readonly DocumentSourceNote[];
+  keyboardReference?: ReactNode;
   onSelectDocument: (docId: string) => void;
   onSelectHome: () => void;
   onSelectNoteId: (noteId: string | null) => void;
@@ -115,6 +117,7 @@ export default function DocumentToolbar({
       <div className="document-header-actions">
         {searchControl}
         <div className="document-header-status" ref={onStatusHostChange} />
+        {keyboardReference}
       </div>
     </header>
   );

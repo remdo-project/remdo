@@ -17,12 +17,12 @@ presentation.
 
 1. Entries form these groups, in this order:
    - **Essentials:**
+     - [note actions](./menu.md#entry)
      - [new note](./insertion.md)
      - [indent and outdent](./indentation.md#input-bindings)
      - [move up and down](./reordering.md)
      - [toggle checked](./list-types.md#keyboard-command)
      - [find in document](./search.md#behavior)
-     - [note actions](./menu.md#entry)
      - [add or open body](./body.md#core-behavior)
      - [link a note](./links.md)
      - [insert a date](./dates.md)
@@ -36,14 +36,14 @@ presentation.
      and close. Its entries state how the menu opens, because these keys apply
      only while it is open.
 2. An entry names its action and shows the binding the editor honors on the
-   selected platform. **Deterministic.**
+   viewer's platform. **Deterministic.**
 3. An entry for a quick action menu action uses that action's menu label.
 4. Entries expose their action and keys to assistive technology as one pair.
 
 ## Platform
 
-The reference opens on the viewer's platform, macOS or Windows/Linux, and offers
-the other. The selection is not kept after the reference closes.
+The reference shows only the bindings of the viewer's platform, macOS or
+Windows/Linux, as the editor's own shortcut handling determines it.
 
 ## Future
 
