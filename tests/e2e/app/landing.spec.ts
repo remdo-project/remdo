@@ -46,6 +46,7 @@ test('places the wordmark at the same spot on every public page', async ({ page 
   const boxes = [];
   for (const path of ['/', '/privacy/', '/accounts/login/']) {
     await page.goto(path);
+    await page.evaluate(() => document.fonts.load('600 28px "DM Sans"'));
     boxes.push(await wordmark.boundingBox());
   }
   expect(boxes[0]).not.toBeNull();

@@ -62,7 +62,7 @@ export function DocumentRenameDialog({
             value={draft}
           />
           {pending && <span role="status">Renaming…</span>}
-          <Group justify="flex-end">
+          <Group gap={8} justify="flex-end">
             <FormButton disabled={pending} onClick={onClose} variant="default">Cancel</FormButton>
             <FormButton disabled={pending} type="submit">Rename</FormButton>
           </Group>

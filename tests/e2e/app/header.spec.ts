@@ -19,10 +19,14 @@ test('header controls are reachable by keyboard on a narrow screen', async ({ pa
 
 test('keeps the wordmark and footer links where the public pages put them', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  const chrome = async () => ({
-    wordmark: await page.getByRole('link', { name: 'RemDo home', exact: true }).boundingBox(),
-    footerLinks: await page.getByRole('navigation', { name: 'Footer' }).boundingBox().then((box) => box && { x: box.x, width: box.width }),
-  });
+  const chrome = async () => {
+    // Text widths shift when DM Sans replaces the fallback font.
+    await page.evaluate(() => Promise.all([document.fonts.load('400 14px "DM Sans"'), document.fonts.load('600 28px "DM Sans"')]));
+    return {
+      wordmark: await page.getByRole('link', { name: 'RemDo home', exact: true }).boundingBox(),
+      footerLinks: await page.getByRole('navigation', { name: 'Footer' }).boundingBox().then((box) => box && { x: box.x, width: box.width }),
+    };
+  };
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
   const app = await chrome();

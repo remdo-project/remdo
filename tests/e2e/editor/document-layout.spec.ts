@@ -37,4 +37,19 @@ test.describe('Document layout', () => {
     expect(panel.width).toBeGreaterThanOrEqual(280);
     expect(item.height).toBe(36);
   });
+
+  test('sets the rename dialog with a 22px title, a 44px input and 48px buttons', async ({ page, editor }) => {
+    await editor.load('basic');
+    await page.getByRole('heading', { level: 1 }).hover();
+    await page.getByRole('button', { name: /^Actions for/u }).click();
+    await page.getByRole('menuitem', { name: /^Rename/u }).click();
+    const dialog = page.getByRole('dialog');
+    const input = (await dialog.getByLabel('Document name').boundingBox())!;
+    const cancel = (await dialog.getByRole('button', { name: 'Cancel', exact: true }).boundingBox())!;
+    const titleSize = await dialog.getByRole('heading').evaluate((element) => getComputedStyle(element).fontSize);
+
+    expect(titleSize).toBe('22px');
+    expect(input.height).toBe(44);
+    expect(cancel.height).toBe(48);
+  });
 });

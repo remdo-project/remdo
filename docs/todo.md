@@ -265,12 +265,12 @@ RemDo document, minimal but useful for real work.
 ### Landing redesign
 
 The public pages, the app shell, the shared header and footer, the document
-page, Home, and the menus follow the
+page, Home, the menus, and the dialogs follow the
 [final Figma design](https://www.figma.com/design/doTT65AwFC2WqcvUBh1Tjn/).
 Remaining:
 
-- **Editor surface.** Restyle the dialogs, search results, and the sync, touch,
-  and collaboration states. Decide what the frames leave open: the
+- **Editor surface.** Restyle the search results and the sync, touch, and
+  collaboration states. Decide what the frames leave open: the
   [location header](specs/outliner/location-header.md) requires a visible
   document heading that the outline frame omits, bold top-level notes and a
   "Press Shift twice for note actions" hint appear only in the mock, and
