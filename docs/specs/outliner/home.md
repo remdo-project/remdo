@@ -15,6 +15,27 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 
 ## Public introduction
 
+The public introduction offers **Keep me posted** for occasional RemDo product
+updates. Its native form records a validated, normalized email address and
+request time in the serving instance's database, independently of accounts.
+Submission creates no account, document, session, or email verification and
+sends no email. New requests are unconfirmed; existing account holders use the
+same subscription flow. The same public introduction and form are available at
+`/keep-me-posted/`, including to signed-in users.
+
+Repeated submissions preserve the original request, confirmation, and withdrawal
+state and receive the same acknowledgement as new requests. Invalid input stays
+beside the form. Django's [CSRF protection](../access/access-control.md#csrf-protection) applies; production limits
+submissions per client address using the same trusted ingress as [sign-in](../access/access-control.md#authenticated-app-access).
+
+Administrators can search subscription requests, filter confirmation and
+withdrawal state, and record withdrawals through Django administration.
+Confirmation times are reserved for future subscription confirmation; an
+account's verified email does not confirm a public subscription request.
+Withdrawn addresses remain excluded after repeated public submissions. The form
+links the [privacy policy](../../../content/pages/privacy.md), which describes collection, purpose, retention, and
+withdrawal.
+
 When a [home video](../runtime/configuration.md#home-video) is configured, the
 public introduction offers it with its poster and a play button that states the
 video's duration once known, playing it only when the visitor starts it. A click

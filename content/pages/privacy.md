@@ -3,7 +3,7 @@ title: Privacy Policy
 description: How RemDo handles personal data on the service at remdo.com.
 ---
 
-_Last updated: 23 September 2026._
+_Last updated: 1 October 2026._
 
 RemDo is an early-stage project under active development. This Privacy Policy
 explains how personal data is handled when you use the RemDo service operated at
@@ -22,6 +22,9 @@ Depending on how you use RemDo, we process:
 
 - **Account information**, such as your email address, name, account identifier
   and authentication information.
+- **Product update requests**, such as the email address you submit through
+  “Keep me posted,” when you requested updates, and any later confirmation or
+  withdrawal.
 - **Information from an authentication provider** if you choose to sign in
   through a third-party service. This can include an account identifier, name,
   email address or profile information, depending on the provider and
@@ -55,6 +58,9 @@ The purposes and legal bases for processing are:
   the service.
 - **Optional product analytics and experiments, including A/B tests.** Legal
   basis: your consent.
+- **Recording your request for occasional RemDo product updates and managing
+  any later confirmation or withdrawal.** Legal basis: your consent. Requesting
+  updates is optional and does not create an account.
 - **Processing required to comply with applicable law or binding legal
   requirements.** Legal basis: legal obligation.
 
@@ -75,6 +81,20 @@ Content, integrations and other information are provided when you choose to use
 the corresponding RemDo features.
 
 Optional analytics is not required to use the core RemDo service.
+
+## Product updates
+
+“Keep me posted” stores your email address and request time for occasional RemDo
+product updates. The form currently collects requests only; it sends no email.
+Requests are stored separately from accounts and remain unconfirmed until
+subscription confirmation is introduced. An existing account's verified email
+does not confirm a request submitted through this public form.
+
+You can withdraw your request or ask us to delete it by contacting
+**[piotr@remdo.com](mailto:piotr@remdo.com)**. A recorded withdrawal excludes your address from future contact,
+and submitting that address through the public form again does not undo the
+withdrawal. Deleting an account alone does not delete a separate update request;
+a request to delete all your personal data includes both.
 
 ## Analytics and product experiments
 
@@ -204,6 +224,11 @@ In particular:
 - **Support correspondence and feedback** are kept for as long as needed to
   handle the communication and, where appropriate, maintain a reasonable record
   of the issue.
+- **Product update requests** are kept while needed for the updates you
+  requested. Withdrawn requests are excluded from contact; we retain only the
+  address and request or withdrawal information needed to respect your choice
+  unless you ask us to delete it. Requests are removed when they are no longer
+  needed for this purpose.
 - **Analytics information**, when analytics is enabled with your consent, is
   retained for a limited period appropriate to analysing product usage. The
   applicable analytics setup and retention period will be described when such
