@@ -67,7 +67,7 @@ capitalization, implementation status, or [verification](#verification) method.
 A durable specification states its target behavior as fact in timeless prose,
 regardless of implementation status.
 
-[Tracked follow-up](todo.md#tracked-follow-up) records future work and known
+[Tracked follow-up](todo.md) records future work and known
 gaps. Its entries are informative and may identify implementation that does not
 yet satisfy target behavior. Entries range from decided work to unresolved
 questions and preserve only the context useful for returning to the work.

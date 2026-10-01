@@ -33,7 +33,7 @@ contract owners. Provider-specific surfaces may load it alongside their own rule
   - **Test runtime:** [Test Harness](docs/specs/testing/test-harness.md).
 - **Runtime configuration:** [Configuration](docs/specs/runtime/configuration.md).
   - **Port and origin derivation:** [Network addressing](docs/specs/runtime/configuration.md#network-addressing).
-- **Tracked repository follow-up:** [RemDo TODO](docs/todo.md#tracked-follow-up).
+- **Tracked repository follow-up:** [RemDo TODO](docs/todo.md).
 - **Task behavior:** its current owner under `docs/`.
 
 Reuse documents already read while their relevant content remains in context and
@@ -70,7 +70,7 @@ change. Do not add update-tracking sections to durable documents.
   and fetches with caller-supplied mutating refspecs require explicit user
   authority. Pushing always requires a separate explicit user request.
 - Uncommitted work may be mid-transformation. A commit is coherent or tracks its
-  precise remaining gap in [RemDo TODO](docs/todo.md#tracked-follow-up); when
+  precise remaining gap in [RemDo TODO](docs/todo.md); when
   commit authority applies, record that gap without seeking separate approval.
 
 ## Isolation

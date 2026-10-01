@@ -68,7 +68,7 @@ documentation. Route agents by the question they need to answer:
   - **Test runtime:** [Test Harness](../testing/test-harness.md).
 - **Runtime configuration:** [Configuration](../runtime/configuration.md).
   - **Port and origin derivation:** [Network addressing](../runtime/configuration.md#network-addressing).
-- **Tracked repository follow-up:** [RemDo TODO](../../todo.md#tracked-follow-up).
+- **Tracked repository follow-up:** [RemDo TODO](../../todo.md).
 - **Task behavior:** its current owner, located by filename and scope opener
   under `docs/`.
 

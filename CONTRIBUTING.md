@@ -64,7 +64,7 @@ required only when the task or specification does.
 Any standalone `TODO` or `FIXME` label in a code comment is tracked. `FIXME`
 records a defect in the current state; `TODO` records other code-local work
 worth tracking, such as a workaround, deferred fix, or known gap. Both follow
-the repository-wide [tracked follow-up convention](docs/todo.md#tracked-follow-up).
+the repository-wide [tracked follow-up convention](docs/todo.md).
 
 A tracked comment contains its rationale and, when available, the one-line probe
 that proves it obsolete, such as deleting the shim, flipping the flag, or
