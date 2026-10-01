@@ -331,6 +331,7 @@ export function NoteControlsPlugin() {
           className="note-controls__button note-controls__button--menu"
           onPointerDown={onMenuPointerDown}
           aria-label="Open note menu"
+          tabIndex={-1}
         />
         {controls.canFold ? (
           <button
@@ -342,6 +343,7 @@ export function NoteControlsPlugin() {
             }
             onPointerDown={onFoldPointerDown}
             aria-label={controls.isFolded ? 'Expand note' : 'Collapse note'}
+            tabIndex={-1}
           />
         ) : null}
       </div>

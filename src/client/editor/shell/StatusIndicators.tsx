@@ -18,6 +18,7 @@ function renderIndicator(descriptor: StatusDescriptor) {
       className={wrapperClassName}
       style={descriptor.color ? { color: descriptor.color } : undefined}
       aria-label={descriptor.ariaLabel}
+      role="img"
       title={descriptor.title}
     >
       <Icon icon={descriptor.icon} />
