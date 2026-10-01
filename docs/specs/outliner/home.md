@@ -43,10 +43,12 @@ previous one; closing the open answer leaves all answers collapsed. The first
 answer is initially open.
 
 When a [home video](../runtime/configuration.md#home-video) is configured, the
-public introduction offers it with its poster and a play button that states the
-video's duration once known, playing it only when the visitor starts it. A click
+public introduction offers it with its poster and a play button labeled
+**Watch demo**, playing it only when the visitor starts it. A click
 anywhere on the video starts it. Once started, the video shows the browser's
 standard playback controls, and the play button shows again whenever it is paused.
+Hovering anywhere over the video area or focusing its play button reveals a soft
+blur halo around the button.
 
 ## Signed-in behavior
 

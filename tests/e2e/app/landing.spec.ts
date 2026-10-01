@@ -178,19 +178,42 @@ test.describe('home video', () => {
     await page.goto('/');
     const video = page.getByLabel('RemDo demo');
 
-    await expect(page.getByRole('button', { name: 'Watch demo · 0:10', exact: true })).toBeVisible();
+    await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState)).toBeGreaterThan(0);
+    await expect(page.getByRole('button', { name: 'Watch demo', exact: true })).toBeVisible();
     await expect(video).toHaveJSProperty('controls', false);
     await video.click(surface);
 
     await expect(video).toHaveJSProperty('paused', false);
     await expect(video).toHaveJSProperty('controls', true);
-    await expect(page.getByRole('button', { name: 'Watch demo · 0:10', exact: true })).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Watch demo', exact: true })).toBeHidden();
   });
+
+  for (const width of [390, 1440]) {
+    test(`reveals the play halo across the video area and on keyboard focus at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      const video = page.getByLabel('RemDo demo');
+      const play = page.getByRole('button', { name: 'Watch demo', exact: true });
+      const haloOpacity = () => play.evaluate((element) => getComputedStyle(element, '::before').opacity);
+
+      await expect(play).toBeVisible();
+      await expect.poll(haloOpacity).toBe('0');
+      await video.hover(surface);
+      await expect.poll(haloOpacity).toBe('1');
+      await expect(video).toHaveJSProperty('paused', true);
+
+      await page.getByRole('heading', { level: 1 }).hover();
+      await expect.poll(haloOpacity).toBe('0');
+      await play.focus();
+      await expect.poll(haloOpacity).toBe('1');
+      await expect(play).toBeFocused();
+    });
+  }
 
   test('shows the play button again while paused and resumes from it', async ({ page }) => {
     await page.goto('/');
     const video = page.getByLabel('RemDo demo');
-    const play = page.getByRole('button', { name: 'Watch demo · 0:10', exact: true });
+    const play = page.getByRole('button', { name: 'Watch demo', exact: true });
 
     await video.click(surface);
     await expect(video).toHaveJSProperty('paused', false);
@@ -207,7 +230,7 @@ test.describe('home video', () => {
     await page.goto('/');
     const video = page.getByLabel('RemDo demo');
 
-    await page.getByRole('button', { name: 'Watch demo · 0:10', exact: true }).focus();
+    await page.getByRole('button', { name: 'Watch demo', exact: true }).focus();
     await page.keyboard.press('Enter');
     await expect(video).toBeFocused();
     await page.keyboard.press('Space');
