@@ -489,13 +489,6 @@ concrete unmet need.
 
 ### Tooling
 
-- **Shared chrome E2E flake.** Reassess or stabilize the
-  [header geometry test](../tests/e2e/app/header.spec.ts) before re-enabling it; it is marked `fixme` to
-  unblock CI. The app can be measured with fallback fonts while About uses DM
-  Sans, producing different wordmark and footer widths. Waiting for
-  `document.fonts.ready` alone still reproduces the failure. Preserve useful
-  coverage of [shared presentation](architecture.md#shared-presentation).
-
 - **Development setup and workflow.** Allow per-checkout backend settings
   overrides and reduce setup and launcher complexity in [local development](guides/local-development.md).
   Preserve independent instances and Node-independent backend commands; reassess
