@@ -26,6 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
       - env:
           TEST_TIMEOUT: 360
         run: pnpm run test:unit --shard=${{ matrix.shard }}/${{ strategy.job-total }}

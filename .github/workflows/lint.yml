@@ -18,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pnpm
+      - uses: ./.github/actions/setup-python
       - run: pnpm run lint:dockerfile
       - run: pnpm run audit:policy
       - run: pnpm run audit:unused:prod

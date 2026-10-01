@@ -1,7 +1,7 @@
 /* eslint-disable node/no-process-env */
 import { execFileSync } from 'node:child_process';
 import type { Page } from '@playwright/test';
-import { expect, guardedTest as test, signOutFromHeader, withPageGuards } from '#e2e/fixtures';
+import { allowUnauthorizedNetwork, expect, guardedTest as test, signOutFromHeader, withPageGuards } from '#e2e/fixtures';
 import { createUserDocument } from '../_support/documents';
 import {
   allowOfflineDisconnectedConsoleIssue,
@@ -179,6 +179,8 @@ test('confirmed logout removes the offline entry so the root serves the public h
 test('a session that ended elsewhere removes the offline entry so the root serves the public home', async ({ page, context }) => {
   await signIn(page);
   await waitForServiceWorkerControl(page);
+  // A document-list read can reach the server after these cookies are cleared.
+  allowUnauthorizedNetwork(page);
   await context.clearCookies();
   await page.goto('/');
   await expect(page.getByRole('region', { name: 'Introduction' })).toBeVisible();
