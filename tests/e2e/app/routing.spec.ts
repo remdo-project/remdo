@@ -136,6 +136,8 @@ test.describe('Routing', () => {
     await expect(page.getByRole('link', { name: 'Skip to content', exact: true })).toBeFocused();
     await page.keyboard.press('Enter');
     await page.keyboard.press('Tab');
+    await expect(introduction.getByRole('link', { name: 'Keep me posted', exact: true })).toBeFocused();
+    await page.keyboard.press('Tab');
     await expect(introduction.getByRole('button', { name: 'Sign in with Google', exact: true })).toBeFocused();
   });
 

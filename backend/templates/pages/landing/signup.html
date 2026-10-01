@@ -1,0 +1,20 @@
+<section class="landing-signup" aria-labelledby="landing-signup-heading">
+  <h4 id="landing-signup-heading">Hear about the big steps.</h4>
+  <p>Occasional notes about major milestones. A quiet way to follow along.</p>
+  <form method="post" action="/keep-me-posted/#landing-signup" aria-labelledby="landing-signup-heading">
+    {% csrf_token %}
+    <label for="landing-email">Your email address</label>
+    <div class="landing-signup-fields">
+      <input id="landing-email" type="email" name="email" autocomplete="email" placeholder="you@example.com" value="{{ subscription_form.email.value|default_if_none:'' }}" maxlength="254" required aria-describedby="landing-signup-note{% if subscription_form.email.errors %} landing-signup-error{% endif %}"{% if subscription_form.email.errors %} aria-invalid="true" autofocus{% endif %}>
+      <button class="landing-button" type="submit">Keep me posted</button>
+    </div>
+    <p id="landing-signup-note">Occasional RemDo milestone updates. No account needed.</p>
+    {% if subscription_form.email.errors %}
+      <p id="landing-signup-error" role="alert">{{ subscription_form.email.errors|join:' ' }}</p>
+    {% endif %}
+    {% if subscription_saved %}
+      <p role="status">Thanks for your interest. Your request has been saved.</p>
+    {% endif %}
+    <p class="landing-signup-privacy">You can withdraw your request at any time. <a href="/privacy/">Privacy policy</a>.</p>
+  </form>
+</section>

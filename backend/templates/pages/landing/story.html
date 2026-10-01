@@ -2,20 +2,4 @@
   <p>Finding where Van Gogh painted The Starry Night takes seconds. Finding what you agreed on last Tuesday isn't so easy.</p>
   <p>The answer is scattered across notes, emails and shared files. RemDo connects those pieces without moving them. Follow the connections from any one of them, and add your own. Keep your tools; your data stays where you want it.</p>
   {% include "pages/landing/status.html" %}
-  <form id="landing-signup" class="landing-signup" method="post" action="/keep-me-posted/#landing-signup" aria-labelledby="landing-signup-heading">
-    {% csrf_token %}
-    <h2 id="landing-signup-heading">Hear when something new ships.</h2>
-    <div class="landing-signup-fields" role="group" aria-labelledby="landing-signup-heading">
-      <label class="landing-visually-hidden" for="landing-email">Your email address</label>
-      <input id="landing-email" type="email" name="email" autocomplete="email" placeholder="Your email address" value="{{ subscription_form.email.value|default_if_none:'' }}" maxlength="254" required aria-describedby="landing-signup-note{% if subscription_form.email.errors %} landing-signup-error{% endif %}"{% if subscription_form.email.errors %} aria-invalid="true"{% endif %}>
-      <button class="landing-button" type="submit">Keep me posted</button>
-    </div>
-    <p id="landing-signup-note">Sign up for occasional RemDo product updates. You can withdraw your request at any time. <a href="/privacy/">Privacy policy</a>.</p>
-    {% if subscription_form.email.errors %}
-      <p id="landing-signup-error" role="alert">{{ subscription_form.email.errors|join:' ' }}</p>
-    {% endif %}
-    {% if subscription_saved %}
-      <p role="status">Thanks for your interest. Your request has been saved.</p>
-    {% endif %}
-  </form>
 </section>
