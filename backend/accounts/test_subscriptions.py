@@ -2,6 +2,7 @@ from datetime import datetime
 from datetime import timezone as datetime_timezone
 
 from allauth.account.models import EmailAddress
+from django.conf import settings
 from django.core import mail
 from django.core.cache import cache
 from django.core.management import call_command
@@ -112,7 +113,7 @@ class ProductUpdateSubscriptionTests(TestCase):
             client.post("/keep-me-posted/", {"email": "visitor@example.test"}).status_code, 403
         )
         client.get("/")
-        token = client.cookies[next(key for key in client.cookies if "csrf" in key)].value
+        token = client.cookies[settings.CSRF_COOKIE_NAME].value
         response = client.post(
             "/keep-me-posted/", {"email": "visitor@example.test", "csrfmiddlewaretoken": token}
         )
