@@ -1,6 +1,42 @@
 import type { Locator, Page } from '@playwright/test';
 import { expect, unauthenticatedTest as test } from '#e2e/fixtures';
 
+for (const width of [390, 1440]) {
+  test(`saves a product update request through the native form at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    const signup = page.getByRole('form', { name: 'Hear when something new ships.' });
+    const email = signup.getByRole('textbox', { name: 'Your email address' });
+    await expect(signup.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', '/privacy/');
+    await email.fill(`landing-${width}@example.test`);
+    await email.press('Enter');
+    await expect(page.getByRole('status')).toHaveText('Thanks for your interest. Your request has been saved.');
+    await expect(page).toHaveURL(/\/keep-me-posted\/\?saved=1#landing-signup$/u);
+    await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
+
+    await email.fill(`landing-${width}@example.test`);
+    await signup.getByRole('button', { name: 'Keep me posted' }).click();
+    await expect(page.getByRole('status')).toHaveText('Thanks for your interest. Your request has been saved.');
+  });
+}
+
+test('associates server validation with the email field and allows correcting it', async ({ page }) => {
+  await page.goto('/');
+  const signup = page.getByRole('form', { name: 'Hear when something new ships.' });
+  await signup.evaluate((element: HTMLFormElement) => { element.noValidate = true; });
+  await signup.getByRole('textbox', { name: 'Your email address' }).fill('not-an-email');
+  await signup.getByRole('button', { name: 'Keep me posted' }).click();
+
+  const email = page.getByRole('textbox', { name: 'Your email address' });
+  await expect(page.getByRole('alert')).toHaveText('Enter a valid email address.');
+  await expect(email).toHaveAttribute('aria-invalid', 'true');
+  await expect(email).toHaveValue('not-an-email');
+  await email.fill('corrected-landing@example.test');
+  await email.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Thanks for your interest. Your request has been saved.');
+  await expect(email).not.toHaveAttribute('aria-invalid', 'true');
+});
+
 test('keeps collaboration, note links, and tasks visible in responsive illustration crops', async ({ page }) => {
   await page.goto('/');
   const collaboration = page.getByRole('img', { name: /Tom and Henry collaborate/u });
