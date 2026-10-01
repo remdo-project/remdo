@@ -72,11 +72,6 @@ Rules:
 ## Admin role follow-ups
 
 - Reconsider `/api/config` vs `/api/health` — maybe one `/api/status` covers both.
-- Admin panel: **promoting an existing user to admin** and per-admin revocation
-  — the only way today to gain admin is registering a new account via the secret.
-- Ban/impersonate from the Better Auth admin plugin.
-- Runtime public-policy toggle (replace `ALLOW_SIGNUP` env with admin-managed,
-  DB-backed state) and UI. Swappable auth is in place; the toggle still needs implementation.
 
 ## Source-linking follow-ups
 
@@ -130,10 +125,6 @@ implementation-specific ideas are not migration requirements.
 
 The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-document-import.ts`).
 
-- Silent failure: parseable-but-non-Lexical JSON (`{}`, `{"foo":1}`, `[]`)
-  creates an empty doc with no alert in prod — `parseEditorState` routes the
-  error to `onError`, which does not rethrow in prod, so the plugin's
-  `catch` never fires. Validate/reject at the upload boundary.
 - Review/refactor the shipping commit for self-containment: it's spread across a
   module-level `Map` hand-off, a divergent copy of `TestBridgePlugin`'s load
   sequence, a borrowed test-only tag, and duplicate route error state. May need
@@ -142,9 +133,6 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-
 - `await normalizeUpdate` / `await awaitSynced()` can hang forever: no
   timeout/noop guard, so a no-op normalize (clean backup) or a never-syncing
   provider leaves the import pending with no error.
-- Effect re-run race: it depends on `awaitSynced`, whose identity changes per
-  collab snapshot; a mid-import snapshot re-runs the effect and cancels the
-  import after the file was already claimed, abandoning it silently.
 - No `cancelled` recheck after `await loadUpdate` / before `awaitSynced` → a
   doc switch mid-import writes into the stale editor for the old `docId`.
 - Stacked/mislabeled error alerts: a create failure during upload uses the
@@ -236,18 +224,6 @@ against the [document registry](architecture.md#document-registry).
   JS `data-active='hover'` state for them; unify that mixed hover model in this
   pass rather than wiring JS hover for one list.
 
-## App-shell overflow vs inline menus
-
-- The app-shell `.shell` card uses `overflow: hidden` (needed to clip its rounded
-  corners) which becomes a clip box for inline dropdowns. The document switcher
-  menu (`DocumentToolbar.tsx`, `withinPortal={false}`) and the note menu
-  (`NoteMenuPlugin`, portaled into `.editor-container`) render inside it, so a
-  menu opening past the card's edge could be clipped rather than overflow. Narrow
-  exposure today (the card grows with content, and menus open near the top/mid),
-  but if a clip is ever observed, portal those menus to `document.body`
-  (`withinPortal`) rather than dropping the corner-clipping overflow. Deferred as
-  a tradeoff — the safe fix touches menu components outside the styling change.
-
 ## App-shell layout container follow-up
 
 - The document route (`DocumentRoute.tsx` `Container fluid` +
@@ -304,30 +280,16 @@ against the [document registry](architecture.md#document-registry).
 
 ## Warning and drift detection follow-ups
 
-- Decide whether to replace `pnpm dlx esbuild` in `docker/Dockerfile` with a
-  lockfile-backed tool path or at least an exact version; Docker currently
-  pulls a different `esbuild` than the workspace.
-
 - Add more deterministic detection:
   1. Extend `tools/check-pnpm-policy.ts` to flag committed `pnpm dlx` usage so
      lockfile-bypassing tool installs cannot be added silently.
-  2. Add a plain `pnpm run build` validation surface to CI and/or the dependency
-     refresh flow so build warnings are reviewed explicitly instead of only via
-     Docker logs.
 
 - Warning policy / classify-or-suppress:
   1. Decide how to handle the Vite large-chunk warning: real size budget,
      accepted warning, or follow-up chunking work.
-  2. Decide whether to fix or explicitly accept the Docker esbuild
-     `import.meta`/CJS warning from bundling Node tools that import
-     `config/index.ts`; the warning text includes `empty-import-meta` and `import.meta.env.MODE`.
-  3. Decide how to handle the `snapshot.mjs` esbuild size warning in Docker:
-     explicit budget, suppression, or accepted noise.
-  4. Decide whether to suppress or just classify the `NO_COLOR` / `FORCE_COLOR`
+  2. Decide whether to suppress or just classify the `NO_COLOR` / `FORCE_COLOR`
      warnings seen during Docker Playwright runs.
-  5. Decide whether to suppress, classify, or otherwise avoid Node's
-     `ExperimentalWarning` noise from Better Auth's SQLite path in dev/test commands.
-  6. Review current install-time warnings and classify each as `fix`, `track`,
+  3. Review current install-time warnings and classify each as `fix`, `track`,
      or `ignore`, especially:
      `glob@11.1.0`, `source-map@0.8.0-beta.0`, and `sourcemap-codec@1.4.8`.
 
@@ -394,37 +356,15 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
 
 ## Later follow-ups
 
-- Dead `oauthClientCredentials` wiring: the `OAuthClientCredentials` interface +
-  the `oauthClientCredentials?` option thread `runtime.ts → createServerAuth →
-  createBetterAuthInstance` to feed `generateClientId`/`generateClientSecret` on
-  the `oauthProvider`, but nothing ever sets it (no producer, pre-existing). Now
-  that sources issue only public secretless clients it is provably dead — drop the
-  interface, the option field across the layers, and the generate-* spread so the
-  provider uses Better Auth's own id generation.
 - Auth provisioning concepts: revisit user creation, dev fixture users, OAuth
   client creation restrictions, and server registration as separate flows with
   clearer boundaries.
 - Consider adding email verification, then review trusted-provider,
   implicit-linking, and related authentication policies together.
-- Introduce a RemDo-owned, dialect-aware migration runner with ordered,
-  transactional migrations before the next persisted-schema change.
-- Once the runner exists, use it to drop `source_servers.client_secret`, then
-  remove the temporary predecessor-shape acceptance and its test.
-- Cross-server terminology: standardize OAuth/linking language around home
-  server and source server, and keep "remote" only for unrelated generic cases.
-- Dev script ergonomics: update normal dev launchers to pre-kill conflicting
-  RemDo services in their own `PORT_BASE` block before starting, instead of
-  adding separate restart scripts. Keep the behavior port-scoped and avoid the
-  shared Chrome DevTools endpoint.
 - Server routes follow-up: review the API endpoint set. Revisit endpoint names,
   grouping, browser-vs-server request boundaries, and whether any routes should
   move, merge, or be dropped. Consider a Hono `showRoutes()` dev helper or test
   for endpoint inventory after the route groups settle.
-- Revisit client auth/bootstrap state caching once the auth and current-user
-  model is more settled. The current lightweight bootstrap cache should
-  eventually be keyed to the active Better Auth session, or invalidated by a
-  clear shared auth-state boundary, so same-tab identity changes cannot reuse
-  stale home/user-data document ids.
 
 - Test-bridge registry (`testBridgeRegistry.ts`) hands the next mount to a
   pending `waitForNext()` FIFO. Entries are keyed by editor, so an editor
