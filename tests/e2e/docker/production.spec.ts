@@ -349,8 +349,7 @@ test(`${hostedMode ? 'PostgreSQL' : 'SQLite'} document content survives restart 
   const api = await request.newContext(apiOptions);
   try {
     await waitForHealth(api);
-    docker('exec', '-e', `DJANGO_SUPERUSER_PASSWORD=${password}`, hosted,
-      'python', 'manage.py', 'createsuperuser', '--noinput', '--email', persistEmail);
+    createAdmin(hosted, persistEmail);
     const authedHeaders = await signIn(api);
     const created = await api.post('/api/documents', { headers: authedHeaders, data: { title: 'Database restart' } });
     expect(created.status()).toBe(201);
