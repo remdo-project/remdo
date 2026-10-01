@@ -36,6 +36,10 @@ Withdrawn addresses remain excluded after repeated public submissions. The form
 links the [privacy policy](../../../content/pages/privacy.md), which describes collection, purpose, retention, and
 withdrawal.
 
+The FAQ reveals at most one answer at a time. Opening an answer closes the
+previous one; closing the open answer leaves all answers collapsed. The first
+answer is initially open.
+
 When a [home video](../runtime/configuration.md#home-video) is configured, the
 public introduction offers it with its poster and a play button that states the
 video's duration once known, playing it only when the visitor starts it. A click
