@@ -30,8 +30,10 @@ Generate under `.agent/playground/`, then atomically replace
 removes its temporary file and leaves the previous stable artifact unchanged.
 Other existing playground files remain untouched.
 
-The artifact's stable same-origin URL is `/playground/index.html`. The skill
-does not open that URL or verify the developer-owned server.
+The artifact's stable same-origin path is `/playground/index.html`. The result's
+`artifact.url` appends that path to the working directory's resolved development
+[`APP_ORIGIN`](../../runtime/configuration.md#network-addressing). The skill does
+not open that URL or verify the developer-owned server.
 
 ## Result
 
@@ -43,7 +45,7 @@ reason: <condition that stopped the run> # if stopped
 concerns: <Concern[]> # if any
 artifact: # if created
   path: public/playground/index.html
-  url: /playground/index.html
+  url: <resolved development APP_ORIGIN>/playground/index.html
 ```
 
 `created` requires the stable artifact to be complete. `stopped` reports why

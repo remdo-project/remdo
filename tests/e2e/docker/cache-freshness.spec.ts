@@ -21,6 +21,7 @@ test('returning browsers revalidate files and retain server navigation responses
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   await page.getByRole('button', { name: 'New document', exact: true }).click();
+  await page.getByRole('dialog', { name: 'New document' }).getByRole('button', { name: 'Create document' }).click();
   await expect(page.locator('.editor-input')).toBeVisible();
   const documentUrl = page.url();
   const documentId = new URL(documentUrl).pathname.split('/').at(-1)!;

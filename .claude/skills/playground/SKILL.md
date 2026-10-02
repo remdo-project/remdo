@@ -24,6 +24,14 @@ only if the registry entry, installed skill, or required template cannot be reso
 
 ## Generate
 
+From the repository root, resolve the result's artifact URL through the
+[shared environment launcher](../../../tools/env.sh) before generating:
+
+```sh
+TMPDIR="$PWD/.agent/playground" ./tools/env.sh \
+  sh -c 'printf "%s/playground/index.html\n" "$APP_ORIGIN"'
+```
+
 Follow the official skill and template, applying the RemDo [explorer boundary](../../../docs/specs/agents/skills/playground.md#explorer).
 Inspect relevant RemDo UI source only when the requested subject requires it.
 Create `.agent/playground/` and `public/playground/` if needed, then generate the
@@ -43,5 +51,5 @@ If the rename fails, remove the temporary file before returning `stopped`.
 
 ## Report
 
-Return the specification's [result](../../../docs/specs/agents/skills/playground.md#result). When addressing
+Return the specification's [result](../../../docs/specs/agents/skills/playground.md#result) with the resolved artifact URL. When addressing
 a human, render it under the shared [report contract](../../../docs/specs/agents/protocol.md#reports).

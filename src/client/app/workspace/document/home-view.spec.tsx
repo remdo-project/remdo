@@ -104,7 +104,7 @@ describe('home view', () => {
     expect(within(owned).queryByText('Shared')).toBeNull();
   });
 
-  it('creates a document via the New action', () => {
+  it('invokes the New document action', () => {
     const props = baseProps();
     renderHome(props);
 

@@ -180,6 +180,7 @@ test('production launcher serves login, collaboration, and persistent data throu
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'New document', exact: true }).click();
+  await page.getByRole('dialog', { name: 'New document' }).getByRole('button', { name: 'Create document' }).click();
   const editor = page.locator('.editor-input');
   await expect(editor).toBeVisible();
   await expect(page.locator('.collab-status')).toHaveAttribute('aria-label', /Server connected/u);

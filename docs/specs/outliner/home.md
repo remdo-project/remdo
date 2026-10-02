@@ -63,7 +63,8 @@ blur halo around the button.
 
 ## Document actions
 
-1. **New document** creates a document in the local source and opens it.
+1. **New document** opens a naming dialog before creating a document in the
+   local source and opening it.
 2. **Upload document** imports a document from a backup file.
 3. Each document row has a separate [quick action menu](./menu.md) button.
    Opening it targets that document without opening the document. Its document
@@ -72,6 +73,23 @@ blur halo around the button.
 
 New document and Upload document remain directly visible on Home. The Home
 heading is not a document-action target.
+
+### New document
+
+The dialog selects **New Document**, adding the first unused numeric suffix
+starting at **2** when taken. Suggestions compare Current Server names, including
+shared documents, ignoring case and outer whitespace. Listing updates leave the
+draft intact.
+
+**Create document** or `Enter` submits through
+[user data operations](./user-data.md#operations), trimming outer whitespace and preserving
+interior spaces. Blank names receive an inline error; custom names may repeat
+existing names. `Enter` during input-method composition does not submit.
+
+**Cancel**, `Escape`, or dismissal discards the draft and restores focus to
+**New document**. Pending creation blocks editing, dismissal, and resubmission.
+Failure retains the draft and input focus with an inline error for retry;
+success focuses the first editor note.
 
 ## Entering and leaving Home
 

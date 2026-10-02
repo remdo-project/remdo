@@ -81,12 +81,49 @@ test.describe('Home', () => {
     await expect(home.getByRole('button', { name: 'New document', exact: true })).toBeVisible();
     await expect(home.getByRole('button', { name: 'Upload document' })).toBeVisible();
     await home.getByRole('button', { name: 'New document', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'New document' });
+    const input = dialog.getByRole('textbox', { name: 'Document name' });
+    await expect(input).toBeFocused();
+    await expect(page).toHaveURL('/');
+    await input.press('Enter');
     await expect(page).toHaveURL(/\/n\/[^/_]+$/);
     await waitForSynced(page);
     await expect(editorLocator(page)).toBeVisible();
+    await expect(editorLocator(page).locator('.editor-input')).toBeFocused();
     await page.goBack();
     await expect(page).toHaveURL('/');
     await expect(homeView(page)).toBeVisible();
+  });
+
+  test('cancels a selected suggestion, then replaces it with a name before creating', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const home = homeView(page);
+    await expect(home.locator(`[data-home-document-ref="${editor.docId}"]`)).toBeVisible();
+    const initialCount = await home.getByRole('listitem').count();
+    const trigger = home.getByRole('button', { name: 'New document', exact: true });
+    await trigger.click();
+    const dialog = page.getByRole('dialog', { name: 'New document' });
+    const input = dialog.getByRole('textbox', { name: 'Document name' });
+    await expect(input).toBeFocused();
+    const suggestion = await input.inputValue();
+    expect(await input.evaluate((element: HTMLInputElement) => [element.selectionStart, element.selectionEnd]))
+      .toEqual([0, suggestion.length]);
+    await input.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(home.getByRole('listitem')).toHaveCount(initialCount);
+
+    await trigger.click();
+    await input.pressSequentially('Named before creation');
+    await expect(input).toHaveValue('Named before creation');
+    await input.press('Enter');
+    await expect(page).toHaveURL(/\/n\/[^/_]+$/u);
+    await waitForSynced(page);
+    await expect(page.getByRole('heading', { name: 'Named before creation', exact: true })).toBeVisible();
+    await expect(editorLocator(page).locator('.editor-input')).toBeFocused();
+    await homeZoomBreadcrumb(page).click();
+    await expect(home.getByRole('button', { name: 'Named before creation', exact: true })).toBeVisible();
   });
 
   test('leaves document search when navigating Home and reopening the document', async ({ page, editor }) => {
@@ -99,5 +136,49 @@ test.describe('Home', () => {
     await waitForSynced(page);
     await expect(page.getByRole('combobox', { name: 'Search document' })).toHaveValue('');
     await expect(editorLocator(page)).toBeVisible();
+  });
+
+  test('keeps keyboard focus through a failed creation and retries with Enter', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const home = homeView(page);
+    await expect(home.locator(`[data-home-document-ref="${editor.docId}"]`)).toBeVisible();
+    const before = await home.getByRole('listitem').count();
+    let failFirstCreation!: () => void;
+    const failure = new Promise<void>((resolve) => { failFirstCreation = resolve; });
+    let attempts = 0;
+    await page.route('**/api/documents', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue();
+      attempts += 1;
+      if (attempts === 1) {
+        await failure;
+        await route.fulfill({ contentType: 'application/json', body: 'invalid json' });
+      } else await route.continue();
+    });
+
+    await home.getByRole('button', { name: 'New document', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'New document' });
+    const input = dialog.getByRole('textbox', { name: 'Document name' });
+    await input.fill('Retry from keyboard');
+    await dialog.getByRole('button', { name: 'Create document' }).press('Enter');
+    await expect.poll(() => attempts).toBe(1);
+    await expect(dialog.getByRole('status')).toHaveText('Creating…');
+    await expect(input).toBeFocused();
+    await input.pressSequentially('ignored while pending');
+    await input.press('Enter');
+    await expect(input).toHaveValue('Retry from keyboard');
+    expect(attempts).toBe(1);
+
+    failFirstCreation();
+    await expect(dialog.getByRole('alert')).toBeVisible();
+    await expect(input).toBeFocused();
+    await expect(input).toHaveValue('Retry from keyboard');
+    await expect(home.getByRole('listitem')).toHaveCount(before);
+    await input.press('Enter');
+    await expect(page).toHaveURL(/\/n\/[^/_]+$/u);
+    await waitForSynced(page);
+    await expect(page.getByRole('heading', { name: 'Retry from keyboard', exact: true })).toBeVisible();
+    await expect(editorLocator(page).locator('.editor-input')).toBeFocused();
+    expect(attempts).toBe(2);
   });
 });

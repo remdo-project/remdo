@@ -77,6 +77,7 @@ test.describe('Document switcher', () => {
     const createdDocId = await captureCreatedDoc(page, async () => {
       await homeZoomBreadcrumb(page).click();
       await homeView(page).getByRole('button', { name: 'New document', exact: true }).click();
+      await page.getByRole('dialog', { name: 'New document' }).getByRole('button', { name: 'Create document' }).click();
     });
     await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
     await ensureReady(page);
@@ -106,17 +107,14 @@ test.describe('Document switcher', () => {
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await ensureReady(page);
 
-    await documentPickerButton(page).click();
-    const initialNewDocumentCount = await page.getByRole('option', { name: 'New Document' }).count();
-    await page.keyboard.press('Escape');
-
-    await captureCreatedDoc(page, async () => {
+    const createdDocId = await captureCreatedDoc(page, async () => {
       await homeZoomBreadcrumb(page).click();
       await homeView(page).getByRole('button', { name: 'New document', exact: true }).click();
+      await page.getByRole('dialog', { name: 'New document' }).getByRole('button', { name: 'Create document' }).click();
     });
 
     await documentPickerButton(page).click();
-    await expect(page.getByRole('option', { name: 'New Document' })).toHaveCount(initialNewDocumentCount + 1);
+    await expect(page.getByRole('listbox').locator(`[data-key="${createdDocId}"]`)).toBeVisible();
   });
 
   test('uploads a lexical JSON backup into a newly created document', async ({ page, captureCreatedDoc }) => {
