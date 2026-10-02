@@ -16,6 +16,7 @@ from .serializers import (
     DocumentSerializer,
     HealthSerializer,
     RenameDocumentSerializer,
+    ShareDocumentErrorSerializer,
     ShareDocumentSerializer,
 )
 
@@ -79,7 +80,7 @@ class DocumentShareView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated, IsDocumentOwner]
     serializer_class = ShareDocumentSerializer
 
-    @extend_schema(responses=DocumentAccessSerializer)
+    @extend_schema(responses={200: DocumentAccessSerializer, 400: ShareDocumentErrorSerializer})
     def post(self, request, *args, **kwargs):
         document = self.get_object()
         serializer = self.get_serializer(data=request.data)

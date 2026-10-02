@@ -103,16 +103,21 @@ describe('document share dialog', () => {
     expect(shareDocument).toHaveBeenCalledWith('doc-a', 'bob@example.test');
   });
 
-  it('reports a rejected address against the address it was given', async () => {
+  it.each([
+    ['missing@example.test', 'No account with this email exists on this server.'],
+    ['owner@example.test', 'You already own this document.'],
+  ])('reports a rejected invite to %s while retaining the address and recipients', async (email, message) => {
     renderDialog({
-      shareDocument: () => Promise.reject(new Error('No account with this email exists on this server.')),
+      documents: [{ ...DOC, access: [{ documentId: 'doc-a', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' }] }],
+      shareDocument: () => Promise.reject(new Error(message)),
     });
 
-    invite('missing@example.test');
+    invite(email);
 
-    expect(await screen.findByRole('alert'))
-      .toHaveTextContent('No account with this email exists on this server.');
-    expect(screen.getByLabelText(/Invite by email/u)).toHaveValue('missing@example.test');
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.getByLabelText(/Invite by email/u)).toHaveValue(email);
+    expect(screen.getByText('Bob')).toBeInTheDocument();
+    expect(screen.getByText('bob@example.test')).toBeInTheDocument();
   });
 
   it('locks the invite while the grant is in flight', async () => {

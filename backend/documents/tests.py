@@ -151,10 +151,15 @@ class DocumentFlowTests(TestCase):
     def test_sharing_rejects_unknown_self_and_invalid_email(self):
         document = Document.objects.create(owner=self.owner)
         self.sign_in()
-        for email in ("missing@example.test", self.owner.email, "invalid"):
+        for email, message in (
+            ("missing@example.test", "No account with this email exists on this server."),
+            (self.owner.email, "You already own this document."),
+            ("invalid", "Enter a valid email address."),
+        ):
             with self.subTest(email=email):
                 response = self.post(f"/api/documents/{document.id}/access", {"email": email})
                 self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json(), {"email": [message]})
         self.assertFalse(DocumentGrant.objects.exists())
 
     def test_owner_and_grantee_rename_the_document(self):

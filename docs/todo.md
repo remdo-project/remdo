@@ -392,10 +392,6 @@ concrete unmet need.
   a Retry that cannot succeed, and whether that surface replaces the stale
   listing. Server-side [expired-session cleanup](#operations) is separate.
 
-- **Sharing surfaces.** Share `400` responses flatten to one message that
-  contradicts the self-share and malformed-address cases. The empty-state and
-  reselect presentations retired with the standalone route's document picker.
-
 - **Link sharing.** The [share surface](specs/access/access-control.md#document-sharing) renders a disabled General
   access section: no endpoint issues, resolves, regenerates, or revokes a
   bearer link, and no client state stands in for one. Define the behavior in

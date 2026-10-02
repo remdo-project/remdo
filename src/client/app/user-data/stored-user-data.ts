@@ -120,7 +120,7 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
         throw new Error('This document is no longer available.');
       }
       if (result.response.status === 400) {
-        throw new Error('Use the email of another account on this server.');
+        throw new Error(result.error?.email?.[0] ?? 'That email was rejected. Check the address and try again.');
       }
       return requireData(result);
     },
