@@ -6,7 +6,7 @@ import { RemdoDialog } from '#client/ui/RemdoDialog';
 function suggestDocumentName(existingNames: readonly string[]): string {
   const names = new Set(existingNames.map((name) => name.trim().toLowerCase()));
   let suggestion = 'New Document';
-  for (let suffix = 2; names.has(suggestion.toLowerCase()); suffix += 1) {
+  for (let suffix = 1; names.has(suggestion.toLowerCase()); suffix += 1) {
     suggestion = `New Document ${suffix}`;
   }
   return suggestion;
