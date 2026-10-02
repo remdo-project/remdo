@@ -92,10 +92,7 @@ export default async function collabTestRuntime() {
 
   const started: Array<() => Promise<void>> = [await startRemdoApiServer()];
   try {
-    started.unshift(await ensureCollabServer({
-      port: config.env.COLLAB_SERVER_PORT,
-      reuseExisting: false,
-    }));
+    started.unshift(await ensureCollabServer());
     const mcp = createMcpServer({
       origin: resolveMcpServerOrigin(),
       apiOrigin: resolveApiServerOrigin(),

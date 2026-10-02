@@ -18,7 +18,6 @@ const STOP_ATTEMPTS = 50;
 const POLL_INTERVAL = 100;
 const LOG_DIR = path.join(config.env.DATA_DIR, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'collab-server.log');
-const reusedServerStop = () => Promise.resolve();
 
 async function waitForPort(host: string, port: number, child: ChildProcess): Promise<void> {
   for (let i = 0; i < MAX_ATTEMPTS; i++) {
@@ -51,17 +50,12 @@ export type StopCollabServer = () => Promise<void>;
 
 interface CollabServerOptions {
   port?: number;
-  reuseExisting?: boolean;
 }
 
 export async function ensureCollabServer({
   port = config.env.COLLAB_SERVER_PORT,
-  reuseExisting = true,
 }: CollabServerOptions = {}): Promise<StopCollabServer> {
   if (await isPortOpen(INTERNAL_SERVICE_HOST, port)) {
-    if (reuseExisting) {
-      return reusedServerStop;
-    }
     throw new Error(`Collaboration websocket already running on ws://${INTERNAL_SERVICE_HOST}:${port}`);
   }
 
