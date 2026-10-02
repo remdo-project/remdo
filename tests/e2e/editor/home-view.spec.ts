@@ -2,8 +2,93 @@ import { expect, isolatedTest as test } from '#editor/fixtures';
 import { editorLocator, homeView, homeZoomBreadcrumb } from '#editor/locators';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
+import { createUserDocument } from '../_support/documents';
 
 test.describe('Home', () => {
+  test('keeps one row action visible through hover, keyboard and overlays', async ({ page, editor }) => {
+    await editor.load('basic');
+    await createUserDocument(page, 'Another document');
+    await homeZoomBreadcrumb(page).click();
+    const home = homeView(page);
+    const rows = home.getByRole('listitem');
+    await expect(rows).toHaveCount(3);
+    const first = rows.nth(0).getByRole('button', { name: /^Actions for/u });
+    const second = rows.nth(1).getByRole('button', { name: /^Actions for/u });
+    const secondLink = rows.nth(1).locator('[data-home-document-ref]');
+    const before = (await secondLink.boundingBox())!;
+    await page.mouse.move(0, 0);
+    await expect(first).toHaveCSS('opacity', '1');
+    await expect(second).toHaveCSS('opacity', '0');
+
+    await secondLink.hover();
+    await home.getByRole('heading', { name: 'Home', level: 1 }).hover();
+    await expect(first).toHaveCSS('opacity', '0');
+    await expect(second).toHaveCSS('opacity', '1');
+    expect((await secondLink.boundingBox())!.x).toBe(before.x);
+
+    const firstBox = (await rows.nth(0).boundingBox())!;
+    await second.click();
+    await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
+    await expect(first).toHaveCSS('opacity', '0');
+    await expect(second).toHaveCSS('opacity', '1');
+    await page.keyboard.press('Escape');
+    await expect(second).toBeFocused();
+    await page.mouse.move(firstBox.x + firstBox.width / 2 + 2, firstBox.y + firstBox.height / 2);
+    await expect(first).toHaveCSS('opacity', '1');
+    await expect(second).toHaveCSS('opacity', '0');
+
+    // The focused button was hidden by pointer movement; keyboard input reveals it before acting.
+    await page.keyboard.press('Enter');
+    await expect(second).toHaveCSS('opacity', '1');
+    await expect(first).toHaveCSS('opacity', '0');
+    await page.getByRole('menuitem', { name: 'Rename…' }).click();
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(second).toBeFocused();
+    await rows.nth(0).hover();
+    await expect(first).toHaveCSS('opacity', '1');
+    await expect(second).toHaveCSS('opacity', '0');
+
+    await rows.nth(0).locator('[data-home-document-ref]').focus();
+    await page.keyboard.press('Tab');
+    await expect(second).toBeFocused();
+    await expect(second).toHaveCSS('opacity', '1');
+    await expect(first).toHaveCSS('opacity', '0');
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('menu')).toBeVisible();
+  });
+
+  test('falls back to an available row after deleting the active document', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const home = homeView(page);
+    const deletedRow = home.locator(`[data-home-document-ref="${editor.docId}"]`).locator('..');
+    await deletedRow.getByRole('button', { name: /^Actions for/u }).click();
+    await page.getByRole('menuitem', { name: 'Delete…' }).click();
+    await page.getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(deletedRow).toHaveCount(0);
+    await expect(home.getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+    await page.mouse.move(0, 0);
+    await expect(home.getByRole('listitem').first().getByRole('button', { name: /^Actions for/u }))
+      .toHaveCSS('opacity', '1');
+  });
+
+  test.describe('without hover', () => {
+    test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
+
+    test('keeps every row action visible', async ({ page, editor }) => {
+      await editor.load('basic');
+      await homeZoomBreadcrumb(page).click();
+      const buttons = homeView(page).getByRole('button', { name: /^Actions for/u });
+      await expect(buttons).toHaveCount(2);
+      await expect(buttons.nth(0)).toHaveCSS('opacity', '1');
+      await expect(buttons.nth(1)).toHaveCSS('opacity', '1');
+      await buttons.nth(1).tap();
+      await page.keyboard.press('Escape');
+      await expect(buttons.nth(0)).toHaveCSS('opacity', '1');
+      await expect(buttons.nth(1)).toHaveCSS('opacity', '1');
+    });
+  });
+
   test('opens at its own URL without document controls or a mounted editor', async ({ page, editor }) => {
     await editor.load('basic');
     await homeZoomBreadcrumb(page).click();

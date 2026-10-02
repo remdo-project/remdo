@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DocumentNote } from '#note-sdk';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentMenu } from './DocumentMenu';
@@ -22,6 +22,8 @@ function DocumentGroup({
   onRename,
   onShare,
   resolveDocument,
+  menuTargetId,
+  onMenuTarget,
 }: {
   label: string;
   documents: readonly HomeDocumentEntry[];
@@ -30,6 +32,8 @@ function DocumentGroup({
   onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onShare: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   resolveDocument: (docId: string) => DocumentNote | null;
+  menuTargetId: string | null;
+  onMenuTarget: (docId: string) => void;
 }) {
   return (
     <section aria-label={label} className="home-group" role="group">
@@ -41,7 +45,16 @@ function DocumentGroup({
           const shared = note !== null && !note.canShareWith();
           const sharedId = `home-doc-shared-${document.id}`;
           return (
-            <li className="home-doc-row" key={document.id}>
+            <li
+              className="home-doc-row"
+              data-menu-target={document.id === menuTargetId ? true : undefined}
+              key={document.id}
+              onFocus={() => onMenuTarget(document.id)}
+              onKeyDownCapture={() => onMenuTarget(document.id)}
+              onPointerMove={(event) => {
+                if (event.pointerType !== 'touch') onMenuTarget(document.id);
+              }}
+            >
               {note && (
                 <DocumentMenu label={label} note={note} onDelete={onDelete} onRename={onRename} onShare={onShare} />
               )}
@@ -73,7 +86,24 @@ export function HomeView({
 }: HomeViewProps) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const homeRef = useRef<HTMLElement | null>(null);
   const { documentDialog, openDelete, openRename, openShare } = useDocumentDialogs(headingRef);
+  const menuDocumentIds = sources.flatMap((source) => source.documents)
+    .filter((document) => {
+      const note = resolveDocument(document.id);
+      return note && (note.canRename() || note.canShareWith() || note.canDelete());
+    })
+    .map((document) => document.id);
+  const [menuTarget, setMenuTarget] = useState<string | null>(null);
+  const menuTargetId = menuTarget !== null && menuDocumentIds.includes(menuTarget)
+    ? menuTarget
+    : menuDocumentIds[0] ?? null;
+  if (menuTarget !== menuTargetId) setMenuTarget(menuTargetId);
+
+  const targetDocument = (docId: string) => {
+    if (documentDialog || homeRef.current?.querySelector('.document-menu-button[aria-expanded="true"]')) return;
+    if (menuDocumentIds.includes(docId)) setMenuTarget(docId);
+  };
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -88,7 +118,7 @@ export function HomeView({
   };
 
   return (
-    <section aria-label="Home" className="document-home" data-testid="document-home">
+    <section aria-label="Home" className="document-home" data-testid="document-home" ref={homeRef}>
       <div className="home-header">
         <h1 className="document-home-title" ref={headingRef} tabIndex={-1}>Home</h1>
         <div className="home-actions">
@@ -129,6 +159,8 @@ export function HomeView({
             onSelectDocument={onSelectDocument}
             onShare={openShare}
             resolveDocument={resolveDocument}
+            menuTargetId={menuTargetId}
+            onMenuTarget={targetDocument}
           />
         ))}
 

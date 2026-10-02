@@ -62,6 +62,45 @@ const renderHome = (props: HomeViewProps) =>
   );
 
 describe('home view', () => {
+  it('starts at the first document with available actions', () => {
+    const props = baseProps();
+    props.resolveDocument = (docId) => docId === 'doc-a'
+      ? null
+      : documentNote({ id: docId, title: docId, canRename: docId === 'doc-c' });
+    renderHome(props);
+
+    expect(screen.getByRole('button', { name: 'Actions for Team notes' }).closest('li'))
+      .toHaveAttribute('data-menu-target', 'true');
+    expect(screen.queryByRole('button', { name: 'Actions for Project Roadmap' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Actions for Ideas' })).toBeNull();
+  });
+
+  it('falls back when its target loses its menu and keeps the replacement when that menu returns', () => {
+    const props = baseProps();
+    let ideasAvailable = true;
+    props.resolveDocument = (docId) => documentNote({
+      id: docId,
+      title: docId,
+      canRename: docId !== 'doc-b' || ideasAvailable,
+    });
+    const view = renderHome(props);
+    const roadmap = screen.getByRole('button', { name: 'Actions for Project Roadmap' });
+    const ideas = screen.getByRole('button', { name: 'Actions for Ideas' });
+    fireEvent.focus(ideas);
+    expect(ideas.closest('li')).toHaveAttribute('data-menu-target', 'true');
+
+    ideasAvailable = false;
+    view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
+    expect(screen.queryByRole('button', { name: 'Actions for Ideas' })).toBeNull();
+    expect(roadmap.closest('li')).toHaveAttribute('data-menu-target', 'true');
+
+    ideasAvailable = true;
+    view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
+    expect(roadmap.closest('li')).toHaveAttribute('data-menu-target', 'true');
+    expect(screen.getByRole('button', { name: 'Actions for Ideas' }).closest('li'))
+      .not.toHaveAttribute('data-menu-target');
+  });
+
   it('lists documents grouped under a heading per source', () => {
     renderHome(baseProps());
 
@@ -252,6 +291,8 @@ describe('home view', () => {
     expect(remove).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('Ideas')).toBeNull();
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Home' })).toHaveFocus());
+    expect(screen.getByRole('button', { name: 'Actions for Project Roadmap' }).closest('li'))
+      .toHaveAttribute('data-menu-target', 'true');
   });
 
   it('keeps the document and shows the failure when the source refuses deletion', async () => {
