@@ -1,0 +1,306 @@
+name: Auto Merge Owner PRs
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, synchronize]
+  issue_comment:
+    types: [edited]
+  workflow_run:
+    workflows:
+      - Collaboration Tests
+      - Docker Tests
+      - E2E Tests
+      - Lint
+      - Unit Tests
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+  issues: read
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: >-
+    auto-merge-${{
+      github.event.pull_request.number ||
+      github.event.issue.number ||
+      github.event.workflow_run.head_branch ||
+      github.run_id
+    }}
+  cancel-in-progress: true
+
+jobs:
+  evaluate:
+    if: >-
+      github.event_name != 'issue_comment' ||
+      (
+        github.event.issue.pull_request &&
+        github.event.comment.user.login == 'chatgpt-codex-connector[bot]' &&
+        contains(github.event.comment.body, '<!-- codex-pull-request-review-summary -->')
+      )
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.evaluate.outputs.ready }}
+      pr-number: ${{ steps.evaluate.outputs.pr-number }}
+      head-sha: ${{ steps.evaluate.outputs.head-sha }}
+
+    steps:
+      - name: Evaluate CI and Codex gates
+        id: evaluate
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const OWNER_LOGIN = 'piotrlewalski';
+            const BASE_BRANCH = 'main';
+            const STATUS_CONTEXT = 'Auto Merge Gate';
+            const CODEX_LOGIN = 'chatgpt-codex-connector[bot]';
+            const CODEX_MARKER = '<!-- codex-pull-request-review-summary -->';
+            const REQUIRED_CI = new Set([
+              'Collaboration Tests',
+              'Docker Tests',
+              'E2E Tests',
+              'Lint',
+              'Unit Tests',
+            ]);
+
+            const { owner, repo } = context.repo;
+            core.setOutput('ready', 'false');
+
+            async function resolvePullRequestNumber() {
+              if (context.eventName === 'pull_request_target') {
+                return context.payload.pull_request.number;
+              }
+
+              if (context.eventName === 'issue_comment') {
+                return context.payload.issue.number;
+              }
+
+              const run = context.payload.workflow_run;
+              const associated = run.pull_requests ?? [];
+              if (associated.length > 0) {
+                return associated[0].number;
+              }
+
+              const { data: candidates } = await github.rest.pulls.list({
+                owner,
+                repo,
+                state: 'open',
+                base: BASE_BRANCH,
+                head: `${owner}:${run.head_branch}`,
+                per_page: 100,
+              });
+
+              return candidates.find((candidate) => candidate.head.sha === run.head_sha)?.number;
+            }
+
+            const prNumber = await resolvePullRequestNumber();
+            if (!prNumber) {
+              core.info('No open pull request is associated with this event.');
+              return;
+            }
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+
+            const eligible =
+              pr.state === 'open' &&
+              !pr.draft &&
+              pr.user?.login === OWNER_LOGIN &&
+              pr.base.ref === BASE_BRANCH &&
+              pr.head.repo?.full_name === `${owner}/${repo}`;
+
+            if (!eligible) {
+              core.info(`PR #${prNumber} is not eligible for automatic merging.`);
+              return;
+            }
+
+            const headSha = pr.head.sha;
+            core.setOutput('pr-number', String(prNumber));
+            core.setOutput('head-sha', headSha);
+
+            async function setStatus(state, description) {
+              await github.rest.repos.createCommitStatus({
+                owner,
+                repo,
+                sha: headSha,
+                state,
+                context: STATUS_CONTEXT,
+                description,
+              });
+            }
+
+            const workflowRuns = await github.paginate(
+              github.rest.actions.listWorkflowRunsForRepo,
+              {
+                owner,
+                repo,
+                head_sha: headSha,
+                event: 'push',
+                per_page: 100,
+              },
+            );
+
+            const latestByName = new Map();
+            workflowRuns
+              .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at))
+              .forEach((run) => {
+                if (REQUIRED_CI.has(run.name) && !latestByName.has(run.name)) {
+                  latestByName.set(run.name, run);
+                }
+              });
+
+            const missing = [...REQUIRED_CI].filter((name) => !latestByName.has(name));
+            if (missing.length > 0) {
+              await setStatus('pending', `Waiting for CI: ${missing.join(', ')}`.slice(0, 140));
+              return;
+            }
+
+            const running = [...latestByName.values()].filter((run) => run.status !== 'completed');
+            if (running.length > 0) {
+              await setStatus('pending', 'Waiting for CI workflows to finish');
+              return;
+            }
+
+            const failed = [...latestByName.values()].filter((run) => run.conclusion !== 'success');
+            if (failed.length > 0) {
+              await setStatus(
+                'failure',
+                `CI failed: ${failed.map((run) => run.name).join(', ')}`.slice(0, 140),
+              );
+              return;
+            }
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: prNumber,
+              per_page: 100,
+            });
+
+            const summary = comments
+              .filter(
+                (comment) =>
+                  comment.user?.login === CODEX_LOGIN &&
+                  comment.body?.includes(CODEX_MARKER),
+              )
+              .sort((left, right) => Date.parse(right.updated_at) - Date.parse(left.updated_at))[0];
+
+            if (!summary) {
+              await setStatus('pending', 'Waiting for Codex review');
+              return;
+            }
+
+            const shortSha = headSha.slice(0, 7);
+            const reviewRow = summary.body
+              .split('\n')
+              .find(
+                (line) =>
+                  line.includes('**Code Review**') &&
+                  line.includes(`\`${shortSha}\``),
+              );
+
+            if (!reviewRow) {
+              await setStatus('pending', 'Waiting for Codex review of the current commit');
+              return;
+            }
+
+            if (!reviewRow.includes('✅ **Completed**')) {
+              await setStatus('pending', 'Waiting for Codex review to finish');
+              return;
+            }
+
+            const completedAtMatch = reviewRow.match(/datetime="([^"]+)"/);
+            const completedAt = completedAtMatch ? Date.parse(completedAtMatch[1]) : 0;
+            const reactionDeadline = Date.now() + 60_000;
+            let cleanReview = false;
+
+            while (!cleanReview && Date.now() <= reactionDeadline) {
+              const reactions = await github.paginate(github.rest.reactions.listForIssue, {
+                owner,
+                repo,
+                issue_number: prNumber,
+                per_page: 100,
+              });
+
+              cleanReview = reactions.some(
+                (reaction) =>
+                  reaction.user?.login === CODEX_LOGIN &&
+                  reaction.content === '+1' &&
+                  Date.parse(reaction.created_at) >= completedAt - 5_000,
+              );
+
+              if (!cleanReview) {
+                await new Promise((resolve) => setTimeout(resolve, 5_000));
+              }
+            }
+
+            if (!cleanReview) {
+              await setStatus('failure', 'Codex completed without a clean-review reaction');
+              return;
+            }
+
+            const { data: freshPr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+
+            if (
+              freshPr.state !== 'open' ||
+              freshPr.draft ||
+              freshPr.head.sha !== headSha
+            ) {
+              core.info('PR changed while gates were being evaluated; leaving it unmerged.');
+              return;
+            }
+
+            await setStatus('pending', 'CI and Codex passed; enabling auto-merge');
+            core.setOutput('ready', 'true');
+
+      - name: Enable native auto-merge
+        if: steps.evaluate.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.evaluate.outputs.pr-number }}
+          HEAD_SHA: ${{ steps.evaluate.outputs.head-sha }}
+        run: >-
+          gh pr merge "$PR_NUMBER"
+          --repo "$GITHUB_REPOSITORY"
+          --auto
+          --merge
+          --match-head-commit "$HEAD_SHA"
+
+      - name: Mark auto-merge gate successful
+        if: steps.evaluate.outputs.ready == 'true' && success()
+        uses: actions/github-script@v9
+        env:
+          HEAD_SHA: ${{ steps.evaluate.outputs.head-sha }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.HEAD_SHA,
+              state: 'success',
+              context: 'Auto Merge Gate',
+              description: 'CI and Codex passed; auto-merge enabled',
+            });
+
+      - name: Mark auto-merge gate failed
+        if: steps.evaluate.outputs.ready == 'true' && failure()
+        uses: actions/github-script@v9
+        env:
+          HEAD_SHA: ${{ steps.evaluate.outputs.head-sha }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.HEAD_SHA,
+              state: 'failure',
+              context: 'Auto Merge Gate',
+              description: 'CI and Codex passed, but enabling auto-merge failed',
+            });
