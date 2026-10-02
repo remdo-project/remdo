@@ -1,10 +1,11 @@
 import { Alert, Button, Container, Stack } from '@mantine/core';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createDocumentPath } from '#document-routes';
 import { APP_TITLE } from '#client/ui/navigation-label';
 import { useUserData, useUserDataStatus } from '#client/app/user-data/user-data';
 import { HomeView } from './document/HomeView';
+import { DocumentCreateDialog } from './document/DocumentCreateDialog';
 import { buildHomeSources } from './document/home-content';
 import { useDocumentActions } from './document/useDocumentActions';
 import './DocumentRoute.css';
@@ -18,6 +19,7 @@ export default function Home() {
   }, [navigate]);
   const actions = useDocumentActions({ onSelectDocument: openDocument, userData });
   const sources = buildHomeSources(userData.getDocumentSources().getChildren());
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     document.title = `Home · ${APP_TITLE}`;
@@ -41,11 +43,18 @@ export default function Home() {
       )}
       <HomeView
         sources={sources}
-        onCreateDocument={() => { void actions.createDocument(); }}
+        onCreateDocument={() => setCreateDialogOpen(true)}
         onSelectDocument={openDocument}
         onUploadDocument={(file) => { void actions.uploadDocument(file); }}
         resolveDocument={(docId) => userData.getDocuments().getById(docId)}
       />
+      {createDialogOpen && (
+        <DocumentCreateDialog
+          existingNames={sources.flatMap((source) => source.documents.map((document) => document.label))}
+          onClose={() => setCreateDialogOpen(false)}
+          onCreate={actions.createDocument}
+        />
+      )}
     </Container>
   );
 }

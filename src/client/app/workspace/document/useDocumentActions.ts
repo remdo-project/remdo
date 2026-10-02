@@ -22,14 +22,10 @@ export function useDocumentActions({
 }) {
   const [createError, setCreateError] = useState<string | null>(null);
 
-  const createDocument = async () => {
-    try {
-      const nextDocument = await userData.getDocuments().create('New Document');
-      setCreateError(null);
-      onSelectDocument(nextDocument.getId());
-    } catch (error) {
-      setCreateError(error instanceof Error ? error.message : 'Failed to create document.');
-    }
+  const createDocument = async (title: string) => {
+    const nextDocument = await userData.getDocuments().create(title);
+    setCreateError(null);
+    onSelectDocument(nextDocument.getId());
   };
 
   const uploadDocument = async (file: File) => {

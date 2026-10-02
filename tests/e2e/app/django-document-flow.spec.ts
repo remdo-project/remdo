@@ -25,6 +25,7 @@ test('Django sign-in, document creation, collaboration, reopen, and account isol
   await provisionDjangoUser(otherAccount);
   await signIn(page, account);
   await page.getByRole('button', { name: 'New document', exact: true }).click();
+  await page.getByRole('dialog', { name: 'New document' }).getByRole('button', { name: 'Create document' }).click();
   await expect(page).toHaveURL(/\/n\/[A-Za-z0-9]+$/u);
   const documentUrl = page.url();
   const docId = new URL(documentUrl).pathname.slice(3);

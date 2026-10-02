@@ -24,11 +24,6 @@ describe('document toolbar and import', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Home' }));
   };
 
-  const clickNewDocument = async () => {
-    await openHome();
-    fireEvent.click(await screen.findByRole('button', { name: 'New document' }));
-  };
-
   const clickUploadDocument = async () => {
     await openHome();
     fireEvent.click(await screen.findByRole('button', { name: 'Upload document' }));
@@ -200,22 +195,14 @@ describe('document toolbar and import', () => {
     expect(registerPendingImport).not.toHaveBeenCalled();
   });
 
-  it('surfaces an alert when creating a new document fails', async () => {
+  it('dismisses the upload creation error alert via its close button', async () => {
     rejectDocumentCreation();
 
     renderDocumentRoute();
-    await clickNewDocument();
-
-    const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('Could not create document');
-    expect(alert).toHaveTextContent('offline');
-  });
-
-  it('dismisses the creation error alert via its close button', async () => {
-    rejectDocumentCreation();
-
-    renderDocumentRoute();
-    await clickNewDocument();
+    await clickUploadDocument();
+    fireEvent.change(screen.getByLabelText('Upload document'), {
+      target: { files: [new File(['{}'], 'backup.json', { type: 'application/json' })] },
+    });
     expect(await screen.findByRole('alert')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
@@ -225,11 +212,14 @@ describe('document toolbar and import', () => {
     });
   });
 
-  it('clears the creation error when navigating to another document', async () => {
+  it('clears the upload creation error when navigating to another document', async () => {
     rejectDocumentCreation();
 
     const router = renderDocumentRoute(createDocumentPath('routeDoc'));
-    await clickNewDocument();
+    await clickUploadDocument();
+    fireEvent.change(screen.getByLabelText('Upload document'), {
+      target: { files: [new File(['{}'], 'backup.json', { type: 'application/json' })] },
+    });
     expect(await screen.findByRole('alert')).toBeInTheDocument();
 
     await router.navigate(createDocumentPath('other'));
