@@ -77,8 +77,7 @@ Code items assume no contract change:
    is hard-coded in three places after its configuration helper lost its
    Y-Sweet job; three credential-injecting WebSocket subclasses differ only by
    header; and an origin-printing script spawns a runtime to echo a value its
-   caller already exports. Test-support consolidation belongs with
-   [Tooling](#tooling)'s test-organization entry.
+   caller already exports.
 
 Decisions requiring a contract owner's judgement:
 
@@ -133,27 +132,12 @@ Decisions requiring a contract owner's judgement:
   concise intent plus deterministic checks of stable repository invariants,
   then align each affected specification, procedure, implementation, and coverage.
 
-- **Remaining skill-spec ownership boundaries.** Continue verifying ownership between
-  agent skill specifications and shared contracts such as [Contributing](../CONTRIBUTING.md).
-  Keep capability behavior with its skill and shared policy with the broader owner.
-  Update links and remove restatements in the same change.
-
-- **Condition ownership beyond capability calls.** Evaluate whether the
-  [capability protocol](specs/agents/protocol.md) should generalize to other
-  component boundaries. Define how independently invocable and
-  invalidation-prone boundaries establish conditions without redundant checks.
-
 - **Large-scope documentation alignment.** Evaluate the structured finding
   schema and parallel specialist-reviewer layout from the Upkeep skill
   (wei18/Upkeep) as a way to speed alignment over large scopes.
 
 - **Skill-prose pressure testing.** Evaluate superpowers `writing-skills`
   adversarial subagent trials as an additional check for skill-file prose.
-
-- **Markdown link-aware wrapping.** Define rendered-width paragraph reflow that
-  preserves natural sentence and clause boundaries while ignoring hidden link
-  and image destinations. Determine viable deterministic premature-wrap checks
-  that do not require mechanical greedy reflow, then align maintained prose.
 
 ### Dependencies
 
@@ -252,32 +236,10 @@ Remaining:
   Favorites and Recents groups have no product behind them.
 - **Team section.** The Figma Team section moves to the About page, where its
   bios are reconciled with the current team list.
-- **Cross-fade page loads.** Cross-document view transitions throw an unhandled
-  "Transition was aborted" error when the next page has not opted in (the login
-  handoff, Django administration), which fails the harness and reaches users'
-  consoles. Revisit with `pageswap` and `pagereveal` handling.
 - **App header links appear on hydration.** Rendering About on the server
   would end the pop-in but changes the [connection-unavailable
   state](architecture.md#shared-presentation), which hides the header links.
 
-### Demo video
-
-The [demo video](specs/demo/demo-video.md) records every chapter from the local
-development instance, driving the Claude chapter with the signed-in `claude`
-CLI.
-
-- **Pointer without captions.** With key captions off, clicks show no pointer,
-  because Playwright draws the pointer only together with the captions.
-- **Development markers.** Recordings still show the dev-tools switch and the
-  footer's "Local development" label, which production lacks.
-- **Pre-redesign look.** The chapters and the chat mock (`tools/demo/chat.ts`)
-  predate the site and app re-theme; re-record them once the editor surface
-  follows the Figma workspace frames.
-- **Real claude.ai footage.** Ask Anthropic whether scripted demo recording
-  through a dedicated claude.ai account is acceptable; if so, drive claude.ai
-  in place of the demo chat surface.
-
-Open question: whether a local-origin run also serves as a CI smoke check.
 
 ### Delegated access
 
@@ -367,12 +329,6 @@ until accepted in their behavioral owners. Defer a command palette and action
 menus on every breadcrumb until improving the existing surfaces leaves a
 concrete unmet need.
 
-- **Location header and document actions.** Rename, the Home row menu, and the
-  document-root header menu ship; Home rows still approximate the
-  [persistent menu target](specs/outliner/menu.md#entry) with a hover- and
-  focus-revealed button in a reserved gutter, tracked in the
-  [legacy implementation gaps](legacy-backlog.md#home-and-location-header-follow-ups).
-
 - **Zoomed-note location header.** Complete the rich editable header and its
   applicable note, children, and view actions, preserving the
   [selection boundary](specs/outliner/location-header.md#structural-boundary). Validate keyboard access,
@@ -434,27 +390,6 @@ concrete unmet need.
   `Result` sections conforming to the [capability protocol](specs/agents/protocol.md), then align their execution
   procedures. Do not invent calls for developer-facing entry points.
 
-- **Configured-upstream synchronization.** Design a capability separate from
-  [`remdo-merge-main`](specs/agents/skills/remdo-merge-main.md) that synchronizes
-  the current branch with its configured upstream. Classify fast-forward,
-  local-ahead, ordinary divergence, and likely rewritten upstream history before
-  choosing merge or explicitly authorized rebase, with conflict and recovery
-  behavior defined for each path. Keep `origin/main` integration owned by `remdo-merge-main`.
-
-- **External dependency verification.** Define how implementation work checks
-  current authoritative documentation or public APIs for external dependencies
-  before using [empirical checks](dev/testing.md#empirical-checks).
-
-- **Repository annotation discovery.** Define a closed registry for searchable,
-  repository-owned annotations, initially verification classifications and
-  code-local `TODO`/`FIXME`, with each family owning its scope, trigger, required
-  response, discovery, and lifecycle. Evaluate namespaced Markdown syntax and a
-  simple typed discovery command that preserves `todo:list`, then make applicable
-  agent review workflows invoke the relevant view. Exclude external-tool
-  directives, and do not treat discovery as proof that an obligation is satisfied.
-  Examples: Deterministic check, Empirical check, Deterministic/agentic?
-  implementation (for skills' specs)
-
 - **Structured reviewer results.** Evaluate provider-supported structured
   findings, such as JSON Schema output, without weakening native review or
   evidence. If viable, define verifier normalization into the shared [agent result](specs/agents/protocol.md#results).
@@ -471,10 +406,6 @@ concrete unmet need.
   overrides and reduce setup and launcher complexity in [local development](guides/local-development.md).
   Preserve independent instances and Node-independent backend commands; reassess
   mechanisms when resuming.
-
-- **Test organization.** Reassess fixture and suite boundaries without reducing
-  meaningful collaboration coverage; keep reorganization separate from
-  migration-required test adaptation.
 
 - **Upstream ast-grep project-config validation.** Contribute upstream support
   for rejecting unknown project-config keys or shipping version-matched schemas
