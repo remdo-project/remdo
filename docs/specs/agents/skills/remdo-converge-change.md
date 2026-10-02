@@ -40,14 +40,21 @@ normal nonempty commit for that batch.
    2. If the audit determines corrections, then run
       [Correct the state](#correct-the-state) and restart these quality
       steps.
-   3. Invoke [`remdo-verify-change`](remdo-verify-change.md), preserve its
-      finding dispositions, and leave `material out of scope` findings
-      unchanged.
+   3. Invoke [`remdo-verify-change`](remdo-verify-change.md) with
+      `check_phase: iteration` for an uncommitted scope or its default phase
+      for a commit range. Preserve its finding dispositions and leave
+      `material out of scope` findings unchanged.
    4. If failed checks or
       [`confirmed` findings](remdo-verify-change.md#findings) determine
       corrections, then run [Correct the state](#correct-the-state) and
       restart these quality steps.
-   5. Return `converged`.
+   5. If the scope is uncommitted, then perform the contributor
+      [testing policy's handoff verification](../../../dev/testing.md#verification-lifecycle)
+      directly for the complete retained change. If a failed check determines
+      an in-scope correction, then run [Correct the state](#correct-the-state)
+      and restart these quality steps. If required handoff checks remain
+      unsatisfied, then return `stopped` with their evidence.
+   6. Return `converged`.
 
 ### Correct the state
 
@@ -58,8 +65,9 @@ with the refreshed scope.
 1. If the determined correction cannot be applied, then leave it unapplied
    and return `not-converged`.
 2. Apply the batch.
-3. Validate it against its applicable authoritative contracts. If the scope
-   is a commit range, then satisfy the contributor
+3. Validate it against its applicable authoritative contracts and run affected
+   tests and applicable static checks for the correction batch. If the scope
+   is a commit range, then also satisfy the contributor
    [verification lifecycle](../../../dev/testing.md#verification-lifecycle)
    before committing.
 4. If validation or a check fails and an in-scope correction can be
@@ -81,6 +89,9 @@ Unhandled failures follow the
 confirmed finding as fixed or uncorrected. `verification.findings` is the
 latest iteration only. `simplification`, `cleanup`, and `verification` contain
 the complete latest results for the state they assessed.
+`handoff_checks` records the latest final-check attempt separately from
+iteration verification and identifies reused evidence. A later correction
+invalidates affected results under the contributor testing policy.
 
 The result uses the shared [result fields](../protocol.md#results) and the
 [`ChangeScopeResult`](../change-scope.md#result-type) type:
@@ -92,7 +103,7 @@ decisions: <Decision[]> # if any
 concerns: <Concern[]> # if any
 scope: <ChangeScopeResult>
 corrections: # if any
-  - source: <simplification | cleanup | verification>
+  - source: <simplification | cleanup | verification | handoff>
     summary: <applied correction>
 simplification: # if run
   - source: <assessment capability or participant>
@@ -102,6 +113,10 @@ cleanup: # if evaluated
   status: <passed | failed | not-run>
   details: <failure evidence or reason not run> # if failed or not-run
 verification: <complete latest remdo-verify-change result> # if run
+handoff_checks: # if final handoff checks evaluated
+  - command: <command>
+    status: <passed | failed | not-run>
+    details: <failure evidence, reason not run, or reused evidence> # if applicable
 findings: # if any
   - summary: <finding>
     source: <reviewer-id>
