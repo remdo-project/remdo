@@ -82,9 +82,10 @@ describe('collaboration test runtime', () => {
   it('refuses to reuse an occupied collaboration port', async () => {
     const probeHost = INTERNAL_SERVICE_HOST;
     await withOccupiedPort(probeHost, async (port) => {
-      await expect(ensureCollabServer({ port, reuseExisting: false })).rejects.toThrow(
+      await expect(ensureCollabServer({ port })).rejects.toThrow(
         `Collaboration websocket already running on ws://${probeHost}:${port}`,
       );
+      expect(await isPortOpen(probeHost, port)).toBe(true);
     });
   });
 

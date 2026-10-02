@@ -50,36 +50,30 @@ Code items assume no contract change:
    `awaitHydrated` have no production callers; and the neutral provider-event
    vocabulary abstracts over a single provider. Rewrite the specs that pin the
    masked state to the real invariant rather than deleting them.
-2. **Launcher attaches to an occupied collaboration port.** `ensureCollabServer`
-   defaults to reusing a server already listening, so a second working directory
-   runs against another instance's collaboration server. This contradicts the
-   launcher rule in [Configuration](specs/runtime/configuration.md#network-addressing)
-   and defeats `PORT_BASE` isolation. Resolve before the broader launcher work
-   under [Tooling](#tooling); it is a behavior gap, not only simplification.
-3. **Collaboration launcher asymmetry.** The development collaboration script
+2. **Collaboration launcher asymmetry.** The development collaboration script
    spawns a detached child rather than executing the server directly as the API
    script does, which also routes its output to a log file instead of the
    aggregated development output. Collapsing it removes the spawn helper and one
    of four copies of the wait-for-port loop. Coordinate with
    [Tooling](#tooling)'s launcher-complexity entry.
-4. **Browser collaboration origin selection.** The client still chooses which
+3. **Browser collaboration origin selection.** The client still chooses which
    origin hosts collaboration, including a fallback that cannot resolve because
    its configuration keys are not browser-exposed. [Architecture](architecture.md#routing-and-origin-boundary)
    already states that browser collaboration uses the current same-origin
    endpoint; the client has not caught up.
-5. **Single-source document residue.** Production supplies exactly one hard-coded
+4. **Single-source document residue.** Production supplies exactly one hard-coded
    document source, leaving statically false branches in the toolbar's label
    qualification, the source-local action split, and the workspace source
    lookup. Removing the dead branches is independent of the visible grouping in
    the Current Server decision below.
-6. **Duplicated server contract types.** The hand-written user-document and
+5. **Duplicated server contract types.** The hand-written user-document and
    document-access interfaces mirror serializers that the generated API schema
    already describes, following the precedent already used for the current-user
    payload. Aligning optionality removes a hand-maintained drift risk.
-7. **Test-only flexibility in product code.** The collection-source input
+6. **Test-only flexibility in product code.** The collection-source input
    normalization exists so tests can pass plain arrays; production always passes
    a live source.
-8. **Repeated internal-service constants and helpers.** The container port pair
+7. **Repeated internal-service constants and helpers.** The container port pair
    is hard-coded in three places after its configuration helper lost its
    Y-Sweet job; three credential-injecting WebSocket subclasses differ only by
    header; and an origin-printing script spawns a runtime to echo a value its
