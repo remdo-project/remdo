@@ -21,9 +21,10 @@ describe('home document creation', () => {
 
   it.each([
     { names: [], suggestion: 'New Document' },
-    { names: ['New Document', 'New Document 2'], suggestion: 'New Document 3' },
-    { names: ['New Document', 'New Document 3'], suggestion: 'New Document 2' },
-    { names: [' new document ', 'NEW DOCUMENT 2'], suggestion: 'New Document 3' },
+    { names: ['New Document'], suggestion: 'New Document 1' },
+    { names: ['New Document', 'New Document 1'], suggestion: 'New Document 2' },
+    { names: ['New Document', 'New Document 2'], suggestion: 'New Document 1' },
+    { names: [' new document ', 'NEW DOCUMENT 1'], suggestion: 'New Document 2' },
   ])('selects $suggestion against the existing names $names', async ({ names, suggestion }) => {
     for (const name of names) await getTestUserData().getDocuments().create(name);
     const before = documents().length;

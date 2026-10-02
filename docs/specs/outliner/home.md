@@ -77,7 +77,7 @@ heading is not a document-action target.
 ### New document
 
 The dialog selects **New Document**, adding the first unused numeric suffix
-starting at **2** when taken. Suggestions compare Current Server names, including
+starting at **1** when taken. Suggestions compare Current Server names, including
 shared documents, ignoring case and outer whitespace. Listing updates leave the
 draft intact.
 
