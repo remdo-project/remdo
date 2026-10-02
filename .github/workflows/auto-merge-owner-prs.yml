@@ -38,12 +38,12 @@ jobs:
           head="$(jq -r .head.sha <<<"$pr")"
           short="${head:0:7}"
           body="$(jq -r .comment.body "$GITHUB_EVENT_PATH")"
-          grep -Fq "`$short`" <<<"$body" || exit 0
+          grep -Fq "$short" <<<"$body" || exit 0
 
           since="$(jq -r .comment.updated_at "$GITHUB_EVENT_PATH")"
           clean=false
           for _ in {1..12}; do
-            if gh api -H "Accept: application/vnd.github+json"               "repos/$GITHUB_REPOSITORY/issues/$PR/reactions" --paginate               --jq ".[] | select(.user.login == \"chatgpt-codex-connector[bot]\" and .content == \"+1\" and .created_at >= \"$since\") | .id"               | grep -q .; then
+            if gh api -H "Accept: application/vnd.github+json" "repos/$GITHUB_REPOSITORY/issues/$PR/reactions" --paginate --jq ".[] | select(.user.login == \"chatgpt-codex-connector[bot]\" and .content == \"+1\" and .created_at >= \"$since\") | .id" | grep -q .; then
               clean=true
               break
             fi
@@ -57,4 +57,4 @@ jobs:
           jq -e 'any(.labels[]; .name == "auto-merge")' <<<"$pr" >/dev/null || exit 0
           test "$(jq -r .head.sha <<<"$pr")" = "$head" || exit 0
 
-          gh pr merge "$PR"             --repo "$GITHUB_REPOSITORY"             --merge             --match-head-commit "$head"
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --merge --match-head-commit "$head"
