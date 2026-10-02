@@ -117,7 +117,8 @@ describe('home document creation', () => {
     fireEvent.change(input, { target: { value: 'Retry this name' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Create document' }));
 
-    expect(input).toBeDisabled();
+    expect(input).toHaveAttribute('readonly');
+    expect(input).toHaveFocus();
     expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeDisabled();
     expect(within(dialog).getByRole('button', { name: 'Close' })).toBeDisabled();
     expect(within(dialog).getByRole('status')).toHaveTextContent('Creating…');
@@ -128,7 +129,8 @@ describe('home document creation', () => {
 
     await act(async () => { rejectCreation(new Error('Server unavailable. Try again.')); });
     expect(within(dialog).getByRole('alert')).toHaveTextContent('Server unavailable. Try again.');
-    expect(input).toBeEnabled();
+    expect(input).not.toHaveAttribute('readonly');
+    expect(input).toHaveFocus();
     expect(input).toHaveValue('Retry this name');
     expect(documents()).toHaveLength(before);
     expect(router.state.location.pathname).toBe('/');

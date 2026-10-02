@@ -26,9 +26,11 @@ export function DocumentCreateDialog({
   const [pending, setPending] = useState(false);
   const pendingRef = useRef(false);
   const selectedOnOpenRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const submit = async () => {
     if (pendingRef.current) return;
+    inputRef.current?.focus();
     const title = draft.trim();
     if (!title) {
       setError('Enter a document name.');
@@ -54,7 +56,6 @@ export function DocumentCreateDialog({
           <TextInput
             autoFocus
             description="You can rename it later."
-            disabled={pending}
             error={error}
             errorProps={{ role: 'alert' }}
             inputWrapperOrder={['label', 'input', 'description', 'error']}
@@ -69,6 +70,8 @@ export function DocumentCreateDialog({
             onKeyDown={(event) => {
               if (event.key === 'Enter' && event.nativeEvent.isComposing) event.preventDefault();
             }}
+            readOnly={pending}
+            ref={inputRef}
             value={draft}
           />
           {pending && <span role="status">Creating…</span>}

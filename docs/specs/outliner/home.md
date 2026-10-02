@@ -88,8 +88,8 @@ existing names. `Enter` during input-method composition does not submit.
 
 **Cancel**, `Escape`, or dismissal discards the draft and restores focus to
 **New document**. Pending creation blocks editing, dismissal, and resubmission.
-Failure retains the draft with an inline error for retry; success focuses the
-first editor note.
+Failure retains the draft and input focus with an inline error for retry;
+success focuses the first editor note.
 
 ## Entering and leaving Home
 
