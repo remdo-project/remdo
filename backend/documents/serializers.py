@@ -29,6 +29,10 @@ class ShareDocumentSerializer(serializers.Serializer):
         return user
 
 
+class ShareDocumentErrorSerializer(serializers.Serializer):
+    email = serializers.ListField(child=serializers.CharField(), required=False)
+
+
 class DocumentSerializer(serializers.ModelSerializer):
     shareable = serializers.SerializerMethodField()
     deletable = serializers.SerializerMethodField()

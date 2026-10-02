@@ -142,6 +142,9 @@ export interface components {
         RenameDocumentRequest: {
             title: string;
         };
+        ShareDocumentError: {
+            email?: string[];
+        };
         ShareDocumentRequest: {
             /** Format: email */
             email: string;
@@ -301,6 +304,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentAccess"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDocumentError"];
                 };
             };
         };

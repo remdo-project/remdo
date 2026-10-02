@@ -212,13 +212,27 @@ describe('account metadata', () => {
       .rejects.toThrow('This document is no longer available.');
   });
 
-  it('explains a rejected recipient without changing document access', async () => {
+  it.each([
+    ['missing@example.test', 'No account with this email exists on this server.'],
+    ['alice@example.test', 'You already own this document.'],
+    ['invalid', 'Enter a valid email address.'],
+  ])('explains why %s was rejected without changing document access', async (email, message) => {
+    const runtime = account();
+    const access = { documentId: 'shared', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' };
+    runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true, access: [access] }]);
+    documentRequests(() => Response.json({ email: [message] }, { status: 400 }));
+    await expect(runtime.userData.getDocuments().getById('shared')!.shareWith(email)).rejects.toThrow(message);
+    expect(runtime.userData.getDocuments().getById('shared')!.getAccess().getChildren().map((grant) => grant.getEmail()))
+      .toEqual([access.email]);
+  });
+
+  it('reports a sharing rejection without an email error in readable terms', async () => {
     const runtime = account();
     runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true }]);
-    documentRequests(() => Response.json({ email: ['No account with this email exists on this server.'] }, { status: 400 }));
-    await expect(runtime.userData.getDocuments().getById('shared')!.shareWith('missing@example.test'))
-      .rejects.toThrow('Use the email of another account on this server.');
-    expect(runtime.userData.getDocuments().getById('shared')!.getAccess().getChildren()).toEqual([]);
+    documentRequests(() => Response.json({ detail: 'Malformed request.' }, { status: 400 }));
+
+    await expect(runtime.userData.getDocuments().getById('shared')!.shareWith('bob@example.test'))
+      .rejects.toThrow('That email was rejected. Check the address and try again.');
   });
 
   it('rejects offline sharing without a queued grant or local access change', async () => {
