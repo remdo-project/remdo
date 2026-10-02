@@ -59,7 +59,7 @@ cannot discover. A commit that changes the test harness, service startup, or
 dependencies runs every complete group.
 
 **Handoff verification** runs once before handing a change to the developer,
-after its last edit:
+for its final state:
 
 - complete static verification, including backend and generated API checks;
 - the complete [unit test](../specs/testing/test-harness.md#unit-tests) group,
@@ -77,6 +77,13 @@ after its last edit:
     settings;
   - backend tests: backend;
   - every group: test harness, service startup, or dependencies.
+
+Select required handoff groups from the complete change, including corrections.
+A passing result may satisfy a required check only when it covers that check's
+required scope and later edits or relevant environment changes cannot affect
+the behavior, dependencies, or runtime it exercised. Reuse valid evidence and
+identify its original result; rerun failed or invalidated checks, including
+when their validity is uncertain.
 
 CI covers complete groups a change does not trigger.
 

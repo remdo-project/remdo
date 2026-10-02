@@ -4,20 +4,26 @@ The skill verifies one [change scope](../change-scope.md) and returns an
 [agent result](../protocol.md#results). It reports evidence and findings without
 changing repository state, approving the scope, or controlling its lifecycle.
 
-The verifier resolves its optional input under the change-scope contract. It
-maps an unambiguous description to a supported input and asks only when the
+The verifier resolves its optional scope input under the change-scope contract.
+It maps an unambiguous description to a supported input and asks only when the
 description is ambiguous. The caller keeps a resolved non-empty scope unchanged
 until verification finishes.
+
+The optional `check_phase` is `handoff` by default. `iteration` is accepted only
+from an enclosing [`remdo-converge-change`](remdo-converge-change.md) workflow
+for an uncommitted scope; that caller owns final handoff verification. An
+unsupported phase or an ineligible iteration request returns `stopped` before
+checks or reviews.
 
 ## Verification
 
 ```text
-[change-scope resolution]
+[scope and check-phase resolution]
     ├─ no-change ─────────> [report]
     ├─ failure ───────────> [report and stop]
     │ ready
     v
-[focused checks if uncommitted]
+[selected-phase checks if uncommitted]
     ├─ failure ───────────> [report and stop]
     │ pass
     v
@@ -30,9 +36,10 @@ until verification finishes.
 [report]
 ```
 
-For uncommitted work, the verifier performs the contributor
-[testing policy's handoff verification](../../../dev/testing.md#verification-lifecycle).
-A commit range skips those checks.
+For uncommitted work, `handoff` performs the contributor
+[testing policy's handoff verification](../../../dev/testing.md#verification-lifecycle);
+`iteration` performs that policy's affected tests and applicable static checks,
+using valid earlier evidence where available. A commit range skips local checks.
 
 ## Reviews
 
@@ -95,8 +102,9 @@ caller; a `rejected` finding is resolved.
 
 ## Result
 
-`clean` means every local check required for the scope passed, finding validation
-completed, and it produced only `rejected` dispositions or no findings.
+`clean` means every local check required for the selected scope and phase
+passed, finding validation completed, and it produced only `rejected`
+dispositions or no findings.
 `findings` means completed validation produced a `confirmed`, `unresolved`, or
 `material out of scope` disposition. `no-change` means scope resolution found no
 diff, so checks and reviews were not run. An unavailable or failed reviewer sets
@@ -114,11 +122,12 @@ outcome: <clean | findings | no-change | stopped>
 reason: <condition that stopped verification> # if stopped
 concerns: <Concern[]> # if any
 scope: <ChangeScopeResult>
+check_phase: <handoff | iteration> # if accepted
 degraded: true # if degraded
-checks: # if run
+checks: # if evaluated
   - command: <command>
     status: <passed | failed | not-run>
-    details: <failure evidence or reason not run> # if failed or not-run
+    details: <failure evidence, reason not run, or reused evidence> # if applicable
 reviews: # if run
   - source: <reviewer-id>
     status: <completed | unavailable | failed>

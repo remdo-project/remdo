@@ -44,9 +44,15 @@ assessments:
 
 When the specification requires a cleanup audit, run `pnpm run audit:cleanup`.
 At verification, run `$remdo-verify-change` in the current coordinator with
-the retained scope. Its configured reviewers provide the independent
+the retained scope and the specification's selected `check_phase`, passing
+available check results with it. Its configured reviewers provide the independent
 contexts; do not create a verifier subagent that only adds another waiting
 and reporting layer.
+
+At the uncommitted handoff step, invoke the check commands required by the
+contributor [testing policy](../../../docs/dev/testing.md#verification-lifecycle)
+and retain their results as `handoff_checks`. Follow the specification's
+correction transition if these checks determine a correction.
 
 If repository permissions block commit-range persistence under the
 specification's [Authority](../../../docs/specs/agents/skills/remdo-converge-change.md#authority),

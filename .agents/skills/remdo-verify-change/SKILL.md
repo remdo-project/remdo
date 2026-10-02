@@ -1,6 +1,6 @@
 ---
 name: remdo-verify-change
-description: Verify a default or explicitly selected RemDo uncommitted or Git-range scope with focused uncommitted checks, fresh independent reviews from configured providers, and evidence-based finding dispositions. Use when the user or another workflow asks to verify, inspect, or independently review a completed repository change without editing, approving, committing, or advancing its lifecycle.
+description: Verify a default or explicitly selected RemDo uncommitted or Git-range scope with applicable checks, fresh independent reviews from configured providers, and evidence-based finding dispositions. Use when the user or another workflow asks to verify, inspect, or independently review a completed repository change without editing, approving, committing, or advancing its lifecycle.
 ---
 
 # RemDo Verify Change
@@ -16,6 +16,9 @@ Accept an omitted scope, `uncommitted`, an explicit `<left>..HEAD` /
 them. Translate a supplied description before running the resolver; ask only
 when it is ambiguous.
 
+Read any supplied `check_phase` alongside the scope and validate it under the
+specification's input rules before checks or reviews.
+
 Run the [shared scope resolver](../_shared/tools/resolve-scope.sh) from the repository root:
 
 ```sh
@@ -27,14 +30,16 @@ report `no-change` immediately and do not run checks or reviews. Otherwise
 checks and reviewers must inspect the selected scope; the caller owns its
 stability.
 
-## Run focused checks
+## Run selected-phase checks
 
-For `uncommitted`, inspect the resolved files and run the focused tests and
-applicable static checks required by the contributor [`Testing`](../../../docs/dev/testing.md#verification-lifecycle) policy.
+For `uncommitted`, inspect the resolved files and perform the
+specification's [Verification](../../../docs/specs/agents/skills/remdo-verify-change.md#verification)
+for the selected phase, carrying available command results forward under the
+contributor [`Testing`](../../../docs/dev/testing.md#verification-lifecycle) policy.
 
 For `commit-range`, proceed to reviews without local checks.
 
-If a focused command fails, report its command and outcome, then stop before
+If a required check fails, report its command and outcome, then stop before
 invoking reviewers.
 
 ## Run fresh reviews
