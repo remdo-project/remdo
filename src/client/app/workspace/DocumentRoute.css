@@ -166,10 +166,6 @@
 }
 
 .document-header-status .editor-header {
-  position: static;
-  top: auto;
-  right: auto;
-  z-index: auto;
   color: var(--mantine-color-dark-2);
 }
 
@@ -178,12 +174,6 @@
    following its own rule. */
 .document-editor-shell[data-menu-target='header'] .note-controls__button--menu {
   visibility: hidden;
-}
-
-.document-editor-shell .editor-container {
-  border: none;
-  border-radius: 0;
-  background: transparent;
 }
 
 .document-editor-pane--hidden {

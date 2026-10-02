@@ -8,7 +8,7 @@ import { errorReportingRootOptions, startErrorReporting } from './error-reportin
 import { theme } from './theme';
 import '@mantine/core/styles.css';
 import '#client/ui/styles/shared.css';
-import './styles/interaction.css';
+import '#client/ui/styles/interaction.css';
 
 if (!config.isProd) {
   await unregisterServiceWorkers();
