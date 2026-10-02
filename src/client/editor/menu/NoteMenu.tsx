@@ -101,7 +101,7 @@ export function NoteMenu({ note, view, selection, editorRoot, closeMenu, focusRo
       <Menu
         aria-label="Quick action menu"
         autoFocus
-        className="note-menu-dropdown remdo-menu"
+        className="remdo-menu"
         data-note-menu
         data-note-menu-note-id={note.getId()}
       >
