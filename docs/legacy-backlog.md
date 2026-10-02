@@ -61,9 +61,6 @@ ships.
   stays a crumb), delete its specs
   (`document-switcher.spec.ts`, the picker cases in
   `document-toolbar.spec.tsx`/`document-route.spec.tsx`).
-- Home row menu buttons do not follow the
-  [persistent active target](specs/outliner/menu.md#entry): each reveals only
-  on hover or focus, and no row is the initial target.
 - No zoomed-note location header is rendered: the zoom root remains the
   editable top outline `ListItemNode`.
 - The subtree-zoom root is an editable outline `ListItemNode`, and the

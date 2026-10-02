@@ -507,15 +507,15 @@
   background-color: var(--indicator-highlight-color);
 }
 
-.document-menu-button:focus-visible,
-.document-menu-button[data-pressed],
-.document-menu-button[aria-expanded='true'],
-.home-doc-row:hover .document-menu-button,
+.location-header .document-menu-button:focus-visible,
+.location-header .document-menu-button[data-pressed],
+.location-header .document-menu-button[aria-expanded='true'],
+.home-doc-row[data-menu-target='true'] .document-menu-button,
 .document-editor-shell[data-menu-target='header'] .document-menu-button {
   opacity: 1;
 }
 
-@media (hover: none) and (pointer: coarse) {
+@media (hover: none) {
   .document-menu-button {
     opacity: 1;
   }
