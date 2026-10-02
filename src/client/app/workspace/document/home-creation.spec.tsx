@@ -108,19 +108,9 @@ describe('home document creation', () => {
   });
 
   it('locks a pending creation, keeps a rejected draft, and retries once', async () => {
-    const userData = getTestUserData();
-    const realDocuments = userData.getDocuments();
-    let attempts = 0;
     let rejectCreation!: (failure: Error) => void;
-    vi.spyOn(userData, 'getDocuments').mockReturnValue({
-      ...realDocuments,
-      create: (name) => {
-        attempts += 1;
-        return attempts === 1
-          ? new Promise((_resolve, reject) => { rejectCreation = reject; })
-          : realDocuments.create(name);
-      },
-    });
+    const create = vi.spyOn(getTestUserData().getDocuments(), 'create')
+      .mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectCreation = reject; }));
     const router = renderDocumentRoute('/');
     const before = documents().length;
     const { dialog, input } = await openCreation();
@@ -134,7 +124,7 @@ describe('home document creation', () => {
     fireEvent.keyDown(input, { key: 'Escape' });
     fireEvent.submit(input.closest('form')!);
     expect(dialog).toBeInTheDocument();
-    expect(attempts).toBe(1);
+    expect(create).toHaveBeenCalledTimes(1);
 
     await act(async () => { rejectCreation(new Error('Server unavailable. Try again.')); });
     expect(within(dialog).getByRole('alert')).toHaveTextContent('Server unavailable. Try again.');
@@ -147,6 +137,6 @@ describe('home document creation', () => {
     await waitFor(() => expect(dialog).not.toBeInTheDocument());
     expect(documents()).toHaveLength(before + 1);
     expect(documents().at(-1)!.getText()).toBe('Retry this name');
-    expect(attempts).toBe(2);
+    expect(create).toHaveBeenCalledTimes(2);
   });
 });
