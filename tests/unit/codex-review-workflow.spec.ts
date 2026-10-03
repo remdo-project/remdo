@@ -109,10 +109,17 @@ describe('codex review job', () => {
     expect(evaluate).toThrow('within the polling window');
   });
 
-  it('rejects a reaction earlier in the same second as fractional review completion', () => {
+  it('accepts a clean reaction in the completion second at GitHub timestamp precision', () => {
     const { review, evaluate } = fixture();
     review.comments[0]!.body = review.comments[0]!.body.replace(completed, '2026-10-02T12:00:00.687978Z');
     review.reactions[0]!.created_at = completed;
+    expect(evaluate()).toContain('Clean Codex review completed for 0123456789abcdef.');
+  });
+
+  it('rejects a reaction from before the review completion second', () => {
+    const { review, evaluate } = fixture();
+    review.comments[0]!.body = review.comments[0]!.body.replace(completed, '2026-10-02T12:00:00.687978Z');
+    review.reactions[0]!.created_at = '2026-10-02T11:59:59Z';
     expect(evaluate).toThrow('within the polling window');
   });
 

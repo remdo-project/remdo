@@ -42,11 +42,12 @@ jobs:
               capture("datetime=\"(?<time>[^\"]+)\"").time
             ')"
             if [[ -n "$since" ]]; then
-              since="$(date -u -d "$since" +%s%3N 2>/dev/null)" || since=''
+              # GitHub reaction timestamps have whole-second precision.
+              since="$(date -u -d "$since" +%s 2>/dev/null)" || since=''
               if [[ -n "$since" ]]; then
                 reactions="$(gh api "$api/issues/$PR_NUMBER/reactions?per_page=100" --paginate)"
                 if jq -se --arg bot "$bot" --argjson since "$since" '
-                  any(.[][]; .user.login == $bot and .content == "+1" and (.created_at | fromdateiso8601) * 1000 >= $since)
+                  any(.[][]; .user.login == $bot and .content == "+1" and (.created_at | fromdateiso8601) >= $since)
                 ' <<<"$reactions" >/dev/null; then
                   echo "Clean Codex review completed for $HEAD_SHA."
                   exit 0
