@@ -446,7 +446,7 @@ function $populateInlineClipboardFromSelection(
   if (
     !isClipboardEvent(event) || !event.clipboardData
     || !$isRangeSelection(selection) || !$isInlineSelectionWithinSingleNote(selection)
-    || $getSelectionBody(selection) || selection.getNodes().length === 0
+    || selection.getNodes().length === 0
   ) {
     return false;
   }
