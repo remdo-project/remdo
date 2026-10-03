@@ -41,6 +41,13 @@ Pasting into a body follows the [Body clipboard contract](./body.md#clipboard).
 
 ## Inline text selection (single note)
 
+- Copying a note's content text captures only the selected inline content, even
+  when the selection covers its complete label; its body and sub-notes are
+  excluded.
+- Copied inline content stays inline when pasted over an inline selection or at
+  a caret, retaining supported formatting, links, and whitespace.
+- Inline replacement collapses the selection to a caret at the end of the
+  inserted content.
 - Single-line plain text replaces the selected text, as in a normal text editor.
 - Multi-line plain text always inserts notes, even when the selection is inline.
   The first line replaces the selected text; remaining lines become new child
