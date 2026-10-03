@@ -2,7 +2,7 @@ import { $createListItemNode, $isListItemNode, $isListNode } from '@lexical/list
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { BaseSelection, LexicalEditor, LexicalNode, RangeSelection, SerializedLexicalNode } from 'lexical';
-import { $getHtmlContent, $getLexicalContent, setLexicalClipboardDataTransfer } from '@lexical/clipboard';
+import { $generateJSONFromSelectedNodes, $getHtmlContent, $getLexicalContent, setLexicalClipboardDataTransfer } from '@lexical/clipboard';
 import type { LexicalClipboardData } from '@lexical/clipboard';
 import {
   $addUpdateTag,
@@ -432,6 +432,44 @@ function serializeNodeTree(node: LexicalNode): SerializedLexicalNode {
 
 type SerializedElement = SerializedLexicalNode & { noteId?: string; children?: SerializedLexicalNode[] };
 
+function unwrapInlineClipboardNodes(nodes: SerializedLexicalNode[]): SerializedLexicalNode[] {
+  return nodes.flatMap((node) => node.type === 'list' || node.type === 'listitem'
+    ? unwrapInlineClipboardNodes((node as SerializedElement).children!)
+    : [node]);
+}
+
+function $populateInlineClipboardFromSelection(
+  editor: LexicalEditor,
+  event: ClipboardEvent | KeyboardEvent | null
+): boolean {
+  const selection = $getSelection();
+  if (
+    !isClipboardEvent(event) || !event.clipboardData
+    || !$isRangeSelection(selection) || !$isInlineSelectionWithinSingleNote(selection)
+    || $getSelectionBody(selection) || selection.getNodes().length === 0
+  ) {
+    return false;
+  }
+
+  const payload = $generateJSONFromSelectedNodes<SerializedLexicalNode>(editor, selection);
+  // Lexical may extract a complete label's enclosing list item. The selection
+  // is still inline, so remove only list wrappers from its sliced rich export.
+  payload.nodes = unwrapInlineClipboardNodes(payload.nodes);
+  const html = document.createElement('div');
+  html.innerHTML = $getHtmlContent(editor, selection);
+  for (const element of html.querySelectorAll('ol, ul, li')) {
+    element.replaceWith(...element.childNodes);
+  }
+
+  event.preventDefault();
+  setLexicalClipboardDataTransfer(event.clipboardData, {
+    'text/plain': selection.getTextContent(),
+    'text/html': html.innerHTML,
+    'application/x-lexical-editor': JSON.stringify(payload),
+  });
+  return true;
+}
+
 function clearSerializedNoteIds(nodes: SerializedLexicalNode[]): void {
   for (const node of nodes) {
     const element = node as SerializedElement;
@@ -502,7 +540,7 @@ function $captureClipboardSourceGap(heads: ListItemNode[]): RemDoClipboardSource
 // and serialize the resolved semantic note heads directly, including their
 // bodies and subtrees. RemDo provenance identifies same-document cuts without
 // keeping live source nodes or mutable clipboard state. Returns false for
-// caret and inline selections, leaving inline copy to Lexical's default handler.
+// caret and inline selections.
 function $populateClipboardFromSelection(
   editor: LexicalEditor,
   heads: ListItemNode[],
@@ -560,8 +598,7 @@ function $populateClipboardFromSelection(
 
 // The whole-note (structural) context a copy or cut acts on: the current
 // selection, its structural range, and the selected note heads. Null when the
-// selection is not a non-empty note range (inline selections defer to
-// Lexical's default copy).
+// selection is not a non-empty note range.
 function $resolveStructuralClipboardContext(
   editor: LexicalEditor
 ): { selection: BaseSelection | null; selectionRange: OutlineSelectionRange; heads: ListItemNode[] } | null {
@@ -769,10 +806,10 @@ export function ClipboardPlugin() {
         (event) => {
           // For a whole-note (structural) selection, build the clipboard from the
           // selected notes so each note carries its body and sub-notes. Inline
-          // selections fall through to Lexical's default text/rich-text copy.
+          // selections export rich content without the outline's list wrappers.
           const context = $resolveStructuralClipboardContext(editor);
           if (!context) {
-            return false;
+            return $populateInlineClipboardFromSelection(editor, event);
           }
           return $populateClipboardFromSelection(
             editor,
