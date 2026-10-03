@@ -1,0 +1,58 @@
+# Goal: PRs targeting main with auto-merge enabled merge after CI and a clean
+# Codex review of their latest commit pass. GitHub enforces the required
+# "Merge ready" check and the separate CodeQL gate.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    uses: ./.github/workflows/lint.yml
+
+  unit:
+    uses: ./.github/workflows/unit-tests.yml
+
+  collab:
+    uses: ./.github/workflows/collab-tests.yml
+
+  e2e:
+    uses: ./.github/workflows/e2e-tests.yml
+
+  docker:
+    uses: ./.github/workflows/docker-tests.yml
+
+  codex:
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    permissions:
+      issues: read
+      pull-requests: read
+    uses: ./.github/workflows/codex-review.yml
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+
+  merge-ready:
+    name: Merge ready
+    if: always() && github.event_name == 'pull_request'
+    needs: [lint, unit, collab, e2e, docker, codex]
+    permissions: {}
+    runs-on: ubuntu-slim
+    timeout-minutes: 2
+    steps:
+      - name: Require every gate to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success")' <<<"$RESULTS"

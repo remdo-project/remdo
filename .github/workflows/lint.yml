@@ -2,11 +2,7 @@ name: Lint
 permissions:
   contents: read
 
-on: push
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+on: workflow_call
 
 jobs:
   typecheck:

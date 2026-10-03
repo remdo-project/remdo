@@ -1,0 +1,61 @@
+# Goal: The Codex review job succeeds only after a completed, clean review
+# of the caller's PR head. Missing review evidence fails after a bounded wait.
+name: Codex Review Gate
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        required: true
+        type: number
+      head_sha:
+        required: true
+        type: string
+
+permissions:
+  issues: read
+  pull-requests: read
+
+jobs:
+  codex-review:
+    name: Codex review
+    runs-on: ubuntu-slim
+    timeout-minutes: 14
+
+    steps:
+      - name: Wait for a clean Codex review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="repos/$GITHUB_REPOSITORY"
+          bot='chatgpt-codex-connector[bot]'
+
+          for ((attempt=1; attempt<=24; attempt++)); do
+            since="$(gh api "$api/issues/$PR_NUMBER/comments?per_page=100" --paginate | jq -sr --arg bot "$bot" --arg head "${HEAD_SHA:0:7}" '
+              [.[][] | select(.user.login == $bot and (.body | contains("<!-- codex-pull-request-review-summary -->")))] |
+              (max_by(.updated_at).body // "") |
+              first(split("\n")[] | select(contains("**Code Review**") and contains("`" + $head + "`") and contains("✅ **Completed**"))) |
+              capture("datetime=\"(?<time>[^\"]+)\"").time
+            ')"
+            if [[ -n "$since" ]]; then
+              since="$(date -u -d "$since" +%s%3N 2>/dev/null)" || since=''
+              if [[ -n "$since" ]]; then
+                reactions="$(gh api "$api/issues/$PR_NUMBER/reactions?per_page=100" --paginate)"
+                if jq -se --arg bot "$bot" --argjson since "$since" '
+                  any(.[][]; .user.login == $bot and .content == "+1" and (.created_at | fromdateiso8601) * 1000 >= $since)
+                ' <<<"$reactions" >/dev/null; then
+                  echo "Clean Codex review completed for $HEAD_SHA."
+                  exit 0
+                fi
+              fi
+            fi
+            if ((attempt < 24)); then
+              sleep 30
+            fi
+          done
+          echo "Codex did not complete a clean review of $HEAD_SHA within the polling window." >&2
+          exit 1

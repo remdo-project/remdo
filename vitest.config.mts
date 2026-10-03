@@ -37,6 +37,8 @@ const nodeTests = [
   'tests/unit/docker-entrypoint-env.spec.ts',
   'config/eslint/*.spec.ts',
   'tests/unit/agent-instructions-gate.spec.ts',
+  'tests/unit/ci-workflow.spec.ts',
+  'tests/unit/codex-review-workflow.spec.ts',
   'tests/unit/collab-auth.spec.ts',
   'tests/unit/dev-runtime-launchers.spec.ts',
   'tests/unit/docker-entrypoint-lifecycle.spec.ts',
