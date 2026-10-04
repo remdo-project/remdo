@@ -164,14 +164,24 @@ export function $computeOutlineSelectionSnapshot({
     isCollapsedOnLadderAnchor &&
     (isProgressiveTagged || (hasDirectionalUnlock && $isRungOnlyEmptyNote(anchorSelectionItem!, nextProgression, boundaryKey)));
 
-  // A progressive-tagged selection is left untouched, and a pending directional unlock stops one
-  // anchor mismatch in the normalized handoff from discarding the logical ladder anchor.
+  // Normalization can move the anchor to the range's first note. A pending
+  // handoff must not preserve the ladder for a replacement in another note.
   if (!isProgressiveTagged) {
     if ($isRangeSelection(selection)) {
       const isUserCaret = selection.isCollapsed() && !isCollapsedStructuralIntent;
+      const hasAnchorMismatch = !anchorSelectionKey || nextProgression.anchorKey !== anchorSelectionKey;
+      const handoffAnchor = hasDirectionalUnlock && hasAnchorMismatch
+        ? $getListItemByKey(nextProgression.anchorKey)
+        : null;
+      const handoffPlan = handoffAnchor
+        ? $replayLadder(handoffAnchor, nextProgression.stack, boundaryKey)
+        : null;
+      const isNormalizedHandoff = handoffPlan?.type === 'range'
+        && handoffPlan.startKey === anchorSelectionKey
+        && $getSelectedNotes(selection).length > 1;
       if (
         isUserCaret ||
-        (!hasDirectionalUnlock && (!anchorSelectionKey || nextProgression.anchorKey !== anchorSelectionKey))
+        (hasAnchorMismatch && !isNormalizedHandoff)
       ) {
         resetProgression();
       }

@@ -150,7 +150,8 @@ export function $computeProgressivePlan(
     // The freshly pushed rung ran past the edge: either the zoom boundary or the
     // document root. Clamp to the maximum reachable selection so the handler still
     // claims the event instead of falling through to the default browser Cmd+A.
-    // Leave the ladder unchanged (don't persist the blocked rung).
+    // Keep the existing rungs without retaining the previous arrow direction.
+    progressionRef.current = { ...base, direction: null };
     if (boundaryRoot) {
       // View boundary: clamp to the view root's subtree.
       return { plan: $createSubtreePlan(boundaryRoot) };

@@ -1452,6 +1452,18 @@ describe('selection plugin', () => {
       await stepSelectionLadder(remdo, direction);
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
     });
+
+    it(`keeps Cmd/Ctrl+A neutral after a ${direction} sweep at the document boundary`, meta({ fixture: 'flat' }), async ({ remdo }) => {
+      await placeCaretAtNote(remdo, direction === 'up' ? 'note3' : 'note1');
+      for (let press = 0; press < 3; press++) await stepSelectionLadder(remdo, direction);
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+      const reverse = direction === 'up' ? 'down' : 'up';
+      for (let press = 0; press < 2; press++) {
+        await stepSelectionLadder(remdo, reverse);
+        expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+      }
+    });
   }
 
   it('preserves pointer ladder contraction and regrowth after an upward drag', meta({ fixture: 'flat' }), async ({ remdo }) => {

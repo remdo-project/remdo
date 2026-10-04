@@ -361,6 +361,18 @@ test('keeps a directional ladder boundary no-op after select-all entry', async (
   await expectStructure(page, ['note1', 'note2']);
 });
 
+test('keeps select-all neutral after directional growth reaches the document boundary', async ({ page, editor }) => {
+  await editor.load('flat');
+  await setCaretAtText(page, 'note1', 0);
+  for (let press = 0; press < 3; press++) await page.keyboard.press('Shift+ArrowDown');
+  await expectStructure(page, ['note1', 'note2', 'note3']);
+  await page.keyboard.press('ControlOrMeta+A');
+  for (let press = 0; press < 2; press++) {
+    await page.keyboard.press('Shift+ArrowUp');
+    await expectStructure(page, ['note1', 'note2', 'note3']);
+  }
+});
+
 test('treats label-to-own-body crossing as entry and restores the label caret', async ({ page, editor }) => {
   await editor.load('flat');
   await setCaretAtText(page, 'note1', 5);
