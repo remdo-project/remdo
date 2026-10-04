@@ -5,7 +5,6 @@ import {
   $getSelection,
   $isLineBreakNode,
   $isRangeSelection,
-  getDOMSelection,
   COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
   KEY_ARROW_DOWN_COMMAND,
@@ -30,14 +29,13 @@ import { BodyWrapperNode, isBodyWrapper } from '#client/editor/outline/note-body
 import type { NoteBodyNode } from '#client/editor/outline/note-body-node';
 import {
   $addNoteBody,
-  $isCaretOnElementEdgeVisualLine,
   $reconcileNoteBodyWrappers,
   $removeNoteBody,
-  $skipBodyForHorizontalNav,
-  $skipBodyForVerticalNav,
+  $skipBodyForNav,
   isNoteBodyEmpty,
 } from './note-body-ops';
 import { $getNoteBodyFromNode, $getNoteForBody, $getSelectionBody } from '#client/editor/outline/selection/body-region';
+import { $isCaretOnElementEdgeVisualLine } from '#client/editor/outline/selection/visual-line';
 import './note-body.css';
 
 /**
@@ -125,17 +123,16 @@ function $isCaretOnBodyEdgeVisualLine(
  * selection world, so the selection must never extend out of it, and a vertical
  * Shift+Arrow must not fall through to the note-range ladder (which
  * `SelectionPlugin` drives off Shift+Up/Down). Returns true when the event was
- * consumed (blocked at the edge, or extended within the body), false to let
+ * handled (blocked at the edge, or delegated within the body), false to let
  * native handling run (horizontal arrows away from the edge).
  *
  * - Horizontal (`left`/`right`): block only at the exact text edge; otherwise
  *   native character extension runs (the ladder ignores horizontal arrows).
  * - Vertical (`up`/`down`): the ladder would hijack it, so always consume.
  *   Block on the body's edge *visual* line (soft wrap included); on an interior
- *   line, extend the selection by one visual line via the DOM, keeping it in the
- *   body and stopping the ladder.
+ *   line, leave native selection uncancelled while stopping the ladder.
  */
-function $handleBodyShiftArrow(editor: LexicalEditor, direction: ArrowDirection): boolean {
+function $handleBodyShiftArrow(editor: LexicalEditor, direction: ArrowDirection, event: KeyboardEvent): boolean {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
     return false;
@@ -147,16 +144,13 @@ function $handleBodyShiftArrow(editor: LexicalEditor, direction: ArrowDirection)
   const edge = direction === 'left' || direction === 'up' ? 'leading' : 'trailing';
 
   if (direction === 'left' || direction === 'right') {
-    return $pointAtBodyEdge(body, selection.focus, edge);
+    return $pointAtBodyEdge(body, selection.focus, edge) ? stopKeyboardEvent(event) : false;
   }
 
-  // Vertical: block on the edge visual line; otherwise extend by a visual line.
+  // Vertical: block on the edge visual line; otherwise allow native selection.
   const onEdgeLine =
     $isCaretOnBodyEdgeVisualLine(editor, body, edge) ?? $pointOnBodyEdgeLine(body, selection.focus, edge);
-  if (!onEdgeLine) {
-    const domSelection = getDOMSelection(editor._window);
-    domSelection?.modify('extend', direction === 'up' ? 'backward' : 'forward', 'line');
-  }
+  if (onEdgeLine) stopKeyboardEvent(event);
   return true;
 }
 
@@ -187,7 +181,7 @@ export function NoteBodyPlugin() {
       // Shift+Arrow: a body owns its selection world, so block extension out of
       // it at the boundary (other modifiers fall through).
       if (event?.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
-        return $handleBodyShiftArrow(editor, direction) ? stopKeyboardEvent(event) : false;
+        return $handleBodyShiftArrow(editor, direction, event);
       }
       // Other modified arrows are handled elsewhere.
       if (event && (event.altKey || event.metaKey || event.ctrlKey)) {
@@ -208,10 +202,7 @@ export function NoteBodyPlugin() {
         return false;
       }
       const viewRoot = $resolveViewRoot(editor);
-      if (direction === 'left' || direction === 'right') {
-        return $skipBodyForHorizontalNav(direction, viewRoot) ? stopKeyboardEvent(event) : false;
-      }
-      return $skipBodyForVerticalNav(editor, direction, viewRoot) ? stopKeyboardEvent(event) : false;
+      return $skipBodyForNav(editor, direction, viewRoot) ? stopKeyboardEvent(event) : false;
     };
 
     return mergeRegister(

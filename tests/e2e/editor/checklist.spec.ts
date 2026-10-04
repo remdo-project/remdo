@@ -94,7 +94,6 @@ test.describe('Checklist markers', () => {
 
     await setCaretAtText(page, 'note3');
     await page.keyboard.press('Shift+ArrowDown');
-    await page.keyboard.press('Shift+ArrowDown');
 
     const input = editorLocator(page).locator('.editor-input');
     await expect(input).toHaveClass(/editor-input--structural/);
@@ -117,7 +116,6 @@ test.describe('Checklist markers', () => {
     const note4 = noteRow(page, 'note4');
 
     await setCaretAtText(page, 'note1');
-    await page.keyboard.press('Shift+ArrowDown');
     await page.keyboard.press('Shift+ArrowDown');
 
     const input = editorLocator(page).locator('.editor-input');

@@ -10,7 +10,6 @@ test.describe('selection (structural highlight)', () => {
     await expect(input).not.toHaveClass(/editor-input--structural/);
 
     await page.keyboard.press('Shift+ArrowDown');
-    await page.keyboard.press('Shift+ArrowDown');
 
     await expect(input).toHaveClass(/editor-input--structural/);
 
@@ -57,7 +56,6 @@ test.describe('clipboard (structural cut)', () => {
 
     const input = editorLocator(page).locator('.editor-input').first();
 
-    await page.keyboard.press('Shift+ArrowDown');
     await page.keyboard.press('Shift+ArrowDown');
 
     const cutCombo = process.platform === 'darwin' ? 'Meta+X' : 'Control+X';

@@ -255,7 +255,7 @@ export function $inferPointerProgressionState(
 
   const sorted = sortHeadsByDocumentOrder(heads);
   const rangeStartKey = sorted[0]!.getKey();
-  const rangeEndKey = getSubtreeTail(sorted.at(-1)!).getKey();
+  const rangeEndKey = sorted.at(-1)!.getKey();
   const anchorKey = anchorContent.getKey();
 
   // Sweep away from the anchor: if the anchor sits at the range's start, the

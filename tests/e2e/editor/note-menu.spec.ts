@@ -276,7 +276,6 @@ test.describe('Note menu', () => {
       await setCaretAtText(page, 'note1', 0);
       await page.keyboard.press('Shift+ArrowDown');
       await page.keyboard.press('Shift+ArrowDown');
-      await page.keyboard.press('Shift+ArrowDown');
       const input = editorLocator(page).locator('.editor-input');
       await expect(input).toHaveClass(/editor-input--structural/);
 
@@ -302,7 +301,6 @@ test.describe('Note menu', () => {
   test('checks the menu target outside the selected range', async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', 0);
-    await page.keyboard.press('Shift+ArrowDown');
     await page.keyboard.press('Shift+ArrowDown');
     await page.keyboard.press('Shift+ArrowDown');
     const input = editorLocator(page).locator('.editor-input');

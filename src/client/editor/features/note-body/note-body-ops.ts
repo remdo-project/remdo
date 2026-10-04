@@ -1,6 +1,7 @@
 import type { ListItemNode } from '@lexical/list';
-import { $createTextNode, $getSelection, $isRangeSelection, getDOMSelection } from 'lexical';
+import { $createTextNode, $getSelection, $isRangeSelection } from 'lexical';
 import type { LexicalEditor, LexicalNode } from 'lexical';
+import { $isCaretOnElementEdgeVisualLine } from '#client/editor/outline/selection/visual-line';
 
 import { getBodyWrapper, getPreviousContentSibling } from '#client/editor/outline/list-structure';
 import { $isNoteFolded } from '#client/editor/outline/fold-state';
@@ -105,46 +106,6 @@ function $noteAbove(note: ListItemNode): ListItemNode | null {
   return getParentContentItem(note);
 }
 
-/**
- * True when the collapsed caret sits on `element`'s first (`leading`) or last
- * (`trailing`) *visual* line, measured from the live DOM so soft-wrapped lines
- * count. Compares the caret's client rect against the element's box: leading when
- * the caret top is within ~one line of the element top, trailing when the caret
- * bottom is within ~one line of the element bottom. Returns null when the
- * geometry can't be read (no rendered caret), so callers fall back.
- */
-export function $isCaretOnElementEdgeVisualLine(
-  editor: LexicalEditor,
-  element: HTMLElement,
-  edge: 'leading' | 'trailing'
-): boolean | null {
-  const domSelection = getDOMSelection(editor._window);
-  if (!domSelection || domSelection.rangeCount === 0 || domSelection.focusNode === null) {
-    return null;
-  }
-  // Measure the focus (moving) caret, not the whole selection: a non-collapsed
-  // selection (e.g. an in-progress Shift+Arrow extension) would otherwise report
-  // the union of its visual lines, putting both edges at the element's bounds.
-  // Create the range in the editor's window document to stay window-relative
-  // (consistent with getDOMSelection(editor._window) above).
-  const focusRange = (editor._window ?? window).document.createRange();
-  focusRange.setStart(domSelection.focusNode, domSelection.focusOffset);
-  const caretRect = focusRange.getBoundingClientRect();
-  const elementRect = element.getBoundingClientRect();
-  // A collapsed caret on an empty line can report a zero-size rect; treat that
-  // as unreadable so the caller's fallback decides.
-  if (caretRect.height === 0 && caretRect.top === 0 && caretRect.bottom === 0) {
-    return null;
-  }
-  // One line's worth of tolerance: the rendered line height, falling back to the
-  // caret's own height. Three-quarters of a line disambiguates adjacent lines.
-  const lineHeight = Number.parseFloat(getComputedStyle(element).lineHeight) || caretRect.height || 0;
-  const tolerance = lineHeight * 0.75;
-  return edge === 'leading'
-    ? caretRect.top - elementRect.top <= tolerance
-    : elementRect.bottom - caretRect.bottom <= tolerance;
-}
-
 // Is the caret on the visual edge line of `note`'s content toward `edge`? A
 // note's label can soft-wrap over several visual lines, so a vertical arrow only
 // leaves the note (into an adjacent body) from the edge line; from an interior
@@ -163,107 +124,39 @@ function $caretOnNoteEdgeLine(
 }
 
 /**
- * When a plain vertical arrow from a content note would move into an adjacent
- * body, redirect the caret past the body so navigation never stops in one. The
- * note's label may soft-wrap, so only redirect from the note's edge visual line
- * (toward the arrow); from an interior wrapped line, native movement handles the
- * within-note step. `down` from a note with a body lands on the note after the
- * body; `up` from the note directly after a body lands on the body's owner note.
- * Returns true when it redirected, false to fall through to native movement.
+ * Arrows skip bodies when entering from outside. Vertical movement leaves from
+ * the rendered edge line; horizontal movement leaves only at the text edge.
+ * At the final note, vertical movement lands at its end and horizontal movement
+ * is a no-op. Folding and zoom determine the visible destination.
  */
-export function $skipBodyForVerticalNav(
+export function $skipBodyForNav(
   editor: LexicalEditor,
-  direction: 'up' | 'down',
+  direction: 'up' | 'down' | 'left' | 'right',
   boundaryRoot: ListItemNode | null
 ): boolean {
   const selection = $getSelection();
-  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-    return false;
-  }
+  if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
   const note = resolveContentItemFromNode(selection.anchor.getNode());
-  if (!note) {
+  if (!note) return false;
+  const forward = direction === 'down' || direction === 'right';
+  const vertical = direction === 'up' || direction === 'down';
+  const above = forward ? null : $noteAbove(note);
+  if (forward) {
+    if (!getBodyWrapper(note)) return false;
+  } else if (!above || !isWithinBoundary(above, boundaryRoot) || !getBodyWrapper(above)) {
     return false;
   }
-
-  if (direction === 'down') {
-    if (!getBodyWrapper(note) || !$caretOnNoteEdgeLine(editor, note, 'trailing')) {
-      return false;
-    }
-    // The body is transparent: land where Down would go if it did not exist —
-    // the note's first child (expanded) or the next note in document order, and
-    // when nothing is below, the note's own text end (matching native last-line
-    // behavior). A target outside the zoom boundary is hidden, so treat it as
-    // nothing-below. Either way, consume the event so native nav cannot enter body.
-    const target = $noteBelowWithinBoundary(note, boundaryRoot);
-    $selectItemEdge(target ?? note, target ? 'start' : 'end');
-    return true;
+  const onEdge = vertical
+    ? $caretOnNoteEdgeLine(editor, note, forward ? 'trailing' : 'leading')
+    : isPointAtBoundary(selection.anchor, note, forward ? 'end' : 'start');
+  if (!onEdge) return false;
+  let target = above;
+  if (forward) {
+    const below = $noteBelow(note);
+    target = below && isWithinBoundary(below, boundaryRoot) ? below : null;
   }
-
-  // up: the note above in document order is the visual line above. If it has a
-  // body, native Up would land in that body — redirect to the note's end so the
-  // body stays transparent. A note above the zoom boundary is hidden, so leave
-  // native nav to handle the boundary. (Structural checks first, so a plain Up in
-  // a bodyless note doesn't pay the geometry read below.)
-  const above = $noteAbove(note);
-  if (!above || !isWithinBoundary(above, boundaryRoot) || !getBodyWrapper(above)) {
-    return false;
-  }
-  // Only redirect from the note's first visual line; an interior wrapped line
-  // moves natively.
-  if (!$caretOnNoteEdgeLine(editor, note, 'leading')) {
-    return false;
-  }
-  $selectItemEdge(above, 'end');
-  return true;
-}
-
-// The note below `note` (ignoring its body) that is still inside the zoom
-// boundary, or null when the next note is hidden by the zoom or there is none.
-function $noteBelowWithinBoundary(note: ListItemNode, boundaryRoot: ListItemNode | null): ListItemNode | null {
-  const target = $noteBelow(note);
-  return target && isWithinBoundary(target, boundaryRoot) ? target : null;
-}
-
-/**
- * When a plain horizontal arrow would step the caret out of a content note into
- * an adjacent body, redirect past the body so arrows never enter one from
- * outside. `right` at a note's end skips to the next note; `left` at a note's
- * start (when the note follows a body) skips to that body's owner note. Only
- * acts at the note boundary; otherwise the arrow moves within the note text.
- */
-export function $skipBodyForHorizontalNav(direction: 'left' | 'right', boundaryRoot: ListItemNode | null): boolean {
-  const selection = $getSelection();
-  if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-    return false;
-  }
-  const note = resolveContentItemFromNode(selection.anchor.getNode());
-  if (!note) {
-    return false;
-  }
-
-  if (direction === 'right') {
-    if (!getBodyWrapper(note) || !isPointAtBoundary(selection.anchor, note, 'end')) {
-      return false;
-    }
-    // Body is transparent: a note's last child or its next note in document
-    // order. No note after the body (or one hidden by the zoom boundary) → no-op
-    // (consume, do not enter the body and do not escape the zoom).
-    const target = $noteBelowWithinBoundary(note, boundaryRoot);
-    if (target) {
-      $selectItemEdge(target, 'start');
-    }
-    return true;
-  }
-
-  // left: only at the note's start, and only when a body sits directly before it.
-  if (!isPointAtBoundary(selection.anchor, note, 'start')) {
-    return false;
-  }
-  const above = $noteAbove(note);
-  if (!above || !isWithinBoundary(above, boundaryRoot) || !getBodyWrapper(above)) {
-    return false;
-  }
-  $selectItemEdge(above, 'end');
+  if (target) $selectItemEdge(target, forward ? 'start' : 'end');
+  else if (vertical) $selectItemEdge(note, 'end');
   return true;
 }
 

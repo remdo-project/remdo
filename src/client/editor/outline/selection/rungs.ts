@@ -1,11 +1,11 @@
 import type { ListItemNode } from '@lexical/list';
+import type { Point } from 'lexical';
 
 import { $getListItemByKey, getPreviousContentSibling } from '#client/editor/outline/list-structure';
 
-import type { BoundaryMode } from './apply';
 import { resolveContentBoundaryPoint } from './caret';
 import { isEmptyNoteBody } from './note-body';
-import { getContentSiblingsForItem, getNextContentSibling, getParentContentItem, getSubtreeTail, isContentDescendantOf } from './tree';
+import { getContentSiblingsForItem, getNextContentSibling, getParentContentItem, isContentDescendantOf } from './tree';
 
 export type Direction = 'up' | 'down';
 
@@ -13,6 +13,12 @@ export type Rung =
   | { kind: 'inline' }
   | { kind: 'subtree' } // anchor note + subtree; direction-neutral
   | { kind: 'sibling'; direction: Direction }; // a sibling step also hoists when siblings run out
+
+export interface InlineSelectionOrigin {
+  anchor: Pick<Point, 'key' | 'offset' | 'type'>;
+  focus: Pick<Point, 'key' | 'offset' | 'type'>;
+  focusAtLineEnd?: boolean;
+}
 
 export interface LadderState {
   anchorKey: string;
@@ -22,6 +28,7 @@ export interface LadderState {
   // rung — pressing the opposite of `direction` pops the top rung; pressing the
   // same direction grows. null only when the stack is empty (a bare caret).
   direction: Direction | null;
+  entrySelection?: InlineSelectionOrigin;
 }
 
 export type ProgressivePlan =
@@ -33,8 +40,6 @@ export type ProgressivePlan =
       type: 'range';
       startKey: string;
       endKey: string;
-      startMode: BoundaryMode;
-      endMode: BoundaryMode;
     };
 
 export function emptyLadder(anchorKey: string): LadderState {
@@ -48,21 +53,19 @@ export function ladderHasStructuralRung(ladder: LadderState): boolean {
   return ladder.stack.some((rung) => rung.kind !== 'inline');
 }
 
-// The next rung kind for a push, given the current stack depth.
-function nextKind(depth: number): Rung['kind'] {
-  if (depth === 0) return 'inline';
-  if (depth === 1) return 'subtree';
-  // depth >= 2: structural sweep — replay decides sibling-vs-hoist by tree shape.
+function nextKind({ stack, entrySelection }: LadderState): Rung['kind'] {
+  if (stack.length === 0) return 'inline';
+  if (stack.length === 1 && !entrySelection) return 'subtree';
   return 'sibling';
 }
 
 export function pushStep(state: LadderState, direction: Direction): LadderState {
-  const kind = nextKind(state.stack.length);
+  const kind = nextKind(state);
   const rung: Rung = kind === 'sibling' ? { kind, direction } : { kind };
   // Record the growth direction on every push (even direction-neutral
   // inline/subtree rungs) so reversal can contract from any rung.
   return {
-    anchorKey: state.anchorKey,
+    ...state,
     stack: [...state.stack, rung],
     direction,
   };
@@ -73,7 +76,7 @@ export function popStep(state: LadderState): LadderState {
   // Contraction doesn't change which way the ladder was grown; only an empty
   // stack (back to a caret) clears the growth direction.
   return {
-    anchorKey: state.anchorKey,
+    ...state,
     stack,
     direction: stack.length === 0 ? null : state.direction,
   };
@@ -86,15 +89,11 @@ function $createInlinePlan(item: ListItemNode): ProgressivePlan | null {
   return $hasInlineBoundary(item) ? { type: 'inline', itemKey: item.getKey() } : null;
 }
 
-export function $createSubtreePlan(item: ListItemNode): ProgressivePlan | null {
-  const tail = getSubtreeTail(item);
-  const isLeaf = tail.getKey() === item.getKey();
+export function $createSubtreePlan(item: ListItemNode): ProgressivePlan {
   return {
     type: 'range',
     startKey: item.getKey(),
-    endKey: tail.getKey(),
-    startMode: 'content',
-    endMode: isLeaf ? 'content' : 'subtree',
+    endKey: item.getKey(),
   };
 }
 
@@ -219,13 +218,9 @@ export function $replayLadder(
     return null;
   }
 
-  const tail = getSubtreeTail(endHead);
-  const isLeaf = tail.getKey() === endHead.getKey();
   return {
     type: 'range',
     startKey: startHead.getKey(),
-    endKey: tail.getKey(),
-    startMode: 'content',
-    endMode: isLeaf ? 'content' : 'subtree',
+    endKey: endHead.getKey(),
   };
 }

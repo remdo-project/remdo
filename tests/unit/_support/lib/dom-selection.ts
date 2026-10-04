@@ -2,9 +2,8 @@ import { act, waitFor } from '@testing-library/react';
 import { expect } from 'vitest';
 
 import type { RemdoTestApi } from '#client/editor/dev';
-import { flattenOutline } from '#tests-common/outline';
-import { readOutline, placeCaretAtNote, selectNoteRange } from './note';
-import { pressKey } from './keyboard';
+import { placeCaretAtNote, selectNoteRange } from './note';
+import { stepSelectionLadder } from './keyboard';
 import { getNoteElement } from './dom-note';
 
 // Low-level DOM drag helper for precise text-node range selection.
@@ -64,7 +63,7 @@ async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: st
   }, startElement);
 }
 
-// Note-range helper: single-note uses Shift+Arrow to enter structural mode,
+// Note-range helper: single-note uses the directional ladder to enter structural mode,
 // multi-note uses a Lexical range selection to trigger structural snapping.
 // Limitations: multi-note path requires text nodes in both notes and does not
 // simulate DOM pointer selection; use selectStructuralNotesByDomRange for that path.
@@ -74,14 +73,9 @@ export async function selectStructuralNotes(
   endNoteId: string = startNoteId
 ): Promise<void> {
   if (startNoteId === endNoteId) {
-    const noteText = flattenOutline(readOutline(remdo)).find((note) => note.noteId === startNoteId)?.text ?? '';
-    const needsInlineStage = noteText.trim().length > 0;
     await placeCaretAtNote(remdo, startNoteId, 0);
 
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    if (needsInlineStage) {
-      await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    }
+    await stepSelectionLadder(remdo, 'down');
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: [startNoteId] });
     });
