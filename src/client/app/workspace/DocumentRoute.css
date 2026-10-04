@@ -50,32 +50,33 @@
 .document-header-search {
   --input-height: 2.5rem;
   --input-fz: 0.875rem;
-  --interaction-radius: 3px;
   min-width: 11rem;
   width: 19rem;
   max-width: 24vw;
 }
 
-/* Give the search field slightly more prominence: a lighter fill and stronger
-   border lift it off the header strip so it reads as the primary action there. */
-.document-header-search .mantine-Input-input {
-  height: 2.5rem;
-  border-color: var(--mantine-color-dark-4);
-  border-radius: 3px;
-  background-color: var(--mantine-color-dark-6);
-}
-
 .home-search {
   --input-height: 3rem;
   --input-fz: 1rem;
-  --interaction-radius: 3px;
   margin-bottom: 2rem;
 }
 
+.document-header-search,
+.home-search {
+  --interaction-radius: 3px;
+}
+
+/* Give the search fields slightly more prominence: a lighter fill and stronger
+   border lift them off the surrounding strip so they read as the primary action. */
+.document-header-search .mantine-Input-input,
 .home-search .mantine-Input-input {
   border-color: var(--mantine-color-dark-4);
   border-radius: 3px;
   background-color: var(--mantine-color-dark-6);
+}
+
+.document-header-search .mantine-Input-input {
+  height: 2.5rem;
 }
 
 .document-header-doc-combobox {

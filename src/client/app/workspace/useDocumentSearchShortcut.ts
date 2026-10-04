@@ -9,7 +9,7 @@ export function isFocusDocumentSearchState(state: unknown): boolean {
 
 // Modal only: the keyboard reference is a non-modal dialog, and the shortcut
 // stays available while it is open.
-const MODAL_SELECTOR = '.remdo-modal-overlay, [aria-modal="true"]';
+const MODAL_SELECTOR = '.remdo-modal-overlay';
 
 export function useDocumentSearchShortcut(onTrigger: () => void) {
   useEffect(() => {

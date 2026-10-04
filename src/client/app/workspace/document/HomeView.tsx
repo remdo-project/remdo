@@ -25,7 +25,6 @@ function DocumentGroup({
   label,
   documents,
   activeId,
-  idPrefix,
   onSelectDocument,
   onDelete,
   onRename,
@@ -37,7 +36,6 @@ function DocumentGroup({
   label: string;
   documents: readonly HomeDocumentEntry[];
   activeId: string | null;
-  idPrefix: string;
   onSelectDocument: (docId: string) => void;
   onDelete: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
@@ -74,7 +72,7 @@ function DocumentGroup({
                 aria-describedby={shared ? sharedId : undefined}
                 className="home-doc remdo-interaction-surface"
                 data-home-document-ref={document.id}
-                id={`${idPrefix}-${document.id}`}
+                id={`home-doc-link-${document.id}`}
                 onClick={() => onSelectDocument(document.id)}
                 type="button"
               >
@@ -181,10 +179,8 @@ export function HomeView({
   };
 
   useEffect(() => {
-    if (activeId === null) return;
-    const row = document.getElementById(`${listId}-${activeId}`)?.closest('li');
-    row?.scrollIntoView({ block: 'nearest' });
-  }, [activeId, listId]);
+    homeRef.current?.querySelector('[data-search-active]')?.scrollIntoView({ block: 'nearest' });
+  }, [activeId]);
 
   const handleUploadInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0] ?? null;
@@ -227,7 +223,7 @@ export function HomeView({
       {hasDocuments && (
         <>
           <TextInput
-            aria-activedescendant={activeId === null ? undefined : `${listId}-${activeId}`}
+            aria-activedescendant={activeId === null ? undefined : `home-doc-link-${activeId}`}
             aria-autocomplete="list"
             aria-controls={listId}
             aria-expanded
@@ -259,7 +255,6 @@ export function HomeView({
             <DocumentGroup
               activeId={activeId}
               documents={source.documents}
-              idPrefix={listId}
               key={source.id}
               label={source.label}
               onDelete={openDelete}

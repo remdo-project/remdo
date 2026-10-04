@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DocumentNote } from '#note-sdk';
 import { HomeView } from './HomeView';
 import type { HomeViewProps } from './HomeView';
-import { TestMantineProvider } from '#tests';
+import { TestMantineProvider, setCoarsePointer } from '#tests';
 
 const documentNote = (
   { id, title, rename = vi.fn(), remove = vi.fn(), canRename = true, canShareWith = false, canDelete = false }:
@@ -64,19 +64,6 @@ const renderHome = (props: HomeViewProps) =>
 const searchField = () => screen.getByRole('combobox', { name: 'Search documents' });
 const typeQuery = (value: string) => fireEvent.change(searchField(), { target: { value } });
 const listedNames = () => [...document.querySelectorAll('.home-doc-label')].map((label) => label.textContent);
-
-const setCoarsePointer = (coarse: boolean) => {
-  vi.mocked(globalThis.matchMedia).mockImplementation((query) => ({
-    matches: coarse && query.includes('pointer: coarse'),
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  }));
-};
 
 describe('home view', () => {
   afterEach(() => setCoarsePointer(false));
@@ -474,7 +461,7 @@ describe('home view', () => {
       expect(screen.queryByRole('button', { name: 'Actions for Project Roadmap' })).toBeNull();
     });
 
-    it('takes arrival focus on a fine pointer and keeps the heading on a touch device', () => {
+    it('takes arrival focus on a fine pointer', () => {
       renderHome(searchProps());
       expect(searchField()).toHaveFocus();
     });
