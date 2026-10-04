@@ -112,6 +112,15 @@ describe('keyboard reference', () => {
     expect(within(action.closest('div')!).getByText('Command')).toBeInTheDocument();
   });
 
+  it('lists the document search shortcut after find in document', () => {
+    renderReference();
+    const dialog = openReference();
+
+    expect(keysOf(dialog, 'Search documents')).toEqual(['⌘', 'K']);
+    const actions = within(dialog).getAllByRole('term').map((term) => term.textContent);
+    expect(actions.indexOf('Search documents')).toBe(actions.indexOf('Find in document') + 1);
+  });
+
   it('stays open while the user edits elsewhere', () => {
     renderReference();
     openReference();

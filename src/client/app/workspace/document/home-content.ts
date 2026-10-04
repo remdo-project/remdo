@@ -1,4 +1,6 @@
 import type { DocumentSourceNote } from '#note-sdk';
+import { matchesPathQuery } from '#client/search/query-match';
+import { formatNavigationLabel } from '#client/ui/navigation-label';
 
 export interface HomeDocumentEntry {
   id: string;
@@ -19,5 +21,14 @@ export function buildHomeSources(documentSources: readonly DocumentSourceNote[])
       id: document.getId(),
       label: document.getText(),
     })),
+  }));
+}
+
+export function filterHomeSources(sources: readonly HomeDocumentSource[], query: string): HomeDocumentSource[] {
+  return sources.map((source) => ({
+    ...source,
+    documents: source.documents.filter((document) => (
+      matchesPathQuery([formatNavigationLabel(document.label, Number.POSITIVE_INFINITY)], query)
+    )),
   }));
 }

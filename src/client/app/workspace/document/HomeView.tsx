@@ -1,12 +1,19 @@
-import type { ChangeEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { TextInput, VisuallyHidden } from '@mantine/core';
+import { IconSearch } from '@tabler/icons-react';
+import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { DocumentNote } from '#note-sdk';
+import { useCoarsePointer } from '#client/browser/useCoarsePointer';
+import { tokenizeQuery } from '#client/search/query-match';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
+import { useDocumentSearchShortcut } from '../useDocumentSearchShortcut';
 import { DocumentMenu } from './DocumentMenu';
 import { useDocumentDialogs } from './useDocumentDialogs';
+import { filterHomeSources } from './home-content';
 import type { HomeDocumentEntry, HomeDocumentSource } from './home-content';
 
 export interface HomeViewProps {
+  focusSearchRequested?: boolean;
   sources: readonly HomeDocumentSource[];
   onSelectDocument: (docId: string) => void;
   onCreateDocument: () => void;
@@ -17,6 +24,8 @@ export interface HomeViewProps {
 function DocumentGroup({
   label,
   documents,
+  activeId,
+  idPrefix,
   onSelectDocument,
   onDelete,
   onRename,
@@ -27,6 +36,8 @@ function DocumentGroup({
 }: {
   label: string;
   documents: readonly HomeDocumentEntry[];
+  activeId: string | null;
+  idPrefix: string;
   onSelectDocument: (docId: string) => void;
   onDelete: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
@@ -48,6 +59,7 @@ function DocumentGroup({
             <li
               className="home-doc-row"
               data-menu-target={document.id === menuTargetId ? true : undefined}
+              data-search-active={document.id === activeId ? true : undefined}
               key={document.id}
               onFocus={() => onMenuTarget(document.id)}
               onKeyDownCapture={() => onMenuTarget(document.id)}
@@ -62,6 +74,7 @@ function DocumentGroup({
                 aria-describedby={shared ? sharedId : undefined}
                 className="home-doc remdo-interaction-surface"
                 data-home-document-ref={document.id}
+                id={`${idPrefix}-${document.id}`}
                 onClick={() => onSelectDocument(document.id)}
                 type="button"
               >
@@ -78,6 +91,7 @@ function DocumentGroup({
 }
 
 export function HomeView({
+  focusSearchRequested = false,
   onCreateDocument,
   onSelectDocument,
   onUploadDocument,
@@ -87,13 +101,25 @@ export function HomeView({
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
   const homeRef = useRef<HTMLElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const searchComposingRef = useRef(false);
+  const arrivalFocusSettledRef = useRef(false);
+  const listId = useId();
+  const coarsePointer = useCoarsePointer();
   const { documentDialog, openDelete, openRename, openShare } = useDocumentDialogs(headingRef);
-  const menuDocumentIds = sources.flatMap((source) => source.documents)
-    .filter((document) => {
-      const note = resolveDocument(document.id);
-      return note && (note.canRename() || note.canShareWith() || note.canDelete());
-    })
-    .map((document) => document.id);
+  const [query, setQuery] = useState('');
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const hasDocuments = sources.some((source) => source.documents.length > 0);
+  const visibleSources = filterHomeSources(sources, query);
+  const matchIds = visibleSources.flatMap((source) => source.documents.map((document) => document.id));
+  const hasQuery = tokenizeQuery(query).length > 0;
+  const activeId = highlightedId !== null && matchIds.includes(highlightedId)
+    ? highlightedId
+    : hasQuery ? matchIds[0] ?? null : null;
+  const menuDocumentIds = matchIds.filter((docId) => {
+    const note = resolveDocument(docId);
+    return note && (note.canRename() || note.canShareWith() || note.canDelete());
+  });
   const [menuTarget, setMenuTarget] = useState<string | null>(null);
   const menuTargetId = menuTarget !== null && menuDocumentIds.includes(menuTarget)
     ? menuTarget
@@ -108,6 +134,57 @@ export function HomeView({
   useEffect(() => {
     headingRef.current?.focus();
   }, []);
+
+  // The field is absent until the listing arrives, so arrival focus waits for it
+  // and takes focus only while nothing else has claimed it.
+  useEffect(() => {
+    const search = searchRef.current;
+    if (!search || arrivalFocusSettledRef.current) return;
+    arrivalFocusSettledRef.current = true;
+    const focusIsFree = document.activeElement === document.body || document.activeElement === headingRef.current;
+    if (focusSearchRequested || (!coarsePointer && focusIsFree)) search.focus();
+  }, [coarsePointer, focusSearchRequested, hasDocuments]);
+
+  const focusSearch = useCallback(() => {
+    searchRef.current?.focus();
+    searchRef.current?.select();
+  }, []);
+  useDocumentSearchShortcut(focusSearch);
+
+  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setQuery(event.currentTarget.value);
+    setHighlightedId(null);
+  };
+
+  const moveHighlight = (delta: 1 | -1) => {
+    if (matchIds.length === 0) return;
+    const index = activeId === null ? -1 : matchIds.indexOf(activeId);
+    if (index === -1 && delta === -1) return;
+    setHighlightedId(matchIds[Math.max(0, Math.min(matchIds.length - 1, index + delta))]!);
+  };
+
+  const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing || searchComposingRef.current) return;
+    if (event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return;
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveHighlight(event.key === 'ArrowDown' ? 1 : -1);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (activeId !== null) onSelectDocument(activeId);
+    } else if (event.key === 'Escape' && query !== '') {
+      event.preventDefault();
+      setQuery('');
+      setHighlightedId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (activeId === null) return;
+    const row = document.getElementById(`${listId}-${activeId}`)?.closest('li');
+    row?.scrollIntoView({ block: 'nearest' });
+  }, [activeId, listId]);
 
   const handleUploadInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0] ?? null;
@@ -147,22 +224,54 @@ export function HomeView({
         </div>
       </div>
 
-      {sources
-        .filter((source) => source.documents.length > 0)
-        .map((source) => (
-          <DocumentGroup
-            documents={source.documents}
-            key={source.id}
-            label={source.label}
-            onDelete={openDelete}
-            onRename={openRename}
-            onSelectDocument={onSelectDocument}
-            onShare={openShare}
-            resolveDocument={resolveDocument}
-            menuTargetId={menuTargetId}
-            onMenuTarget={targetDocument}
+      {hasDocuments && (
+        <>
+          <TextInput
+            aria-activedescendant={activeId === null ? undefined : `${listId}-${activeId}`}
+            aria-autocomplete="list"
+            aria-controls={listId}
+            aria-expanded
+            aria-label="Search documents"
+            className="home-search remdo-interaction-surface"
+            leftSection={<IconSearch aria-hidden="true" size={16} />}
+            onChange={handleSearchChange}
+            onCompositionEnd={() => { searchComposingRef.current = false; }}
+            onCompositionStart={() => { searchComposingRef.current = true; }}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Search documents"
+            ref={searchRef}
+            role="combobox"
+            value={query}
           />
-        ))}
+          <VisuallyHidden role="status">
+            {hasQuery ? `${matchIds.length} ${matchIds.length === 1 ? 'document' : 'documents'}` : ''}
+          </VisuallyHidden>
+        </>
+      )}
+
+      <div id={listId}>
+        {hasQuery && hasDocuments && matchIds.length === 0 && (
+          <p className="home-search-empty">No documents match</p>
+        )}
+        {visibleSources
+          .filter((source) => source.documents.length > 0)
+          .map((source) => (
+            <DocumentGroup
+              activeId={activeId}
+              documents={source.documents}
+              idPrefix={listId}
+              key={source.id}
+              label={source.label}
+              onDelete={openDelete}
+              onRename={openRename}
+              onSelectDocument={onSelectDocument}
+              onShare={openShare}
+              resolveDocument={resolveDocument}
+              menuTargetId={menuTargetId}
+              onMenuTarget={targetDocument}
+            />
+          ))}
+      </div>
 
       {documentDialog}
     </section>

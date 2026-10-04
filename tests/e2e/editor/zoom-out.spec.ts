@@ -1,7 +1,7 @@
 import type { Page } from '#editor/fixtures';
 import { createUserDocument } from '../_support/documents';
 import { expect, test } from '#editor/fixtures';
-import { editorLocator, homeView, zoomBreadcrumbs } from '#editor/locators';
+import { editorLocator, homeSearch, homeView, zoomBreadcrumbs } from '#editor/locators';
 import { load, waitForSynced } from './_support/bridge';
 import { openNoteMenu } from './_support/menu';
 import { createEditorDocumentPath } from './_support/routes';
@@ -39,7 +39,7 @@ test('Zoom out passes through a document root before Home', async ({ page }) => 
   await page.keyboard.press('Shift');
   await page.keyboard.press('o');
   await expect(page).toHaveURL('/');
-  await expect(homeView(page).getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+  await expect(homeSearch(page)).toBeFocused();
 });
 
 test('Zoom out uses the current view and restores the branch just left', async ({ page, editor }) => {
@@ -91,13 +91,12 @@ test('double Shift then O zooms out after search and continues to Home', async (
   await expect(menu.item('zoom-out').locator('.note-menu-shortcut')).toHaveText('o');
   await menu.pressShortcut('o');
   await menu.expectClosed();
-  const heading = homeView(page).getByRole('heading', { name: 'Home', level: 1 });
-  await expect(heading).toBeFocused();
+  await expect(homeSearch(page)).toBeFocused();
 
   await page.keyboard.press('Shift');
   await page.keyboard.press('Shift');
   await page.keyboard.press('o');
-  await expect(heading).toBeFocused();
+  await expect(homeSearch(page)).toBeFocused();
   await menu.expectClosed();
 });
 
@@ -107,7 +106,7 @@ test('Zoom out opens Home by pointer and the current document can be reopened', 
   await menu.menu.getByRole('menuitem', { name: 'Zoom out' }).click();
   await menu.expectClosed();
   await expect(page).toHaveURL('/');
-  await expect(homeView(page).getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+  await expect(homeSearch(page)).toBeFocused();
 
   await homeView(page).locator(`[data-home-document-ref="${editor.docId}"]`).click();
   await expect(homeView(page)).toHaveCount(0);

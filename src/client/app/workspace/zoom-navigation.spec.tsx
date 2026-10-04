@@ -24,12 +24,12 @@ describe('zoom navigation with pending routes', () => {
       await act(async () => {
         api.editor.dispatchCommand(ZOOM_OUT_COMMAND, undefined);
       });
-      expect(screen.getByRole('heading', { name: 'Home' })).toHaveFocus();
+      expect(screen.getByRole('combobox', { name: 'Search documents' })).toHaveFocus();
 
       await act(async () => release());
       await waitFor(() => expect(router.state.navigation.state).toBe('idle'));
       expect(router.state.location.pathname).toBe('/');
-      expect(screen.getByRole('heading', { name: 'Home' })).toHaveFocus();
+      expect(screen.getByRole('combobox', { name: 'Search documents' })).toHaveFocus();
 
     } finally {
       release();

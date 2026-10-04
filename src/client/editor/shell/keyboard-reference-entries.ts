@@ -41,6 +41,7 @@ export function referenceGroups(platform: ReferencePlatform): readonly Reference
         { action: 'Move up / down', keys: [...chordModifierKeys(moveDown, platform), '↑/↓'] },
         { action: 'Toggle checked', keys: [...chordModifierKeys(toggleChecked, platform), toggleChecked.key] },
         { action: 'Find in document', keys: [command, 'F'] },
+        { action: 'Search documents', keys: [command, 'K'] },
         { action: 'Add / open body', keys: ['Shift', 'Enter'] },
         { action: 'Link a note', keys: ['@'] },
         { action: 'Insert a date', keys: ['!'] },

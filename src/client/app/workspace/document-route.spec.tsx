@@ -115,6 +115,55 @@ describe('document route', () => {
     expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'note');
   });
 
+  it('opens Home with the document search focused on Cmd/Ctrl+K', async () => {
+    const router = renderDocumentRoute(createDocumentPath('testDoc'));
+    await screen.findByTestId('editor-probe');
+
+    fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+      expect(screen.getByRole('combobox', { name: 'Search documents' })).toHaveFocus();
+    });
+    await act(async () => router.navigate(-1));
+    expect(router.state.location.pathname).toBe(createDocumentPath('testDoc'));
+  });
+
+  it('does not pull focus into the search again when history returns to Home on a touch device', async () => {
+    vi.mocked(globalThis.matchMedia).mockImplementation((query) => ({
+      matches: query.includes('pointer: coarse'),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    try {
+      const router = renderDocumentRoute(createDocumentPath('testDoc'));
+      await screen.findByTestId('editor-probe');
+
+      fireEvent.keyDown(document.body, { key: 'k', metaKey: true });
+      await waitFor(() => expect(screen.getByRole('combobox', { name: 'Search documents' })).toHaveFocus());
+
+      await act(async () => router.navigate(-1));
+      await act(async () => router.navigate(1));
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Home' })).toHaveFocus());
+    } finally {
+      vi.mocked(globalThis.matchMedia).mockImplementation((query) => ({
+        matches: query === '(prefers-reduced-motion: reduce)',
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+    }
+  });
+
   it('returns to the document URL when zoom is cleared', async () => {
     const router = renderDocumentRoute(createDocumentPath('testDoc'));
 

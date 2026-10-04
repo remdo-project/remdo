@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DocumentNote } from '#note-sdk';
 import { HomeView } from './HomeView';
 import type { HomeViewProps } from './HomeView';
@@ -61,7 +61,26 @@ const renderHome = (props: HomeViewProps) =>
     </TestMantineProvider>
   );
 
+const searchField = () => screen.getByRole('combobox', { name: 'Search documents' });
+const typeQuery = (value: string) => fireEvent.change(searchField(), { target: { value } });
+const listedNames = () => [...document.querySelectorAll('.home-doc-label')].map((label) => label.textContent);
+
+const setCoarsePointer = (coarse: boolean) => {
+  vi.mocked(globalThis.matchMedia).mockImplementation((query) => ({
+    matches: coarse && query.includes('pointer: coarse'),
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+};
+
 describe('home view', () => {
+  afterEach(() => setCoarsePointer(false));
+
   it('starts at the first document with available actions', () => {
     const props = baseProps();
     props.resolveDocument = (docId) => docId === 'doc-a'
@@ -315,6 +334,201 @@ describe('home view', () => {
     renderHome(props);
 
     expect(screen.queryByRole('button', { name: /^Actions for/ })).toBeNull();
+  });
+
+  describe('document search', () => {
+    const longName = `${'Quarterly planning '.repeat(4)}appendix`;
+    const searchProps = (): HomeViewProps => {
+      const props = baseProps();
+      props.sources = [{
+        id: 'local',
+        label: 'Local',
+        documents: [
+          { id: 'doc-a', label: 'Project Roadmap' },
+          { id: 'doc-b', label: 'Ideas' },
+          { id: 'doc-c', label: 'Roadmap ideas' },
+          { id: 'doc-d', label: longName },
+        ],
+      }];
+      return props;
+    };
+
+    it('keeps documents whose full name holds every token in any case, in list order', () => {
+      renderHome(searchProps());
+
+      typeQuery('  IDEAS road ');
+
+      expect(listedNames()).toEqual(['Roadmap ideas']);
+      typeQuery('road');
+      expect(listedNames()).toEqual(['Project Roadmap', 'Roadmap ideas']);
+      typeQuery('appendix');
+      expect(listedNames()).toEqual([expect.stringMatching(/^Quarterly planning .*\.\.\.$/u)]);
+    });
+
+    it('lists every document for a blank query and says so when nothing matches', () => {
+      renderHome(searchProps());
+
+      typeQuery('   ');
+      expect(listedNames()).toHaveLength(4);
+      expect(screen.queryByText('No documents match')).toBeNull();
+
+      typeQuery('zzz');
+      expect(screen.getByText('No documents match')).toBeInTheDocument();
+      expect(screen.queryByRole('group')).toBeNull();
+      expect(screen.getByRole('status')).toHaveTextContent('0 documents');
+    });
+
+    it('highlights nothing for an empty query and the first match otherwise', () => {
+      renderHome(searchProps());
+      const rowOf = (name: string) => screen.getByRole('button', { name }).closest('li');
+
+      expect(document.querySelector('[data-search-active]')).toBeNull();
+      expect(searchField()).not.toHaveAttribute('aria-activedescendant');
+
+      typeQuery('road');
+      expect(rowOf('Project Roadmap')).toHaveAttribute('data-search-active', 'true');
+      expect(rowOf('Roadmap ideas')).not.toHaveAttribute('data-search-active');
+      expect(searchField()).toHaveAttribute('aria-activedescendant', screen.getByRole('button', { name: 'Project Roadmap' }).id);
+      expect(screen.getByRole('status')).toHaveTextContent('2 documents');
+    });
+
+    it('moves the highlight without wrapping and starts on the first document from none', () => {
+      renderHome(searchProps());
+      const active = () => document.querySelector('[data-search-active] .home-doc-label')?.textContent ?? null;
+
+      fireEvent.keyDown(searchField(), { key: 'ArrowUp' });
+      expect(active()).toBeNull();
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+      expect(active()).toBe('Project Roadmap');
+      fireEvent.keyDown(searchField(), { key: 'ArrowUp' });
+      expect(active()).toBe('Project Roadmap');
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+      expect(active()).toMatch(/^Quarterly planning/u);
+    });
+
+    it('opens the highlighted document on Enter and does nothing without one', () => {
+      const props = searchProps();
+      renderHome(props);
+
+      fireEvent.keyDown(searchField(), { key: 'Enter' });
+      expect(props.onSelectDocument).not.toHaveBeenCalled();
+
+      typeQuery('ideas');
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+      fireEvent.keyDown(searchField(), { key: 'Enter' });
+      expect(props.onSelectDocument).toHaveBeenCalledExactlyOnceWith('doc-c');
+    });
+
+    it('ignores Enter during input-method composition', () => {
+      const props = searchProps();
+      renderHome(props);
+      typeQuery('ideas');
+
+      fireEvent.compositionStart(searchField());
+      fireEvent.keyDown(searchField(), { key: 'Enter' });
+      expect(props.onSelectDocument).not.toHaveBeenCalled();
+
+      fireEvent.compositionEnd(searchField());
+      fireEvent.keyDown(searchField(), { key: 'Enter' });
+      expect(props.onSelectDocument).toHaveBeenCalledExactlyOnceWith('doc-b');
+    });
+
+    it('clears the query on Escape and keeps focus in the field', () => {
+      renderHome(searchProps());
+      typeQuery('ideas');
+      searchField().focus();
+
+      fireEvent.keyDown(searchField(), { key: 'Escape' });
+
+      expect(searchField()).toHaveValue('');
+      expect(searchField()).toHaveFocus();
+      expect(listedNames()).toHaveLength(4);
+    });
+
+    it('keeps the query through listing updates and omits the field with no documents', () => {
+      const props = searchProps();
+      const view = renderHome(props);
+      typeQuery('ideas');
+
+      props.sources = [{ id: 'local', label: 'Local', documents: [{ id: 'doc-b', label: 'Ideas' }] }];
+      view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
+      expect(searchField()).toHaveValue('ideas');
+      expect(listedNames()).toEqual(['Ideas']);
+
+      props.sources = [];
+      view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
+      expect(screen.queryByRole('combobox')).toBeNull();
+    });
+
+    it('moves the menu target to a visible document when filtering hides it', () => {
+      renderHome(searchProps());
+      const rowOf = (name: string) => screen.getByRole('button', { name: `Actions for ${name}` }).closest('li');
+      expect(rowOf('Project Roadmap')).toHaveAttribute('data-menu-target', 'true');
+
+      typeQuery('ideas');
+
+      expect(rowOf('Ideas')).toHaveAttribute('data-menu-target', 'true');
+      expect(screen.queryByRole('button', { name: 'Actions for Project Roadmap' })).toBeNull();
+    });
+
+    it('takes arrival focus on a fine pointer and keeps the heading on a touch device', () => {
+      renderHome(searchProps());
+      expect(searchField()).toHaveFocus();
+    });
+
+    it('keeps the heading focused on a touch device unless focus is requested', () => {
+      setCoarsePointer(true);
+      const view = renderHome(searchProps());
+      expect(screen.getByRole('heading', { name: 'Home' })).toHaveFocus();
+      view.unmount();
+
+      renderHome({ ...searchProps(), focusSearchRequested: true });
+      expect(searchField()).toHaveFocus();
+    });
+
+    it('takes arrival focus once the listing arrives while focus is still free', () => {
+      const props = searchProps();
+      const documents = props.sources[0]!.documents;
+      props.sources = [];
+      const view = renderHome(props);
+      expect(screen.getByRole('heading', { name: 'Home' })).toHaveFocus();
+
+      props.sources = [{ id: 'local', label: 'Local', documents }];
+      view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
+
+      expect(searchField()).toHaveFocus();
+    });
+
+    it('leaves focus alone when the listing arrives after the user moved on', () => {
+      const props = searchProps();
+      const documents = props.sources[0]!.documents;
+      props.sources = [];
+      const view = renderHome(props);
+      screen.getByRole('button', { name: 'New document' }).focus();
+
+      props.sources = [{ id: 'local', label: 'Local', documents }];
+      view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
+
+      expect(screen.getByRole('button', { name: 'New document' })).toHaveFocus();
+    });
+
+    it('focuses the field on Cmd/Ctrl+K from anywhere on Home, except under a modal dialog', () => {
+      renderHome(searchProps());
+      screen.getByRole('button', { name: 'New document' }).focus();
+
+      fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true });
+      expect(searchField()).toHaveFocus();
+
+      screen.getByRole('button', { name: 'New document' }).focus();
+      const overlay = document.body.appendChild(document.createElement('div'));
+      overlay.className = 'remdo-modal-overlay';
+      fireEvent.keyDown(document.body, { key: 'k', metaKey: true });
+      expect(screen.getByRole('button', { name: 'New document' })).toHaveFocus();
+      overlay.remove();
+    });
   });
 
   it('uploads the chosen file via the Upload action', () => {

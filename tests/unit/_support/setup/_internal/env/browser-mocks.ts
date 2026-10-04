@@ -45,6 +45,14 @@ const MockResizeObserver = class MockResizeObserver {
 (globalThis as typeof globalThis & { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
   MockResizeObserver;
 
+// TODO: jsdom omits `Element.scrollIntoView`, which keyboard highlight movement
+// calls. Obsolete when jsdom implements it: delete this block and run
+// `pnpm run test:unit`.
+// eslint-disable-next-line ts/no-unnecessary-condition
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 // TODO: Lexical's clipboard helpers reference `DragEvent` for instance checks;
 // jsdom doesn't provide it. Obsolete when jsdom adds it (or the checks
 // disappear): delete this block and run `pnpm run test:unit`.

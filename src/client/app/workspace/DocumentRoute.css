@@ -65,6 +65,19 @@
   background-color: var(--mantine-color-dark-6);
 }
 
+.home-search {
+  --input-height: 3rem;
+  --input-fz: 1rem;
+  --interaction-radius: 3px;
+  margin-bottom: 2rem;
+}
+
+.home-search .mantine-Input-input {
+  border-color: var(--mantine-color-dark-4);
+  border-radius: 3px;
+  background-color: var(--mantine-color-dark-6);
+}
+
 .document-header-doc-combobox {
   display: inline-flex;
   min-width: 0;
@@ -397,6 +410,12 @@
   font-size: var(--mantine-font-size-xl);
 }
 
+.home-search-empty {
+  margin: 0;
+  padding-inline: 1rem;
+  color: var(--mantine-color-dark-2);
+}
+
 .home-group {
   display: flex;
   flex-direction: column;
@@ -435,6 +454,11 @@
 .home-doc-row:hover,
 .home-doc-row:focus-within {
   background: var(--chrome-hover);
+}
+
+.home-doc-row[data-search-active] {
+  background: var(--chrome-hover);
+  box-shadow: inset 2px 0 0 var(--remdo-accent);
 }
 
 .home-doc {

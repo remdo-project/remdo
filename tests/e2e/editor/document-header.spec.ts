@@ -1,5 +1,5 @@
 import { expect, isolatedTest as test } from '#editor/fixtures';
-import { documentShell, editorLocator, homeView } from '#editor/locators';
+import { documentShell, editorLocator, homeSearch } from '#editor/locators';
 import { openNoteMenu } from './_support/menu';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
@@ -146,7 +146,7 @@ test.describe('Document-root header', () => {
     await page.getByRole('menuitem', { name: 'Zoom out' }).click();
 
     await expect(page).toHaveURL('/');
-    await expect(homeView(page).getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+    await expect(homeSearch(page)).toBeFocused();
   });
 
   test('keeps the note strip available when history navigation zooms past the header', async ({ page, editor }) => {

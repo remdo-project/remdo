@@ -1,5 +1,5 @@
 import { expect, isolatedTest as test } from '#editor/fixtures';
-import { editorLocator, homeView, homeZoomBreadcrumb } from '#editor/locators';
+import { editorLocator, homeSearch, homeView, homeZoomBreadcrumb } from '#editor/locators';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
 import { createUserDocument } from '../_support/documents';
@@ -94,11 +94,33 @@ test.describe('Home', () => {
     await homeZoomBreadcrumb(page).click();
 
     await expect(page).toHaveURL('/');
-    await expect(homeView(page).getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+    await expect(homeSearch(page)).toBeFocused();
     await expect(editorLocator(page)).toHaveCount(0);
-    await expect(page.getByRole('combobox', { name: 'Search document' })).toHaveCount(0);
+    await expect(page.getByRole('combobox', { name: 'Search document', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Show documents' })).toHaveCount(0);
     await expect(page).toHaveTitle('Home · RemDo');
+  });
+
+  test('switches documents from the editor with Cmd/Ctrl+K and returns with Back', async ({ page, editor }) => {
+    await editor.load('basic');
+    const other = await createUserDocument(page, 'Another document');
+    const sourcePath = createEditorDocumentPath(editor.docId);
+    await editorLocator(page).locator('.editor-input').focus();
+
+    await page.keyboard.press('ControlOrMeta+K');
+
+    await expect(page).toHaveURL('/');
+    await expect(homeSearch(page)).toBeFocused();
+    await page.keyboard.type('ANOTHER doc');
+    await expect(homeView(page).locator('[data-home-document-ref]')).toHaveCount(1);
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(createEditorDocumentPath(other.id));
+
+    await page.goBack();
+    await expect(page).toHaveURL('/');
+    await expect(homeSearch(page)).toHaveValue('');
+    await page.goBack();
+    await expect(page).toHaveURL(sourcePath);
   });
 
   test('places the document actions beside the heading above 56px document rows', async ({ page, editor }) => {
@@ -145,7 +167,7 @@ test.describe('Home', () => {
 
     await page.goBack();
     await expect(page).toHaveURL('/');
-    await expect(homeView(page).getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+    await expect(homeSearch(page)).toBeFocused();
     await page.goBack();
     await expect(page).toHaveURL(notePath);
     await waitForSynced(page);
