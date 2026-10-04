@@ -147,7 +147,7 @@ export function HomeView({
     searchRef.current?.focus();
     searchRef.current?.select();
   }, []);
-  useDocumentSearchShortcut(focusSearch);
+  useDocumentSearchShortcut(hasDocuments ? focusSearch : null);
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setQuery(event.currentTarget.value);

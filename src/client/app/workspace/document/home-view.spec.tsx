@@ -502,6 +502,14 @@ describe('home view', () => {
       expect(screen.getByRole('button', { name: 'New document' })).toHaveFocus();
     });
 
+    it('leaves Cmd/Ctrl+K to the browser while there is no search box', () => {
+      const props = searchProps();
+      props.sources = [];
+      renderHome(props);
+
+      expect(fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true })).toBe(true);
+    });
+
     it('focuses the field on Cmd/Ctrl+K from anywhere on Home, except under a modal dialog', () => {
       renderHome(searchProps());
       screen.getByRole('button', { name: 'New document' }).focus();

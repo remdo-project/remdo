@@ -11,8 +11,11 @@ export function isFocusDocumentSearchState(state: unknown): boolean {
 // stays available while it is open.
 const MODAL_SELECTOR = '.remdo-modal-overlay';
 
-export function useDocumentSearchShortcut(onTrigger: () => void) {
+export function useDocumentSearchShortcut(onTrigger: (() => void) | null) {
   useEffect(() => {
+    if (!onTrigger) {
+      return;
+    }
     const handleShortcut = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.altKey || event.shiftKey || (!event.metaKey && !event.ctrlKey)) {
         return;
