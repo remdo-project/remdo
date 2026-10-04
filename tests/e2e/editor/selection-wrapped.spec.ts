@@ -357,7 +357,7 @@ test('lets pointer input replace a pending held no-op checkpoint', async ({ page
   expect((await selectionState(page)).focus.note).toBe('note2');
 });
 
-for (const input of ['type', 'Enter', 'ArrowRight'] as const) {
+for (const input of ['type', 'Enter', 'ArrowRight', 'Home', 'PageDown'] as const) {
   test(`settles a native note crossing before immediate ${input}`, async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', 0);
@@ -367,11 +367,11 @@ for (const input of ['type', 'Enter', 'ArrowRight'] as const) {
     await expect(editor).toMatchOutline([
       { noteId: 'note1', text: 'note1' }, { noteId: 'note2', text: 'note2' }, { noteId: 'note3', text: 'note3' },
     ]);
-    if (input === 'ArrowRight') {
+    if (input === 'ArrowRight' || input === 'Home' || input === 'PageDown') {
       await expect.poll(async () => {
         const { kind, focus } = await selectionState(page);
         return { kind, focus };
-      }).toEqual({ kind: 'caret', focus: { note: 'note1', offset: 5 } });
+      }).toEqual({ kind: 'caret', focus: { note: 'note1', offset: input === 'Home' ? 0 : 5 } });
     } else await expectStructure(page, ['note1']);
   });
 }

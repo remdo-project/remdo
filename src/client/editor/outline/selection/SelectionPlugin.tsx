@@ -22,6 +22,7 @@ import {
   $addUpdateTag,
   COMMAND_PRIORITY_CRITICAL,
   KEY_DOWN_COMMAND,
+  KEY_ESCAPE_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
@@ -435,6 +436,43 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
+    const $collapseOnKey = (edge: 'start' | 'end' | 'anchor', event: KeyboardEvent): boolean => {
+      if (edge !== 'anchor' && (!editor.selection.isStructural()
+        || event.shiftKey || event.altKey || event.metaKey || event.ctrlKey)) return false;
+      if (!$collapseStructuralSelectionToCaretAndReset(edge)) return false;
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    };
+
+    const unregisterCollapseArrows = ([
+      [KEY_ARROW_DOWN_COMMAND, 'end'],
+      [KEY_ARROW_UP_COMMAND, 'start'],
+      [KEY_ARROW_LEFT_COMMAND, 'start'],
+      [KEY_ARROW_RIGHT_COMMAND, 'end'],
+    ] as const).map(([command, edge]) => editor.registerCommand(
+      command,
+      event => $collapseOnKey(edge, event),
+      COMMAND_PRIORITY_CRITICAL
+    ));
+
+    const unregisterCollapseNavigation = editor.registerCommand(
+      KEY_DOWN_COMMAND,
+      event => {
+        if (event.key !== 'Home' && event.key !== 'End' && event.key !== 'PageUp' && event.key !== 'PageDown') {
+          return false;
+        }
+        return $collapseOnKey(event.key === 'Home' || event.key === 'PageUp' ? 'start' : 'end', event);
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterEscape = editor.registerCommand(
+      KEY_ESCAPE_COMMAND,
+      event => $collapseOnKey('anchor', event),
+      COMMAND_PRIORITY_CRITICAL
+    );
+
     return () => {
       disposedRef.current = true;
       reactiveMotion = null;
@@ -452,6 +490,9 @@ export function SelectionPlugin() {
       unregisterReactiveSelection();
       unregisterDirectionalCommand();
       unregisterCollapseCommand();
+      for (const unregister of unregisterCollapseArrows) unregister();
+      unregisterCollapseNavigation();
+      unregisterEscape();
       unregisterRootListener();
     };
   }, [editor]);

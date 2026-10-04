@@ -11,7 +11,6 @@ import { CheckListPlugin } from '#client/editor/features/list-types/CheckListPlu
 import { IndentationPlugin } from '#client/editor/editing/indentation/IndentationPlugin';
 import { DevEditorSeam } from './DevEditorSeam';
 import { SelectionPlugin } from '#client/editor/outline/selection/SelectionPlugin';
-import { SelectionCollapsePlugin } from '#client/editor/outline/selection/SelectionCollapsePlugin';
 import { InsertionPlugin } from '#client/editor/editing/insertion/InsertionPlugin';
 import { DeletionPlugin } from '#client/editor/editing/deletion/DeletionPlugin';
 import { DatePlugin } from '#client/editor/features/date/DatePlugin';
@@ -121,7 +120,6 @@ function EditorRuntime({
               <ReorderingPlugin />
               <NoteBodyPlugin />
               <SelectionPlugin />
-              <SelectionCollapsePlugin />
               <LinksPlugin />
               <DatePlugin />
               <InsertionPlugin />
