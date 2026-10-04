@@ -135,8 +135,9 @@ or not the search box has focus, so Search Mode does not apply.
    nothing. `Enter` opens the highlighted document like activating its row, and
    does nothing without one or during input-method composition. `Escape` clears
    a non-empty query and keeps focus in the search box.
-3. The search box exposes combobox semantics as for notes, and assistive
-   technology is told when the number of matches changes.
+3. The search box is a combobox exposing the highlighted document as its active
+   descendant, and assistive technology is told when the number of matches
+   changes.
 4. Listing updates leave the query intact. Home always opens with an empty query.
 5. `Cmd/Ctrl+K` focuses the search box, when present, first opening Home from a
    document view. It does nothing while a modal dialog is open.
