@@ -366,7 +366,6 @@ test.describe('note links', () => {
     await editor.load('links');
     await setCaretAtText(page, 'same ', 0);
     await page.keyboard.press('Shift+ArrowDown');
-    await page.keyboard.press('Shift+ArrowDown');
 
     const copyCombo = process.platform === 'darwin' ? 'Meta+C' : 'Control+C';
     await page.keyboard.press(copyCombo);

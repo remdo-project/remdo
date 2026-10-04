@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
+import { $getSelection } from 'lexical';
+import type { RangeSelection } from 'lexical';
 
-
-import { $getListItemByKeyOrThrow, pressKey, readOutline, getNoteKey, placeCaretAtNote, typeText, meta } from '#tests';
+import { $getListItemByKeyOrThrow, pressKey, stepSelectionLadder, readOutline, getNoteKey, placeCaretAtNote, typeText, meta } from '#tests';
 import type { RemdoTestApi } from '#client/editor/dev';
 import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { flattenOutline } from '#tests-common/outline';
@@ -24,11 +25,10 @@ async function removeNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
 }
 
 // Build a note range over note2's subtree (anchor note2 → note2,
-// note3) by climbing the Shift+Arrow ladder: inline, then subtree.
+// note3) through the directional ladder.
 async function selectNote2Subtree(remdo: RemdoTestApi): Promise<void> {
   await placeCaretAtNote(remdo, 'note2');
-  await pressKey(remdo, { key: 'ArrowDown', shift: true });
-  await pressKey(remdo, { key: 'ArrowDown', shift: true });
+  await stepSelectionLadder(remdo, 'down');
   await waitFor(() => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
@@ -40,7 +40,15 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
     expect(readOutline(secondary)).toEqual(readOutline(remdo));
 
     // On A: note range over note2's subtree (anchor note2 → note2, note3).
-    await selectNote2Subtree(remdo);
+    await placeCaretAtNote(remdo, 'note2', 2);
+    const readPoints = () => remdo.validate(() => {
+      const selection = $getSelection() as RangeSelection;
+      const point = ({ key, offset, type }: RangeSelection['anchor']) => ({ key, offset, type });
+      return { anchor: point(selection.anchor), focus: point(selection.focus) };
+    });
+    const original = readPoints();
+    await stepSelectionLadder(remdo, 'down');
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
     // On B: add a new child note under note3 (Enter at end of note3 makes a
     // sibling, Tab indents it to become note3's child).
@@ -61,6 +69,11 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', newId!] });
     });
+    await stepSelectionLadder(remdo, 'up');
+    await waitFor(() => {
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+      expect(readPoints()).toEqual(original);
+    });
   });
 
   it("tier 3: truncates to the still-valid prefix when a swept sibling is deleted", meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -69,12 +82,11 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
 
     // On A: note range sweeping the last root note5 down into the
     // final root sibling note6 (anchor note5 → note5, note6, note7). Climb the
-    // ladder: inline, subtree, sibling-down. The terminal sibling rung resolves
+    // ladder: subtree, sibling-down. The terminal sibling rung resolves
     // only because note6 follows note5 at the root level.
     await placeCaretAtNote(remdo, 'note5');
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await stepSelectionLadder(remdo, 'down');
+    await stepSelectionLadder(remdo, 'down');
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note5', 'note6', 'note7'] });
     });
@@ -101,9 +113,8 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
     // On A: anchor note2 subtree, then sweep down to sibling note4
     // (anchor note2 → note2, note3, note4).
     await placeCaretAtNote(remdo, 'note2');
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
-    await pressKey(remdo, { key: 'ArrowDown', shift: true });
+    await stepSelectionLadder(remdo, 'down');
+    await stepSelectionLadder(remdo, 'down');
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
     });

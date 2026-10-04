@@ -49,9 +49,10 @@ the common structure.
 
 ## Whole-note snapping
 
-A selection can never partially cross a note boundary. The moment a text
-selection extends beyond one note's content, it becomes a structural selection
-whose selected note range covers the crossed notes. Extension between a location
+A selection can never remain partially across a note boundary. Pointer extension
+beyond one note's content becomes a structural selection whose selected note range
+covers the crossed notes. Keyboard extension follows the selection ladder below.
+Extension between a location
 header, its owned body, and its child outline follows [Location header](./location-header.md#structural-boundary) instead.
 
 ## The selection ladder
@@ -68,17 +69,29 @@ ordered ladder whose every structural rung has a legal selected note range.
 Its defining property is **symmetric
 grow/shrink**: pressing the opposite direction *exactly inverts* the previous step.
 
+For label `Shift+Up/Down`, native text selection owns motion within the label.
+When the focus actually crosses into another selection region, the selection
+enters the anchor note's subtree. A native movement that stays in the label,
+including a no-op at a document or zoom boundary, remains non-structural.
+This path has no whole-label inline rung. After any added structural rungs are
+contracted, one opposite press restores the exact inline range or caret before the
+crossing when content and wrapping are unchanged. Further arrows resume native
+text selection; a restored bare caret starts fresh.
+
+`Shift+Up/Down` continues an active `Cmd/Ctrl+A` ladder, including its whole-label
+inline rung.
+
 The ladder is anchored and replayable:
 
 - **One anchor.** The note where the selection started — by `Shift+Up/Down` or
-  `Cmd/Ctrl+A`. It is fixed for the life of the ladder and is cleared only when
-  the selection collapses to a caret. Losing editor focus does not collapse it;
+  `Cmd/Ctrl+A`. It is fixed for the life of the ladder.
+  Losing editor focus does not collapse it;
   the ladder survives blur and refocus.
 - **Rungs.** Each step is a semantic instruction, not a stored range, so the
   selection is the anchor plus the current rungs re-resolved against the live
   tree. The recurrence is:
   1. the anchor note's own [content text](./note-model.md#definitions), selected
-     inline — a distinct first rung (skipped when that text is empty, so the
+     inline — the first `Cmd/Ctrl+A` rung (skipped when that text is empty, so the
      first press lands on rung 2);
   2. the anchor note plus its subtree — the first structural rung, direction-neutral;
   3. one more contiguous sibling (with its subtree) in the sweep direction;
@@ -90,15 +103,16 @@ The ladder is anchored and replayable:
 
 Direction and reversal:
 
-- The first structural rung is direction-neutral. The press that first extends
-  past the anchor's subtree establishes the sweep direction.
+- A directional growth press establishes the sweep direction. The anchor-subtree
+  rung selects the same notes in either direction.
 - Pressing the sweep direction pushes the next rung; pressing the opposite
   direction pops the top rung — exactly the rung that was last pushed. Because a
   `Cmd/Ctrl+A` sibling rung adds the whole sibling group at once, one reverse
   press retracts that whole group.
-- Contraction bottoms out at the anchor and then collapses to the caret, which
-  fully resets the ladder. From that bare caret, the next `Shift+Arrow` starts a
-  fresh ladder in the pressed direction — `Up` grows up, `Down` grows down.
+- Contraction of a ladder entered through `Cmd/Ctrl+A`, pointer input, or a
+  structural range bottoms out at the anchor and
+  then collapses to the caret, which
+  fully resets the ladder.
 - A press that would extend past the document or zoom boundary is a no-op.
 - `Cmd/Ctrl+A` is direction-neutral: it only ever grows the ladder outward (its
   sibling rung covers the whole sibling group either way), so it never inherits
@@ -112,7 +126,7 @@ in place where possible; the disturbance tiers are defined in [Collaboration res
 | Input | Effect |
 | ----- | ------ |
 | `Shift+Left/Right` | Extends an inline text selection inside its selection region; a no-op at the region boundary. |
-| `Shift+Up/Down` | When the selection ladder applies, walk it one note at a time in that direction (push the next rung, or pop on reversal). |
+| `Shift+Up/Down` | Follow [the selection ladder](#the-selection-ladder). |
 | `Cmd/Ctrl+A` | Inside a body, selects that body's text per [Body](./body.md#navigation). Otherwise, when the selection ladder applies, grow it outward one rung per press (direction-neutral), adding the whole sibling group of a sibling rung at once. |
 | `Shift+Click` | With a focus note other than the current zoom root, extend to the clicked note, producing a structural selection with a contiguous selected note range; the anchor is the click origin and the resulting range seeds the ladder so later `Shift+Up/Down` can pop it. |
 | Drag | Highlights text until it crosses a note boundary, then snaps to whole notes. |

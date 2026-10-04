@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { placeCaretAtNote, pressKey, typeText } from '#tests';
+import { placeCaretAtNote, pressKey, stepSelectionLadder, typeText } from '#tests';
 import { REORDER_NOTES_DOWN_COMMAND } from '#client/editor/foundation/commands';
 import type { RemdoTestApi } from '#client/editor/dev';
 import { describe, it } from 'vitest';
@@ -119,8 +119,7 @@ async function resolveWorkloadState(workloadId: WorkloadId): Promise<{ stateJson
 
 async function ensureStructuralSelection(remdo: RemdoTestApi, noteId: string): Promise<void> {
   await placeCaretAtNote(remdo, noteId, 0);
-  await pressKey(remdo, { key: 'ArrowDown', shift: true });
-  await pressKey(remdo, { key: 'ArrowDown', shift: true });
+  await stepSelectionLadder(remdo, 'down');
 }
 
 const OPERATIONS: Operation[] = [

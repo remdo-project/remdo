@@ -116,7 +116,6 @@ test.describe('deletion (native browser behavior)', () => {
     await setCaretAtText(page, 'note1');
 
     await page.keyboard.press('Shift+ArrowDown');
-    await page.keyboard.press('Shift+ArrowDown');
 
     await page.keyboard.press('Delete');
 

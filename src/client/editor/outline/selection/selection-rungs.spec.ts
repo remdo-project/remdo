@@ -108,7 +108,7 @@ describe('selection rungs (pure algebra)', () => {
 
 describe('$replayLadder', () => {
   it(
-    'stack [subtree] -> range note2..note3 (anchor + its subtree)',
+    'stack [subtree] -> sibling heads note2..note2 (anchor subtree)',
     async () => {
       const { editor, dispose } = createListEditor();
       try {
@@ -130,7 +130,7 @@ describe('$replayLadder', () => {
         });
 
         expect(startId).toBe('note2');
-        expect(endId).toBe('note3');
+        expect(endId).toBe('note2');
       } finally {
         dispose();
       }
@@ -172,7 +172,7 @@ describe('$replayLadder', () => {
   );
 
   it(
-    'sibling step hoists to the parent when siblings run out -> note1..note4',
+    'sibling step hoists to parent heads note1..note1 when siblings run out',
     async () => {
       const { editor, dispose } = createListEditor();
       try {
@@ -197,7 +197,7 @@ describe('$replayLadder', () => {
 
         // hoist from note4 -> parent note1; subtree of note1 covers note1..note4
         expect(startId).toBe('note1');
-        expect(endId).toBe('note4');
+        expect(endId).toBe('note1');
       } finally {
         dispose();
       }

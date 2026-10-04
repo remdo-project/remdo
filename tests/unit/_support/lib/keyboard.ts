@@ -1,6 +1,7 @@
 import type { LexicalEditor } from 'lexical';
 import { act } from '@testing-library/react';
 import { CONTROLLED_TEXT_INSERTION_COMMAND, IS_APPLE } from 'lexical';
+import { PROGRESSIVE_SELECTION_DIRECTION_COMMAND } from '#client/editor/foundation/commands';
 import type { RemdoTestApi } from '#client/editor/dev';
 import { getRootElementOrThrow } from './selection';
 
@@ -77,6 +78,16 @@ export async function pressKey(
     root.dispatchEvent(event);
   });
 
+  await editorUpdate;
+  await remdo.waitForSynced();
+}
+
+// Browser tests cover native Shift+Arrow defaults; this drives the structural ladder.
+export async function stepSelectionLadder(remdo: RemdoTestApi, direction: 'up' | 'down'): Promise<void> {
+  const editorUpdate = waitForEditorUpdate(remdo.editor);
+  await act(async () => {
+    remdo.editor.dispatchCommand(PROGRESSIVE_SELECTION_DIRECTION_COMMAND, { direction });
+  });
   await editorUpdate;
   await remdo.waitForSynced();
 }

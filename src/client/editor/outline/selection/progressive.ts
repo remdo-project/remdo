@@ -1,11 +1,12 @@
 import type { ListItemNode } from '@lexical/list';
 import type { RangeSelection } from 'lexical';
-import { $getSelection, $isRangeSelection } from 'lexical';
+import { $getNodeByKey, $getSelection, $isElementNode, $isRangeSelection, $isTextNode } from 'lexical';
 import { $getListItemByKey } from '#client/editor/outline/list-structure';
+import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 
 import { reportInvariant } from '#client/editor/foundation/invariant';
 
-import { selectInlineContent, selectNoteBody, setSelectionBetweenItems } from './apply';
+import { $applyCaretEdge, selectInlineContent, setSelectionBetweenItems } from './apply';
 import type { ProgressiveSelectionState } from './resolve';
 import { $resolveSelectionPointItem } from './resolve';
 import {
@@ -16,7 +17,7 @@ import {
   popStep,
   pushStep,
 } from './rungs';
-import type { ProgressivePlan } from './rungs';
+import type { InlineSelectionOrigin, ProgressivePlan } from './rungs';
 
 interface ProgressiveSelectionRef {
   current: ProgressiveSelectionState;
@@ -29,7 +30,6 @@ interface ProgressiveSelectionRef {
 export const INITIAL_PROGRESSIVE_STATE: ProgressiveSelectionState = emptyLadder('');
 
 export interface ProgressivePlanResult {
-  anchorKey: string;
   plan: ProgressivePlan;
 }
 
@@ -37,6 +37,10 @@ export interface ProgressivePlanResult {
 // the selection should collapse to a caret at the anchor.
 export interface DirectionalCollapseResult {
   collapse: true;
+}
+
+export interface DirectionalRestoreResult {
+  restore: InlineSelectionOrigin;
   anchorKey: string;
 }
 
@@ -60,15 +64,14 @@ function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemN
 function $growLadder(
   base: ProgressiveSelectionState,
   anchorContent: ListItemNode,
-  direction: 'up' | 'down',
-  boundaryReplayKey: string | null,
-  expandToSiblingGroup: boolean
+  direction: 'up' | 'down' | null,
+  boundaryReplayKey: string | null
 ): { ladder: ProgressiveSelectionState; plan: ProgressivePlan | null } {
   let ladder = pushStep(base, direction);
-  let plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, expandToSiblingGroup);
+  let plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey);
   if (!plan && ladder.stack.length === 1) {
     ladder = pushStep(ladder, direction);
-    plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, expandToSiblingGroup);
+    plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey);
   }
   return { ladder, plan };
 }
@@ -138,50 +141,44 @@ export function $computeProgressivePlan(
   const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
   const boundaryReplayKey = boundaryRoot ? boundaryRoot.getKey() : null;
 
-  // Cmd+A is direction-neutral: it only ever grows the ladder outward, and its
-  // sibling rung selects the whole sibling group regardless of direction. So it
-  // always pushes in the canonical 'down' direction — it never inherits a prior
-  // Shift+Arrow sweep, and never leaves an 'up' bias that would make a following
-  // Shift+Arrow read as contraction. Start from a down-oriented base when
-  // continuing, or an empty ladder on a fresh anchor.
-  const base = isContinuing ? { ...progressionRef.current, direction: 'down' as const } : emptyLadder(anchorKey);
-  const { ladder, plan } = $growLadder(base, anchorContent, 'down', boundaryReplayKey, true);
+  // Select All grows without choosing an arrow direction. Its whole-group
+  // sibling rungs retain that meaning during later directional replay.
+  const base = isContinuing ? progressionRef.current : emptyLadder(anchorKey);
+  const { ladder, plan } = $growLadder(base, anchorContent, null, boundaryReplayKey);
 
   if (!plan) {
     // The freshly pushed rung ran past the edge: either the zoom boundary or the
     // document root. Clamp to the maximum reachable selection so the handler still
     // claims the event instead of falling through to the default browser Cmd+A.
-    // Leave the ladder unchanged (don't persist the blocked rung).
+    // Keep the existing rungs without retaining the previous arrow direction.
+    progressionRef.current = { ...base, direction: null };
     if (boundaryRoot) {
       // View boundary: clamp to the view root's subtree.
-      const clampedPlan = $createSubtreePlan(boundaryRoot);
-      if (clampedPlan) {
-        return { anchorKey, plan: clampedPlan };
-      }
+      return { plan: $createSubtreePlan(boundaryRoot) };
     } else {
       // Document root (no zoom): replay the last good ladder — the whole-document
       // note range the previous press already reached — so a further Cmd+A is a handled
       // no-op rather than a fall-through.
-      const clampedPlan = $replayLadder(anchorContent, base.stack, boundaryReplayKey, true);
+      const clampedPlan = $replayLadder(anchorContent, base.stack, boundaryReplayKey);
       if (clampedPlan) {
-        return { anchorKey, plan: clampedPlan };
+        return { plan: clampedPlan };
       }
     }
     return null;
   }
 
   progressionRef.current = ladder;
-  return { anchorKey, plan };
+  return { plan };
 }
 
 /**
- * Route a Shift+Arrow press through the rung ladder (push/pop + replay).
+ * Plan directional entry, growth or contraction of the rung ladder.
  *
  * The ladder is the single source of truth. Growth (sweep direction, or any
  * direction before a sweep is set) pushes the next rung; contraction (opposite
  * of the recorded sweep direction) pops the top rung. Contracting past the
- * bottom of the stack collapses to a caret. A same-direction press once the
- * ladder is back at a caret is a no-op (stop-at-anchor, never flip).
+ * bottom of the stack restores the label selection that entered it, or collapses
+ * to a caret for a select-all or pointer ladder.
  *
  * Returns a plan to apply, a collapse signal, a no-op signal, or null when the
  * selection/anchor cannot be resolved (caller resets the ladder).
@@ -191,20 +188,12 @@ export function $computeDirectionalPlan(
   direction: 'up' | 'down',
   initialProgression: ProgressiveSelectionState,
   boundaryKey: string | null = null
-): ProgressivePlanResult | DirectionalCollapseResult | DirectionalNoopResult | null {
+): ProgressivePlanResult | DirectionalCollapseResult | DirectionalRestoreResult | DirectionalNoopResult | null {
   const selection = $getSelection();
   if (!$isRangeSelection(selection)) {
     progressionRef.current = initialProgression;
     return null;
   }
-
-  // Once a ladder has contracted to a bare caret it is fully reset (see the
-  // collapse branch below): there is no caret "direction memory". A Shift+Arrow
-  // on a collapsed caret therefore always starts a fresh ladder in the pressed
-  // direction — Up grows up, Down grows down — matching plain text selection
-  // (anchor+focus) once you are back at the caret. The "no flip" rule applies
-  // only while a note range still exists (reversal pops toward the
-  // anchor), not after collapse.
 
   const anchorContent = $resolveProgressionAnchorContent(selection, progressionRef, initialProgression);
   if (!anchorContent) {
@@ -218,30 +207,44 @@ export function $computeDirectionalPlan(
   const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
   const boundaryReplayKey = boundaryRoot ? boundaryRoot.getKey() : null;
 
-  // Contraction: a press opposite to the direction the ladder was grown pops the
-  // top rung. This works from any rung (including the direction-neutral inline /
-  // subtree rungs at the bottom) because `direction` is the growth direction,
-  // recorded on every push and preserved by popStep until the stack is empty.
+  // An arrow opposite to the last directional growth pops the top rung.
+  // Select All leaves the sweep unset, so the first arrow grows either way.
   if (isContinuing && sweep !== null && direction !== sweep) {
     const next = popStep(ladder);
-    // Popped back to a bare caret: reset fully so the next Shift+Arrow starts a
-    // fresh ladder in the pressed direction ("flip" once back at the caret).
+    // The last pop ends the ladder and discards its sweep direction.
     if (next.stack.length === 0) {
       progressionRef.current = emptyLadder(anchorKey);
-      return { collapse: true, anchorKey };
+      if (ladder.entrySelection) {
+        return { restore: ladder.entrySelection, anchorKey };
+      }
+      return { collapse: true };
     }
     const plan = $replayLadder(anchorContent, next.stack, boundaryReplayKey);
     if (!plan) {
       progressionRef.current = emptyLadder(anchorKey);
-      return { collapse: true, anchorKey };
+      return { collapse: true };
     }
     progressionRef.current = next;
-    return { anchorKey, plan };
+    return { plan };
   }
 
-  // Growth: push the next rung (fresh ladder when not continuing).
+  if (
+    !isContinuing
+    && resolveContentItemFromNode(selection.anchor.getNode())?.getKey() === anchorKey
+    && resolveContentItemFromNode(selection.focus.getNode())?.getKey() === anchorKey
+  ) {
+    const capturePoint = ({ key, offset, type }: RangeSelection['anchor']) => ({ key, offset, type });
+    progressionRef.current = {
+      anchorKey,
+      stack: [{ kind: 'subtree' }],
+      direction,
+      entrySelection: { anchor: capturePoint(selection.anchor), focus: capturePoint(selection.focus) },
+    };
+    return { plan: $createSubtreePlan(anchorContent) };
+  }
+
   const base = isContinuing ? ladder : emptyLadder(anchorKey);
-  const { ladder: next, plan } = $growLadder(base, anchorContent, direction, boundaryReplayKey, false);
+  const { ladder: next, plan } = $growLadder(base, anchorContent, direction, boundaryReplayKey);
 
   if (!plan) {
     // Boundary push (past document/view root) — no-op, keep the current ladder.
@@ -249,7 +252,25 @@ export function $computeDirectionalPlan(
   }
 
   progressionRef.current = next;
-  return { anchorKey, plan };
+  return { plan };
+}
+
+export function $restoreInlineSelection(result: DirectionalRestoreResult): boolean {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection)) {
+    return false;
+  }
+  for (const endpoint of ['anchor', 'focus'] as const) {
+    const point = result.restore[endpoint];
+    const node = $getNodeByKey(point.key);
+    if (!node || resolveContentItemFromNode(node)?.getKey() !== result.anchorKey) {
+      return $applyCaretEdge(result.anchorKey, 'start');
+    }
+    const size = $isTextNode(node) ? node.getTextContentSize() : $isElementNode(node) ? node.getChildrenSize() : 0;
+    selection[endpoint].set(point.key, Math.min(point.offset, size), point.type);
+  }
+  selection.dirty = true;
+  return true;
 }
 
 export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
@@ -263,10 +284,7 @@ export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
     if (!item) {
       return false;
     }
-    if (!selectInlineContent(selection, item)) {
-      return selectNoteBody(selection, item);
-    }
-    return true;
+    return selectInlineContent(selection, item);
   }
 
   const startItem = $getListItemByKey(result.plan.startKey);
@@ -275,5 +293,5 @@ export function $applyProgressivePlan(result: ProgressivePlanResult): boolean {
     return false;
   }
 
-  return setSelectionBetweenItems(selection, startItem, endItem, result.plan.startMode, result.plan.endMode);
+  return setSelectionBetweenItems(selection, startItem, endItem, 'content', 'subtree');
 }

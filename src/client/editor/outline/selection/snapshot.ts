@@ -19,12 +19,7 @@ import {
 import { $replayLadder, ladderHasStructuralRung } from './rungs';
 import type { ProgressivePlan } from './rungs';
 import { getNoteOwnText } from './note-body';
-import { getParentContentItem } from './tree';
-
-export interface ProgressiveUnlockState {
-  pending: boolean;
-  reason: 'directional' | 'external';
-}
+import { noteHasChildren } from './tree';
 
 // A re-replay plan the plugin must re-apply to the live Lexical selection so
 // the DOM range follows a remote/undo/typing reshape (the snapshot itself runs
@@ -33,30 +28,11 @@ export type StructuralReshape =
   | { kind: 'range'; plan: Extract<ProgressivePlan, { type: 'range' }> }
   | { kind: 'collapse' };
 
-// Build an OutlineSelectionRange (sibling heads + subtree tail) from a replayed
-// range plan. The plan's startKey is the start head; endKey is the subtree tail
-// of the end head, so climb the tail up to the start head's sibling level to
-// recover the end head.
-function $rangeFromReplayPlan(
-  plan: Extract<ProgressivePlan, { type: 'range' }>
-): OutlineSelectionRange | null {
-  const startHead = $getListItemByKey(plan.startKey);
-  const tail = $getListItemByKey(plan.endKey);
-  if (!startHead || !tail) {
-    return null;
-  }
-
-  const startParent = startHead.getParent();
-  let endHead: ListItemNode = tail;
-  while (endHead.getParent() !== startParent) {
-    const parent = getParentContentItem(endHead);
-    if (!parent) {
-      return null;
-    }
-    endHead = parent;
-  }
-
-  return computeStructuralRangeFromHeads([startHead, endHead]);
+// Range plans retain sibling heads; the range owner resolves their subtree tails.
+function $rangeFromReplayPlan(plan: Extract<ProgressivePlan, { type: 'range' }>): OutlineSelectionRange | null {
+  const start = $getListItemByKey(plan.startKey);
+  const end = $getListItemByKey(plan.endKey);
+  return start && end ? computeStructuralRangeFromHeads([start, end]) : null;
 }
 
 // Re-replay a structural ladder against the live tree and return the reshaped
@@ -100,6 +76,7 @@ function $isRungOnlyEmptyNote(
   return plan?.type === 'range'
     && plan.startKey === anchorItem.getKey()
     && plan.endKey === plan.startKey
+    && !noteHasChildren(anchorItem)
     && getNoteOwnText(anchorItem) === '';
 }
 
@@ -109,7 +86,7 @@ interface OutlineSelectionSnapshot {
   structuralRange: OutlineSelectionRange | null;
   outlineSelection: OutlineSelection | null;
   progression: ProgressiveSelectionState;
-  unlock: ProgressiveUnlockState;
+  unlock: boolean;
   reshape: StructuralReshape | null;
 }
 
@@ -122,7 +99,7 @@ interface OutlineSelectionSnapshotInput {
   // re-replays an active structural ladder.
   treeChanged: boolean;
   progression: ProgressiveSelectionState;
-  unlock: ProgressiveUnlockState;
+  unlock: boolean;
   initialProgression: ProgressiveSelectionState;
   // View boundary (view root key) or null at the document root. A reshape must
   // stay inside this boundary, just like the keyboard command paths.
@@ -151,7 +128,7 @@ export function $computeOutlineSelectionSnapshot({
       structuralRange: null,
       outlineSelection: null,
       progression: initialProgression,
-      unlock: { pending: false, reason: 'external' },
+      unlock: false,
       reshape: null,
     };
   }
@@ -174,7 +151,7 @@ export function $computeOutlineSelectionSnapshot({
     : null;
   const anchorSelectionKey = anchorSelectionItem ? anchorSelectionItem.getKey() : null;
   const isLadderStructural = ladderHasStructuralRung(nextProgression);
-  const hasDirectionalUnlock = nextUnlock.pending && nextUnlock.reason === 'directional';
+  const hasDirectionalUnlock = nextUnlock;
   const isCollapsedOnLadderAnchor =
     $isRangeSelection(selection) &&
     selection.isCollapsed() &&
@@ -187,23 +164,33 @@ export function $computeOutlineSelectionSnapshot({
     isCollapsedOnLadderAnchor &&
     (isProgressiveTagged || (hasDirectionalUnlock && $isRungOnlyEmptyNote(anchorSelectionItem!, nextProgression, boundaryKey)));
 
-  // A progressive-tagged selection is left untouched, and a pending directional unlock stops one
-  // anchor mismatch in the normalized handoff from discarding the logical ladder anchor.
+  // Normalization can move the anchor to the range's first note. A pending
+  // handoff must not preserve the ladder for a replacement in another note.
   if (!isProgressiveTagged) {
     if ($isRangeSelection(selection)) {
       const isUserCaret = selection.isCollapsed() && !isCollapsedStructuralIntent;
+      const hasAnchorMismatch = !anchorSelectionKey || nextProgression.anchorKey !== anchorSelectionKey;
+      const handoffAnchor = hasDirectionalUnlock && hasAnchorMismatch
+        ? $getListItemByKey(nextProgression.anchorKey)
+        : null;
+      const handoffPlan = handoffAnchor
+        ? $replayLadder(handoffAnchor, nextProgression.stack, boundaryKey)
+        : null;
+      const isNormalizedHandoff = handoffPlan?.type === 'range'
+        && handoffPlan.startKey === anchorSelectionKey
+        && $getSelectedNotes(selection).length > 1;
       if (
         isUserCaret ||
-        (!hasDirectionalUnlock && (!anchorSelectionKey || nextProgression.anchorKey !== anchorSelectionKey))
+        (hasAnchorMismatch && !isNormalizedHandoff)
       ) {
         resetProgression();
       }
       if (hasDirectionalUnlock) {
-        nextUnlock = { pending: false, reason: 'external' };
+        nextUnlock = false;
       }
     } else {
       resetProgression();
-      nextUnlock = { pending: false, reason: 'external' };
+      nextUnlock = false;
     }
   }
 

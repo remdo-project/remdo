@@ -8,6 +8,7 @@ import {
   getNoteKey,
   placeCaretAtNote,
   pressKey,
+  stepSelectionLadder,
   readCaretNoteId,
   readCaretNoteKey,
   readOutline,
@@ -683,8 +684,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
 
     it('lands the caret on the parent body when deleting the only child in a subtree', meta({ fixture: 'basic' }), async ({ remdo }) => {
             await placeCaretAtNote(remdo, 'note2');
-      await pressKey(remdo, { key: 'ArrowDown', shift: true }); // inline stage
-      await pressKey(remdo, { key: 'ArrowDown', shift: true }); // structural stage
+      await stepSelectionLadder(remdo, 'down'); // structural stage
 
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
 

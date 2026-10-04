@@ -9,25 +9,37 @@ import {
   $applyProgressivePlan,
   $computeDirectionalPlan,
   $computeProgressivePlan,
+  $restoreInlineSelection,
   INITIAL_PROGRESSIVE_STATE,
 } from '#client/editor/outline/selection/progressive';
 import type { ProgressivePlanResult } from '#client/editor/outline/selection/progressive';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   $getSelection,
+  $createRangeSelectionFromDom,
+  $setSelection,
   $isRangeSelection,
   $addUpdateTag,
   COMMAND_PRIORITY_CRITICAL,
+  KEY_DOWN_COMMAND,
+  KEY_ESCAPE_COMMAND,
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_ARROW_DOWN_COMMAND,
   SELECT_ALL_COMMAND,
+  SELECTION_CHANGE_COMMAND,
+  getDOMSelection,
 } from 'lexical';
+import type { RangeSelection } from 'lexical';
+import { $getNoteBodyFromNode } from '#client/editor/outline/selection/body-region';
+import { restoreLabelFocusVisualLine } from '#client/editor/outline/selection/visual-line';
+import type { InlineSelectionOrigin } from '#client/editor/outline/selection/rungs';
 import type { OutlineSelectionRange } from '#client/editor/outline/selection/model';
 import type { SnapPayload } from '#client/editor/outline/selection/resolve';
+import { $resolveSelectionPointItem } from '#client/editor/outline/selection/resolve';
 import { $computeOutlineSelectionSnapshot } from '#client/editor/outline/selection/snapshot';
-import type { ProgressiveUnlockState, StructuralReshape } from '#client/editor/outline/selection/snapshot';
+import type { StructuralReshape } from '#client/editor/outline/selection/snapshot';
 import type { StructuralOverlayConfig } from '#client/editor/outline/selection/overlay';
 import { clearStructuralOverlay, updateStructuralOverlay } from '#client/editor/outline/selection/overlay';
 import { useEffect, useRef } from 'react';
@@ -58,33 +70,26 @@ function isSameDomSelection(a: DomSelectionPoints, b: DomSelectionPoints | null)
 export function SelectionPlugin() {
   const [editor] = useLexicalComposerContext();
   const ladderRef = useRef(INITIAL_PROGRESSIVE_STATE);
-  const unlockRef = useRef<ProgressiveUnlockState>({ pending: false, reason: 'external' });
+  const unlockRef = useRef(false);
   useEffect(() => {
     const disposedRef = { current: false };
     installOutlineSelectionHelpers(editor);
 
-    // The directional unlock carries the ladder through Lexical's normalization of the DOM
-    // selection a plan just wrote, which arrives in the first selectionchange after that write.
-    // It ends in a task after that event, so Lexical's listener and its microtask commit run first
-    // whatever the listener order; immediately when the plan leaves the DOM selection unchanged or
-    // is not applied; or on a no-op step. Anything later is user input.
+    // Preserve the ladder while Lexical normalizes a range the plan wrote.
+    // Clear after that selectionchange commits, or immediately if no DOM change
+    // is applied. Clearing during the event loses normalized anchors and empty rungs.
     const clearUnlock = () => {
-      unlockRef.current = { pending: false, reason: 'external' };
+      unlockRef.current = false;
     };
     let domSelectionBeforePlan: DomSelectionPoints | null = null;
+    let restoredLabelFocus: InlineSelectionOrigin | null = null;
+    let reactiveMotion: { selection: RangeSelection; focusKey: string; regionKey: string | null; direction: 'up' | 'down'; points: DomSelectionPoints } | null = null;
     let awaitingHandoff = false;
     let handoffTimer: ReturnType<typeof setTimeout> | undefined;
-    const endHandoff = () => {
-      if (!awaitingHandoff) {
-        return;
-      }
-      awaitingHandoff = false;
-      handoffTimer = setTimeout(clearUnlock);
-    };
     const armUnlock = () => {
       clearTimeout(handoffTimer);
       awaitingHandoff = false;
-      unlockRef.current = { pending: true, reason: 'directional' };
+      unlockRef.current = true;
     };
     const abandonPlan = () => {
       ladderRef.current = INITIAL_PROGRESSIVE_STATE;
@@ -92,13 +97,29 @@ export function SelectionPlugin() {
       clearUnlock();
     };
     const ownerDocument = editor.getRootElement()?.ownerDocument ?? document;
-    ownerDocument.addEventListener('selectionchange', endHandoff);
     const readDomSelection = (): DomSelectionPoints | null => {
       const selection = editor.getRootElement()?.ownerDocument.getSelection();
       return selection
         ? { anchorNode: selection.anchorNode, anchorOffset: selection.anchorOffset, focusNode: selection.focusNode, focusOffset: selection.focusOffset }
         : null;
     };
+
+    const endHandoff = () => {
+      if (!awaitingHandoff) {
+        return;
+      }
+      awaitingHandoff = false;
+      handoffTimer = setTimeout(clearUnlock);
+    };
+    const clearReactiveMotion = () => { reactiveMotion = null; };
+    const clearCompletedNoopMotion = (event: KeyboardEvent) => {
+      if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && reactiveMotion
+        && isSameDomSelection(reactiveMotion.points, readDomSelection())) clearReactiveMotion();
+    };
+    ownerDocument.addEventListener('blur', clearReactiveMotion, true);
+    ownerDocument.addEventListener('keyup', clearCompletedNoopMotion, true);
+    ownerDocument.addEventListener('pointerdown', clearReactiveMotion, true);
+    ownerDocument.addEventListener('selectionchange', endHandoff);
 
     const $addUpdateTags = (tags: string | string[]) => {
       if (Array.isArray(tags)) {
@@ -113,10 +134,10 @@ export function SelectionPlugin() {
     // A coalescing microtask scheduler: repeated calls keep only the latest
     // value and run `flush` once on the next microtask, so two updates in one
     // task can't apply a stale-then-fresh selection in sequence.
-    const makeCoalescingScheduler = <T,>(flush: (value: T) => void): ((value: T) => void) => {
+    const makeCoalescingScheduler = <T,>(flush: (value: T) => void): ((value: T | null) => void) => {
       let pending: T | null = null;
       let scheduled = false;
-      return (value: T) => {
+      return (value: T | null) => {
         pending = value;
         if (scheduled) return;
         scheduled = true;
@@ -130,58 +151,29 @@ export function SelectionPlugin() {
       };
     };
 
-    const scheduleSnapSelection = makeCoalescingScheduler<SnapPayload>((payload) => {
-      editor.update(
-        () => {
-          const selection = $getSelection();
-          if (!$isRangeSelection(selection)) {
-            return;
-          }
-
-          const anchorItem = $getListItemByKey(payload.anchorKey);
-          const focusItem = $getListItemByKey(payload.focusKey);
-          if (!anchorItem || !focusItem) {
-            return;
-          }
-
-          const anchorPoint = resolveBoundaryPoint(anchorItem, payload.anchorEdge);
-          const focusPoint = resolveBoundaryPoint(focusItem, payload.focusEdge);
-          if (!anchorPoint || !focusPoint) {
-            return;
-          }
-
-          selection.setTextNodeRange(anchorPoint.node, anchorPoint.offset, focusPoint.node, focusPoint.offset);
-        },
-        { tag: SNAP_SELECTION_TAG }
-      );
-    });
-
-    // Re-apply a collaboration/undo/typing reshape to the live Lexical
-    // selection. Tagged progressive + snap so the resulting update is treated
-    // as our own (skips a second reshape and snap re-derivation).
-    const scheduleReshapeSelection = makeCoalescingScheduler<StructuralReshape>((reshape) => {
-      editor.update(
-        () => {
-          const selection = $getSelection();
-          if (!$isRangeSelection(selection)) {
-            return;
-          }
-
-          if (reshape.kind === 'collapse') {
+    // One pending write lets every later snapshot supersede an older snap or
+    // reshape, including a caret/inline choice that needs no follow-up write.
+    const scheduleSelectionWrite = makeCoalescingScheduler<SnapPayload | StructuralReshape>(action => {
+      editor.update(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) return;
+        if ('kind' in action) {
+          if (action.kind === 'collapse') {
             collapseSelectionToCaret(selection);
             return;
           }
-
-          const startItem = $getListItemByKey(reshape.plan.startKey);
-          const endItem = $getListItemByKey(reshape.plan.endKey);
-          if (!startItem || !endItem) {
-            return;
-          }
-
-          setSelectionBetweenItems(selection, startItem, endItem, reshape.plan.startMode, reshape.plan.endMode);
-        },
-        { tag: [PROGRESSIVE_SELECTION_TAG, SNAP_SELECTION_TAG] }
-      );
+          const start = $getListItemByKey(action.plan.startKey);
+          const end = $getListItemByKey(action.plan.endKey);
+          if (start && end) setSelectionBetweenItems(selection, start, end, 'content', 'subtree');
+          return;
+        }
+        const anchorItem = $getListItemByKey(action.anchorKey);
+        const focusItem = $getListItemByKey(action.focusKey);
+        if (!anchorItem || !focusItem) return;
+        const anchor = resolveBoundaryPoint(anchorItem, action.anchorEdge);
+        const focus = resolveBoundaryPoint(focusItem, action.focusEdge);
+        if (anchor && focus) selection.setTextNodeRange(anchor.node, anchor.offset, focus.node, focus.offset);
+      }, { tag: 'kind' in action ? [PROGRESSIVE_SELECTION_TAG, SNAP_SELECTION_TAG] : SNAP_SELECTION_TAG });
     });
 
     const renderStructuralHighlight = (
@@ -197,7 +189,36 @@ export function SelectionPlugin() {
       renderStructuralHighlight(null, editor.selection.isStructural(), rootElement ?? undefined);
     });
 
+    const $computeSnapshot = (isProgressiveTagged = false, isSnapTagged = false, treeChanged = false) =>
+      $computeOutlineSelectionSnapshot({
+        selection: $getSelection(), isProgressiveTagged, isSnapTagged, treeChanged,
+        progression: ladderRef.current, unlock: unlockRef.current,
+        initialProgression: INITIAL_PROGRESSIVE_STATE, boundaryKey: getViewRoot(editor),
+      });
+    const publishSnapshot = ({ payload, hasStructuralSelection, structuralRange, outlineSelection, progression, unlock, reshape }: ReturnType<typeof $computeSnapshot>) => {
+      ladderRef.current = progression;
+      unlockRef.current = unlock;
+      renderStructuralHighlight(structuralRange, hasStructuralSelection && structuralRange !== null);
+      editor.selection.set(outlineSelection);
+      scheduleSelectionWrite(reshape ?? payload);
+    };
+
     const unregisterProgressionListener = editor.registerUpdateListener(({ editorState, tags, dirtyElements, dirtyLeaves }) => {
+      // The tree changed (collaboration, undo/redo, typing) when this update
+      // touched any node — as opposed to a selection-only change such as a
+      // Shift+Click extension. Only a tree change re-replays the ladder.
+      const treeChanged = dirtyElements.size > 0 || dirtyLeaves.size > 0;
+      if (tags.has(PROGRESSIVE_SELECTION_TAG) && restoredLabelFocus) {
+        const origin = restoredLabelFocus;
+        restoredLabelFocus = null;
+        const unchanged = editorState.read(() => {
+          const selection = $getSelection();
+          return $isRangeSelection(selection) && (['anchor', 'focus'] as const).every(endpoint =>
+            selection[endpoint].key === origin[endpoint].key && selection[endpoint].offset === origin[endpoint].offset
+            && selection[endpoint].type === origin[endpoint].type);
+        });
+        if (unchanged) restoreLabelFocusVisualLine(editor, origin.focusAtLineEnd!);
+      }
       if (tags.has(PROGRESSIVE_SELECTION_TAG) && domSelectionBeforePlan) {
         const unchanged = isSameDomSelection(domSelectionBeforePlan, readDomSelection());
         domSelectionBeforePlan = null;
@@ -207,53 +228,19 @@ export function SelectionPlugin() {
           awaitingHandoff = true;
         }
       }
-      // The tree changed (collaboration, undo/redo, typing) when this update
-      // touched any node — as opposed to a selection-only change such as a
-      // Shift+Click extension. Only a tree change re-replays the ladder.
-      const treeChanged = dirtyElements.size > 0 || dirtyLeaves.size > 0;
-      const viewRootKey = getViewRoot(editor);
-      const { payload, hasStructuralSelection, structuralRange, outlineSelection, progression, unlock, reshape } =
-        editorState.read(() =>
-          $computeOutlineSelectionSnapshot({
-            selection: $getSelection(),
-            isProgressiveTagged: tags.has(PROGRESSIVE_SELECTION_TAG),
-            isSnapTagged: tags.has(SNAP_SELECTION_TAG),
-            treeChanged,
-            progression: ladderRef.current,
-            unlock: unlockRef.current,
-            initialProgression: INITIAL_PROGRESSIVE_STATE,
-            boundaryKey: viewRootKey,
-          })
-        );
-
-      ladderRef.current = progression;
-      unlockRef.current = unlock;
-
-      const hasHighlight = hasStructuralSelection && structuralRange !== null;
-      renderStructuralHighlight(structuralRange, hasHighlight);
-      editor.selection.set(outlineSelection);
-
-      // A collaboration/undo/typing update reshaped the structural ladder. The
-      // snapshot already updated the outline store + highlight from the
-      // re-replayed ladder; here we re-apply the reshape to the live Lexical
-      // selection so the DOM range follows the remote tree change.
-      if (reshape) {
-        scheduleReshapeSelection(reshape);
-      }
-
-      if (!payload) {
-        return;
-      }
-
-      const nextPayload = payload;
-
-      scheduleSnapSelection(nextPayload);
+      publishSnapshot(editorState.read(() => $computeSnapshot(tags.has(PROGRESSIVE_SELECTION_TAG), tags.has(SNAP_SELECTION_TAG), treeChanged)));
     });
+
+    const $beginPlan = () => {
+      armUnlock();
+      domSelectionBeforePlan = readDomSelection();
+      $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
+    };
 
     const $applyPlan = (planResult: ProgressivePlanResult) => {
       // The ladder ref was already advanced by $computeProgressivePlan; here we
       // only apply the plan and roll the ladder back if the selection fails.
-      $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
+      $beginPlan();
 
       if (!$applyProgressivePlan(planResult)) {
         abandonPlan();
@@ -291,10 +278,19 @@ export function SelectionPlugin() {
 
         if (handled) {
           ladderRef.current = INITIAL_PROGRESSIVE_STATE;
-          unlockRef.current = { pending: false, reason: 'external' };
+          unlockRef.current = false;
         }
       }
 
+      return true;
+    };
+
+    const $collapseOnKey = (edge: 'start' | 'end' | 'anchor', event: KeyboardEvent): boolean => {
+      if (edge !== 'anchor' && (!editor.selection.isStructural()
+        || event.shiftKey || event.altKey || event.metaKey || event.ctrlKey)) return false;
+      if (!$collapseStructuralSelectionToCaretAndReset(edge)) return false;
+      event.preventDefault();
+      event.stopPropagation();
       return true;
     };
 
@@ -310,10 +306,7 @@ export function SelectionPlugin() {
           return false;
         }
 
-        armUnlock();
         event.preventDefault();
-
-        domSelectionBeforePlan = readDomSelection();
         $applyPlan(planResult);
 
         return true;
@@ -321,54 +314,20 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
-    const unregisterArrowLeft = editor.registerCommand(
-      KEY_ARROW_LEFT_COMMAND,
-      (event) => {
-        if (!event.shiftKey) {
-          return false;
-        }
-
-        const shouldBlock = editor.getEditorState().read(() => $shouldBlockHorizontalArrow('left'));
-
-        if (!shouldBlock) {
-          return false;
-        }
-
+    const unregisterHorizontalArrows = (['left', 'right'] as const).map(direction => editor.registerCommand(
+      direction === 'left' ? KEY_ARROW_LEFT_COMMAND : KEY_ARROW_RIGHT_COMMAND,
+      event => {
+        if (!event.shiftKey) return $collapseOnKey(direction === 'left' ? 'start' : 'end', event);
+        if (!$shouldBlockHorizontalArrow(direction)) return false;
         event.stopImmediatePropagation();
         event.stopPropagation();
         event.preventDefault();
         return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
+      }, COMMAND_PRIORITY_CRITICAL
+    ));
 
-    const unregisterArrowRight = editor.registerCommand(
-      KEY_ARROW_RIGHT_COMMAND,
-      (event) => {
-        if (!event.shiftKey) {
-          return false;
-        }
-
-        const shouldBlock = editor.getEditorState().read(() => $shouldBlockHorizontalArrow('right'));
-
-        if (!shouldBlock) {
-          return false;
-        }
-
-        event.stopImmediatePropagation();
-        event.stopPropagation();
-        event.preventDefault();
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
-    const $runDirectionalPlan = (direction: 'up' | 'down') => {
+    const $runDirectionalPlan = (direction: 'up' | 'down'): void => {
       const viewRootKey = getViewRoot(editor);
-
-      armUnlock();
-
-      $addUpdateTags([SNAP_SELECTION_TAG, PROGRESSIVE_SELECTION_TAG]);
 
       // $computeDirectionalPlan owns the ladder ref: it pushes/pops the ladder
       // and returns either a plan, a collapse signal (popped to caret), a no-op
@@ -376,7 +335,7 @@ export function SelectionPlugin() {
       const result = $computeDirectionalPlan(ladderRef, direction, INITIAL_PROGRESSIVE_STATE, viewRootKey);
 
       if (!result) {
-        ladderRef.current = INITIAL_PROGRESSIVE_STATE;
+        abandonPlan();
         return;
       }
 
@@ -385,7 +344,19 @@ export function SelectionPlugin() {
         return;
       }
 
-      domSelectionBeforePlan = readDomSelection();
+      if ('plan' in result) {
+        $applyPlan(result);
+        return;
+      }
+      $beginPlan();
+      if ('restore' in result) {
+        if (!$restoreInlineSelection(result)) {
+          abandonPlan();
+        } else {
+          restoredLabelFocus = result.restore;
+        }
+        return;
+      }
       if ('collapse' in result) {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
@@ -393,13 +364,83 @@ export function SelectionPlugin() {
         } else {
           abandonPlan();
         }
-        return;
-      }
-
-      if (!$applyProgressivePlan(result)) {
-        abandonPlan();
       }
     };
+
+    const $finishReactiveMotion = (selection: RangeSelection | null): void => {
+      const points = readDomSelection();
+      if (!reactiveMotion || !points || isSameDomSelection(points, reactiveMotion.points)) return;
+      const checkpoint = reactiveMotion;
+      reactiveMotion = null;
+      if (!selection) return;
+      // Native extension keeps its anchor region; inline boundaries can alias DOM points.
+      const anchor = $resolveSelectionPointItem(selection, selection.anchor);
+      const anchorRegion = $getNoteBodyFromNode(selection.anchor.getNode())?.getKey() ?? null;
+      if (anchor?.getKey() !== checkpoint.focusKey || anchorRegion !== checkpoint.regionKey) return;
+      const focus = $resolveSelectionPointItem(selection, selection.focus);
+      const regionKey = $getNoteBodyFromNode(selection.focus.getNode())?.getKey() ?? null;
+      if (!focus || (focus.getKey() === checkpoint.focusKey && regionKey === checkpoint.regionKey)) return;
+      if (!$restoreInlineSelection({ restore: checkpoint.selection, anchorKey: checkpoint.focusKey })) return;
+      const viewRootKey = getViewRoot(editor);
+      if (focus.getKey() === viewRootKey || checkpoint.focusKey === viewRootKey) {
+        $beginPlan();
+        restoredLabelFocus = {
+          anchor: checkpoint.selection.anchor,
+          focus: checkpoint.selection.focus,
+          focusAtLineEnd: checkpoint.direction === 'up',
+        };
+      } else {
+        $runDirectionalPlan(checkpoint.direction);
+        if (ladderRef.current.entrySelection) {
+          ladderRef.current.entrySelection.focusAtLineEnd = checkpoint.direction === 'up';
+        }
+      }
+      publishSnapshot($computeSnapshot(true, true));
+    };
+
+    // A second key can arrive before the native selectionchange. Import that
+    // completed motion before command consumers read the selection in this update.
+    const unregisterPendingMotion = editor.registerCommand(KEY_DOWN_COMMAND, event => {
+      if (!reactiveMotion) return false;
+      const native = $createRangeSelectionFromDom(getDOMSelection(editor._window), editor);
+      if (native) $setSelection(native);
+      $finishReactiveMotion(native);
+      if (event.key !== 'Shift' && !(event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey
+        && (event.key === 'ArrowUp' || event.key === 'ArrowDown'))) clearReactiveMotion();
+      return false;
+    }, COMMAND_PRIORITY_CRITICAL);
+
+    const unregisterArrows = (['up', 'down'] as const).map(direction => editor.registerCommand<KeyboardEvent>(
+      direction === 'up' ? KEY_ARROW_UP_COMMAND : KEY_ARROW_DOWN_COMMAND,
+      (event) => {
+        if (!event.shiftKey) return $collapseOnKey(direction === 'up' ? 'start' : 'end', event);
+        if (event.altKey || event.metaKey || event.ctrlKey) return false;
+        const selection = $getSelection();
+        if ($isRangeSelection(selection) && ladderRef.current.stack.length === 0 && !editor.selection.isStructural()) {
+          const checkpoint = $createRangeSelectionFromDom(getDOMSelection(editor._window), editor) ?? selection.clone();
+          const focus = $resolveSelectionPointItem(checkpoint, checkpoint.focus);
+          const points = readDomSelection();
+          if (focus && points) {
+            reactiveMotion = { selection: checkpoint, focusKey: focus.getKey(), regionKey: $getNoteBodyFromNode(checkpoint.focus.getNode())?.getKey() ?? null, direction, points };
+            return false;
+          }
+        }
+        $runDirectionalPlan(direction);
+        event.preventDefault();
+        return true;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    ));
+
+    const unregisterReactiveSelection = editor.registerCommand(
+      SELECTION_CHANGE_COMMAND,
+      () => {
+        const selection = $getSelection();
+        $finishReactiveMotion($isRangeSelection(selection) ? selection : null);
+        return false;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
 
     const unregisterDirectionalCommand = editor.registerCommand(
       PROGRESSIVE_SELECTION_DIRECTION_COMMAND,
@@ -416,59 +457,43 @@ export function SelectionPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
 
+    const unregisterCollapseNavigation = editor.registerCommand(
+      KEY_DOWN_COMMAND,
+      event => {
+        if (event.key !== 'Home' && event.key !== 'End' && event.key !== 'PageUp' && event.key !== 'PageDown') {
+          return false;
+        }
+        return $collapseOnKey(event.key === 'Home' || event.key === 'PageUp' ? 'start' : 'end', event);
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const unregisterEscape = editor.registerCommand(
+      KEY_ESCAPE_COMMAND,
+      event => $collapseOnKey('anchor', event),
+      COMMAND_PRIORITY_CRITICAL
+    );
+
     return () => {
       disposedRef.current = true;
+      reactiveMotion = null;
       ownerDocument.removeEventListener('selectionchange', endHandoff);
+      ownerDocument.removeEventListener('blur', clearReactiveMotion, true);
+      ownerDocument.removeEventListener('keyup', clearCompletedNoopMotion, true);
+      ownerDocument.removeEventListener('pointerdown', clearReactiveMotion, true);
       clearTimeout(handoffTimer);
       renderStructuralHighlight(null, false);
       unregisterProgressionListener();
       unregisterSelectAll();
-      unregisterArrowLeft();
-      unregisterArrowRight();
+      for (const unregister of unregisterHorizontalArrows) unregister();
+      for (const unregister of unregisterArrows) unregister();
+      unregisterPendingMotion();
+      unregisterReactiveSelection();
       unregisterDirectionalCommand();
       unregisterCollapseCommand();
+      unregisterCollapseNavigation();
+      unregisterEscape();
       unregisterRootListener();
-    };
-  }, [editor]);
-
-  return null;
-}
-
-export function SelectionInputPlugin() {
-  const [editor] = useLexicalComposerContext();
-
-  useEffect(() => {
-    const unregisterArrowUp = editor.registerCommand<KeyboardEvent>(
-      KEY_ARROW_UP_COMMAND,
-      (event) => {
-        if (!event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) {
-          return false;
-        }
-
-        event.preventDefault();
-        editor.dispatchCommand(PROGRESSIVE_SELECTION_DIRECTION_COMMAND, { direction: 'up' });
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
-    const unregisterArrowDown = editor.registerCommand<KeyboardEvent>(
-      KEY_ARROW_DOWN_COMMAND,
-      (event) => {
-        if (!event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) {
-          return false;
-        }
-
-        event.preventDefault();
-        editor.dispatchCommand(PROGRESSIVE_SELECTION_DIRECTION_COMMAND, { direction: 'down' });
-        return true;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
-    return () => {
-      unregisterArrowUp();
-      unregisterArrowDown();
     };
   }, [editor]);
 
