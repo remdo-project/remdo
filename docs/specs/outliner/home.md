@@ -11,8 +11,7 @@ is a [note](./note-model.md), and Home is the surface from which its documents a
 ## Definitions
 
 - **Home:** The landing view. It is not a document and holds no editable outline.
-  Home is reached from any document via the leftmost [breadcrumb](./zoom.md#breadcrumbs) crumb
-  or the [document search shortcut](./search.md#document-scope).
+  Home is reached from any document via the leftmost [breadcrumb](./zoom.md#breadcrumbs) crumb.
 
 ## Public introduction
 
@@ -97,9 +96,9 @@ success focuses the first editor note.
 ## Entering and leaving Home
 
 For signed-in users, opening Home moves keyboard focus to its
-[document search](./search.md#document-scope) field, or to its heading when the
-field is absent or on touch devices as defined by the
-[mobile toolbar's presence](./mobile-toolbar.md#presence).
+[document search](./search.md#document-scope) box, or to its heading when the box
+is absent or, unless the [shortcut](./search.md#document-scope) opened Home, on
+touch devices as defined by the [mobile toolbar's presence](./mobile-toolbar.md#presence).
 
 Navigation between Home and documents adds browser history
 entries, so Back and Forward restore the selected destination. Offline reopen
