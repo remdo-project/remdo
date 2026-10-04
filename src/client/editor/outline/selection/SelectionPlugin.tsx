@@ -285,6 +285,15 @@ export function SelectionPlugin() {
       return true;
     };
 
+    const $collapseOnKey = (edge: 'start' | 'end' | 'anchor', event: KeyboardEvent): boolean => {
+      if (edge !== 'anchor' && (!editor.selection.isStructural()
+        || event.shiftKey || event.altKey || event.metaKey || event.ctrlKey)) return false;
+      if (!$collapseStructuralSelectionToCaretAndReset(edge)) return false;
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    };
+
     const unregisterSelectAll = editor.registerCommand(
       SELECT_ALL_COMMAND,
       (event) => {
@@ -308,7 +317,8 @@ export function SelectionPlugin() {
     const unregisterHorizontalArrows = (['left', 'right'] as const).map(direction => editor.registerCommand(
       direction === 'left' ? KEY_ARROW_LEFT_COMMAND : KEY_ARROW_RIGHT_COMMAND,
       event => {
-        if (!event.shiftKey || !$shouldBlockHorizontalArrow(direction)) return false;
+        if (!event.shiftKey) return $collapseOnKey(direction === 'left' ? 'start' : 'end', event);
+        if (!$shouldBlockHorizontalArrow(direction)) return false;
         event.stopImmediatePropagation();
         event.stopPropagation();
         event.preventDefault();
@@ -316,7 +326,7 @@ export function SelectionPlugin() {
       }, COMMAND_PRIORITY_CRITICAL
     ));
 
-    const $runDirectionalPlan = (direction: 'up' | 'down'): boolean => {
+    const $runDirectionalPlan = (direction: 'up' | 'down'): void => {
       const viewRootKey = getViewRoot(editor);
 
       // $computeDirectionalPlan owns the ladder ref: it pushes/pops the ladder
@@ -326,17 +336,17 @@ export function SelectionPlugin() {
 
       if (!result) {
         abandonPlan();
-        return true;
+        return;
       }
 
       if ('noop' in result) {
         clearUnlock();
-        return true;
+        return;
       }
 
       if ('plan' in result) {
         $applyPlan(result);
-        return true;
+        return;
       }
       $beginPlan();
       if ('restore' in result) {
@@ -345,7 +355,7 @@ export function SelectionPlugin() {
         } else {
           restoredLabelFocus = result.restore;
         }
-        return true;
+        return;
       }
       if ('collapse' in result) {
         const selection = $getSelection();
@@ -354,10 +364,7 @@ export function SelectionPlugin() {
         } else {
           abandonPlan();
         }
-        return true;
       }
-
-      return true;
     };
 
     const $finishReactiveMotion = (selection: RangeSelection | null): void => {
@@ -406,7 +413,8 @@ export function SelectionPlugin() {
     const unregisterArrows = (['up', 'down'] as const).map(direction => editor.registerCommand<KeyboardEvent>(
       direction === 'up' ? KEY_ARROW_UP_COMMAND : KEY_ARROW_DOWN_COMMAND,
       (event) => {
-        if (!event.shiftKey || event.altKey || event.metaKey || event.ctrlKey) return false;
+        if (!event.shiftKey) return $collapseOnKey(direction === 'up' ? 'start' : 'end', event);
+        if (event.altKey || event.metaKey || event.ctrlKey) return false;
         const selection = $getSelection();
         if ($isRangeSelection(selection) && ladderRef.current.stack.length === 0 && !editor.selection.isStructural()) {
           const checkpoint = $createRangeSelectionFromDom(getDOMSelection(editor._window), editor) ?? selection.clone();
@@ -417,9 +425,9 @@ export function SelectionPlugin() {
             return false;
           }
         }
-        const handled = $runDirectionalPlan(direction);
-        if (handled) event.preventDefault();
-        return handled;
+        $runDirectionalPlan(direction);
+        event.preventDefault();
+        return true;
       },
       COMMAND_PRIORITY_CRITICAL
     ));
@@ -436,7 +444,10 @@ export function SelectionPlugin() {
 
     const unregisterDirectionalCommand = editor.registerCommand(
       PROGRESSIVE_SELECTION_DIRECTION_COMMAND,
-      ({ direction }) => $runDirectionalPlan(direction),
+      ({ direction }) => {
+        $runDirectionalPlan(direction);
+        return true;
+      },
       COMMAND_PRIORITY_CRITICAL
     );
 
@@ -445,26 +456,6 @@ export function SelectionPlugin() {
       ({ edge }) => $collapseStructuralSelectionToCaretAndReset(edge ?? 'anchor'),
       COMMAND_PRIORITY_CRITICAL
     );
-
-    const $collapseOnKey = (edge: 'start' | 'end' | 'anchor', event: KeyboardEvent): boolean => {
-      if (edge !== 'anchor' && (!editor.selection.isStructural()
-        || event.shiftKey || event.altKey || event.metaKey || event.ctrlKey)) return false;
-      if (!$collapseStructuralSelectionToCaretAndReset(edge)) return false;
-      event.preventDefault();
-      event.stopPropagation();
-      return true;
-    };
-
-    const unregisterCollapseArrows = ([
-      [KEY_ARROW_DOWN_COMMAND, 'end'],
-      [KEY_ARROW_UP_COMMAND, 'start'],
-      [KEY_ARROW_LEFT_COMMAND, 'start'],
-      [KEY_ARROW_RIGHT_COMMAND, 'end'],
-    ] as const).map(([command, edge]) => editor.registerCommand(
-      command,
-      event => $collapseOnKey(edge, event),
-      COMMAND_PRIORITY_CRITICAL
-    ));
 
     const unregisterCollapseNavigation = editor.registerCommand(
       KEY_DOWN_COMMAND,
@@ -500,7 +491,6 @@ export function SelectionPlugin() {
       unregisterReactiveSelection();
       unregisterDirectionalCommand();
       unregisterCollapseCommand();
-      for (const unregister of unregisterCollapseArrows) unregister();
       unregisterCollapseNavigation();
       unregisterEscape();
       unregisterRootListener();

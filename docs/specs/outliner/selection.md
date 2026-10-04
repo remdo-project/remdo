@@ -103,8 +103,8 @@ The ladder is anchored and replayable:
 
 Direction and reversal:
 
-- The first structural rung is direction-neutral. The press that first extends
-  past the anchor's subtree establishes the sweep direction.
+- A directional growth press establishes the sweep direction. The anchor-subtree
+  rung selects the same notes in either direction.
 - Pressing the sweep direction pushes the next rung; pressing the opposite
   direction pops the top rung — exactly the rung that was last pushed. Because a
   `Cmd/Ctrl+A` sibling rung adds the whole sibling group at once, one reverse
