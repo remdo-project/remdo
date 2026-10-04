@@ -374,9 +374,19 @@ export function SelectionPlugin() {
       const regionKey = $getNoteBodyFromNode(selection.focus.getNode())?.getKey() ?? null;
       if (!focus || (focus.getKey() === checkpoint.focusKey && regionKey === checkpoint.regionKey)) return;
       if (!$restoreInlineSelection({ restore: checkpoint.selection, anchorKey: checkpoint.focusKey })) return;
-      $runDirectionalPlan(checkpoint.direction);
-      if (ladderRef.current.entrySelection) {
-        ladderRef.current.entrySelection.focusAtLineEnd = checkpoint.direction === 'up';
+      const viewRootKey = getViewRoot(editor);
+      if (focus.getKey() === viewRootKey || checkpoint.focusKey === viewRootKey) {
+        $beginPlan();
+        restoredLabelFocus = {
+          anchor: checkpoint.selection.anchor,
+          focus: checkpoint.selection.focus,
+          focusAtLineEnd: checkpoint.direction === 'up',
+        };
+      } else {
+        $runDirectionalPlan(checkpoint.direction);
+        if (ladderRef.current.entrySelection) {
+          ladderRef.current.entrySelection.focusAtLineEnd = checkpoint.direction === 'up';
+        }
       }
       publishSnapshot($computeSnapshot(true, true));
     };

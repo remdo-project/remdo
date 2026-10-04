@@ -12,7 +12,7 @@ export type Direction = 'up' | 'down';
 export type Rung =
   | { kind: 'inline' }
   | { kind: 'subtree' } // anchor note + subtree; direction-neutral
-  | { kind: 'sibling'; direction: Direction }; // a sibling step also hoists when siblings run out
+  | { kind: 'sibling'; direction: Direction | null }; // null selects the whole sibling group; exhaustion hoists
 
 export interface InlineSelectionOrigin {
   anchor: Pick<Point, 'key' | 'offset' | 'type'>;
@@ -23,10 +23,8 @@ export interface InlineSelectionOrigin {
 export interface LadderState {
   anchorKey: string;
   stack: Rung[];
-  // The direction the ladder was last GROWN. Set on every push (including the
-  // direction-neutral inline/subtree rungs) so reversal can contract from any
-  // rung — pressing the opposite of `direction` pops the top rung; pressing the
-  // same direction grows. null only when the stack is empty (a bare caret).
+  // The last directional growth, preserved during contraction. Select All
+  // clears it so either arrow can grow before a reversal contracts the ladder.
   direction: Direction | null;
   entrySelection?: InlineSelectionOrigin;
 }
@@ -59,11 +57,9 @@ function nextKind({ stack, entrySelection }: LadderState): Rung['kind'] {
   return 'sibling';
 }
 
-export function pushStep(state: LadderState, direction: Direction): LadderState {
+export function pushStep(state: LadderState, direction: Direction | null): LadderState {
   const kind = nextKind(state);
   const rung: Rung = kind === 'sibling' ? { kind, direction } : { kind };
-  // Record the growth direction on every push (even direction-neutral
-  // inline/subtree rungs) so reversal can contract from any rung.
   return {
     ...state,
     stack: [...state.stack, rung],
@@ -111,17 +107,11 @@ function $hasInlineBoundary(item: ListItemNode): boolean {
  * @param anchorItem  The anchor content ListItemNode.
  * @param stack       Ordered list of rungs to replay.
  * @param boundaryKey Optional zoom boundary: never extend outside that root's subtree.
- * @param expandToSiblingGroup When true, a `sibling` rung extends the range to
- *                    the first and last siblings at the current level instead
- *                    of advancing one position. Used by Cmd/Ctrl+A to select
- *                    the whole sibling group in one press. Hoist behaviour is
- *                    unchanged when no sibling exists at the current level.
  */
 export function $replayLadder(
   anchorItem: ListItemNode,
   stack: Rung[],
-  boundaryKey: string | null = null,
-  expandToSiblingGroup = false
+  boundaryKey: string | null = null
 ): ProgressivePlan | null {
   const boundaryRoot = boundaryKey ? $getListItemByKey(boundaryKey) : null;
   const withinBoundary = (item: ListItemNode): boolean =>
@@ -166,10 +156,13 @@ export function $replayLadder(
     //
     // In whole-group mode the range extends to every sibling at this level
     // instead of advancing by one. Hoist behaviour is unchanged.
+    // Continue from the selected edge when an arrow follows a whole-group rung.
+    if (rung.direction === 'up' && startHead) contextItem = startHead;
+    if (rung.direction === 'down' && endHead) contextItem = endHead;
     const sibling =
       rung.direction === 'down' ? getNextContentSibling(contextItem) : getPreviousContentSibling(contextItem);
 
-    if (expandToSiblingGroup) {
+    if (rung.direction === null) {
       // Extend the range to ALL siblings at the current level
       // (first to last), advancing contextItem to the last one. This selects
       // the entire sibling group in one press, regardless of sweep direction.

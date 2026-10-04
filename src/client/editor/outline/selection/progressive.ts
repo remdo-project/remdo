@@ -64,15 +64,14 @@ function $resolveBoundaryRoot(boundaryKey: string | null | undefined): ListItemN
 function $growLadder(
   base: ProgressiveSelectionState,
   anchorContent: ListItemNode,
-  direction: 'up' | 'down',
-  boundaryReplayKey: string | null,
-  expandToSiblingGroup: boolean
+  direction: 'up' | 'down' | null,
+  boundaryReplayKey: string | null
 ): { ladder: ProgressiveSelectionState; plan: ProgressivePlan | null } {
   let ladder = pushStep(base, direction);
-  let plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, expandToSiblingGroup);
+  let plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey);
   if (!plan && ladder.stack.length === 1) {
     ladder = pushStep(ladder, direction);
-    plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey, expandToSiblingGroup);
+    plan = $replayLadder(anchorContent, ladder.stack, boundaryReplayKey);
   }
   return { ladder, plan };
 }
@@ -142,14 +141,10 @@ export function $computeProgressivePlan(
   const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
   const boundaryReplayKey = boundaryRoot ? boundaryRoot.getKey() : null;
 
-  // Cmd+A is direction-neutral: it only ever grows the ladder outward, and its
-  // sibling rung selects the whole sibling group regardless of direction. So it
-  // always pushes in the canonical 'down' direction — it never inherits a prior
-  // Shift+Arrow sweep, and never leaves an 'up' bias that would make a following
-  // Shift+Arrow read as contraction. Start from a down-oriented base when
-  // continuing, or an empty ladder on a fresh anchor.
-  const base = isContinuing ? { ...progressionRef.current, direction: 'down' as const } : emptyLadder(anchorKey);
-  const { ladder, plan } = $growLadder(base, anchorContent, 'down', boundaryReplayKey, true);
+  // Select All grows without choosing an arrow direction. Its whole-group
+  // sibling rungs retain that meaning during later directional replay.
+  const base = isContinuing ? progressionRef.current : emptyLadder(anchorKey);
+  const { ladder, plan } = $growLadder(base, anchorContent, null, boundaryReplayKey);
 
   if (!plan) {
     // The freshly pushed rung ran past the edge: either the zoom boundary or the
@@ -163,7 +158,7 @@ export function $computeProgressivePlan(
       // Document root (no zoom): replay the last good ladder — the whole-document
       // note range the previous press already reached — so a further Cmd+A is a handled
       // no-op rather than a fall-through.
-      const clampedPlan = $replayLadder(anchorContent, base.stack, boundaryReplayKey, true);
+      const clampedPlan = $replayLadder(anchorContent, base.stack, boundaryReplayKey);
       if (clampedPlan) {
         return { plan: clampedPlan };
       }
@@ -211,10 +206,8 @@ export function $computeDirectionalPlan(
   const boundaryRoot = $resolveBoundaryRoot(boundaryKey);
   const boundaryReplayKey = boundaryRoot ? boundaryRoot.getKey() : null;
 
-  // Contraction: a press opposite to the direction the ladder was grown pops the
-  // top rung. This works from any rung (including the direction-neutral inline /
-  // subtree rungs at the bottom) because `direction` is the growth direction,
-  // recorded on every push and preserved by popStep until the stack is empty.
+  // An arrow opposite to the last directional growth pops the top rung.
+  // Select All leaves the sweep unset, so the first arrow grows either way.
   if (isContinuing && sweep !== null && direction !== sweep) {
     const next = popStep(ladder);
     // The last pop ends the ladder and discards its sweep direction.
@@ -250,7 +243,7 @@ export function $computeDirectionalPlan(
   }
 
   const base = isContinuing ? ladder : emptyLadder(anchorKey);
-  const { ladder: next, plan } = $growLadder(base, anchorContent, direction, boundaryReplayKey, false);
+  const { ladder: next, plan } = $growLadder(base, anchorContent, direction, boundaryReplayKey);
 
   if (!plan) {
     // Boundary push (past document/view root) — no-op, keep the current ladder.

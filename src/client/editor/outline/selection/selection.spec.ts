@@ -745,7 +745,7 @@ describe('selection plugin', () => {
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
-  it('keeps the anchor when reversing directional steps after Cmd/Ctrl+A expansion', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+  it('keeps the anchor when reversing directional growth after Cmd/Ctrl+A expansion', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2');
 
     // Stage 1: inline text only.
@@ -758,7 +758,12 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
-    // Reverse direction shrinks back to the anchor subtree.
+    await stepSelectionLadder(remdo, 'down');
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    await stepSelectionLadder(remdo, 'up');
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+
+    // Further reversal retracts the whole sibling group, then the subtree.
     await stepSelectionLadder(remdo, 'up');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
@@ -1372,22 +1377,18 @@ describe('selection plugin', () => {
   });
 
   it('keeps Cmd/Ctrl+A direction-neutral after an upward selection sweep', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    // Sweep upward first (records an 'up' sweep direction on the ladder).
-    await placeCaretAtNote(remdo, 'note5');
+    await placeCaretAtNote(remdo, 'note4');
     await stepSelectionLadder(remdo, 'up');
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note5'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note4'] });
 
-    // Cmd+A expands outward regardless of the prior sweep direction.
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-    expect(remdo).toMatchSelection({
-      state: 'structural',
-      notes: ['note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'],
-    });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
 
-    // A following directional steps contracts toward the anchor (Cmd+A left no 'up'
-    // bias): upward step reverses Cmd+A's outward growth rather than no-op'ing.
+    // Either arrow grows from Select All; the subsequent opposite arrow reverses it.
     await stepSelectionLadder(remdo, 'up');
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note5'] });
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3', 'note4'] });
+    await stepSelectionLadder(remdo, 'down');
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
   });
 
   it('expands Cmd/Ctrl+A the same whether or not a prior sweep ran', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -1423,17 +1424,35 @@ describe('selection plugin', () => {
     }
   );
 
-  it('reverses the Cmd/Ctrl+A inline rung back to a caret', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    // The select-all inline rung retains its directional contraction.
-    await placeCaretAtNote(remdo, 'note2');
-    await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
-    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+  for (const direction of ['up', 'down'] as const) {
+    it(`grows the Cmd/Ctrl+A inline rung ${direction} before reversing to a caret`, meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'note2');
+      await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+      expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
 
-    // The opposite arrow undoes that first press → back to a caret, NOT a grow
-    // to the note subtree.
-    await stepSelectionLadder(remdo, 'up');
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
-  });
+      await stepSelectionLadder(remdo, direction);
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+      await stepSelectionLadder(remdo, direction);
+      expect(remdo).toMatchSelection({ state: 'structural', notes: direction === 'up'
+        ? ['note1', 'note2', 'note3', 'note4'] : ['note2', 'note3', 'note4'] });
+
+      const reverse = direction === 'up' ? 'down' : 'up';
+      await stepSelectionLadder(remdo, reverse);
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+      await stepSelectionLadder(remdo, reverse);
+      expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+      await stepSelectionLadder(remdo, reverse);
+      expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
+    });
+
+    it(`keeps a whole-document Cmd/Ctrl+A range at the ${direction} boundary`, meta({ fixture: 'flat' }), async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'note2');
+      for (let press = 0; press < 3; press++) await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+      await stepSelectionLadder(remdo, direction);
+      expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
+    });
+  }
 
   it('preserves pointer ladder contraction and regrowth after an upward drag', meta({ fixture: 'flat' }), async ({ remdo }) => {
     // Drag from note2 UP to note1: the Lexical anchor is note2 (the lower note),

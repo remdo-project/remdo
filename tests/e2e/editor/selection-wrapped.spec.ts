@@ -4,7 +4,9 @@ import type { SerializedListItemNode, SerializedListNode } from '@lexical/list';
 import type { SerializedLinkNode } from '@lexical/link';
 import type { ElementNode, SerializedTextNode } from 'lexical';
 import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
-import { editorLocator, setCaretAtText } from '#editor/locators';
+import { editorLocator, selectInlineRange, setCaretAtText } from '#editor/locators';
+import { waitForSynced } from './_support/bridge';
+import { createEditorDocumentPath } from './_support/routes';
 
 const LABEL = 'a'.repeat(90);
 
@@ -74,6 +76,44 @@ for (const [placement, direction, start, focus] of [
       focus: { note: 'note1', offset: focus } });
   });
 }
+
+for (const [note, direction] of [['note2', 'up'], ['note1', 'down']] as const) {
+  for (const ranged of [false, true]) {
+    test(`keeps the ${direction === 'up' ? 'first zoom child' : 'zoom header'} ${ranged ? 'range' : 'caret'} at the header boundary`, async ({ page, editor }) => {
+      await editor.load('tree-complex');
+      await page.goto(createEditorDocumentPath(editor.docId, 'note1'));
+      await waitForSynced(page);
+      if (ranged) await selectInlineRange(page, note, 1, 2);
+      else await setCaretAtText(page, note, 2);
+      const before = await selectionState(page);
+      await page.keyboard.press(direction === 'up' ? 'Shift+ArrowUp' : 'Shift+ArrowDown');
+      await expect.poll(() => selectionState(page)).toEqual(before);
+    });
+  }
+}
+
+test('keeps a wrapped child caret on its visual line after a zoom-boundary no-op', async ({ page, editor }) => {
+  await editor.load('tree-complex');
+  await page.goto(createEditorDocumentPath(editor.docId, 'note1'));
+  await waitForSynced(page);
+  await page.evaluate(async label => {
+    await globalThis.__remdoTestBridges!.list()[0]!.updateNoteText('note2', label);
+  }, LABEL);
+  await editorLocator(page).locator('li.list-item').filter({ hasText: LABEL }).first().evaluate(row => {
+    Object.assign((row as HTMLElement).style, { width: '480px', font: '20px monospace', lineHeight: '30px',
+      whiteSpace: 'pre-wrap', overflowWrap: 'break-word' });
+  });
+  await setCaretAtText(page, LABEL, 20);
+  await page.keyboard.press('End');
+  const before = await selectionState(page);
+  await page.keyboard.press('Shift+ArrowUp');
+  await expect.poll(() => selectionState(page)).toEqual(before);
+  await page.keyboard.press('Shift+Home');
+  await expect.poll(async () => {
+    const { kind, anchor, focus } = await selectionState(page);
+    return { kind, anchor, focus };
+  }).toEqual({ kind: 'inline', anchor: before.anchor, focus: { note: 'note2', offset: 0 } });
+});
 
 for (const [direction, ranged] of [['up', false], ['down', false], ['up', true], ['down', true]] as const) {
   test(`enters only the anchor subtree on actual ${direction} crossing and restores the ${ranged ? 'range' : 'caret'}`, async ({ page, editor }) => {
@@ -291,22 +331,29 @@ test('settles a crossing before a rapid reversal and further growth', async ({ p
   await expectStructure(page, ['note1', 'note2', 'note3']);
 });
 
-test('keeps the active select-all ladder and its boundary no-op', async ({ page, editor }) => {
-  await editor.load('basic');
-  await setCaretAtText(page, 'note3', 2);
-  await page.keyboard.press('ControlOrMeta+A');
-  await expect.poll(async () => {
-    const { kind, text } = await selectionState(page);
-    return { kind, text };
-  }).toEqual({ kind: 'inline', text: 'note3' });
-  const inlineBefore = await selectionState(page);
-  await page.keyboard.press('Shift+ArrowDown');
-  await expectStructure(page, ['note3']);
-  await page.keyboard.press('Shift+ArrowUp');
-  await expect.poll(() => selectionState(page)).toEqual(inlineBefore);
+for (const direction of ['up', 'down'] as const) {
+  test(`continues the select-all inline rung ${direction} and reverses it`, async ({ page, editor }) => {
+    await editor.load('basic');
+    await setCaretAtText(page, 'note3', 2);
+    await page.keyboard.press('ControlOrMeta+A');
+    await expect.poll(async () => {
+      const { kind, text } = await selectionState(page);
+      return { kind, text };
+    }).toEqual({ kind: 'inline', text: 'note3' });
+    const inlineBefore = await selectionState(page);
+    await page.keyboard.press(direction === 'up' ? 'Shift+ArrowUp' : 'Shift+ArrowDown');
+    await expectStructure(page, ['note3']);
+    await page.keyboard.press(direction === 'up' ? 'Shift+ArrowDown' : 'Shift+ArrowUp');
+    await expect.poll(() => selectionState(page)).toEqual(inlineBefore);
+  });
+}
 
+test('keeps a directional ladder boundary no-op after select-all entry', async ({ page, editor }) => {
+  await editor.load('basic');
   await setCaretAtText(page, 'note1', 2);
-  for (let i = 0; i < 3; i++) await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Shift+ArrowDown');
   await expectStructure(page, ['note1', 'note2', 'note3']);
   await page.keyboard.press('Shift+ArrowDown');
   await expectStructure(page, ['note1', 'note2', 'note3']);
