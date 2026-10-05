@@ -71,6 +71,8 @@ Notes:
   tracked-comment policy. Later runs reconsider it when an update affects it.
 - Follow-up trigger evaluation checks independently checkable triggers in
   dependency-specific tracked comments and reports their follow-up dispositions.
+  A met trigger requiring work outside the run's scope or authority is reported
+  as a [concern](../protocol.md#concerns).
 - Dependabot inspection reports each open alert and security-update pull request
   as covered by the refreshed graph, already on the default branch, unresolved,
   or blocked intentionally.
