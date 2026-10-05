@@ -16,6 +16,11 @@ nodeVersion: 24.21.0
 
 engineStrict: true
 
+# TODO(deps): recheck Dependabot support for the current pnpm major before replacing manual discovery.
+# Probe: check https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories
+# Once supported, add .github/dependabot.yml for the root pnpm workspace; verify
+# its first update preserves workspace catalogs and passes pnpm install --frozen-lockfile.
+# Narrow or retire remdo-deps-refresh so dependency-update discovery has one owner.
 updateNotifier: false
 
 updateConfig:

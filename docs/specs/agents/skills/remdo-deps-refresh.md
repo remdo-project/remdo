@@ -45,6 +45,9 @@ The run checks the following update categories:
     │                  └─ unrepairable failure ─> [defer] ─> [select next update]
     │ none
     v
+[evaluate follow-up triggers]
+    │
+    v
 [inspect Dependabot]
     │
     v
@@ -66,6 +69,9 @@ Notes:
 - A dependency-specific workaround introduced or retained during repair uses
   the exact `TODO(deps):` or `FIXME(deps):` marker according to the
   tracked-comment policy. Later runs reconsider it when an update affects it.
+- Follow-up trigger evaluation checks independently checkable triggers in
+  dependency-specific tracked comments and reports their follow-up dispositions.
+  Evaluation is read-only; met triggers are reported as [concerns](../protocol.md#concerns).
 - Dependabot inspection reports each open alert and security-update pull request
   as covered by the refreshed graph, already on the default branch, unresolved,
   or blocked intentionally.
