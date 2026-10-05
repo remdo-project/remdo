@@ -23,6 +23,7 @@ presentation.
      - [move up and down](./reordering.md)
      - [toggle checked](./list-types.md#keyboard-command)
      - [find in document](./search.md#behavior)
+     - [search documents](./search.md#document-scope)
      - [add or open body](./body.md#core-behavior)
      - [link a note](./links.md)
      - [insert a date](./dates.md)

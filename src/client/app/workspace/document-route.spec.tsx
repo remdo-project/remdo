@@ -1,6 +1,6 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getTestUserData } from '#tests';
+import { getTestUserData, setCoarsePointer } from '#tests';
 import { createDocumentPath } from '#document-routes';
 import {
   renderDocumentRoute,
@@ -15,6 +15,7 @@ describe('document route', () => {
   });
 
   afterEach(() => {
+    setCoarsePointer(false);
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -113,6 +114,22 @@ describe('document route', () => {
     await screen.findByTestId('editor-probe');
 
     expect(document.querySelector('.document-editor-shell')).toHaveAttribute('data-menu-target', 'note');
+  });
+
+  it('does not pull focus into the search again when history returns to Home on a touch device', async () => {
+    setCoarsePointer(true);
+    const router = renderDocumentRoute(createDocumentPath('testDoc'));
+    await screen.findByTestId('editor-probe');
+
+    fireEvent.keyDown(document.body, { key: 'k', metaKey: true });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/');
+      expect(screen.getByRole('combobox', { name: 'Search documents' })).toHaveFocus();
+    });
+
+    await act(async () => router.navigate(-1));
+    await act(async () => router.navigate(1));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Home' })).toHaveFocus());
   });
 
   it('returns to the document URL when zoom is cleared', async () => {

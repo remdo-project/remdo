@@ -44,6 +44,6 @@ test('owner deletes the open document from its header and leaves for Home', asyn
   await page.getByRole('dialog', { name: /^Delete/u }).getByRole('button', { name: 'Delete', exact: true }).click();
 
   await expect(page).toHaveURL('/');
-  await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Search documents' })).toBeFocused();
   await expect(page.locator(`[data-home-document-ref="${document.id}"]`)).toHaveCount(0);
 });

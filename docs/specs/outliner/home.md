@@ -60,6 +60,8 @@ blur halo around the button.
    activated, landing on its [document-root view](./zoom.md#visibility-and-editing-boundary).
    A document owned by another user also shows a **Shared** marker beside its
    name, which adds to the row's description without changing its accessible name.
+4. Above the list, Home offers [document search](./search.md#document-scope),
+   omitted with the list.
 
 ## Document actions
 
@@ -93,7 +95,11 @@ success focuses the first editor note.
 
 ## Entering and leaving Home
 
-For signed-in users, opening Home moves keyboard focus to its heading.
+For signed-in users, opening Home moves keyboard focus to its
+[document search](./search.md#document-scope) box, or to its heading when the box
+is absent or, unless the [shortcut](./search.md#document-scope) opened Home, on
+touch devices as defined by the [mobile toolbar's presence](./mobile-toolbar.md#presence).
+
 Navigation between Home and documents adds browser history
 entries, so Back and Forward restore the selected destination. Offline reopen
 uses the cached local document list.

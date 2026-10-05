@@ -376,12 +376,12 @@ concrete unmet need.
   availability, selection targets, and focus restoration across surfaces,
   following the [SDK capability work](#sdk) without adding a generic command system.
 
-- **Home and document switching.** Provide quick document filtering with clear
-  search scope before retiring the picker. Preserve a fast keyboard path
-  between documents; retain
-  a distinct quick switcher only if it still serves a separate need. Coordinate
-  with the [legacy Home follow-ups](legacy-backlog.md#home-and-location-header-follow-ups), and judge consolidation by switching speed
-  and clarity rather than duplicate destinations alone.
+- **Home and document switching.** Retire the breadcrumb picker and update its
+  [zoom contract](specs/outliner/zoom.md#breadcrumbs) and
+  [legacy follow-up](legacy-backlog.md#home-and-location-header-follow-ups).
+  Undecided: recalling the previous document, which needs recency state, and a
+  handoff from empty note search to document search. Judge by switching speed and
+  scope clarity rather than duplicate destinations alone.
 
 ### Agents
 

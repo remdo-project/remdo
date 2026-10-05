@@ -5,6 +5,7 @@ import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
 import { createDocumentPath } from '#document-routes';
 import type { ParsedDocumentRef } from '#document-routes';
 import DocumentWorkspace from './document/DocumentWorkspace';
+import { FOCUS_DOCUMENT_SEARCH_STATE, useDocumentSearchShortcut } from './useDocumentSearchShortcut';
 
 function useDocumentRouteNavigation(docId: string) {
   const [searchParams] = useSearchParams();
@@ -35,8 +36,11 @@ function useDocumentRouteNavigation(docId: string) {
   }, [docId, navigate, searchParams]);
 
   const navigateHome = useCallback(() => { void navigate('/'); }, [navigate]);
+  const navigateHomeToSearch = useCallback(() => {
+    void navigate('/', { state: FOCUS_DOCUMENT_SEARCH_STATE });
+  }, [navigate]);
 
-  return { navigateHome, navigateToDocument, navigateToZoomNote };
+  return { navigateHome, navigateHomeToSearch, navigateToDocument, navigateToZoomNote };
 }
 
 export default function DocumentRoute() {
@@ -50,7 +54,8 @@ export default function DocumentRoute() {
   const parsedRef = useLoaderData<ParsedDocumentRef>();
   const docId = parsedRef.docId;
   const zoomNoteId = parsedRef.noteId;
-  const { navigateHome, navigateToDocument, navigateToZoomNote } = useDocumentRouteNavigation(docId);
+  const { navigateHome, navigateHomeToSearch, navigateToDocument, navigateToZoomNote } = useDocumentRouteNavigation(docId);
+  useDocumentSearchShortcut(navigateHomeToSearch);
 
   return (
     <Container className="document-route-container" component="main" fluid>

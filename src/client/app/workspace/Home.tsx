@@ -1,6 +1,6 @@
 import { Alert, Button, Container, Stack } from '@mantine/core';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { createDocumentPath } from '#document-routes';
 import { APP_TITLE } from '#client/ui/navigation-label';
 import { useUserData, useUserDataStatus } from '#client/app/user-data/user-data';
@@ -8,12 +8,17 @@ import { HomeView } from './document/HomeView';
 import { DocumentCreateDialog } from './document/DocumentCreateDialog';
 import { buildHomeSources } from './document/home-content';
 import { useDocumentActions } from './document/useDocumentActions';
+import { isFocusDocumentSearchState } from './useDocumentSearchShortcut';
 import './DocumentRoute.css';
 
 export default function Home() {
   const userData = useUserData();
   const status = useUserDataStatus();
   const navigate = useNavigate();
+  const location = useLocation();
+  // History traversal is a new navigation intent: Back to this entry must not
+  // pull focus into the field again.
+  const focusSearchRequested = useNavigationType() === 'PUSH' && isFocusDocumentSearchState(location.state);
   const openDocument = useCallback((docId: string) => {
     void navigate(createDocumentPath(docId));
   }, [navigate]);
@@ -42,6 +47,7 @@ export default function Home() {
         </Alert>
       )}
       <HomeView
+        focusSearchRequested={focusSearchRequested}
         sources={sources}
         onCreateDocument={() => setCreateDialogOpen(true)}
         onSelectDocument={openDocument}

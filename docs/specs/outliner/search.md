@@ -1,10 +1,13 @@
 # Search
 
-The search input provides keyboard-first navigation by filtering notes and
-zooming to a result.
+The search input provides keyboard-first navigation by filtering a scope's
+candidates and opening a result: notes within a document, documents on Home.
 
 ## Definitions
 
+- **Scope:** the candidates a search covers: the **note scope** of a document
+  view's search box, which every section except [Document scope](#document-scope)
+  specifies, or the **document scope** of [Home](./home.md)'s search box.
 - **Search Mode:** active while the search box has focus.
 - **Highlighted note:** the single note targeted by search navigation.
 - **Result row:** the rendering for a single search result (see Result row context).
@@ -15,7 +18,7 @@ zooming to a result.
 
 ## Scope and boundaries
 
-1. Search covers all [editor notes](./note-model.md#note-kinds) in the active
+1. The note scope covers all [editor notes](./note-model.md#note-kinds) in the active
    document, including descendants hidden by [folding](./folding.md) and notes
    outside the current [zoom boundary](./zoom.md#definitions). Its note data comes
    from the active [open document](./open-document.md).
@@ -115,6 +118,33 @@ same text. Every row uses the same layout regardless of highlight.
    editor. A match with no children shows no preview; a match with more than two
    children indicates the remaining count.
 
+## Document scope
+
+On [Home](./home.md), search covers the user's
+[accessible documents](../access/access-control.md#document-access) and is
+labeled **Search documents**. The document list is its result list, shown whether
+or not the search box has focus, so Search Mode does not apply.
+
+1. The query is tokenized as for notes. A document matches when every token is a
+   case-insensitive substring of its full name. Matches keep the
+   list's order, and an empty query lists every document. When a non-empty query
+   matches nothing, Home shows **No documents match** in place of the list.
+2. With a non-empty query the first match is highlighted; with an empty query none
+   is. `ArrowDown` and `ArrowUp` move the highlight without wrapping,
+   `ArrowDown` from none highlights the first, and `ArrowUp` from none does
+   nothing. `Enter` opens the highlighted document like activating its row, and
+   does nothing without one or during input-method composition. `Escape` clears
+   a non-empty query and keeps focus in the search box.
+3. The search box is a combobox exposing the highlighted document as its active
+   descendant, and assistive technology is told when the number of matches
+   changes.
+4. Listing updates leave the query intact. Home always opens with an empty query.
+5. `Cmd/Ctrl+K` focuses the search box, when present, first opening Home from a
+   document view. It does nothing while a modal dialog is open.
+
 ## Future
 
 - Richer query matching: fuzzy matching and result ranking.
+- Scope becomes part of the query, as in `kind:document PHRASE`, with surfaces
+  seeding only the default. Home's search then also covers notes in every
+  document.
