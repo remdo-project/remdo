@@ -1,6 +1,8 @@
 import { expect, isolatedTest as test } from '#editor/fixtures';
-import { editorLocator, noteRow as row, setCaretAtText } from '#editor/locators';
+import { editorLocator, noteRow as row, setCaretAtText, zoomBreadcrumbs } from '#editor/locators';
+import { createUserDocument } from '../_support/documents';
 import { openNoteMenu } from './_support/menu';
+import { createEditorDocumentPath } from './_support/routes';
 
 test.describe('Document layout', () => {
   test('sets outline rows 32px apart and indents nested notes by 32px', async ({ page, editor }) => {
@@ -51,6 +53,24 @@ test.describe('Document layout', () => {
     expect(titleSize).toBe('22px');
     expect(input.height).toBe(44);
     expect(cancel.height).toBe(48);
+  });
+
+  test('keeps a long unbroken document name inside the header on narrow screens', async ({ page }) => {
+    const document = await createUserDocument(page, 'W'.repeat(60));
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto(createEditorDocumentPath(document.id));
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+
+    const crumb = zoomBreadcrumbs(page).locator('[data-zoom-crumb="document"]');
+    await expect(crumb).toBeVisible();
+    const overflow = await page.evaluate(() => ({
+      header: window.document.querySelector<HTMLElement>('.document-header')!.scrollWidth -
+        window.document.querySelector<HTMLElement>('.document-header')!.clientWidth,
+      page: window.document.documentElement.scrollWidth - window.document.documentElement.clientWidth,
+    }));
+    expect(overflow).toEqual({ header: 0, page: 0 });
+    const box = (await crumb.boundingBox())!;
+    expect(box.x + box.width).toBeLessThanOrEqual(375);
   });
 
   test('stacks the breadcrumb and search controls without horizontal overflow on narrow screens', async ({ page, editor }) => {

@@ -38,7 +38,7 @@ export function ZoomBreadcrumbs({ docLabel, path, onSelectHome, onSelectNoteId }
         {path.map((item, index) => (
           <li key={item.noteId}>
             {index === path.length - 1 ? (
-              <span aria-current="page" data-zoom-crumb="current">
+              <span aria-current="page" className={styles.currentCrumb} data-zoom-crumb="current">
                 {formatNavigationLabel(item.label)}
               </span>
             ) : (
