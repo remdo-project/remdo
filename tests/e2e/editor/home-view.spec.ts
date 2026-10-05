@@ -288,7 +288,7 @@ test.describe('Home', () => {
     expect(attempts).toBe(2);
   });
 
-  test('keeps each document's content when switching between documents through Home', async ({ page, captureCreatedDoc }) => {
+  test('keeps the content of each document when switching between documents through Home', async ({ page, captureCreatedDoc }) => {
     const sourceDocument = await createUserDocument(page, `Source Document ${Date.now()}`);
     await seedDocument(page, sourceDocument.id, 'tree-complex');
 
