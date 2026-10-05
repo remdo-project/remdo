@@ -105,6 +105,12 @@ comment-capable selector or configuration owner.
 After no update remains selectable, run `pnpm install --frozen-lockfile` and
 `pnpm run audit:cleanup`.
 
+Run `pnpm run todo:list` and read the surrounding comments for each `TODO(deps):`
+and `FIXME(deps):` candidate. Follow the specification's
+[follow-up trigger evaluation](../../../docs/specs/agents/skills/remdo-deps-refresh.md#run), using the recorded probes
+against the final dependency state. Retain the evidence and disposition for the
+result.
+
 Then inspect open Dependabot alerts and security-update pull requests with `gh`.
 Report each as `covered here`, `already on default branch`, `unresolved`, or
 `blocked intentionally`.
