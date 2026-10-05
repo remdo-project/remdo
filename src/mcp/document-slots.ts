@@ -1,10 +1,11 @@
-const SLOT_WAIT_MS = 30_000;
+const DOCUMENT_OPEN_TIMEOUT_MS = 30_000;
 
 /**
  * Run document work with at most `slots` documents open at once. Work that
- * cannot start within the wait fails instead of queueing without bound.
+ * cannot open within the deadline fails, including time spent waiting for a slot.
+ * The callback passes its signal to document acquisition, not subsequent work.
  */
-export function createDocumentSlots(slots: number, waitMs = SLOT_WAIT_MS) {
+export function createDocumentSlots(slots: number, timeoutMs = DOCUMENT_OPEN_TIMEOUT_MS) {
   let open = 0;
   const waiting: Array<() => void> = [];
 
@@ -14,31 +15,37 @@ export function createDocumentSlots(slots: number, waitMs = SLOT_WAIT_MS) {
     else open--;
   }
 
-  function acquire(): Promise<void> {
+  function acquire(signal: AbortSignal): Promise<void> {
     if (open < slots) {
       open++;
       return Promise.resolve();
     }
     return new Promise((resolve, reject) => {
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const start = () => {
-        clearTimeout(timer);
+      function start() {
+        signal.removeEventListener('abort', cancel);
         resolve();
-      };
-      timer = setTimeout(() => {
+      }
+      function cancel() {
         waiting.splice(waiting.indexOf(start), 1);
-        reject(new Error('RemDo is busy; try again shortly.'));
-      }, waitMs);
+        reject(signal.reason);
+      }
+      signal.addEventListener('abort', cancel, { once: true });
       waiting.push(start);
     });
   }
 
-  return async <T>(run: () => Promise<T>): Promise<T> => {
-    await acquire();
+  return async <T>(run: (signal: AbortSignal) => Promise<T>): Promise<T> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(new Error('RemDo is busy; try again shortly.')), timeoutMs);
     try {
-      return await run();
+      await acquire(controller.signal);
+      try {
+        return await run(controller.signal);
+      } finally {
+        release();
+      }
     } finally {
-      release();
+      clearTimeout(timer);
     }
   };
 }

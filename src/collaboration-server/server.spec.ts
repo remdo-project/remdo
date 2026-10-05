@@ -10,12 +10,15 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { createCollaborationServer, INTERNAL_SECRET_HEADER } from './server';
 import { DOCUMENT_LIST_KEEPALIVE, DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS, DOCUMENT_LIST_PATH } from '#platform/net/document-list-socket';
 import { requestPersistence } from '../collaboration/persistence-barrier';
-import { createProviderFactory } from '../collaboration/runtime';
+import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '../collaboration/runtime';
+import { withHeadlessOpenDocument } from '../headless/open-document';
+import * as origins from '#platform/net/origins';
+import { createDeferred } from '../../tests/unit/_support/deferred';
 
 const secret = 'test-internal-secret';
 let authorizeStatus: number;
 let authorizeHeaders: Array<Record<string, string | string[] | undefined>>;
-let loadStatus: number;
+let loadStatus: number | 'dropped';
 let storeStatus: number;
 let failedDocument: string | undefined;
 let deletedDocument: string | undefined;
@@ -55,7 +58,8 @@ const backend = createServer((request, response) => {
       response.writeHead(authorizeStatus).end('{}');
     } else if (request.method === 'GET') {
       loaded++;
-      response.writeHead(loadStatus).end(persisted);
+      if (loadStatus === 'dropped') request.socket.destroy();
+      else response.writeHead(loadStatus).end(persisted);
     } else {
       const chunks: Buffer[] = [];
       for await (const chunk of request) chunks.push(Buffer.from(chunk));
@@ -295,11 +299,85 @@ it('recovers a document connection after a temporary authorization service outag
   expectDiagnostics(['[onAuthenticate]']);
 });
 
-it('keeps a denied runtime connection terminal rather than retrying authentication', async () => {
+it.each([503, 'dropped'] as const)('recovers a runtime connection after a temporary document load failure (%s)', async (failure) => {
   class OperatorSocket extends WebSocket {
     constructor(url: string) { super(url, { headers: { [INTERNAL_SECRET_HEADER]: secret } }); }
   }
-  authorizeStatus = 403;
+  loadStatus = failure;
+  const saved = new Y.Doc();
+  saved.getText('text').insert(0, 'saved before the outage');
+  persisted = Y.encodeStateAsUpdate(saved);
+  saved.destroy();
+  const { provider, doc } = createProviderFactory({
+    visibleOrigin: origin,
+    WebSocketPolyfill: OperatorSocket as unknown as typeof globalThis.WebSocket,
+  })('document', new Map());
+  runtimeCleanup.push(() => { provider.destroy(); doc.destroy(); });
+  void provider.connect();
+  const ready = waitForSync(asCollaborationProviderEvents(provider)).catch((error: Error) => error);
+  await expect.poll(() => loaded).toBeGreaterThan(0);
+  expect(provider.synced).toBe(false);
+  expect(stores).toHaveLength(0);
+  loadStatus = 200;
+  const result = await ready;
+  expectDiagnostics(['[onLoadDocument]']);
+  expect(result).toBeUndefined();
+  expect(doc.getText('text').toString()).toBe('saved before the outage');
+});
+
+it('cancels headless acquisition during repeated authorization failures without a delayed append', async () => {
+  const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
+  runtimeCleanup.push(() => resolveOrigin.mockRestore());
+  const controller = new AbortController();
+  const options = { signal: controller.signal };
+  authorizeStatus = 503;
+  let outcome: string | undefined;
+  const opening = withHeadlessOpenDocument('document', 'Bearer delegated-token',
+    (document) => document.root.appendChildren([{ text: 'late append' }]), options)
+    .then(() => { outcome = 'appended'; }, (error: Error) => { outcome = error.message; });
+  try {
+    await expect.poll(() => authorizations, { timeout: 3000 }).toBeGreaterThan(1);
+    controller.abort(new Error('RemDo is busy; try again shortly.'));
+    await expect.poll(() => outcome).toBe('RemDo is busy; try again shortly.');
+  } finally {
+    authorizeStatus = 200;
+    await opening;
+    expectDiagnostics(['[onAuthenticate]']);
+  }
+  const contents = await withHeadlessOpenDocument('document', 'Bearer delegated-token',
+    async (document) => document.root.getChildren().map((note) => note.getText()), { readOnly: true });
+  expect(contents).not.toContain('late append');
+});
+
+it('keeps writing after opening even when the acquisition deadline expires', async () => {
+  const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
+  runtimeCleanup.push(() => resolveOrigin.mockRestore());
+  const controller = new AbortController();
+  const opened = createDeferred();
+  const resume = createDeferred();
+  const write = withHeadlessOpenDocument('document', 'Bearer delegated-token', async (document) => {
+    opened.resolve();
+    await resume.promise;
+    return document.root.appendChildren([{ text: 'written after opening' }]);
+  }, { signal: controller.signal });
+  await opened.promise;
+  controller.abort(new Error('RemDo is busy; try again shortly.'));
+  resume.resolve();
+  await write;
+  const contents = await withHeadlessOpenDocument('document', 'Bearer delegated-token',
+    async (document) => document.root.getChildren().map((note) => note.getText()), { readOnly: true });
+  expect(contents).toContain('written after opening');
+});
+
+it.each([
+  { authorize: 403, load: 200, diagnostic: '[onAuthenticate]' },
+  { authorize: 200, load: 404, diagnostic: '[onLoadDocument]' },
+])('keeps denied or missing documents terminal ($diagnostic)', async ({ authorize, load, diagnostic }) => {
+  class OperatorSocket extends WebSocket {
+    constructor(url: string) { super(url, { headers: { [INTERNAL_SECRET_HEADER]: secret } }); }
+  }
+  authorizeStatus = authorize;
+  loadStatus = load;
   const { provider, doc } = createProviderFactory({
     visibleOrigin: origin,
     WebSocketPolyfill: OperatorSocket as unknown as typeof globalThis.WebSocket,
@@ -309,7 +387,7 @@ it('keeps a denied runtime connection terminal rather than retrying authenticati
   await expect.poll(() => provider.status).toBe('error');
   expect(provider.synced).toBe(false);
   expect(authorizations).toBe(1);
-  expectDiagnostics(['[onAuthenticate]']);
+  expectDiagnostics([diagnostic]);
 });
 
 it('backs off repeated store failures and resets the delay after recovery', async () => {

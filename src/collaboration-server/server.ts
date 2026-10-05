@@ -26,9 +26,9 @@ interface ServerOptions {
   appOrigin: string;
 }
 
-class AuthorizationUnavailable extends Error {
+class CollaborationUnavailable extends Error {
   readonly reason = 'collaboration.service-unavailable';
-  constructor() { super('collaboration.service-unavailable'); }
+  constructor(message = 'collaboration.service-unavailable') { super(message); }
 }
 
 class DocumentDeleted extends Error {
@@ -190,17 +190,19 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
     maxDebounce: 5000,
     extensions: [new Database({
       fetch: async ({ documentName }) => {
+        let response: Awaited<ReturnType<typeof requestDjango>>;
         try {
-          const response = await requestDjango(endpoint(documentName, 'content'), {
+          response = await requestDjango(endpoint(documentName, 'content'), {
             headers: internalHeaders,
             signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
           });
-          if (!response.ok) throw new Error('collaboration.request-failed');
-          const bytes = new Uint8Array(response.body);
-          return bytes.length ? bytes : null;
         } catch {
-          throw new Error('collaboration.load-failed');
+          throw new CollaborationUnavailable('collaboration.load-failed');
         }
+        if (response.status === 404) throw new DocumentDeleted();
+        if (!response.ok) throw new CollaborationUnavailable('collaboration.load-failed');
+        const bytes = new Uint8Array(response.body);
+        return bytes.length ? bytes : null;
       },
       store: async ({ document, state }) => {
         try {
@@ -243,10 +245,10 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
           headers, signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
         });
       } catch {
-        throw new AuthorizationUnavailable();
+        throw new CollaborationUnavailable();
       }
       if ([401, 403, 404].includes(response.status)) throw new Error('collaboration.access-denied');
-      if (!response.ok) throw new AuthorizationUnavailable();
+      if (!response.ok) throw new CollaborationUnavailable();
       return { operator };
     },
     async onStateless({ connection, document, payload }) {

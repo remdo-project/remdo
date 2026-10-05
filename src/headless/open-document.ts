@@ -43,7 +43,7 @@ export function withHeadlessOpenDocument<T>(
   docId: string,
   authorization: string,
   run: (openDocument: OpenDocument, isStored: (noteId: NoteId) => boolean) => Promise<T>,
-  { readOnly = false }: { readOnly?: boolean } = {},
+  { readOnly = false, signal }: { readOnly?: boolean; signal?: AbortSignal } = {},
 ): Promise<T> {
   return withHeadlessEditor(docId, async (editor) => {
     const isStored = normalizeLoadedDocument(editor, docId, readOnly);
@@ -55,5 +55,5 @@ export function withHeadlessOpenDocument<T>(
     } finally {
       runtime.dispose();
     }
-  }, { authorization, readOnly });
+  }, { authorization, readOnly, signal });
 }
