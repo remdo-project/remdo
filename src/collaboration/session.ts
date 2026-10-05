@@ -316,7 +316,7 @@ export class CollabSession {
     });
   }
 
-  async awaitSynced() {
+  async awaitSynced(signal?: AbortSignal) {
     if (!this.enabled) {
       return;
     }
@@ -324,7 +324,7 @@ export class CollabSession {
       throw new Error('Collaboration provider unavailable');
     }
     return waitForSync(this.provider, {
-      signal: this.awaitController.signal,
+      signal: signal ? AbortSignal.any([this.awaitController.signal, signal]) : this.awaitController.signal,
       timeoutMs: null,
       reconnectTimeoutMs: AWAIT_SYNC_RECONNECT_TIMEOUT_MS,
     });

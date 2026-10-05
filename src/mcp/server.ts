@@ -196,13 +196,13 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       const ref = parseDocumentRef(target);
       if (!ref) throw new Error('The target is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
-      const outline = await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, async (openDocument, isStored) =>
+      const outline = await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, async (openDocument, isStored) =>
         renderOutline(
           noteId ? [openDocument.noteRef(noteId)] : openDocument.root.getChildren(),
           (id) => isStored(id) ? documentUrl(documentId, id) : null,
           { depth },
         ),
-      { readOnly: true }));
+      { readOnly: true, signal }));
       return `Document: ${documentUrl(documentId)}\n\n${outline}`;
     }));
 
@@ -223,8 +223,8 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       const ref = parseDocumentRef(parent);
       if (!ref) throw new Error('The parent is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
-      const noteIds = await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
-        (noteId ? openDocument.noteRef(noteId) : openDocument.root).appendChildren(notes)));
+      const noteIds = await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
+        (noteId ? openDocument.noteRef(noteId) : openDocument.root).appendChildren(notes), { signal }));
       return noteIds.map((id) => ({ noteAddress: `${documentId}_${id}`, url: documentUrl(documentId, id) }));
     }));
 
@@ -240,8 +240,8 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       const ref = parseDocumentRef(noteAddress);
       if (!ref?.noteId) throw new Error('The noteAddress is not valid.');
       const { docId: documentId, noteId } = ref;
-      await withDocumentSlot(() => withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
-        openDocument.noteRef(noteId).setChildListType(listType)));
+      await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
+        openDocument.noteRef(noteId).setChildListType(listType), { signal }));
       return { noteAddress, listType, url: documentUrl(documentId, noteId) };
     }));
 

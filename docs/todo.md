@@ -209,11 +209,7 @@ RemDo document, minimal but useful for real work.
   root's list type nor the type of the list containing a note.
 - Expose search once server-side search spans a user's documents; searching a
   single document adds little over reading it whole.
-- **Headless append failure modes.** `append_children` never settles while
-  collaboration authorization keeps failing: each reconnect clears the connect
-  deadline, and the abandoned session appends once Django recovers, which can
-  duplicate notes. A transient document-content load failure reaches it, and
-  browser editors, as a terminal `Document access denied`. When persistence
+- **Headless append persistence failures.** When persistence
   fails after the hub accepted the notes, the call fails without their note
   addresses although the notes are later stored.
 - **Oversized upload regression coverage.** Django closing the connection before

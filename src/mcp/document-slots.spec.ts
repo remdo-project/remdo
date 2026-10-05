@@ -45,3 +45,27 @@ it('fails work that cannot start within the wait', async () => {
   expect(run).not.toHaveBeenCalled();
   await expect(withSlot(() => Promise.resolve('ran'))).resolves.toBe('ran');
 });
+
+it('includes queue time in the deadline for opening a document', async () => {
+  vi.useFakeTimers();
+  const withSlot = createDocumentSlots(1, 1000);
+  const first = deferred();
+  const running = withSlot(() => first.promise);
+  let signal!: AbortSignal;
+  const opened = deferred();
+  const queued = withSlot(async (openingSignal) => {
+    signal = openingSignal;
+    await opened.promise;
+  });
+  await vi.advanceTimersByTimeAsync(800);
+  first.resolve();
+  await running;
+  await vi.advanceTimersByTimeAsync(199);
+  expect(signal.aborted).toBe(false);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(signal.aborted).toBe(true);
+  expect(signal.reason.message).toBe('RemDo is busy; try again shortly.');
+  opened.resolve();
+  await queued;
+  await expect(withSlot(async () => 'ran')).resolves.toBe('ran');
+});
