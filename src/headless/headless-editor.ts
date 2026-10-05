@@ -97,9 +97,9 @@ interface HeadlessEditorOptions {
 export async function withHeadlessEditor<T>(
   docId: string,
   run: (editor: LexicalEditor) => Promise<T> | T,
-  { authorization, readOnly = false, signal = AbortSignal.timeout(30_000) }: HeadlessEditorOptions = {},
+  { authorization, readOnly = false, signal }: HeadlessEditorOptions = {},
 ): Promise<T> {
-  signal.throwIfAborted();
+  signal?.throwIfAborted();
   const docMap = new Map<string, Doc>();
   const session = new CollabSession({
     enabled: true,
@@ -157,7 +157,7 @@ export async function withHeadlessEditor<T>(
     const initialUpdate = waitForEditorUpdate(editor);
     syncYjsStateToLexicalV2__EXPERIMENTAL(binding, syncProvider);
     await initialUpdate;
-    signal.throwIfAborted();
+    signal?.throwIfAborted();
 
     syncDoc.on('update', recordWrite);
     result = await run(editor);
