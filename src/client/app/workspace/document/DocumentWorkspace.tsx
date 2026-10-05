@@ -38,12 +38,10 @@ export default function DocumentWorkspace({
   docId,
   zoomNoteId,
   onSelectHome,
-  onSelectDocument,
 }: {
   docId: string;
   zoomNoteId: string | null;
   onSelectHome: () => void;
-  onSelectDocument: (docId: string) => void;
 }) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
@@ -71,13 +69,6 @@ export default function DocumentWorkspace({
   const handleImportError = useCallback((error: Error) => {
     setImportError({ docId, message: error.message });
   }, [docId]);
-  const openDocument = (nextDocId: string) => {
-    if (nextDocId !== docId) {
-      onSelectDocument(nextDocId);
-    } else if (zoomNoteId !== null) {
-      requestZoomNoteId(null);
-    }
-  };
 
   const targetHeader = () => {
     if (!shellRef.current?.querySelector('[data-note-menu]')) setMenuTarget('header');
@@ -119,11 +110,8 @@ export default function DocumentWorkspace({
       ref={shellRef}
     >
       <DocumentToolbar
-        docId={docId}
         documentLabel={source.documentLabel}
-        documentSources={documentSources}
         keyboardReference={<KeyboardReference onClose={focusEditorInput} />}
-        onSelectDocument={openDocument}
         onSelectHome={onSelectHome}
         onSelectNoteId={requestZoomNoteId}
         onStatusHostChange={setStatusHost}

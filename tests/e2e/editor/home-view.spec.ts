@@ -1,6 +1,6 @@
 import { expect, isolatedTest as test } from '#editor/fixtures';
-import { editorLocator, homeSearch, homeView, homeZoomBreadcrumb } from '#editor/locators';
-import { waitForSynced } from './_support/bridge';
+import { editorLocator, homeSearch, homeView, homeZoomBreadcrumb, openDocumentFromHome } from '#editor/locators';
+import { ensureReady, load, waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
 import { createUserDocument } from '../_support/documents';
 
@@ -97,7 +97,6 @@ test.describe('Home', () => {
     await expect(homeSearch(page)).toBeFocused();
     await expect(editorLocator(page)).toHaveCount(0);
     await expect(page.getByRole('combobox', { name: 'Search document', exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Show documents' })).toHaveCount(0);
     await expect(page).toHaveTitle('Home · RemDo');
   });
 
@@ -288,4 +287,47 @@ test.describe('Home', () => {
     await expect(editorLocator(page).locator('.editor-input')).toBeFocused();
     expect(attempts).toBe(2);
   });
+
+  test('keeps each document's content when switching between documents through Home', async ({ page, captureCreatedDoc }) => {
+    const sourceDocument = await createUserDocument(page, `Source Document ${Date.now()}`);
+    await seedDocument(page, sourceDocument.id, 'tree-complex');
+
+    await page.goto(createEditorDocumentPath(sourceDocument.id));
+    await waitForSynced(page);
+    await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
+
+    const createdDocId = await captureCreatedDoc(page, async () => {
+      await homeZoomBreadcrumb(page).click();
+      await homeView(page).getByRole('button', { name: 'New document', exact: true }).click();
+      await page.getByRole('dialog', { name: 'New document' }).getByRole('button', { name: 'Create document' }).click();
+    });
+    await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
+    await ensureReady(page);
+    await load(page, 'flat');
+    await waitForSynced(page);
+
+    await openDocumentFromHome(page, sourceDocument.title);
+    await expect(page).toHaveURL(createEditorDocumentPath(sourceDocument.id));
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await ensureReady(page);
+    await waitForSynced(page);
+    await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' }).first()).toBeVisible();
+
+    await homeZoomBreadcrumb(page).click();
+    await homeView(page).locator(`[data-home-document-ref="${createdDocId}"]`).click();
+    await expect(page).toHaveURL(createEditorDocumentPath(createdDocId));
+    await editorLocator(page).locator('.editor-input').first().waitFor();
+    await ensureReady(page);
+    await waitForSynced(page);
+    await expect(editorLocator(page).locator('li.list-item', { hasText: 'note7' })).toHaveCount(0);
+    await expect(editorLocator(page).locator('li.list-item', { hasText: 'note3' }).first()).toBeVisible();
+  });
 });
+
+async function seedDocument(page: Parameters<typeof editorLocator>[0], docId: string, fixtureName: string) {
+  await page.goto(createEditorDocumentPath(docId));
+  await editorLocator(page).locator('.editor-input').first().waitFor();
+  await ensureReady(page, { clear: true });
+  await load(page, fixtureName);
+  await waitForSynced(page);
+}

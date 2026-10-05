@@ -376,12 +376,9 @@ concrete unmet need.
   availability, selection targets, and focus restoration across surfaces,
   following the [SDK capability work](#sdk) without adding a generic command system.
 
-- **Home and document switching.** Retire the breadcrumb picker and update its
-  [zoom contract](specs/outliner/zoom.md#breadcrumbs) and
-  [legacy follow-up](legacy-backlog.md#home-and-location-header-follow-ups).
-  Undecided: recalling the previous document, which needs recency state, and a
-  handoff from empty note search to document search. Judge by switching speed and
-  scope clarity rather than duplicate destinations alone.
+- **Home and document switching.** Undecided: recalling the previous document,
+  which needs recency state, and a handoff from empty note search to document
+  search.
 
 ### Agents
 

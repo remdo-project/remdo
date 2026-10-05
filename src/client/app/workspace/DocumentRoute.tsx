@@ -11,18 +11,6 @@ function useDocumentRouteNavigation(docId: string) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const navigateToDocument = useCallback((nextDocId: string) => {
-    if (nextDocId === docId) {
-      return;
-    }
-    const nextSearch = searchParams.toString();
-    const pathname = createDocumentPath(nextDocId);
-    void navigate({
-      pathname,
-      search: nextSearch ? `?${nextSearch}` : '',
-    });
-  }, [docId, navigate, searchParams]);
-
   const navigateToZoomNote = useCallback((noteId: string | null, zoomRequestId: number) => {
     const nextSearch = searchParams.toString();
     const pathname = createDocumentPath(docId, noteId);
@@ -40,7 +28,7 @@ function useDocumentRouteNavigation(docId: string) {
     void navigate('/', { state: FOCUS_DOCUMENT_SEARCH_STATE });
   }, [navigate]);
 
-  return { navigateHome, navigateHomeToSearch, navigateToDocument, navigateToZoomNote };
+  return { navigateHome, navigateHomeToSearch, navigateToZoomNote };
 }
 
 export default function DocumentRoute() {
@@ -54,7 +42,7 @@ export default function DocumentRoute() {
   const parsedRef = useLoaderData<ParsedDocumentRef>();
   const docId = parsedRef.docId;
   const zoomNoteId = parsedRef.noteId;
-  const { navigateHome, navigateHomeToSearch, navigateToDocument, navigateToZoomNote } = useDocumentRouteNavigation(docId);
+  const { navigateHome, navigateHomeToSearch, navigateToZoomNote } = useDocumentRouteNavigation(docId);
   useDocumentSearchShortcut(navigateHomeToSearch);
 
   return (
@@ -68,7 +56,6 @@ export default function DocumentRoute() {
         <DocumentWorkspace
           docId={docId}
           zoomNoteId={zoomNoteId}
-          onSelectDocument={navigateToDocument}
           onSelectHome={navigateHome}
         />
       </EditorViewProvider>

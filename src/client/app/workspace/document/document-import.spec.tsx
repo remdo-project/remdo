@@ -1,0 +1,111 @@
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getTestUserData } from '#tests';
+import * as pendingDocumentImports from '#client/editor/runtime/pending-document-import';
+import { createDocumentPath } from '#document-routes';
+import {
+  renderDocumentRoute,
+  resetDocumentRouteHarness,
+} from '../../../../../tests/unit/_support/document-route-harness';
+
+describe('document import', () => {
+  beforeEach(() => {
+    resetDocumentRouteHarness();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const openHome = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Home' }));
+  };
+
+  const clickUploadDocument = async () => {
+    await openHome();
+    fireEvent.click(await screen.findByRole('button', { name: 'Upload document' }));
+  };
+
+  const rejectDocumentCreation = (message = 'offline') => {
+    const userData = getTestUserData();
+    const realDocuments = userData.getDocuments.bind(userData);
+    vi.spyOn(userData, 'getDocuments').mockImplementation(() => ({
+      ...realDocuments(),
+      create: vi.fn().mockRejectedValue(new Error(message)),
+    }));
+  };
+
+  it('creates a document from the selected backup filename before registering the pending import', async () => {
+    const registerPendingImport = vi.spyOn(pendingDocumentImports, 'registerPendingDocumentImport');
+    const router = renderDocumentRoute();
+    await clickUploadDocument();
+
+    const file = new File(['{"root":{"type":"root","children":[]}}'], ' Project Backup.json', {
+      type: 'application/json',
+    });
+    fireEvent.change(screen.getByLabelText('Upload document'), {
+      target: { files: [file] },
+    });
+
+    await waitFor(() => {
+      expect(registerPendingImport).toHaveBeenCalledTimes(1);
+    });
+
+    const [createdDocId, registeredFile] = registerPendingImport.mock.calls[0]!;
+    expect(registeredFile).toBe(file);
+    expect(getTestUserData().getDocuments().getById(createdDocId)?.getText()).toBe('Project Backup');
+    expect(router.state.location.pathname).toBe(createDocumentPath(createdDocId));
+  });
+
+  it('does not register a pending import when upload document creation fails', async () => {
+    const registerPendingImport = vi.spyOn(pendingDocumentImports, 'registerPendingDocumentImport');
+    rejectDocumentCreation();
+
+    renderDocumentRoute();
+    await clickUploadDocument();
+    fireEvent.change(screen.getByLabelText('Upload document'), {
+      target: { files: [new File(['{}'], 'backup.json', { type: 'application/json' })] },
+    });
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Could not create document');
+    expect(alert).toHaveTextContent('offline');
+    expect(registerPendingImport).not.toHaveBeenCalled();
+  });
+
+  it('dismisses the upload creation error alert via its close button', async () => {
+    rejectDocumentCreation();
+
+    renderDocumentRoute();
+    await clickUploadDocument();
+    fireEvent.change(screen.getByLabelText('Upload document'), {
+      target: { files: [new File(['{}'], 'backup.json', { type: 'application/json' })] },
+    });
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+  });
+
+  it('clears the upload creation error when navigating to another document', async () => {
+    rejectDocumentCreation();
+
+    const router = renderDocumentRoute(createDocumentPath('routeDoc'));
+    await clickUploadDocument();
+    fireEvent.change(screen.getByLabelText('Upload document'), {
+      target: { files: [new File(['{}'], 'backup.json', { type: 'application/json' })] },
+    });
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+
+    await router.navigate(createDocumentPath('other'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('editor-probe').dataset.docId).toBe('other');
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+  });
+});

@@ -1,17 +1,15 @@
-import type { ReactNode } from 'react';
 import styles from './ZoomBreadcrumbs.module.css';
 import type { NotePathItem } from '#client/editor/outline/note-traversal';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 
 interface ZoomBreadcrumbsProps {
   docLabel: string;
-  documentControl?: ReactNode;
   path: NotePathItem[];
   onSelectHome?: () => void;
   onSelectNoteId: (noteId: string | null) => void;
 }
 
-export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectHome, onSelectNoteId }: ZoomBreadcrumbsProps) {
+export function ZoomBreadcrumbs({ docLabel, path, onSelectHome, onSelectNoteId }: ZoomBreadcrumbsProps) {
   return (
     <nav aria-label="Breadcrumb" className={styles.breadcrumbs} data-zoom-breadcrumbs>
       <ol className={styles.list}>
@@ -28,20 +26,14 @@ export function ZoomBreadcrumbs({ docLabel, documentControl, path, onSelectHome,
           </li>
         ) : null}
         <li>
-          {documentControl ? (
-            <span className={styles.documentCrumbGroup} data-zoom-crumb="document">
-              {documentControl}
-            </span>
-          ) : (
-            <button
-              type="button"
-              className={styles.crumbButton}
-              data-zoom-crumb="document"
-              onClick={() => onSelectNoteId(null)}
-            >
-              {formatNavigationLabel(docLabel)}
-            </button>
-          )}
+          <button
+            type="button"
+            className={styles.crumbButton}
+            data-zoom-crumb="document"
+            onClick={() => onSelectNoteId(null)}
+          >
+            {formatNavigationLabel(docLabel)}
+          </button>
         </li>
         {path.map((item, index) => (
           <li key={item.noteId}>

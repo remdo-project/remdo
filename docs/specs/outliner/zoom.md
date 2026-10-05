@@ -42,7 +42,7 @@ editing boundary, distinct from the editor's [selection](./selection.md).
 
 ## Clearing zoom
 
-Re-selecting the current document in the document picker, or opening that
+Selecting the document crumb of the [breadcrumb](#breadcrumbs), or opening that
 document from [Home](./home.md), sets the zoom target to the document root.
 If the zoom root no longer resolves, zoom also resets to the document root.
 
@@ -77,9 +77,8 @@ The breadcrumb shows the current location and provides navigation to its ancesto
 1. The document-root view contains Home / document name.
 2. A subtree view contains Home / document name / ancestor notes / current note.
    The current note is non-interactive text marked with `aria-current="page"`.
-3. Home opens [Home](./home.md). The document name is the document picker;
-   choosing the current document clears zoom. An ancestor note changes the
-   zoom root to that note.
+3. Home opens [Home](./home.md). The document name clears zoom to the document
+   root, and an ancestor note changes the zoom root to that note.
 
 Labels other than Home use the corresponding note's display text, truncated to
 48 characters when needed.

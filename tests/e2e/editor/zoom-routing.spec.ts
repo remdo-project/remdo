@@ -58,7 +58,7 @@ test.describe('Zoom routing', () => {
     await expect(page).toHaveURL(createEditorDocumentPathRegExp(editor.docId, 'note1'));
   });
 
-  test('clears zoom route when re-selecting the current document in the picker', async ({ page, editor }) => {
+  test('clears the zoom route when the document crumb is selected', async ({ page, editor }) => {
     await page.goto(createEditorDocumentPath(editor.docId, 'note1'));
     await editorLocator(page).locator('.editor-input').first().waitFor();
     await editor.load('basic');
