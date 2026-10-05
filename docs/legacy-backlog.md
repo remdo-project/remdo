@@ -32,7 +32,7 @@ Rules:
 
 ## Document import / upload follow-ups
 
-The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-document-import.ts`).
+The Home "Upload document" action (`PendingDocumentImportPlugin` + `pending-document-import.ts`).
 
 - `await normalizeUpdate` / `await awaitSynced()` can hang forever: no
   timeout/noop guard, so a no-op normalize (clean backup) or a never-syncing
@@ -50,17 +50,6 @@ The "Upload" document-switcher action (`PendingDocumentImportPlugin` + `pending-
 Tracks remaining gaps between [Home](specs/outliner/home.md) and the [location header](specs/outliner/location-header.md) as specified and what
 ships.
 
-- The document-source combobox in `DocumentToolbar.tsx` still lists documents for
-  switching; Home owns browsing and New/Upload. Remove the picker once Home fully
-  covers switching; the intervening state (both present) is the recorded interim.
-  While both exist they duplicate the per-source document list; removing the
-  picker resolves the duplication, so leave it rather than extracting a shared
-  helper now. Re-selecting the already-open document while zoomed now matches
-  Home: both clear zoom to the document root. Retirement is its own PR: delete
-  the picker and the `documentControl` slot from `ZoomBreadcrumbs` (the doc name
-  stays a crumb), delete its specs
-  (`document-switcher.spec.ts`, the picker cases in
-  `document-toolbar.spec.tsx`/`document-route.spec.tsx`).
 - No zoomed-note location header is rendered: the zoom root remains the
   editable top outline `ListItemNode`.
 - The subtree-zoom root is an editable outline `ListItemNode`, and the

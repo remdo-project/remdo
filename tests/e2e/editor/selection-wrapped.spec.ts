@@ -4,7 +4,7 @@ import type { SerializedListItemNode, SerializedListNode } from '@lexical/list';
 import type { SerializedLinkNode } from '@lexical/link';
 import type { ElementNode, SerializedTextNode } from 'lexical';
 import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
-import { editorLocator, selectInlineRange, setCaretAtText } from '#editor/locators';
+import { editorLocator, homeZoomBreadcrumb, selectInlineRange, setCaretAtText } from '#editor/locators';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
 
@@ -313,7 +313,7 @@ test('abandons a held no-op checkpoint on blur without intercepting a subsequent
   await setCaretAtText(page, 'note1');
   await page.keyboard.down('Shift');
   await page.keyboard.down('ArrowUp');
-  await page.getByRole('combobox', { name: 'Choose document' }).focus();
+  await homeZoomBreadcrumb(page).focus();
   await setCaretAtText(page, 'note2', 2);
   await page.keyboard.up('ArrowUp');
   await page.keyboard.up('Shift');

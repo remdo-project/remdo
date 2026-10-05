@@ -6,17 +6,14 @@ export const homeZoomBreadcrumb = (page: Page): Locator => zoomBreadcrumbs(page)
 export const homeView = (page: Page): Locator => page.locator('[data-testid="document-home"]');
 export const homeSearch = (page: Page): Locator => homeView(page).getByRole('combobox', { name: 'Search documents' });
 export const documentShell = (page: Page): Locator => page.locator('.document-editor-shell');
-export const documentPicker = (page: Page): Locator => page.getByRole('combobox', { name: 'Choose document' });
-export const documentPickerButton = (page: Page): Locator => page.getByRole('button', { name: 'Show documents' });
 
-export async function chooseDocument(page: Page, name: string): Promise<void> {
-  await documentPickerButton(page).click();
-  await page.getByRole('option', { name, exact: true }).first().click();
+export async function openDocumentFromHome(page: Page, name: string): Promise<void> {
+  await homeZoomBreadcrumb(page).click();
+  await homeView(page).getByRole('button', { name, exact: true }).click();
 }
 
 export async function clearZoom(page: Page): Promise<void> {
-  const name = await documentPicker(page).inputValue();
-  await chooseDocument(page, name);
+  await zoomBreadcrumbs(page).locator('[data-zoom-crumb="document"]').click();
 }
 
 // The date picker portals outside `.editor-container`, so its locators are
