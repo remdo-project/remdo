@@ -7,13 +7,18 @@
         {% include "pages/landing/artifacts/note.html" with text="Launch plan" heading=True only %}
       </div>
       <div class="landing-artifact-row landing-artifact-row--nested">
-        {% include "pages/landing/artifacts/note.html" with text="Review the draft" checkbox=True only %}
-        <span class="landing-artifact-peer landing-artifact-peer--tom"><span class="landing-artifact-peer-name">Tom</span></span>
+        <div class="landing-artifact-note">
+          <img class="landing-artifact-handle" src="/site-assets/note-handle.svg" alt="">
+          <span class="landing-artifact-checkbox"></span>
+          <p class="landing-artifact-text"><span class="landing-artifact-inline">Review the draft<span class="landing-artifact-peer landing-artifact-peer--tom"><span class="landing-artifact-peer-name">Tom</span></span></span></p>
+        </div>
       </div>
       <div class="landing-artifact-row landing-artifact-row--nested">
-        <span class="landing-artifact-peer-selection"></span>
-        {% include "pages/landing/artifacts/note.html" with text="Send the final draft to Maya" checkbox=True only %}
-        <span class="landing-artifact-peer landing-artifact-peer--henry"><span class="landing-artifact-peer-name">Henry</span></span>
+        <div class="landing-artifact-note">
+          <img class="landing-artifact-handle" src="/site-assets/note-handle.svg" alt="">
+          <span class="landing-artifact-checkbox"></span>
+          <p class="landing-artifact-text">Send the <span class="landing-artifact-inline"><span class="landing-artifact-peer-selection"></span>final draft<span class="landing-artifact-peer landing-artifact-peer--henry"><span class="landing-artifact-peer-name">Henry</span></span></span> to Maya</p>
+        </div>
       </div>
       <div class="landing-artifact-row">
         {% include "pages/landing/artifacts/note.html" with text="Next steps" heading=True only %}

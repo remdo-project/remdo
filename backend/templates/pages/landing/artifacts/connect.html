@@ -10,8 +10,10 @@
         {% include "pages/landing/artifacts/note.html" with text="Customer conversations" link=True only %}
       </div>
       <div class="landing-artifact-row landing-artifact-row--nested">
-        <span class="landing-artifact-caret landing-artifact-caret--link"></span>
-        {% include "pages/landing/artifacts/note.html" with text="@Atlas" only %}
+        <div class="landing-artifact-note">
+          <img class="landing-artifact-handle" src="/site-assets/note-handle.svg" alt="">
+          <p class="landing-artifact-text"><span class="landing-artifact-inline">@Atlas<span class="landing-artifact-caret"></span></span></p>
+        </div>
       </div>
       <div class="landing-artifact-row">
         {% include "pages/landing/artifacts/note.html" with text="Supporting ideas" heading=True only %}
