@@ -99,15 +99,12 @@ test.describe('Routing', () => {
   });
 
   test('reloads Home while its document listing is pending', async ({ page }) => {
-    let holdListing = true;
-    await page.route('**/api/documents', async (route) => {
-      if (!holdListing) await route.continue();
-    });
+    await page.route('**/api/documents', () => {});
     const documentsRequested = page.waitForRequest('**/api/documents');
     await page.goto('/');
     await documentsRequested;
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
-    holdListing = false;
+    await page.unroute('**/api/documents');
     await page.reload();
     await expect(homeSearch(page)).toBeFocused();
     await expect(page.getByRole('group', { name: 'Current Server', exact: true })
