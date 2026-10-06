@@ -171,6 +171,24 @@ describe('analytics payload sent to Umami', () => {
     expect(page.beforeSend({ url: '/', referrer: page.origin + referrerPath })!.referrer).toBe(page.origin + expected);
   });
 
+  it.each([
+    ['a relative same-origin page whose query names a document', '/accounts/login/?next=/n/private-id', '/accounts/login/'],
+    ['a relative same-origin document route', '/n/private-id', '/n/:document'],
+  ])('reduces the referrer the tracker sends for %s', (_name, referrer, expected) => {
+    const page = loadPage('granted');
+
+    expect(page.beforeSend({ url: `${page.origin}/`, referrer })!.referrer).toBe(expected);
+  });
+
+  it('replaces the absolute document URL and the page title the tracker sends', () => {
+    const page = loadPage('granted');
+
+    expect(page.beforeSend({ url: `${page.origin}/n/private-id?note=1`, title: 'Private plan', referrer: '' })).toMatchObject({
+      url: `${page.origin}/n/:document`,
+      title: 'Document · RemDo',
+    });
+  });
+
   it('reduces an external referrer to its route', () => {
     const page = loadPage('granted');
 
