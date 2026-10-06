@@ -210,7 +210,7 @@ a.site-wordmark {
   line-height: 1.4;
 }
 
-.analytics-consent-copy a {
+.analytics-consent .analytics-consent-copy a {
   color: var(--remdo-accent);
 }
 
