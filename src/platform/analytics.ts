@@ -70,14 +70,7 @@ function withAnalytics(call: (client: UmamiClient) => void): boolean {
 export function identifyAnalyticsUser(id: string) {
   userId = id;
   window.remdoAnalyticsSuspended = false;
-  if (window.remdoAnalyticsAllowed !== true) {
-    return;
-  }
-  if (window.umami) {
-    flushPendingCalls();
-  } else {
-    waitForTracker();
-  }
+  withAnalytics(() => {});
 }
 
 // Umami cannot clear an identity, so the page stops sending until the next
