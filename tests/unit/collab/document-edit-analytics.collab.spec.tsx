@@ -23,6 +23,18 @@ afterEach(() => {
   delete window.umami;
 });
 
+async function renderUpload(contents: string, onError: (error: Error) => void) {
+  const docId = await createCollabTestDocument();
+  registerPendingDocumentImport(docId, new File([contents], 'upload.json'));
+  return render(
+    <TestMantineProvider>
+      <EditorViewProvider docId={docId} onZoomNoteIdChange={() => {}}>
+        <Editor docId={docId} onSelectHome={() => {}} statusPortalRoot={null} onPendingDocumentImportError={onError} />
+      </EditorViewProvider>
+    </TestMantineProvider>,
+  );
+}
+
 describe('document edit analytics', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('reports one edit per document opening', meta({ fixture: 'basic' }), async ({ remdo }) => {
     const track = installAnalytics();
@@ -74,25 +86,25 @@ describe('document edit analytics', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     }
   });
 
-  it('reports an uploaded document as edited, because its content is a local change', async () => {
+  it('reports a successful upload as imported and, being a local change, edited', async () => {
     const track = installAnalytics();
-    const docId = await createCollabTestDocument();
-    registerPendingDocumentImport(docId, new File([await readFixture('basic')], 'basic.json'));
 
-    const { unmount } = render(
-      <TestMantineProvider>
-        <EditorViewProvider docId={docId} onZoomNoteIdChange={() => {}}>
-          <Editor
-            docId={docId}
-            onSelectHome={() => {}}
-            statusPortalRoot={null}
-            onPendingDocumentImportError={(error) => { throw error; }}
-          />
-        </EditorViewProvider>
-      </TestMantineProvider>,
-    );
+    const { unmount } = await renderUpload(await readFixture('basic'), (error) => { throw error; });
     try {
-      await waitFor(() => expect(track).toHaveBeenCalledExactlyOnceWith('document-edited'));
+      await waitFor(() => expect(track.mock.calls.map(([event]) => event).sort()).toEqual(['document-edited', 'document-imported']));
+    } finally {
+      unmount();
+    }
+  });
+
+  it('does not report an upload that cannot be imported', async () => {
+    const track = installAnalytics();
+    const onError = vi.fn();
+
+    const { unmount } = await renderUpload('not a document', onError);
+    try {
+      await waitFor(() => expect(onError).toHaveBeenCalledOnce());
+      expect(track).not.toHaveBeenCalledWith('document-imported');
     } finally {
       unmount();
     }

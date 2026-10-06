@@ -89,28 +89,35 @@
       const storedConsent = readConsent();
       window.remdoAnalyticsAllowed = storedConsent === 'granted';
 
-      consentPanel.querySelector('[data-analytics-allow]').addEventListener('click', () => {
+      const applyGranted = () => {
         const newlyGranted = !window.remdoAnalyticsAllowed;
-        writeConsent('granted');
         window.remdoAnalyticsAllowed = true;
         consentPanel.hidden = true;
         if (newlyGranted) {
           window.dispatchEvent(new Event(consentGrantedEvent));
         }
         startTracker();
+      };
+
+      const applyDenied = () => {
+        window.remdoAnalyticsAllowed = false;
+        consentPanel.hidden = true;
+      };
+
+      consentPanel.querySelector('[data-analytics-allow]').addEventListener('click', () => {
+        writeConsent('granted');
+        applyGranted();
       });
 
       consentPanel.querySelector('[data-analytics-deny]').addEventListener('click', () => {
         writeConsent('denied');
-        window.remdoAnalyticsAllowed = false;
-        consentPanel.hidden = true;
-        if (trackerStarted) window.location.reload();
+        applyDenied();
       });
 
       window.addEventListener('storage', (event) => {
-        if ((event.key === consentKey || event.key === null) && event.newValue !== 'granted') {
-          window.remdoAnalyticsAllowed = false;
-          consentPanel.hidden = true;
+        if (event.key === consentKey || event.key === null) {
+          if (event.newValue === 'granted') applyGranted();
+          else applyDenied();
         }
       });
 

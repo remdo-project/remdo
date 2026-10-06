@@ -68,7 +68,10 @@ describe('app frame analytics', () => {
   });
 
   it('identifies an authenticated user by the session user id', async () => {
-    renderFrame({ status: 'authenticated', session: { user: { id: 7 } } } as unknown as SessionGateState);
+    renderFrame({
+      status: 'authenticated',
+      session: { user: { id: 7, display: 'User', has_usable_password: true, is_staff: false }, methods: [] },
+    });
 
     await waitFor(() => expect(identify).toHaveBeenCalledExactlyOnceWith('7'));
   });

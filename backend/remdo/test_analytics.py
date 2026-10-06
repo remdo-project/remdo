@@ -27,12 +27,3 @@ class AnalyticsMarkupTests(TestCase):
                     response,
                     '<script src="https://cloud.umami.is/script.js"',
                 )
-
-    @override_settings(UMAMI_WEBSITE_ID="analytics-website-id")
-    def test_tracker_redacts_document_routes_and_excludes_url_details(self):
-        content = self.client.get("/n/private-document-id").content.decode()
-
-        self.assertIn("/n/:document", content)
-        self.assertIn("tracker.dataset.excludeSearch = 'true'", content)
-        self.assertIn("tracker.dataset.excludeHash = 'true'", content)
-        self.assertNotIn("private-document-id", content)

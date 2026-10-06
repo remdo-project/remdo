@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
+import * as pendingDocumentImports from '#client/editor/runtime/pending-document-import';
 import {
   renderDocumentRoute,
   resetDocumentRouteHarness,
@@ -16,6 +17,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   delete window.remdoAnalyticsAllowed;
   delete window.umami;
 });
@@ -31,13 +33,15 @@ describe('product analytics events', () => {
     expect(track).toHaveBeenCalledExactlyOnceWith('document-created');
   });
 
-  it('reports an uploaded document as imported, not created', async () => {
+  it('does not report an uploaded document as created', async () => {
+    const registerPendingImport = vi.spyOn(pendingDocumentImports, 'registerPendingDocumentImport');
     renderDocumentRoute('/');
     fireEvent.click(await screen.findByRole('button', { name: 'Upload document' }));
     const file = new File(['{"root":{"type":"root","children":[]}}'], 'Backup.json', { type: 'application/json' });
     fireEvent.change(screen.getByLabelText('Upload document'), { target: { files: [file] } });
 
-    await waitFor(() => expect(track).toHaveBeenCalledExactlyOnceWith('document-imported'));
+    await waitFor(() => expect(registerPendingImport).toHaveBeenCalledOnce());
+    expect(track).not.toHaveBeenCalled();
   });
 
   it('reports one search per search session, counting it once consent is granted', async () => {

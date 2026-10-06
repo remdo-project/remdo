@@ -2,71 +2,76 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import vm from 'node:vm';
-import { afterEach, describe, expect, it } from 'vitest';
+import { JSDOM } from 'jsdom';
+import { describe, expect, it } from 'vitest';
 import { ANALYTICS_CONSENT_GRANTED_EVENT, ANALYTICS_READY_EVENT } from '#platform/analytics';
 
 type Payload = Record<string, string>;
-type BeforeSend = (type: string, payload: Payload) => Payload | null;
+interface ConsentWindow {
+  remdoAnalyticsAllowed?: boolean;
+  remdoAnalyticsSuspended?: boolean;
+  remdoUmamiBeforeSend: (type: string, payload: Payload) => Payload | null;
+}
 
+const CONSENT_KEY = 'remdo-analytics-consent-v1';
 const template = fs.readFileSync(path.join(process.cwd(), 'backend/templates/analytics.html'), 'utf8');
 const inlineScript = /<script>([\s\S]*?)<\/script>/.exec(template)![1]!;
 
-function loadConsentScript() {
-  const panel = document.createElement('aside');
-  panel.hidden = true;
-  panel.dataset.analyticsConsent = '';
-  panel.dataset.analyticsWebsiteId = 'site';
-  const [allow, deny] = ['analyticsAllow', 'analyticsDeny'].map((attribute) => {
-    const button = document.createElement('button');
-    button.dataset[attribute] = '';
-    panel.append(button);
-    return button;
-  });
-  document.body.replaceChildren(panel);
-  vm.runInThisContext(inlineScript);
-  return { panel, allow: allow!, deny: deny! };
+function loadPage(storedConsent?: 'granted' | 'denied') {
+  const dom = new JSDOM(
+    `<!doctype html><body>
+      <button data-analytics-settings></button>
+      <aside data-analytics-consent data-analytics-website-id="site" hidden>
+        <button data-analytics-allow></button>
+        <button data-analytics-deny></button>
+      </aside>
+    </body>`,
+    { url: 'http://localhost:7000/', runScripts: 'outside-only' },
+  );
+  if (storedConsent) dom.window.localStorage.setItem(CONSENT_KEY, storedConsent);
+  vm.runInContext(inlineScript, dom.getInternalVMContext());
+
+  const { document } = dom.window;
+  const consentWindow = dom.window as unknown as ConsentWindow;
+  const announced: string[] = [];
+  dom.window.addEventListener(ANALYTICS_CONSENT_GRANTED_EVENT, () => announced.push('granted'));
+  dom.window.addEventListener(ANALYTICS_READY_EVENT, () => announced.push('ready'));
+  return {
+    announced,
+    panel: document.querySelector<HTMLElement>('[data-analytics-consent]')!,
+    tracker: () => document.head.querySelector<HTMLScriptElement>('script[data-website-id]'),
+    click: (selector: string) => document.querySelector<HTMLElement>(selector)!.click(),
+    allowed: () => consentWindow.remdoAnalyticsAllowed,
+    storedConsent: () => dom.window.localStorage.getItem(CONSENT_KEY),
+    suspend: () => { consentWindow.remdoAnalyticsSuspended = true; },
+    beforeSend: (payload: Payload) => consentWindow.remdoUmamiBeforeSend('pageview', payload),
+    otherTab: (change: { key: string | null; newValue: string | null }) => {
+      dom.window.dispatchEvent(new dom.window.StorageEvent('storage', change));
+    },
+    origin: dom.window.location.origin,
+  };
 }
-
-function loadBeforeSend(): BeforeSend {
-  localStorage.setItem('remdo-analytics-consent-v1', 'granted');
-  loadConsentScript();
-  return (window as unknown as { remdoUmamiBeforeSend: BeforeSend }).remdoUmamiBeforeSend;
-}
-
-const trackerScript = () => document.head.querySelector<HTMLScriptElement>('script[data-website-id]');
-
-afterEach(() => {
-  delete window.remdoAnalyticsAllowed;
-  delete window.remdoAnalyticsSuspended;
-  trackerScript()?.remove();
-  localStorage.clear();
-});
 
 describe('analytics consent', () => {
   it('asks a first-time visitor before loading anything', () => {
-    const { panel } = loadConsentScript();
+    const page = loadPage();
 
-    expect(panel.hidden).toBe(false);
-    expect(window.remdoAnalyticsAllowed).toBe(false);
-    expect(trackerScript()).toBeNull();
+    expect(page.panel.hidden).toBe(false);
+    expect(page.allowed()).toBe(false);
+    expect(page.tracker()).toBeNull();
   });
 
   it('loads the tracker with URL details excluded once the visitor allows analytics', () => {
-    const { panel, allow } = loadConsentScript();
-    const consentGranted: Event[] = [];
-    const trackerReady: Event[] = [];
-    window.addEventListener(ANALYTICS_CONSENT_GRANTED_EVENT, (event) => consentGranted.push(event), { once: true });
-    window.addEventListener(ANALYTICS_READY_EVENT, (event) => trackerReady.push(event), { once: true });
+    const page = loadPage();
 
-    allow.click();
+    page.click('[data-analytics-allow]');
+    page.tracker()!.dispatchEvent(new Event('load'));
 
-    expect(panel.hidden).toBe(true);
-    expect(window.remdoAnalyticsAllowed).toBe(true);
-    expect(localStorage.getItem('remdo-analytics-consent-v1')).toBe('granted');
-    expect(consentGranted).toHaveLength(1);
-    trackerScript()!.dispatchEvent(new Event('load'));
-    expect(trackerReady).toHaveLength(1);
-    expect(trackerScript()?.dataset).toMatchObject({
+    expect(page.panel.hidden).toBe(true);
+    expect(page.allowed()).toBe(true);
+    expect(page.storedConsent()).toBe('granted');
+    expect(page.announced).toEqual(['granted', 'ready']);
+    expect(page.tracker()?.dataset).toMatchObject({
       websiteId: 'site',
       excludeSearch: 'true',
       excludeHash: 'true',
@@ -75,82 +80,110 @@ describe('analytics consent', () => {
   });
 
   it('loads the tracker without asking again when the visitor already allowed analytics', () => {
-    localStorage.setItem('remdo-analytics-consent-v1', 'granted');
+    const page = loadPage('granted');
 
-    const { panel } = loadConsentScript();
-
-    expect(panel.hidden).toBe(true);
-    expect(window.remdoAnalyticsAllowed).toBe(true);
-    expect(trackerScript()).not.toBeNull();
+    expect(page.panel.hidden).toBe(true);
+    expect(page.allowed()).toBe(true);
+    expect(page.tracker()).not.toBeNull();
   });
 
-  it('stops sending in a tab that is open when the visitor withdraws consent in another tab', () => {
-    const beforeSend = loadBeforeSend();
-    expect(beforeSend('event', { url: '/', referrer: '' })).not.toBeNull();
+  it('does not load the tracker or ask again when the visitor already refused', () => {
+    const page = loadPage('denied');
 
-    window.dispatchEvent(new StorageEvent('storage', { key: 'remdo-analytics-consent-v1', newValue: 'denied' }));
-
-    expect(window.remdoAnalyticsAllowed).toBe(false);
-    expect(beforeSend('event', { url: '/', referrer: '' })).toBeNull();
+    expect(page.panel.hidden).toBe(true);
+    expect(page.allowed()).toBe(false);
+    expect(page.tracker()).toBeNull();
   });
 
-  it('stops sending in a tab that is open when another tab clears the site data', () => {
-    const beforeSend = loadBeforeSend();
+  it('records a refusal without loading the tracker', () => {
+    const page = loadPage();
 
-    window.dispatchEvent(new StorageEvent('storage', { key: null, newValue: null }));
+    page.click('[data-analytics-deny]');
 
-    expect(beforeSend('event', { url: '/', referrer: '' })).toBeNull();
+    expect(page.storedConsent()).toBe('denied');
+    expect(page.panel.hidden).toBe(true);
+    expect(page.allowed()).toBe(false);
+    expect(page.tracker()).toBeNull();
   });
 
-  it('records a refusal without loading the tracker or asking again', () => {
-    const { panel, deny } = loadConsentScript();
+  it('stops sending when the visitor withdraws consent, and resumes if they allow it again', () => {
+    const page = loadPage('granted');
+    const payload = { url: '/', referrer: '' };
 
-    deny.click();
-    const reloaded = loadConsentScript();
+    page.click('[data-analytics-settings]');
+    page.click('[data-analytics-deny]');
+    expect(page.panel.hidden).toBe(true);
+    expect(page.beforeSend(payload)).toBeNull();
 
-    expect(localStorage.getItem('remdo-analytics-consent-v1')).toBe('denied');
-    expect(panel.hidden).toBe(true);
-    expect(reloaded.panel.hidden).toBe(true);
-    expect(window.remdoAnalyticsAllowed).toBe(false);
-    expect(trackerScript()).toBeNull();
+    page.click('[data-analytics-settings]');
+    expect(page.panel.hidden).toBe(false);
+    page.click('[data-analytics-allow]');
+    expect(page.beforeSend(payload)).not.toBeNull();
+  });
+
+  it.each([
+    ['withdraws consent', { key: CONSENT_KEY, newValue: 'denied' }],
+    ['clears the site data', { key: null, newValue: null }],
+  ])('stops sending when another tab %s', (_name, change) => {
+    const page = loadPage('granted');
+
+    page.otherTab(change);
+
+    expect(page.allowed()).toBe(false);
+    expect(page.beforeSend({ url: '/', referrer: '' })).toBeNull();
+  });
+
+  it('starts analytics when another tab grants consent', () => {
+    const page = loadPage();
+
+    page.otherTab({ key: CONSENT_KEY, newValue: 'granted' });
+
+    expect(page.panel.hidden).toBe(true);
+    expect(page.allowed()).toBe(true);
+    expect(page.tracker()).not.toBeNull();
+    expect(page.announced).toEqual(['granted']);
   });
 });
 
 describe('analytics payload sent to Umami', () => {
-  const { origin } = window.location;
-
   it.each([
-    ['a same-origin page whose query names a document', `${origin}/accounts/login/?next=/n/private-id`, `${origin}/accounts/login/`],
-    ['a same-origin document route', `${origin}/n/private-id?note=1#heading`, `${origin}/n/:document`],
-    ['an external page', 'https://example.com/search?q=remdo#top', 'https://example.com/search'],
-  ])('reduces the referrer from %s to its route', (_name, referrer, expected) => {
-    const beforeSend = loadBeforeSend();
+    ['a same-origin page whose query names a document', '/accounts/login/?next=/n/private-id', '/accounts/login/'],
+    ['a same-origin document route', '/n/private-id?note=1#heading', '/n/:document'],
+  ])('reduces the referrer from %s to its route', (_name, referrerPath, expected) => {
+    const page = loadPage('granted');
 
-    expect(beforeSend('pageview', { url: '/', referrer })!.referrer).toBe(expected);
+    expect(page.beforeSend({ url: '/', referrer: page.origin + referrerPath })!.referrer).toBe(page.origin + expected);
+  });
+
+  it('reduces an external referrer to its route', () => {
+    const page = loadPage('granted');
+
+    expect(page.beforeSend({ url: '/', referrer: 'https://example.com/search?q=remdo#top' })!.referrer)
+      .toBe('https://example.com/search');
   });
 
   it('replaces a document route and its page title with generic values', () => {
-    const beforeSend = loadBeforeSend();
+    const page = loadPage('granted');
 
-    expect(beforeSend('pageview', { url: '/n/private-id', title: 'Private plan', referrer: '' })).toMatchObject({
+    expect(page.beforeSend({ url: '/n/private-id', title: 'Private plan', referrer: '' })).toMatchObject({
       url: '/n/:document',
       title: 'Document · RemDo',
     });
   });
 
   it('keeps the title of a page that is not a document', () => {
-    const beforeSend = loadBeforeSend();
+    const page = loadPage('granted');
 
-    expect(beforeSend('pageview', { url: '/privacy/', title: 'Privacy Policy', referrer: '' })).toMatchObject({
+    expect(page.beforeSend({ url: '/privacy/', title: 'Privacy Policy', referrer: '' })).toMatchObject({
       url: '/privacy/',
       title: 'Privacy Policy',
     });
   });
 
   it('is withheld while analytics is suspended after sign-out', () => {
-    const beforeSend = loadBeforeSend();
-    window.remdoAnalyticsSuspended = true;
+    const page = loadPage('granted');
+    page.suspend();
 
-    expect(beforeSend('event', { url: '/', referrer: '' })).toBeNull();
+    expect(page.beforeSend({ url: '/', referrer: '' })).toBeNull();
   });
 });
