@@ -4,7 +4,11 @@ import process from 'node:process';
 import vm from 'node:vm';
 import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
-import { ANALYTICS_CONSENT_GRANTED_EVENT, ANALYTICS_READY_EVENT } from '#platform/analytics';
+import {
+  ANALYTICS_CONSENT_GRANTED_EVENT,
+  ANALYTICS_CONSENT_WITHDRAWN_EVENT,
+  ANALYTICS_READY_EVENT,
+} from '#platform/analytics';
 
 type Payload = Record<string, string>;
 interface ConsentWindow {
@@ -36,6 +40,7 @@ function loadPage(storedConsent?: 'granted' | 'denied') {
   const announced: string[] = [];
   dom.window.addEventListener(ANALYTICS_CONSENT_GRANTED_EVENT, () => announced.push('granted'));
   dom.window.addEventListener(ANALYTICS_READY_EVENT, () => announced.push('ready'));
+  dom.window.addEventListener(ANALYTICS_CONSENT_WITHDRAWN_EVENT, () => announced.push('withdrawn'));
   return {
     announced,
     panel: document.querySelector<HTMLElement>('[data-analytics-consent]')!,
@@ -104,6 +109,7 @@ describe('analytics consent', () => {
     expect(page.panel.hidden).toBe(true);
     expect(page.allowed()).toBe(false);
     expect(page.tracker()).toBeNull();
+    expect(page.announced).toEqual(['withdrawn']);
   });
 
   it('stops sending when the visitor withdraws consent, and resumes if they allow it again', () => {
@@ -131,6 +137,7 @@ describe('analytics consent', () => {
 
     expect(page.allowed()).toBe(false);
     expect(page.beforeSend({ url: '/', referrer: '' })).toBeNull();
+    expect(page.announced).toEqual(['withdrawn']);
   });
 
   it('starts analytics when another tab grants consent', () => {

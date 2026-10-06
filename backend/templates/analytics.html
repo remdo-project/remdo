@@ -22,6 +22,7 @@
       const consentPanel = document.querySelector('[data-analytics-consent]');
       const consentKey = 'remdo-analytics-consent-v1';
       const consentGrantedEvent = 'remdo-analytics-consent-granted';
+      const consentWithdrawnEvent = 'remdo-analytics-consent-withdrawn';
       const analyticsReadyEvent = 'remdo-analytics-ready';
       const websiteId = consentPanel.dataset.analyticsWebsiteId;
       let trackerStarted = false;
@@ -102,6 +103,7 @@
       const applyDenied = () => {
         window.remdoAnalyticsAllowed = false;
         consentPanel.hidden = true;
+        window.dispatchEvent(new Event(consentWithdrawnEvent));
       };
 
       consentPanel.querySelector('[data-analytics-allow]').addEventListener('click', () => {

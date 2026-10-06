@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { ANALYTICS_READY_EVENT } from './analytics';
+import { ANALYTICS_CONSENT_WITHDRAWN_EVENT, ANALYTICS_READY_EVENT } from './analytics';
 
 afterEach(() => {
   delete window.remdoAnalyticsAllowed;
@@ -113,16 +113,17 @@ it('does not send calls queued for a user who signed out before Umami loaded', a
   expect(track).not.toHaveBeenCalled();
 });
 
-it('discards calls queued before consent was withdrawn instead of sending them after a later grant', async () => {
+it('discards calls queued before consent was withdrawn, even when it is granted again before Umami loads', async () => {
   const track = vi.fn();
   window.remdoAnalyticsAllowed = true;
   const { trackAnalyticsEvent } = await import('./analytics');
   trackAnalyticsEvent('document-created');
 
   window.remdoAnalyticsAllowed = false;
+  window.dispatchEvent(new Event(ANALYTICS_CONSENT_WITHDRAWN_EVENT));
+  window.remdoAnalyticsAllowed = true;
   window.umami = { identify: vi.fn(), track };
   window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
-  window.remdoAnalyticsAllowed = true;
   trackAnalyticsEvent('search-used');
 
   expect(track.mock.calls.map(([event]) => event)).toEqual(['search-used']);

@@ -1,5 +1,6 @@
 export const ANALYTICS_CONSENT_GRANTED_EVENT = 'remdo-analytics-consent-granted';
 export const ANALYTICS_READY_EVENT = 'remdo-analytics-ready';
+export const ANALYTICS_CONSENT_WITHDRAWN_EVENT = 'remdo-analytics-consent-withdrawn';
 
 type AnalyticsEvent =
   | 'app-opened'
@@ -25,13 +26,14 @@ const pendingCalls: Array<(client: UmamiClient) => void> = [];
 
 function flushPendingCalls() {
   const client = window.umami;
-  if (!client) {
+  if (!client || window.remdoAnalyticsAllowed !== true) {
     return;
   }
-  const calls = pendingCalls.splice(0);
-  if (window.remdoAnalyticsAllowed === true) {
-    calls.forEach((call) => call(client));
-  }
+  pendingCalls.splice(0).forEach((call) => call(client));
+}
+
+function clearPendingCalls() {
+  pendingCalls.length = 0;
 }
 
 function withAnalytics(call: (client: UmamiClient) => void): boolean {
@@ -45,6 +47,7 @@ function withAnalytics(call: (client: UmamiClient) => void): boolean {
   }
   pendingCalls.push(call);
   window.addEventListener(ANALYTICS_READY_EVENT, flushPendingCalls);
+  window.addEventListener(ANALYTICS_CONSENT_WITHDRAWN_EVENT, clearPendingCalls);
   return true;
 }
 
