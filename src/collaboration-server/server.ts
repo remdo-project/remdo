@@ -76,9 +76,13 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
         headers: { ...internalHeaders, Cookie: request.headers.cookie ?? '', Origin: request.headers.origin ?? '' },
         signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
       });
-    } catch {
+    } catch (error) {
+      console.error('collaboration.document-list-session-unreachable', error);
       reject('503 Service Unavailable');
       return;
+    }
+    if (!session.ok && session.status !== 403) {
+      console.error('collaboration.document-list-session-failed', session.status);
     }
     if (!session.ok || stopping || socket.destroyed) {
       reject(session.status === 403 ? '403 Forbidden' : '503 Service Unavailable');

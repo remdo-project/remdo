@@ -14,6 +14,7 @@ import { createProviderFactory } from '../collaboration/runtime';
 
 const secret = 'test-internal-secret';
 let authorizeStatus: number;
+let sessionStatus: number | 'reset';
 let authorizeHeaders: Array<Record<string, string | string[] | undefined>>;
 let loadStatus: number;
 let storeStatus: number;
@@ -39,6 +40,14 @@ const backend = createServer((request, response) => {
     if (request.url === '/internal/collaboration/session') {
       sessionHeaders.push(request.headers);
       await holdSession;
+      if (sessionStatus === 'reset') {
+        request.socket.destroy();
+        return;
+      }
+      if (sessionStatus !== 200) {
+        response.writeHead(sessionStatus).end();
+        return;
+      }
       const userId = /user=(\w+)/u.exec(request.headers.cookie ?? '')?.[1];
       if (userId) response.writeHead(200).end(JSON.stringify({ userId }));
       else response.writeHead(403).end();
@@ -71,6 +80,7 @@ const backend = createServer((request, response) => {
 
 beforeEach(async () => {
   authorizeStatus = 200;
+  sessionStatus = 200;
   authorizeHeaders = [];
   loadStatus = 200;
   storeStatus = 204;
@@ -383,6 +393,16 @@ it('rejects a document-list socket without a session and a notice without the in
   const { status } = await openDocumentListSocket({ Origin: 'http://remdo.test' });
   expect(status).toBe(403);
   expect(await notifyDocumentListChanged(['alice'], { [INTERNAL_SECRET_HEADER]: 'wrong' })).toBe(403);
+});
+
+it.each([
+  [500, 'collaboration.document-list-session-failed'],
+  ['reset', 'collaboration.document-list-session-unreachable'],
+] as const)('reports why a document-list socket is refused when the session check ends with %s', async (outcome, diagnostic) => {
+  sessionStatus = outcome;
+  const { status } = await openDocumentListSocket({ Cookie: 'user=alice', Origin: 'http://remdo.test' });
+  expect(status).toBe(503);
+  expectDiagnostics([diagnostic]);
 });
 
 const documentListUpgrade = `GET ${DOCUMENT_LIST_PATH} HTTP/1.1\r\nHost: remdo.test\r\nConnection: Upgrade\r\n`
