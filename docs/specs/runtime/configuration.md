@@ -189,17 +189,18 @@ verification ignores the setting. The Render production blueprint declares the
 value as an operator-supplied setting and the other deployment definitions leave
 it unset.
 
-Analytics loads only after the visitor grants analytics consent. It excludes URL
-queries and fragments from pages and referrers, reduces every document route and
-same-origin document referrer to `/n/:document`, and never sends document or
-note contents, titles, identifiers, filenames, or search text. Signed-in
-analytics uses the internal user ID as Umami's distinct ID, stops sending from
-the open page when the user signs out, and emits only `app-opened`, `document-created`,
-`document-imported`, `document-edited`, and `search-used` product events,
-without event properties. `document-edited` reports a document's first local
-content change in each opening of it, including the content of an uploaded
-file. Events from before consent are discarded, except that `app-opened` and
-`document-edited` are reported once consent is granted.
+Analytics loads only after the visitor grants analytics consent and reports only
+from the host of `APP_ORIGIN`. It excludes URL queries and fragments from pages
+and referrers, reduces every document route and same-origin document referrer
+to `/n/:document`, and never sends document or note contents, titles,
+identifiers, filenames, or search text. Signed-in analytics uses the internal
+user ID as Umami's distinct ID, stops sending from the open page when the user
+signs out, and emits only `app-opened`, `document-created`, `document-imported`,
+`document-edited`, and `search-used` product events, without event properties.
+`document-edited` reports a document's first local content change in each
+opening of it, including the content of an uploaded file. Events from before
+consent are discarded, except that `app-opened` and `document-edited` are
+reported once consent is granted.
 
 ## Request diagnostics
 

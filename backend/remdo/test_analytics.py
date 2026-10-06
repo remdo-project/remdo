@@ -27,3 +27,10 @@ class AnalyticsMarkupTests(TestCase):
                     response,
                     '<script src="https://cloud.umami.is/script.js"',
                 )
+
+    @override_settings(
+        UMAMI_WEBSITE_ID="analytics-website-id", APP_ORIGIN="https://app.example.test:8443"
+    )
+    def test_tracker_is_limited_to_the_host_of_the_app_origin(self):
+        response = self.client.get("/about/")
+        self.assertContains(response, 'data-analytics-domain="app.example.test"')

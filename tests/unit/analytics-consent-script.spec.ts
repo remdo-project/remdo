@@ -27,7 +27,7 @@ function loadPage(storedConsent?: 'granted' | 'denied') {
   const dom = new JSDOM(
     `<!doctype html><body>
       <button data-analytics-settings></button>
-      <aside data-analytics-consent data-analytics-website-id="site" hidden>
+      <aside data-analytics-consent data-analytics-website-id="site" data-analytics-domain="app.example.test" hidden>
         <button data-analytics-allow></button>
         <button data-analytics-deny></button>
       </aside>
@@ -82,6 +82,7 @@ describe('analytics consent', () => {
     expect(page.announced).toEqual(['granted', 'ready']);
     expect(page.tracker()?.dataset).toMatchObject({
       websiteId: 'site',
+      domains: 'app.example.test',
       excludeSearch: 'true',
       excludeHash: 'true',
       beforeSend: 'remdoUmamiBeforeSend',

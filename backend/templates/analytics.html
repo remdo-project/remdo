@@ -3,6 +3,7 @@
     class="analytics-consent"
     data-analytics-consent
     data-analytics-website-id="{{ umami_website_id }}"
+    data-analytics-domain="{{ umami_domain }}"
     aria-label="Analytics preferences"
     hidden
   >
@@ -26,6 +27,7 @@
       const trackerUnavailableEvent = 'remdo-analytics-unavailable';
       const analyticsReadyEvent = 'remdo-analytics-ready';
       const websiteId = consentPanel.dataset.analyticsWebsiteId;
+      const domain = consentPanel.dataset.analyticsDomain;
       let trackerStarted = false;
 
       const readConsent = () => {
@@ -72,7 +74,7 @@
         const tracker = document.createElement('script');
         tracker.src = 'https://cloud.umami.is/script.js';
         tracker.dataset.websiteId = websiteId;
-        tracker.dataset.domains = 'remdo.com';
+        tracker.dataset.domains = domain;
         tracker.dataset.excludeSearch = 'true';
         tracker.dataset.excludeHash = 'true';
         tracker.dataset.doNotTrack = 'true';
