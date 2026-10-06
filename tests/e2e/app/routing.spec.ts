@@ -10,6 +10,8 @@ import {
 import type { Page } from '#e2e/fixtures';
 import { createUserDocument } from '../_support/documents';
 
+const homeSearch = (page: Page) => page.getByRole('combobox', { name: 'Search documents' });
+
 test('the app remains recoverable when a remembered session has no offline bootstrap', async ({ page }) => {
   await page.goto('/about/');
   await page.evaluate(() => {
@@ -70,10 +72,10 @@ test.describe('Routing', () => {
 
     await page.goto('/');
     await expectPath(page, '/');
-    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
+    await expect(homeSearch(page)).toBeFocused();
     await expect(page.locator('.document-editor-shell')).toHaveCount(0);
     await page.reload();
-    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
+    await expect(homeSearch(page)).toBeFocused();
 
     // An explicit post-login document target must not collapse into Home.
     await page.goto(`/?next=${encodeURIComponent(documentPath)}`);
@@ -97,20 +99,17 @@ test.describe('Routing', () => {
   });
 
   test('reloads Home while its document listing is pending', async ({ page }) => {
-    let heldFirstRequest = false;
+    let holdListing = true;
     await page.route('**/api/documents', async (route) => {
-      if (!heldFirstRequest) {
-        heldFirstRequest = true;
-        return;
-      }
-      await route.continue();
+      if (!holdListing) await route.continue();
     });
     const documentsRequested = page.waitForRequest('**/api/documents');
     await page.goto('/');
     await documentsRequested;
     await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
+    holdListing = false;
     await page.reload();
-    await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
+    await expect(homeSearch(page)).toBeFocused();
     await expect(page.getByRole('group', { name: 'Current Server', exact: true })
       .getByRole('button', { name: 'New Document', exact: true })).toBeVisible();
   });
