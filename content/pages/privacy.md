@@ -108,9 +108,10 @@ users, RemDo also sends the account's internal user identifier as a pseudonymous
 distinct ID so that separate sessions can be connected for retention analysis.
 
 RemDo sends only a small set of explicit product events: opening the signed-in
-app, creating a document and using search. It does not send document or note
-contents, document titles or identifiers, filenames, or search text. Document
-routes are reduced to a generic route before analytics is sent.
+app, creating or importing a document, editing a document and using search. It
+does not send document or note contents, document titles or identifiers,
+filenames, or search text. Document routes are reduced to a generic route before
+analytics is sent.
 
 Umami's tracking code does not use cookies. The current Umami Cloud Hobby plan
 retains analytics data for up to six months.

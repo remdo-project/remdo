@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiConfiguration } from '#platform/http/api-client';
 import {
   ANALYTICS_CONSENT_GRANTED_EVENT,
+  endAnalyticsIdentity,
   identifyAnalyticsUser,
   trackAnalyticsEvent,
 } from '#platform/analytics';
@@ -80,6 +81,7 @@ function AppFrameContent() {
     window.addEventListener(ANALYTICS_CONSENT_GRANTED_EVENT, recordAppOpen);
     return () => {
       window.removeEventListener(ANALYTICS_CONSENT_GRANTED_EVENT, recordAppOpen);
+      endAnalyticsIdentity();
     };
   }, [analyticsUserId]);
   const headerLinks = connectionUnavailable ? null : (

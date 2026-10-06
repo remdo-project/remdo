@@ -29,6 +29,7 @@ import { NoteControlsPlugin } from '#client/editor/menu/NoteControlsPlugin';
 import { NoteMenuPlugin } from '#client/editor/menu/NoteMenuPlugin';
 import { MobileActionToolbarPlugin } from '#client/editor/mobile-toolbar/MobileActionToolbarPlugin';
 import { PendingDocumentImportPlugin } from '#client/editor/runtime/PendingDocumentImportPlugin';
+import { DocumentEditAnalyticsPlugin } from '#client/editor/runtime/DocumentEditAnalyticsPlugin';
 import { useLexicalOpenDocument } from '#client/editor/note-sdk-adapters';
 import { useRegisterOpenDocument } from '#client/editor/view/EditorViewProvider';
 import './Editor.css';
@@ -114,6 +115,7 @@ function EditorRuntime({
           {schemaReady ? (
             <>
               <NoteIdPlugin />
+              <DocumentEditAnalyticsPlugin />
               <ClipboardPlugin />
               <KeymapPlugin />
               <IndentationPlugin />

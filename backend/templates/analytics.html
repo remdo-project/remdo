@@ -43,27 +43,27 @@
           // The choice still applies to this page when storage is unavailable.
         }
       };
-      const sanitizeDocumentUrl = (value) => {
+      const redactUrl = (value) => {
         if (typeof value !== 'string' || value.length === 0) return value;
         try {
           const parsed = new URL(value, window.location.origin);
-          if (parsed.origin !== window.location.origin || !parsed.pathname.startsWith('/n/')) {
-            return value;
+          parsed.search = '';
+          parsed.hash = '';
+          if (parsed.origin === window.location.origin && parsed.pathname.startsWith('/n/')) {
+            parsed.pathname = '/n/:document';
           }
-          return value.startsWith('/') ? '/n/:document' : parsed.origin + '/n/:document';
+          return value.startsWith('/') && !value.startsWith('//') ? parsed.pathname : parsed.href;
         } catch {
           return value;
         }
       };
 
       window.remdoUmamiBeforeSend = (_type, payload) => {
-        const next = { ...payload };
-        const sanitizedUrl = sanitizeDocumentUrl(next.url);
-        if (sanitizedUrl !== next.url) {
-          next.url = sanitizedUrl;
+        if (window.remdoAnalyticsSuspended) return null;
+        const next = { ...payload, url: redactUrl(payload.url), referrer: redactUrl(payload.referrer) };
+        if (typeof next.url === 'string' && next.url.includes('/n/:document')) {
           next.title = 'Document · RemDo';
         }
-        next.referrer = sanitizeDocumentUrl(next.referrer);
         return next;
       };
 

@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 
 afterEach(() => {
   delete window.remdoAnalyticsAllowed;
+  delete window.remdoAnalyticsSuspended;
   delete window.umami;
   vi.resetModules();
 });
@@ -44,4 +45,26 @@ it('queues consented analytics until Umami finishes loading', async () => {
   expect(identify).toHaveBeenCalledWith('user-123');
   expect(track).toHaveBeenCalledWith('search-used');
   expect(identify.mock.invocationCallOrder[0]).toBeLessThan(track.mock.invocationCallOrder[0]!);
+});
+
+it('reports whether consent let the event through', async () => {
+  const { trackAnalyticsEvent } = await import('./analytics');
+
+  expect(trackAnalyticsEvent('document-edited')).toBe(false);
+
+  window.remdoAnalyticsAllowed = true;
+  window.umami = { identify: vi.fn(), track: vi.fn() };
+  expect(trackAnalyticsEvent('document-edited')).toBe(true);
+});
+
+it('stays suspended after the identity ends until a user is identified again', async () => {
+  window.remdoAnalyticsAllowed = true;
+  window.umami = { identify: vi.fn(), track: vi.fn() };
+  const { endAnalyticsIdentity, identifyAnalyticsUser } = await import('./analytics');
+
+  endAnalyticsIdentity();
+  expect(window.remdoAnalyticsSuspended).toBe(true);
+
+  identifyAnalyticsUser('user-456');
+  expect(window.remdoAnalyticsSuspended).toBe(false);
 });

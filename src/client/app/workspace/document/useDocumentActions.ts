@@ -35,7 +35,7 @@ export function useDocumentActions({
       const nextDocument = await userData.getDocuments().create(resolveUploadedDocumentTitle(file.name));
       registerPendingDocumentImport(nextDocument.getId(), file);
       setCreateError(null);
-      trackAnalyticsEvent('document-created');
+      trackAnalyticsEvent('document-imported');
       onSelectDocument(nextDocument.getId());
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : 'Failed to create document.');
