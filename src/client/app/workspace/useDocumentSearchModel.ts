@@ -174,6 +174,7 @@ export function useDocumentSearchModel({
 
   const closeSearchAndFocusEditor = useCallback(() => {
     setSearchModeRequested(false);
+    searchTrackedRef.current = false;
     queueMicrotask(() => {
       focusEditorInput();
     });

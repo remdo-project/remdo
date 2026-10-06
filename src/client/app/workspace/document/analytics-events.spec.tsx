@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import * as pendingDocumentImports from '#client/editor/runtime/pending-document-import';
 import {
+  createSearchResult,
+  mockDocumentSearch,
   renderDocumentRoute,
   resetDocumentRouteHarness,
 } from '../../../../../tests/unit/_support/document-route-harness';
@@ -57,5 +59,19 @@ describe('product analytics events', () => {
     fireEvent.change(input, { target: { value: 'after consent' } });
     fireEvent.change(input, { target: { value: 'after consent, refined' } });
     expect(track).toHaveBeenCalledExactlyOnceWith('search-used');
+  });
+
+  it('counts the next search after a result was accepted', async () => {
+    mockDocumentSearch('routeDoc').mockResolvedValue({ flatResults: [createSearchResult('note1', 'note1')], hasMore: false });
+    renderDocumentRoute();
+    const input = await screen.findByRole('combobox', { name: 'Search document' });
+    act(() => input.focus());
+
+    fireEvent.change(input, { target: { value: 'note' } });
+    await screen.findByRole('option', { name: 'note1' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.change(input, { target: { value: 'another' } });
+
+    expect(track.mock.calls.map(([event]) => event)).toEqual(['search-used', 'search-used']);
   });
 });

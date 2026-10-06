@@ -23,6 +23,7 @@
       const consentKey = 'remdo-analytics-consent-v1';
       const consentGrantedEvent = 'remdo-analytics-consent-granted';
       const consentWithdrawnEvent = 'remdo-analytics-consent-withdrawn';
+      const trackerUnavailableEvent = 'remdo-analytics-unavailable';
       const analyticsReadyEvent = 'remdo-analytics-ready';
       const websiteId = consentPanel.dataset.analyticsWebsiteId;
       let trackerStarted = false;
@@ -78,6 +79,10 @@
         tracker.dataset.beforeSend = 'remdoUmamiBeforeSend';
         tracker.addEventListener('load', () => {
           window.dispatchEvent(new Event(analyticsReadyEvent));
+        });
+        tracker.addEventListener('error', () => {
+          window.remdoAnalyticsUnavailable = true;
+          window.dispatchEvent(new Event(trackerUnavailableEvent));
         });
         document.head.append(tracker);
       };

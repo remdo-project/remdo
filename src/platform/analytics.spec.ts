@@ -1,9 +1,10 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { ANALYTICS_CONSENT_WITHDRAWN_EVENT, ANALYTICS_READY_EVENT } from './analytics';
+import { ANALYTICS_CONSENT_WITHDRAWN_EVENT, ANALYTICS_READY_EVENT, ANALYTICS_UNAVAILABLE_EVENT } from './analytics';
 
 afterEach(() => {
   delete window.remdoAnalyticsAllowed;
   delete window.remdoAnalyticsSuspended;
+  delete window.remdoAnalyticsUnavailable;
   delete window.umami;
   vi.resetModules();
 });
@@ -156,4 +157,19 @@ it('identifies the same user once however many events follow', async () => {
   trackAnalyticsEvent('search-used');
 
   expect(identify).toHaveBeenCalledExactlyOnceWith('user-123');
+});
+
+it('stops queueing and drops what was queued when the Umami script cannot load', async () => {
+  const track = vi.fn();
+  window.remdoAnalyticsAllowed = true;
+  const { trackAnalyticsEvent } = await import('./analytics');
+  expect(trackAnalyticsEvent('document-created')).toBe(true);
+
+  window.remdoAnalyticsUnavailable = true;
+  window.dispatchEvent(new Event(ANALYTICS_UNAVAILABLE_EVENT));
+  window.umami = { identify: vi.fn(), track };
+  window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
+
+  expect(trackAnalyticsEvent('search-used')).toBe(false);
+  expect(track).not.toHaveBeenCalled();
 });

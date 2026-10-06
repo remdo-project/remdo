@@ -193,8 +193,8 @@ Analytics loads only after the visitor grants analytics consent. It excludes URL
 queries and fragments from pages and referrers, reduces every document route and
 same-origin document referrer to `/n/:document`, and never sends document or
 note contents, titles, identifiers, filenames, or search text. Signed-in
-analytics uses the internal user ID as Umami's distinct ID, stops sending when
-the user signs out, and emits only `app-opened`, `document-created`,
+analytics uses the internal user ID as Umami's distinct ID, stops sending from
+the open page when the user signs out, and emits only `app-opened`, `document-created`,
 `document-imported`, `document-edited`, and `search-used` product events,
 without event properties. `document-edited` reports a document's first local
 content change in each opening of it, including the content of an uploaded

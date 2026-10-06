@@ -8,12 +8,14 @@ import {
   ANALYTICS_CONSENT_GRANTED_EVENT,
   ANALYTICS_CONSENT_WITHDRAWN_EVENT,
   ANALYTICS_READY_EVENT,
+  ANALYTICS_UNAVAILABLE_EVENT,
 } from '#platform/analytics';
 
 type Payload = Record<string, string>;
 interface ConsentWindow {
   remdoAnalyticsAllowed?: boolean;
   remdoAnalyticsSuspended?: boolean;
+  remdoAnalyticsUnavailable?: boolean;
   remdoUmamiBeforeSend: (type: string, payload: Payload) => Payload | null;
 }
 
@@ -41,12 +43,14 @@ function loadPage(storedConsent?: 'granted' | 'denied') {
   dom.window.addEventListener(ANALYTICS_CONSENT_GRANTED_EVENT, () => announced.push('granted'));
   dom.window.addEventListener(ANALYTICS_READY_EVENT, () => announced.push('ready'));
   dom.window.addEventListener(ANALYTICS_CONSENT_WITHDRAWN_EVENT, () => announced.push('withdrawn'));
+  dom.window.addEventListener(ANALYTICS_UNAVAILABLE_EVENT, () => announced.push('unavailable'));
   return {
     announced,
     panel: document.querySelector<HTMLElement>('[data-analytics-consent]')!,
     tracker: () => document.head.querySelector<HTMLScriptElement>('script[data-website-id]'),
     click: (selector: string) => document.querySelector<HTMLElement>(selector)!.click(),
     allowed: () => consentWindow.remdoAnalyticsAllowed,
+    unavailable: () => consentWindow.remdoAnalyticsUnavailable,
     storedConsent: () => dom.window.localStorage.getItem(CONSENT_KEY),
     suspend: () => { consentWindow.remdoAnalyticsSuspended = true; },
     beforeSend: (payload: Payload) => consentWindow.remdoUmamiBeforeSend('pageview', payload),
@@ -82,6 +86,15 @@ describe('analytics consent', () => {
       excludeHash: 'true',
       beforeSend: 'remdoUmamiBeforeSend',
     });
+  });
+
+  it('marks analytics unavailable when the tracker script cannot be loaded', () => {
+    const page = loadPage('granted');
+
+    page.tracker()!.dispatchEvent(new Event('error'));
+
+    expect(page.unavailable()).toBe(true);
+    expect(page.announced).toEqual(['unavailable']);
   });
 
   it('loads the tracker without asking again when the visitor already allowed analytics', () => {

@@ -1,6 +1,7 @@
 export const ANALYTICS_CONSENT_GRANTED_EVENT = 'remdo-analytics-consent-granted';
 export const ANALYTICS_READY_EVENT = 'remdo-analytics-ready';
 export const ANALYTICS_CONSENT_WITHDRAWN_EVENT = 'remdo-analytics-consent-withdrawn';
+export const ANALYTICS_UNAVAILABLE_EVENT = 'remdo-analytics-unavailable';
 
 type AnalyticsEvent =
   | 'app-opened'
@@ -18,6 +19,7 @@ declare global {
   interface Window {
     remdoAnalyticsAllowed?: boolean;
     remdoAnalyticsSuspended?: boolean;
+    remdoAnalyticsUnavailable?: boolean;
     umami?: UmamiClient;
   }
 }
@@ -49,10 +51,15 @@ function clearPendingCalls() {
 function waitForTracker() {
   window.addEventListener(ANALYTICS_READY_EVENT, flushPendingCalls);
   window.addEventListener(ANALYTICS_CONSENT_WITHDRAWN_EVENT, clearPendingCalls);
+  window.addEventListener(ANALYTICS_UNAVAILABLE_EVENT, clearPendingCalls);
 }
 
 function withAnalytics(call: (client: UmamiClient) => void): boolean {
-  if (window.remdoAnalyticsAllowed !== true || window.remdoAnalyticsSuspended === true) {
+  if (
+    window.remdoAnalyticsAllowed !== true
+    || window.remdoAnalyticsSuspended === true
+    || window.remdoAnalyticsUnavailable === true
+  ) {
     return false;
   }
   if (window.umami) {
@@ -82,7 +89,7 @@ export function endAnalyticsIdentity() {
   clearPendingCalls();
 }
 
-/** Whether analytics accepted the event; false means consent is missing or sending is suspended. */
+/** Whether analytics accepted the event; false means consent is missing, sending is suspended, or the tracker failed to load. */
 export function trackAnalyticsEvent(event: AnalyticsEvent): boolean {
   return withAnalytics((client) => client.track(event));
 }
