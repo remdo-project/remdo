@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { registerSW } from 'virtual:pwa-register';
 import { config } from '#config';
@@ -55,6 +55,7 @@ function AppFrameContent() {
   const connectionUnavailable = sessionState?.status === 'offline-unavailable';
   const logout = useLogout();
   const authenticated = sessionState?.status === 'authenticated';
+  const appOpenedReportedRef = useRef(false);
   const analyticsUserId = sessionState?.status === 'authenticated'
     ? String(sessionState.session.user.id)
     : sessionState?.status === 'offline-remembered'
@@ -75,7 +76,9 @@ function AppFrameContent() {
     }
     const recordAppOpen = () => {
       identifyAnalyticsUser(analyticsUserId);
-      trackAnalyticsEvent('app-opened');
+      if (!appOpenedReportedRef.current) {
+        appOpenedReportedRef.current = trackAnalyticsEvent('app-opened');
+      }
     };
     recordAppOpen();
     window.addEventListener(ANALYTICS_CONSENT_GRANTED_EVENT, recordAppOpen);

@@ -10,23 +10,86 @@ type BeforeSend = (type: string, payload: Payload) => Payload | null;
 const template = fs.readFileSync(path.join(process.cwd(), 'backend/templates/analytics.html'), 'utf8');
 const inlineScript = /<script>([\s\S]*?)<\/script>/.exec(template)![1]!;
 
-function loadBeforeSend(): BeforeSend {
+function loadConsentScript() {
   const panel = document.createElement('aside');
+  panel.hidden = true;
   panel.dataset.analyticsConsent = '';
   panel.dataset.analyticsWebsiteId = 'site';
-  for (const attribute of ['analyticsAllow', 'analyticsDeny']) {
+  const [allow, deny] = ['analyticsAllow', 'analyticsDeny'].map((attribute) => {
     const button = document.createElement('button');
     button.dataset[attribute] = '';
     panel.append(button);
-  }
+    return button;
+  });
   document.body.replaceChildren(panel);
   vm.runInThisContext(inlineScript);
+  return { panel, allow: allow!, deny: deny! };
+}
+
+function loadBeforeSend(): BeforeSend {
+  loadConsentScript();
   return (window as unknown as { remdoUmamiBeforeSend: BeforeSend }).remdoUmamiBeforeSend;
 }
 
+const trackerScript = () => document.head.querySelector<HTMLScriptElement>('script[data-website-id]');
+
 afterEach(() => {
+  delete window.remdoAnalyticsAllowed;
   delete window.remdoAnalyticsSuspended;
+  trackerScript()?.remove();
   localStorage.clear();
+});
+
+describe('analytics consent', () => {
+  it('asks a first-time visitor before loading anything', () => {
+    const { panel } = loadConsentScript();
+
+    expect(panel.hidden).toBe(false);
+    expect(window.remdoAnalyticsAllowed).toBe(false);
+    expect(trackerScript()).toBeNull();
+  });
+
+  it('loads the tracker with URL details excluded once the visitor allows analytics', () => {
+    const { panel, allow } = loadConsentScript();
+    const consentGranted: Event[] = [];
+    window.addEventListener('remdo-analytics-consent-granted', (event) => consentGranted.push(event), { once: true });
+
+    allow.click();
+
+    expect(panel.hidden).toBe(true);
+    expect(window.remdoAnalyticsAllowed).toBe(true);
+    expect(localStorage.getItem('remdo-analytics-consent-v1')).toBe('granted');
+    expect(consentGranted).toHaveLength(1);
+    expect(trackerScript()?.dataset).toMatchObject({
+      websiteId: 'site',
+      excludeSearch: 'true',
+      excludeHash: 'true',
+      beforeSend: 'remdoUmamiBeforeSend',
+    });
+  });
+
+  it('loads the tracker without asking again when the visitor already allowed analytics', () => {
+    localStorage.setItem('remdo-analytics-consent-v1', 'granted');
+
+    const { panel } = loadConsentScript();
+
+    expect(panel.hidden).toBe(true);
+    expect(window.remdoAnalyticsAllowed).toBe(true);
+    expect(trackerScript()).not.toBeNull();
+  });
+
+  it('records a refusal without loading the tracker or asking again', () => {
+    const { panel, deny } = loadConsentScript();
+
+    deny.click();
+    const reloaded = loadConsentScript();
+
+    expect(localStorage.getItem('remdo-analytics-consent-v1')).toBe('denied');
+    expect(panel.hidden).toBe(true);
+    expect(reloaded.panel.hidden).toBe(true);
+    expect(window.remdoAnalyticsAllowed).toBe(false);
+    expect(trackerScript()).toBeNull();
+  });
 });
 
 describe('analytics payload sent to Umami', () => {

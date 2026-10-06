@@ -1,6 +1,8 @@
 import { waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { meta, readOutline } from '#tests';
+import { createCollabTestDocument } from './_support/documents';
+import { renderRemdoEditor } from './_support/render-editor';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
@@ -54,5 +56,17 @@ describe('document edit analytics', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     window.remdoAnalyticsAllowed = true;
     await remdo.updateNoteText('note1', 'edit after consent');
     expect(track).toHaveBeenCalledWith('document-edited');
+  });
+
+  it('does not report a document that was only opened', async () => {
+    const track = installAnalytics();
+
+    const { api, unmount } = await renderRemdoEditor(await createCollabTestDocument());
+    try {
+      await api.waitForSynced();
+      expect(track).not.toHaveBeenCalled();
+    } finally {
+      unmount();
+    }
   });
 });
