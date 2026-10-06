@@ -69,7 +69,6 @@
         if (trackerStarted) return;
         trackerStarted = true;
         const tracker = document.createElement('script');
-        tracker.defer = true;
         tracker.src = 'https://cloud.umami.is/script.js';
         tracker.dataset.websiteId = websiteId;
         tracker.dataset.domains = 'remdo.com';
