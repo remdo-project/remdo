@@ -1,6 +1,10 @@
-import { waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { meta, readOutline } from '#tests';
+import { registerPendingDocumentImport } from '#client/editor/view/workspace';
+import Editor from '#client/editor/shell/Editor';
+import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
+import { readFixture } from '#tools/fixtures';
+import { meta, readOutline, TestMantineProvider } from '#tests';
 import { ANALYTICS_CONSENT_GRANTED_EVENT } from '#platform/analytics';
 import { createCollabTestDocument } from './_support/documents';
 import { renderRemdoEditor } from './_support/render-editor';
@@ -65,6 +69,30 @@ describe('document edit analytics', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     try {
       await api.waitForSynced();
       expect(track).not.toHaveBeenCalled();
+    } finally {
+      unmount();
+    }
+  });
+
+  it('reports an uploaded document as edited, because its content is a local change', async () => {
+    const track = installAnalytics();
+    const docId = await createCollabTestDocument();
+    registerPendingDocumentImport(docId, new File([await readFixture('basic')], 'basic.json'));
+
+    const { unmount } = render(
+      <TestMantineProvider>
+        <EditorViewProvider docId={docId} onZoomNoteIdChange={() => {}}>
+          <Editor
+            docId={docId}
+            onSelectHome={() => {}}
+            statusPortalRoot={null}
+            onPendingDocumentImportError={(error) => { throw error; }}
+          />
+        </EditorViewProvider>
+      </TestMantineProvider>,
+    );
+    try {
+      await waitFor(() => expect(track).toHaveBeenCalledExactlyOnceWith('document-edited'));
     } finally {
       unmount();
     }

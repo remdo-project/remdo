@@ -94,6 +94,14 @@ describe('analytics consent', () => {
     expect(beforeSend('event', { url: '/', referrer: '' })).toBeNull();
   });
 
+  it('stops sending in a tab that is open when another tab clears the site data', () => {
+    const beforeSend = loadBeforeSend();
+
+    window.dispatchEvent(new StorageEvent('storage', { key: null, newValue: null }));
+
+    expect(beforeSend('event', { url: '/', referrer: '' })).toBeNull();
+  });
+
   it('records a refusal without loading the tracker or asking again', () => {
     const { panel, deny } = loadConsentScript();
 

@@ -108,7 +108,7 @@
       });
 
       window.addEventListener('storage', (event) => {
-        if (event.key === consentKey && event.newValue !== 'granted') {
+        if ((event.key === consentKey || event.key === null) && event.newValue !== 'granted') {
           window.remdoAnalyticsAllowed = false;
           consentPanel.hidden = true;
         }

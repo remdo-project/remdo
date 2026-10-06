@@ -6,12 +6,13 @@ import { ANALYTICS_CONSENT_GRANTED_EVENT } from '#platform/analytics';
 import { apiConfiguration } from '#platform/http/api-client';
 import { writeStoredCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap-storage';
 import { TestMantineProvider } from '#tests';
+import type { SessionGateState } from '#client/app/session/client';
 import AppFrame from './AppFrame';
 
 let track: Mock<(event: string) => void>;
 let identify: Mock<(id: string) => void>;
 
-function renderFrame() {
+function renderFrame(signedInState: SessionGateState = { status: 'offline-remembered' }) {
   for (const slot of ['header-links', 'footer-status']) {
     const element = document.createElement('div');
     element.dataset.slot = slot;
@@ -29,7 +30,7 @@ function renderFrame() {
       element: <AppFrame />,
       hydrateFallbackElement: <div aria-hidden="true" />,
       children: [
-        { index: true, loader: () => ({ sessionState: { status: 'offline-remembered' } }), element: <p>signed in</p> },
+        { index: true, loader: () => ({ sessionState: signedInState }), element: <p>signed in</p> },
         { path: 'signed-out', loader: () => ({ sessionState: { status: 'unauthenticated' } }), element: <p>signed out</p> },
       ],
     },
@@ -64,6 +65,12 @@ describe('app frame analytics', () => {
 
     await waitFor(() => expect(track).toHaveBeenCalledExactlyOnceWith('app-opened'));
     expect(identify).toHaveBeenCalledExactlyOnceWith('42');
+  });
+
+  it('identifies an authenticated user by the session user id', async () => {
+    renderFrame({ status: 'authenticated', session: { user: { id: 7 } } } as unknown as SessionGateState);
+
+    await waitFor(() => expect(identify).toHaveBeenCalledExactlyOnceWith('7'));
   });
 
   it('reports the app opening when consent is granted after it was opened', async () => {
