@@ -8,7 +8,7 @@ import {
   ANALYTICS_CONSENT_GRANTED_EVENT,
   identifyAnalyticsUser,
   trackAnalyticsEvent,
-} from '#client/platform/analytics';
+} from '#platform/analytics';
 import { getCachedCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap';
 import { Link, Outlet, useLocation, useMatches } from 'react-router-dom';
 import type { UIMatch } from 'react-router-dom';

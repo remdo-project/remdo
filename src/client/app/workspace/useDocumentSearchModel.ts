@@ -16,7 +16,7 @@ import {
 } from 'react';
 import type { DocumentSearchResults, SearchResult } from '#note-sdk';
 import { useOpenDocument } from '#client/editor/view/EditorViewProvider';
-import { trackAnalyticsEvent } from '#client/platform/analytics';
+import { trackAnalyticsEvent } from '#platform/analytics';
 
 // Direct children shown in each result row's preview (the row reports "+N more"
 // for the remainder); kept beside the result limit since both bound the work the
