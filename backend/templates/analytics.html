@@ -56,7 +56,7 @@
       };
 
       window.remdoUmamiBeforeSend = (_type, payload) => {
-        if (window.remdoAnalyticsSuspended) return null;
+        if (!window.remdoAnalyticsAllowed || window.remdoAnalyticsSuspended) return null;
         const next = { ...payload, url: redactUrl(payload.url), referrer: redactUrl(payload.referrer) };
         if (typeof next.url === 'string' && next.url.includes('/n/:document')) {
           next.title = 'Document · RemDo';
@@ -105,6 +105,13 @@
         window.remdoAnalyticsAllowed = false;
         consentPanel.hidden = true;
         if (trackerStarted) window.location.reload();
+      });
+
+      window.addEventListener('storage', (event) => {
+        if (event.key === consentKey && event.newValue !== 'granted') {
+          window.remdoAnalyticsAllowed = false;
+          consentPanel.hidden = true;
+        }
       });
 
       document.querySelectorAll('[data-analytics-settings]').forEach((control) => {

@@ -75,6 +75,7 @@ const domTests = [
 
   'src/client/app/dev/*.spec.tsx',
   'src/client/app/session/*.spec.{ts,tsx}',
+  'src/client/app/shell/app-frame-analytics.spec.tsx',
   'src/client/app/shell/error-reporting.spec.ts',
   'src/client/app/sharing/*.spec.tsx',
   'src/client/app/user-data/*.spec.{ts,tsx}',

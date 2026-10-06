@@ -1,6 +1,7 @@
 import { waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { meta, readOutline } from '#tests';
+import { ANALYTICS_CONSENT_GRANTED_EVENT } from '#platform/analytics';
 import { createCollabTestDocument } from './_support/documents';
 import { renderRemdoEditor } from './_support/render-editor';
 import { createCollabPeer } from './_support/remdo-peers';
@@ -45,17 +46,16 @@ describe('document edit analytics', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(track).toHaveBeenCalledTimes(2);
   });
 
-  it('reports the first edit made after consent is granted', meta({ fixture: 'basic' }), async ({ remdo }) => {
+  it('reports an edit made before consent once consent is granted', meta({ fixture: 'basic' }), async ({ remdo }) => {
     const track = installAnalytics();
     window.remdoAnalyticsAllowed = false;
 
     await remdo.updateNoteText('note1', 'edit before consent');
-    await remdo.waitForSynced();
     expect(track).not.toHaveBeenCalled();
 
     window.remdoAnalyticsAllowed = true;
-    await remdo.updateNoteText('note1', 'edit after consent');
-    expect(track).toHaveBeenCalledWith('document-edited');
+    window.dispatchEvent(new Event(ANALYTICS_CONSENT_GRANTED_EVENT));
+    expect(track).toHaveBeenCalledExactlyOnceWith('document-edited');
   });
 
   it('does not report a document that was only opened', async () => {

@@ -186,3 +186,12 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
 3. Set [`SENTRY_DSN`](../specs/runtime/configuration.md#error-reporting) in the
    service's **Environment** view on Render or in `.env` for the self-hosted
    launcher, then redeploy.
+
+## Enable Analytics
+
+1. In Umami Cloud, add a website for the deployment's domain and copy the
+   Website ID from its tracking code.
+2. Set [`UMAMI_WEBSITE_ID`](../specs/runtime/configuration.md#managed-analytics)
+   in the Render service's **Environment** view, then redeploy.
+3. Confirm that a first-time visitor is asked to allow analytics and that the
+   footer offers **Privacy settings**.

@@ -27,6 +27,7 @@ function loadConsentScript() {
 }
 
 function loadBeforeSend(): BeforeSend {
+  localStorage.setItem('remdo-analytics-consent-v1', 'granted');
   loadConsentScript();
   return (window as unknown as { remdoUmamiBeforeSend: BeforeSend }).remdoUmamiBeforeSend;
 }
@@ -76,6 +77,16 @@ describe('analytics consent', () => {
     expect(panel.hidden).toBe(true);
     expect(window.remdoAnalyticsAllowed).toBe(true);
     expect(trackerScript()).not.toBeNull();
+  });
+
+  it('stops sending in a tab that is open when the visitor withdraws consent in another tab', () => {
+    const beforeSend = loadBeforeSend();
+    expect(beforeSend('event', { url: '/', referrer: '' })).not.toBeNull();
+
+    window.dispatchEvent(new StorageEvent('storage', { key: 'remdo-analytics-consent-v1', newValue: 'denied' }));
+
+    expect(window.remdoAnalyticsAllowed).toBe(false);
+    expect(beforeSend('event', { url: '/', referrer: '' })).toBeNull();
   });
 
   it('records a refusal without loading the tracker or asking again', () => {
