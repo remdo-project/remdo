@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
+import { ANALYTICS_READY_EVENT } from './analytics';
 
 afterEach(() => {
   delete window.remdoAnalyticsAllowed;
@@ -40,7 +41,7 @@ it('queues consented analytics until Umami finishes loading', async () => {
   identifyAnalyticsUser('user-123');
   trackAnalyticsEvent('search-used');
   window.umami = { identify, track };
-  window.dispatchEvent(new Event('remdo-analytics-ready'));
+  window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
 
   expect(identify).toHaveBeenCalledWith('user-123');
   expect(track).toHaveBeenCalledWith('search-used');

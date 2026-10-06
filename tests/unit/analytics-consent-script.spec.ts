@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import vm from 'node:vm';
 import { afterEach, describe, expect, it } from 'vitest';
+import { ANALYTICS_CONSENT_GRANTED_EVENT, ANALYTICS_READY_EVENT } from '#platform/analytics';
 
 type Payload = Record<string, string>;
 type BeforeSend = (type: string, payload: Payload) => Payload | null;
@@ -53,7 +54,9 @@ describe('analytics consent', () => {
   it('loads the tracker with URL details excluded once the visitor allows analytics', () => {
     const { panel, allow } = loadConsentScript();
     const consentGranted: Event[] = [];
-    window.addEventListener('remdo-analytics-consent-granted', (event) => consentGranted.push(event), { once: true });
+    const trackerReady: Event[] = [];
+    window.addEventListener(ANALYTICS_CONSENT_GRANTED_EVENT, (event) => consentGranted.push(event), { once: true });
+    window.addEventListener(ANALYTICS_READY_EVENT, (event) => trackerReady.push(event), { once: true });
 
     allow.click();
 
@@ -61,6 +64,8 @@ describe('analytics consent', () => {
     expect(window.remdoAnalyticsAllowed).toBe(true);
     expect(localStorage.getItem('remdo-analytics-consent-v1')).toBe('granted');
     expect(consentGranted).toHaveLength(1);
+    trackerScript()!.dispatchEvent(new Event('load'));
+    expect(trackerReady).toHaveLength(1);
     expect(trackerScript()?.dataset).toMatchObject({
       websiteId: 'site',
       excludeSearch: 'true',

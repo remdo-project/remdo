@@ -197,7 +197,8 @@ analytics uses the internal user ID as Umami's distinct ID, stops sending when
 the user signs out, and emits only `app-opened`, `document-created`,
 `document-imported`, `document-edited`, and `search-used` product events,
 without event properties. `document-edited` reports a document's first local
-content change in each opening of it.
+content change in each opening of it, including the content of an uploaded
+file.
 
 ## Request diagnostics
 

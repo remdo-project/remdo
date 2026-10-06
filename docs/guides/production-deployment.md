@@ -189,8 +189,8 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
 
 ## Enable Analytics
 
-1. In Umami Cloud, add a website for the deployment's domain and copy the
-   Website ID from its tracking code.
+1. In Umami Cloud, add a website and copy its Website ID from the tracking
+   code.
 2. Set [`UMAMI_WEBSITE_ID`](../specs/runtime/configuration.md#managed-analytics)
    in the Render service's **Environment** view, then redeploy.
 3. Confirm that a first-time visitor is asked to allow analytics and that the

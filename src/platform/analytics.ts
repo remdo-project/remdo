@@ -1,4 +1,5 @@
 export const ANALYTICS_CONSENT_GRANTED_EVENT = 'remdo-analytics-consent-granted';
+export const ANALYTICS_READY_EVENT = 'remdo-analytics-ready';
 
 type AnalyticsEvent =
   | 'app-opened'
@@ -40,7 +41,7 @@ function withAnalytics(call: (client: UmamiClient) => void): boolean {
     return true;
   }
   pendingCalls.push(call);
-  window.addEventListener('remdo-analytics-ready', flushPendingCalls);
+  window.addEventListener(ANALYTICS_READY_EVENT, flushPendingCalls);
   return true;
 }
 
