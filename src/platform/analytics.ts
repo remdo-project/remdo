@@ -55,6 +55,7 @@ export function identifyAnalyticsUser(userId: string) {
 // identify or page load.
 export function endAnalyticsIdentity() {
   window.remdoAnalyticsSuspended = true;
+  pendingCalls.length = 0;
 }
 
 /** Whether analytics accepted the event; false means consent is missing or sending is suspended. */

@@ -96,3 +96,19 @@ it('sends calls queued before Umami loaded ahead of the next call once it is ava
   expect(identify).toHaveBeenCalledWith('user-123');
   expect(track.mock.calls.map(([event]) => event)).toEqual(['app-opened', 'search-used']);
 });
+
+it('does not send calls queued for a user who signed out before Umami loaded', async () => {
+  const identify = vi.fn();
+  const track = vi.fn();
+  window.remdoAnalyticsAllowed = true;
+  const { endAnalyticsIdentity, identifyAnalyticsUser, trackAnalyticsEvent } = await import('./analytics');
+  identifyAnalyticsUser('user-123');
+  trackAnalyticsEvent('app-opened');
+
+  endAnalyticsIdentity();
+  window.umami = { identify, track };
+  window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
+
+  expect(identify).not.toHaveBeenCalled();
+  expect(track).not.toHaveBeenCalled();
+});
