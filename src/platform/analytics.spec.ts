@@ -69,3 +69,30 @@ it('stays suspended after the identity ends until a user is identified again', a
   identifyAnalyticsUser('user-456');
   expect(window.remdoAnalyticsSuspended).toBe(false);
 });
+
+it('does not accept events while sending is suspended after sign-out', async () => {
+  const track = vi.fn();
+  window.remdoAnalyticsAllowed = true;
+  window.umami = { identify: vi.fn(), track };
+  const { endAnalyticsIdentity, trackAnalyticsEvent } = await import('./analytics');
+
+  endAnalyticsIdentity();
+
+  expect(trackAnalyticsEvent('search-used')).toBe(false);
+  expect(track).not.toHaveBeenCalled();
+});
+
+it('sends calls queued before Umami loaded ahead of the next call once it is available', async () => {
+  const identify = vi.fn();
+  const track = vi.fn();
+  window.remdoAnalyticsAllowed = true;
+  const { identifyAnalyticsUser, trackAnalyticsEvent } = await import('./analytics');
+  identifyAnalyticsUser('user-123');
+  trackAnalyticsEvent('app-opened');
+
+  window.umami = { identify, track };
+  trackAnalyticsEvent('search-used');
+
+  expect(identify).toHaveBeenCalledWith('user-123');
+  expect(track.mock.calls.map(([event]) => event)).toEqual(['app-opened', 'search-used']);
+});

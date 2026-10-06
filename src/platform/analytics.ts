@@ -33,10 +33,11 @@ function flushPendingCalls() {
 }
 
 function withAnalytics(call: (client: UmamiClient) => void): boolean {
-  if (window.remdoAnalyticsAllowed !== true) {
+  if (window.remdoAnalyticsAllowed !== true || window.remdoAnalyticsSuspended === true) {
     return false;
   }
   if (window.umami) {
+    flushPendingCalls();
     call(window.umami);
     return true;
   }
@@ -56,7 +57,7 @@ export function endAnalyticsIdentity() {
   window.remdoAnalyticsSuspended = true;
 }
 
-/** Whether analytics accepted the event; false means consent has not been granted. */
+/** Whether analytics accepted the event; false means consent is missing or sending is suspended. */
 export function trackAnalyticsEvent(event: AnalyticsEvent): boolean {
   return withAnalytics((client) => client.track(event));
 }

@@ -310,6 +310,14 @@ Remaining:
   bindings and the other owners' keys, with checks that press what the
   reference shows.
 
+- **Document import completion.** After applying an uploaded state,
+  `PendingDocumentImportPlugin` waits for an editor update from note-ID
+  normalization. A normalization that changes nothing commits no update, so for
+  an export whose notes already carry IDs the wait does not settle and the
+  following `session.awaitSynced()` never runs. Decide whether a successful
+  import means the state is applied or synced, then wait on that signal. The
+  `document-imported` analytics event currently fires once the state is applied.
+
 ### UX direction
 
 These proposals guide the next UX slices; unresolved choices remain proposals

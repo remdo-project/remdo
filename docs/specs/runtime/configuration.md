@@ -198,7 +198,8 @@ the user signs out, and emits only `app-opened`, `document-created`,
 `document-imported`, `document-edited`, and `search-used` product events,
 without event properties. `document-edited` reports a document's first local
 content change in each opening of it, including the content of an uploaded
-file.
+file. Events from before consent are discarded, except that `app-opened` and
+`document-edited` are reported once consent is granted.
 
 ## Request diagnostics
 
