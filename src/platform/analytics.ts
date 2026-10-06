@@ -25,11 +25,13 @@ const pendingCalls: Array<(client: UmamiClient) => void> = [];
 
 function flushPendingCalls() {
   const client = window.umami;
-  if (!client || window.remdoAnalyticsAllowed !== true) {
+  if (!client) {
     return;
   }
   const calls = pendingCalls.splice(0);
-  calls.forEach((call) => call(client));
+  if (window.remdoAnalyticsAllowed === true) {
+    calls.forEach((call) => call(client));
+  }
 }
 
 function withAnalytics(call: (client: UmamiClient) => void): boolean {

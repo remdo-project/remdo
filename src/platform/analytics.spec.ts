@@ -112,3 +112,18 @@ it('does not send calls queued for a user who signed out before Umami loaded', a
   expect(identify).not.toHaveBeenCalled();
   expect(track).not.toHaveBeenCalled();
 });
+
+it('discards calls queued before consent was withdrawn instead of sending them after a later grant', async () => {
+  const track = vi.fn();
+  window.remdoAnalyticsAllowed = true;
+  const { trackAnalyticsEvent } = await import('./analytics');
+  trackAnalyticsEvent('document-created');
+
+  window.remdoAnalyticsAllowed = false;
+  window.umami = { identify: vi.fn(), track };
+  window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
+  window.remdoAnalyticsAllowed = true;
+  trackAnalyticsEvent('search-used');
+
+  expect(track.mock.calls.map(([event]) => event)).toEqual(['search-used']);
+});
