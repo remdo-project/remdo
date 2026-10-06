@@ -128,3 +128,32 @@ it('discards calls queued before consent was withdrawn, even when it is granted 
 
   expect(track.mock.calls.map(([event]) => event)).toEqual(['search-used']);
 });
+
+it('sends the identity registered before consent ahead of the first event reported after it', async () => {
+  const identify = vi.fn();
+  const track = vi.fn();
+  window.umami = { identify, track };
+  const { identifyAnalyticsUser, trackAnalyticsEvent } = await import('./analytics');
+  identifyAnalyticsUser('user-123');
+  expect(identify).not.toHaveBeenCalled();
+
+  window.remdoAnalyticsAllowed = true;
+  trackAnalyticsEvent('document-edited');
+
+  expect(identify).toHaveBeenCalledExactlyOnceWith('user-123');
+  expect(identify.mock.invocationCallOrder[0]).toBeLessThan(track.mock.invocationCallOrder[0]!);
+});
+
+it('identifies the same user once however many events follow', async () => {
+  const identify = vi.fn();
+  window.remdoAnalyticsAllowed = true;
+  window.umami = { identify, track: vi.fn() };
+  const { identifyAnalyticsUser, trackAnalyticsEvent } = await import('./analytics');
+
+  identifyAnalyticsUser('user-123');
+  trackAnalyticsEvent('app-opened');
+  identifyAnalyticsUser('user-123');
+  trackAnalyticsEvent('search-used');
+
+  expect(identify).toHaveBeenCalledExactlyOnceWith('user-123');
+});

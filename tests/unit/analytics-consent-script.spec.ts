@@ -127,14 +127,23 @@ describe('analytics consent', () => {
     expect(page.beforeSend(payload)).not.toBeNull();
   });
 
-  it.each([
-    ['withdraws consent', { key: CONSENT_KEY, newValue: 'denied' }],
-    ['clears the site data', { key: null, newValue: null }],
-  ])('stops sending when another tab %s', (_name, change) => {
+  it('stops sending when another tab withdraws consent', () => {
     const page = loadPage('granted');
 
-    page.otherTab(change);
+    page.otherTab({ key: CONSENT_KEY, newValue: 'denied' });
 
+    expect(page.panel.hidden).toBe(true);
+    expect(page.allowed()).toBe(false);
+    expect(page.beforeSend({ url: '/', referrer: '' })).toBeNull();
+    expect(page.announced).toEqual(['withdrawn']);
+  });
+
+  it('stops sending and asks again when another tab clears the site data', () => {
+    const page = loadPage('granted');
+
+    page.otherTab({ key: null, newValue: null });
+
+    expect(page.panel.hidden).toBe(false);
     expect(page.allowed()).toBe(false);
     expect(page.beforeSend({ url: '/', referrer: '' })).toBeNull();
     expect(page.announced).toEqual(['withdrawn']);

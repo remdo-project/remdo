@@ -105,6 +105,12 @@
         window.dispatchEvent(new Event(consentWithdrawnEvent));
       };
 
+      const applyUndecided = () => {
+        window.remdoAnalyticsAllowed = false;
+        window.dispatchEvent(new Event(consentWithdrawnEvent));
+        showPreferences();
+      };
+
       consentPanel.querySelector('[data-analytics-allow]').addEventListener('click', () => {
         writeConsent('granted');
         applyGranted();
@@ -118,7 +124,8 @@
       window.addEventListener('storage', (event) => {
         if (event.key === consentKey || event.key === null) {
           if (event.newValue === 'granted') applyGranted();
-          else applyDenied();
+          else if (event.newValue === 'denied') applyDenied();
+          else applyUndecided();
         }
       });
 
