@@ -4,14 +4,14 @@ import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
 import { trackAnalyticsEvent } from '#platform/analytics';
 
 export function DocumentEditAnalyticsPlugin(): null {
-  const { docId, hasLocalChanges } = useCollaborationStatus();
-  const reportedDocIdRef = useRef<string | null>(null);
+  const { hasLocalChanges } = useCollaborationStatus();
+  const reportedRef = useRef(false);
 
   useEffect(() => {
-    if (hasLocalChanges && reportedDocIdRef.current !== docId && trackAnalyticsEvent('document-edited')) {
-      reportedDocIdRef.current = docId;
+    if (hasLocalChanges && !reportedRef.current && trackAnalyticsEvent('document-edited')) {
+      reportedRef.current = true;
     }
-  }, [docId, hasLocalChanges]);
+  }, [hasLocalChanges]);
 
   return null;
 }

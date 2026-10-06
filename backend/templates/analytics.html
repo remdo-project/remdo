@@ -20,13 +20,10 @@
   <script>
     (() => {
       const consentPanel = document.querySelector('[data-analytics-consent]');
-      if (!consentPanel) return;
-
       const consentKey = 'remdo-analytics-consent-v1';
       const consentGrantedEvent = 'remdo-analytics-consent-granted';
       const analyticsReadyEvent = 'remdo-analytics-ready';
       const websiteId = consentPanel.dataset.analyticsWebsiteId;
-      let consent = null;
       let trackerStarted = false;
 
       const readConsent = () => {
@@ -68,7 +65,7 @@
       };
 
       const startTracker = () => {
-        if (!websiteId || trackerStarted || window.umami) return;
+        if (trackerStarted) return;
         trackerStarted = true;
         const tracker = document.createElement('script');
         tracker.defer = true;
@@ -89,13 +86,12 @@
         consentPanel.hidden = false;
       };
 
-      consent = readConsent();
-      window.remdoAnalyticsAllowed = consent === 'granted';
+      const storedConsent = readConsent();
+      window.remdoAnalyticsAllowed = storedConsent === 'granted';
 
       consentPanel.querySelector('[data-analytics-allow]').addEventListener('click', () => {
-        const newlyGranted = consent !== 'granted';
-        consent = 'granted';
-        writeConsent(consent);
+        const newlyGranted = !window.remdoAnalyticsAllowed;
+        writeConsent('granted');
         window.remdoAnalyticsAllowed = true;
         consentPanel.hidden = true;
         if (newlyGranted) {
@@ -105,21 +101,19 @@
       });
 
       consentPanel.querySelector('[data-analytics-deny]').addEventListener('click', () => {
-        const trackerActive = trackerStarted || Boolean(window.umami);
-        consent = 'denied';
-        writeConsent(consent);
+        writeConsent('denied');
         window.remdoAnalyticsAllowed = false;
         consentPanel.hidden = true;
-        if (trackerActive) window.location.reload();
+        if (trackerStarted) window.location.reload();
       });
 
       document.querySelectorAll('[data-analytics-settings]').forEach((control) => {
         control.addEventListener('click', showPreferences);
       });
 
-      if (consent === 'granted') {
+      if (storedConsent === 'granted') {
         startTracker();
-      } else if (consent !== 'denied') {
+      } else if (storedConsent !== 'denied') {
         showPreferences();
       }
     })();

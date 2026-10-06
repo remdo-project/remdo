@@ -113,8 +113,7 @@ does not send document or note contents, document titles or identifiers,
 filenames, or search text. Document routes are reduced to a generic route before
 analytics is sent.
 
-Umami's tracking code does not use cookies. The current Umami Cloud Hobby plan
-retains analytics data for up to six months.
+Umami's tracking code does not use cookies.
 
 You can withdraw analytics consent at any time through **Privacy settings** in
 the RemDo footer. Declining or withdrawing analytics does not prevent you from
@@ -240,9 +239,7 @@ In particular:
   unless you ask us to delete it. Requests are removed when they are no longer
   needed for this purpose.
 - **Analytics information**, when analytics is enabled with your consent, is
-  retained for a limited period appropriate to analysing product usage. The
-  applicable analytics setup and retention period will be described when such
-  analytics is enabled.
+  retained for up to six months.
 - **Backup copies** can temporarily contain information that has already been
   deleted from active systems. Such copies disappear as backups are replaced
   according to the applicable backup rotation process.

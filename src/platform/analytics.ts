@@ -21,7 +21,6 @@ declare global {
 }
 
 const pendingCalls: Array<(client: UmamiClient) => void> = [];
-let listeningForReady = false;
 
 function flushPendingCalls() {
   const client = window.umami;
@@ -33,7 +32,7 @@ function flushPendingCalls() {
 }
 
 function withAnalytics(call: (client: UmamiClient) => void): boolean {
-  if (typeof window === 'undefined' || window.remdoAnalyticsAllowed !== true) {
+  if (window.remdoAnalyticsAllowed !== true) {
     return false;
   }
   if (window.umami) {
@@ -41,10 +40,7 @@ function withAnalytics(call: (client: UmamiClient) => void): boolean {
     return true;
   }
   pendingCalls.push(call);
-  if (!listeningForReady) {
-    listeningForReady = true;
-    window.addEventListener('remdo-analytics-ready', flushPendingCalls);
-  }
+  window.addEventListener('remdo-analytics-ready', flushPendingCalls);
   return true;
 }
 
