@@ -3,7 +3,7 @@ import { allowUnauthorizedNetwork, expect, test, unauthenticatedTest } from '#e2
 test('header controls are reachable by keyboard on a narrow screen', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Search documents' })).toBeFocused();
 
   const controls = page.getByRole('banner').locator('a, button');
   // Losing the implicit banner role would empty the loop and pass vacuously.
