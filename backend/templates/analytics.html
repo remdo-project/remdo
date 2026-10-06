@@ -1,0 +1,127 @@
+{% if umami_website_id %}
+  <aside
+    class="analytics-consent"
+    data-analytics-consent
+    data-analytics-website-id="{{ umami_website_id }}"
+    aria-label="Analytics preferences"
+    hidden
+  >
+    <h2 class="analytics-consent-title">Help improve RemDo?</h2>
+    <p class="analytics-consent-copy">
+      Allow privacy-focused usage analytics so we can learn what is useful and
+      whether people come back. We do not send document contents, document IDs
+      or search text. <a href="/privacy/">Privacy details</a>
+    </p>
+    <div class="analytics-consent-actions">
+      <button type="button" data-analytics-allow>Allow analytics</button>
+      <button type="button" data-analytics-deny>No thanks</button>
+    </div>
+  </aside>
+  <script>
+    (() => {
+      const consentPanel = document.querySelector('[data-analytics-consent]');
+      if (!consentPanel) return;
+
+      const consentKey = 'remdo-analytics-consent-v1';
+      const consentGrantedEvent = 'remdo-analytics-consent-granted';
+      const analyticsReadyEvent = 'remdo-analytics-ready';
+      const websiteId = consentPanel.dataset.analyticsWebsiteId;
+      let consent = null;
+      let trackerStarted = false;
+
+      const readConsent = () => {
+        try {
+          return localStorage.getItem(consentKey);
+        } catch {
+          return null;
+        }
+      };
+      const writeConsent = (value) => {
+        try {
+          localStorage.setItem(consentKey, value);
+        } catch {
+          // The choice still applies to this page when storage is unavailable.
+        }
+      };
+      const sanitizeDocumentUrl = (value) => {
+        if (typeof value !== 'string' || value.length === 0) return value;
+        try {
+          const parsed = new URL(value, window.location.origin);
+          if (parsed.origin !== window.location.origin || !parsed.pathname.startsWith('/n/')) {
+            return value;
+          }
+          return value.startsWith('/') ? '/n/:document' : parsed.origin + '/n/:document';
+        } catch {
+          return value;
+        }
+      };
+
+      window.remdoUmamiBeforeSend = (_type, payload) => {
+        const next = { ...payload };
+        const sanitizedUrl = sanitizeDocumentUrl(next.url);
+        if (sanitizedUrl !== next.url) {
+          next.url = sanitizedUrl;
+          next.title = 'Document · RemDo';
+        }
+        next.referrer = sanitizeDocumentUrl(next.referrer);
+        return next;
+      };
+
+      const startTracker = () => {
+        if (!websiteId || trackerStarted || window.umami) return;
+        trackerStarted = true;
+        const tracker = document.createElement('script');
+        tracker.defer = true;
+        tracker.src = 'https://cloud.umami.is/script.js';
+        tracker.dataset.websiteId = websiteId;
+        tracker.dataset.domains = 'remdo.com';
+        tracker.dataset.excludeSearch = 'true';
+        tracker.dataset.excludeHash = 'true';
+        tracker.dataset.doNotTrack = 'true';
+        tracker.dataset.beforeSend = 'remdoUmamiBeforeSend';
+        tracker.addEventListener('load', () => {
+          window.dispatchEvent(new Event(analyticsReadyEvent));
+        });
+        document.head.append(tracker);
+      };
+
+      const showPreferences = () => {
+        consentPanel.hidden = false;
+      };
+
+      consent = readConsent();
+      window.remdoAnalyticsAllowed = consent === 'granted';
+
+      consentPanel.querySelector('[data-analytics-allow]').addEventListener('click', () => {
+        const newlyGranted = consent !== 'granted';
+        consent = 'granted';
+        writeConsent(consent);
+        window.remdoAnalyticsAllowed = true;
+        consentPanel.hidden = true;
+        if (newlyGranted) {
+          window.dispatchEvent(new Event(consentGrantedEvent));
+        }
+        startTracker();
+      });
+
+      consentPanel.querySelector('[data-analytics-deny]').addEventListener('click', () => {
+        const trackerActive = trackerStarted || Boolean(window.umami);
+        consent = 'denied';
+        writeConsent(consent);
+        window.remdoAnalyticsAllowed = false;
+        consentPanel.hidden = true;
+        if (trackerActive) window.location.reload();
+      });
+
+      document.querySelectorAll('[data-analytics-settings]').forEach((control) => {
+        control.addEventListener('click', showPreferences);
+      });
+
+      if (consent === 'granted') {
+        startTracker();
+      } else if (consent !== 'denied') {
+        showPreferences();
+      }
+    })();
+  </script>
+{% endif %}

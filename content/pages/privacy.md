@@ -3,7 +3,7 @@ title: Privacy Policy
 description: How RemDo handles personal data on the service at remdo.com.
 ---
 
-_Last updated: 1 October 2026._
+_Last updated: 6 October 2026._
 
 RemDo is an early-stage project under active development. This Privacy Policy
 explains how personal data is handled when you use the RemDo service operated at
@@ -98,17 +98,26 @@ a request to delete all your personal data includes both.
 
 ## Analytics and product experiments
 
-RemDo may use optional analytics to understand how the product is used and
-improve it. This can include measuring feature usage, usage patterns and
-retention, and testing different versions of features through experiments such
-as A/B tests.
+RemDo uses optional Umami Cloud analytics on remdo.com to understand how people
+find and use the product, including basic traffic, feature usage and retention.
+Analytics remains disabled until you choose **Allow analytics**.
 
-Where analytics or experimentation involves non-essential cookies, browser
-storage or similar technologies, it is enabled only after you have given consent
-where consent is required.
+When enabled, Umami receives basic usage information such as page views,
+referrer URLs, browser, operating system, device type and country. For signed-in
+users, RemDo also sends the account's internal user identifier as a pseudonymous
+distinct ID so that separate sessions can be connected for retention analysis.
 
-Declining optional analytics does not prevent you from using the core RemDo
-service.
+RemDo sends only a small set of explicit product events: opening the signed-in
+app, creating a document and using search. It does not send document or note
+contents, document titles or identifiers, filenames, or search text. Document
+routes are reduced to a generic route before analytics is sent.
+
+Umami's tracking code does not use cookies. The current Umami Cloud Hobby plan
+retains analytics data for up to six months.
+
+You can withdraw analytics consent at any time through **Privacy settings** in
+the RemDo footer. Declining or withdrawing analytics does not prevent you from
+using the core RemDo service.
 
 RemDo does not use personal data for advertising and does not use the contents
 of your documents for advertising.

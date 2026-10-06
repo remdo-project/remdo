@@ -157,3 +157,103 @@ a.site-wordmark {
     align-items: flex-start;
   }
 }
+
+
+.site-footer-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.site-footer-link:hover,
+.site-footer-link:focus-visible {
+  color: var(--chrome-text);
+  text-decoration: underline;
+}
+
+.site-footer-link:focus-visible {
+  outline: 2px solid var(--chrome-text);
+  outline-offset: 2px;
+}
+
+.analytics-consent {
+  position: fixed;
+  z-index: 1000;
+  right: var(--remdo-gutter);
+  bottom: var(--mantine-spacing-xl);
+  width: min(30rem, calc(100vw - 2 * var(--remdo-gutter)));
+  padding: var(--mantine-spacing-lg);
+  border: 1px solid var(--chrome-line);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-dark-7);
+  box-shadow: var(--mantine-shadow-lg);
+  color: var(--chrome-text);
+}
+
+.analytics-consent[hidden] {
+  display: none;
+}
+
+.analytics-consent-title {
+  margin: 0 0 var(--mantine-spacing-xs);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.analytics-consent-copy {
+  margin: 0;
+  color: var(--chrome-muted);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.analytics-consent-copy a {
+  color: var(--remdo-accent);
+}
+
+.analytics-consent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-xs);
+  margin-top: var(--mantine-spacing-md);
+}
+
+.analytics-consent-actions button {
+  min-height: 2.25rem;
+  padding: 0 var(--mantine-spacing-md);
+  border: 1px solid var(--chrome-line);
+  border-radius: var(--mantine-radius-sm);
+  background: transparent;
+  color: var(--chrome-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.analytics-consent-actions button:first-child {
+  border-color: var(--remdo-accent);
+  background: rgb(var(--remdo-accent-rgb) / 14%);
+}
+
+.analytics-consent-actions button:hover,
+.analytics-consent-actions button:focus-visible {
+  border-color: var(--chrome-text);
+}
+
+.analytics-consent-actions button:focus-visible {
+  outline: 2px solid var(--chrome-text);
+  outline-offset: 2px;
+}
+
+@media (max-width: 47.99em) {
+  .site-footer-link {
+    min-height: 44px;
+  }
+
+  .analytics-consent {
+    right: var(--remdo-gutter);
+    bottom: var(--mantine-spacing-md);
+  }
+}

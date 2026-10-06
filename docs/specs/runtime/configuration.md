@@ -181,6 +181,22 @@ lines. **Deterministic.** Reporting covers errors only, without tracing,
 profiling, or session tracking. Production frontend source maps are public so
 that browser reports resolve to source.
 
+## Managed analytics
+
+`UMAMI_WEBSITE_ID` enables consent-gated Umami Cloud analytics for the managed
+deployment. Unset emits neither analytics tracking nor its preference controls;
+verification ignores the setting. The Render production blueprint declares the
+value as an operator-supplied setting and the other deployment definitions leave
+it unset.
+
+Analytics loads only after the visitor grants analytics consent. It excludes URL
+queries and fragments, reduces every document route and same-origin document
+referrer to `/n/:document`, and never sends document or note contents, titles,
+identifiers, filenames, or search text. Signed-in analytics uses the internal
+user ID as Umami's distinct ID and emits only `app-opened`,
+`document-created`, and `search-used` product events, without event
+properties.
+
 ## Request diagnostics
 
 Production Django request errors reach standard error with status, exception type,

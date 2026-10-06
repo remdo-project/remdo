@@ -34,6 +34,7 @@ except ValueError as error:
     raise ImproperlyConfigured("APP_ORIGIN must be an exact HTTP(S) origin.") from error
 
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+UMAMI_WEBSITE_ID = os.environ.get("UMAMI_WEBSITE_ID", "").strip()
 if SENTRY_DSN:
     from . import error_reporting
 
@@ -84,6 +85,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "remdo.context_processors.analytics",
             ]
         },
     }

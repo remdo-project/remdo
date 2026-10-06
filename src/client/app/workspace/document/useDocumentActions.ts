@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { registerPendingDocumentImport } from '#client/editor/view/workspace';
 import type { UserDataNote } from '#note-sdk';
+import { trackAnalyticsEvent } from '#client/platform/analytics';
 
 const UPLOADED_JSON_EXTENSION = '.json';
 const WHITESPACE_PATTERN = /\s+/gu;
@@ -25,6 +26,7 @@ export function useDocumentActions({
   const createDocument = async (title: string) => {
     const nextDocument = await userData.getDocuments().create(title);
     setCreateError(null);
+    trackAnalyticsEvent('document-created');
     onSelectDocument(nextDocument.getId());
   };
 
@@ -33,6 +35,7 @@ export function useDocumentActions({
       const nextDocument = await userData.getDocuments().create(resolveUploadedDocumentTitle(file.name));
       registerPendingDocumentImport(nextDocument.getId(), file);
       setCreateError(null);
+      trackAnalyticsEvent('document-created');
       onSelectDocument(nextDocument.getId());
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : 'Failed to create document.');
