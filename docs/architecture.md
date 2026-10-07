@@ -249,6 +249,9 @@ persistence barrier, requested after synchronization while the document remains
 attached. Any connection authorized for the document may request it over that
 connection. It completes only after Django commits the full current state,
 including deletion-only changes, and rejects on persistence failure.
+If an operation fails after changing the document, the host reports the cause
+and that the write's outcome is unconfirmed: changes may still be saved, and
+retrying before checking the document may duplicate them.
 
 ## Offline Application Behavior
 
