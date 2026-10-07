@@ -310,7 +310,8 @@ export function useDocumentSearchModel({
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextQuery = event.currentTarget.value;
     if (!searchTrackedRef.current && nextQuery.trim().length > 0) {
-      searchTrackedRef.current = trackAnalyticsEvent('search-used');
+      searchTrackedRef.current = true;
+      trackAnalyticsEvent('search-used');
     }
     setSearchQuery(nextQuery);
   };

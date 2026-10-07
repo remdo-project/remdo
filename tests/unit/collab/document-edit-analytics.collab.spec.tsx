@@ -5,7 +5,6 @@ import Editor from '#client/editor/shell/Editor';
 import { EditorViewProvider } from '#client/editor/view/EditorViewProvider';
 import { readFixture } from '#tools/fixtures';
 import { meta, readOutline, TestMantineProvider } from '#tests';
-import { ANALYTICS_CONSENT_GRANTED_EVENT } from '#platform/analytics';
 import { createCollabTestDocument } from './_support/documents';
 import { renderRemdoEditor } from './_support/render-editor';
 import { createCollabPeer } from './_support/remdo-peers';
@@ -13,13 +12,11 @@ import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 function installAnalytics() {
   const track = vi.fn();
-  window.remdoAnalyticsAllowed = true;
   window.umami = { identify: vi.fn(), track };
   return track;
 }
 
 afterEach(() => {
-  delete window.remdoAnalyticsAllowed;
   delete window.umami;
 });
 
@@ -60,18 +57,6 @@ describe('document edit analytics', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     await remdo.updateNoteText('note1', 'local edit');
     expect(track).toHaveBeenCalledTimes(2);
-  });
-
-  it('reports an edit made before consent once consent is granted', meta({ fixture: 'basic' }), async ({ remdo }) => {
-    const track = installAnalytics();
-    window.remdoAnalyticsAllowed = false;
-
-    await remdo.updateNoteText('note1', 'edit before consent');
-    expect(track).not.toHaveBeenCalled();
-
-    window.remdoAnalyticsAllowed = true;
-    window.dispatchEvent(new Event(ANALYTICS_CONSENT_GRANTED_EVENT));
-    expect(track).toHaveBeenCalledExactlyOnceWith('document-edited');
   });
 
   it('does not report a document that was only opened', async () => {

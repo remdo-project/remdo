@@ -193,5 +193,5 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
    code.
 2. Set [`UMAMI_WEBSITE_ID`](../specs/runtime/configuration.md#managed-analytics)
    in the Render service's **Environment** view, then redeploy.
-3. Confirm that a first-time visitor is asked to allow analytics and that the
-   footer offers **Privacy settings**.
+3. Confirm that the footer offers **Privacy settings** and that page views
+   arrive in Umami.

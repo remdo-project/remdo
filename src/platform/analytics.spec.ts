@@ -1,175 +1,84 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { ANALYTICS_CONSENT_WITHDRAWN_EVENT, ANALYTICS_READY_EVENT, ANALYTICS_UNAVAILABLE_EVENT } from './analytics';
+import { ANALYTICS_TOGGLED_EVENT, endAnalyticsIdentity, identifyAnalyticsUser, trackAnalyticsEvent } from './analytics';
+
+function installTracker() {
+  const identify = vi.fn();
+  const track = vi.fn();
+  window.umami = { identify, track };
+  return { identify, track };
+}
+
+function turnStatistics(disabled: boolean) {
+  window.remdoAnalyticsDisabled = disabled;
+  window.dispatchEvent(new Event(ANALYTICS_TOGGLED_EVENT));
+}
 
 afterEach(() => {
-  delete window.remdoAnalyticsAllowed;
-  delete window.remdoAnalyticsSuspended;
-  delete window.remdoAnalyticsUnavailable;
+  endAnalyticsIdentity();
+  delete window.remdoAnalyticsDisabled;
   delete window.umami;
-  vi.resetModules();
 });
 
-it('does nothing until analytics consent is granted', async () => {
-  const track = vi.fn();
-  window.umami = { identify: vi.fn(), track };
-  const { trackAnalyticsEvent } = await import('./analytics');
+it('reports the event to the Umami tracker', () => {
+  const { track } = installTracker();
 
-  trackAnalyticsEvent('app-opened');
-
-  expect(track).not.toHaveBeenCalled();
-});
-
-it('forwards identity and events immediately when the tracker is ready', async () => {
-  const identify = vi.fn();
-  const track = vi.fn();
-  window.remdoAnalyticsAllowed = true;
-  window.umami = { identify, track };
-  const { identifyAnalyticsUser, trackAnalyticsEvent } = await import('./analytics');
-
-  identifyAnalyticsUser('user-123');
   trackAnalyticsEvent('document-created');
 
-  expect(identify).toHaveBeenCalledWith('user-123');
-  expect(track).toHaveBeenCalledWith('document-created');
+  expect(track).toHaveBeenCalledExactlyOnceWith('document-created');
 });
 
-it('queues consented analytics until Umami finishes loading', async () => {
-  const identify = vi.fn();
-  const track = vi.fn();
-  window.remdoAnalyticsAllowed = true;
-  const { identifyAnalyticsUser, trackAnalyticsEvent } = await import('./analytics');
+it('does nothing while the tracker is unavailable', () => {
+  expect(() => trackAnalyticsEvent('search-used')).not.toThrow();
+});
 
-  identifyAnalyticsUser('user-123');
+it('identifies the signed-in user once, ahead of the first event', () => {
+  const { identify, track } = installTracker();
+
+  identifyAnalyticsUser('user-42');
+  trackAnalyticsEvent('app-opened');
   trackAnalyticsEvent('search-used');
-  window.umami = { identify, track };
-  window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
 
-  expect(identify).toHaveBeenCalledWith('user-123');
-  expect(track).toHaveBeenCalledWith('search-used');
+  expect(identify).toHaveBeenCalledExactlyOnceWith('user-42');
   expect(identify.mock.invocationCallOrder[0]).toBeLessThan(track.mock.invocationCallOrder[0]!);
 });
 
-it('reports whether consent let the event through', async () => {
-  const { trackAnalyticsEvent } = await import('./analytics');
+it('does not identify the user while statistics are turned off', () => {
+  const { identify } = installTracker();
+  window.remdoAnalyticsDisabled = true;
 
-  expect(trackAnalyticsEvent('document-edited')).toBe(false);
-
-  window.remdoAnalyticsAllowed = true;
-  window.umami = { identify: vi.fn(), track: vi.fn() };
-  expect(trackAnalyticsEvent('document-edited')).toBe(true);
-});
-
-it('stays suspended after the identity ends until a user is identified again', async () => {
-  window.remdoAnalyticsAllowed = true;
-  window.umami = { identify: vi.fn(), track: vi.fn() };
-  const { endAnalyticsIdentity, identifyAnalyticsUser } = await import('./analytics');
-
-  endAnalyticsIdentity();
-  expect(window.remdoAnalyticsSuspended).toBe(true);
-
-  identifyAnalyticsUser('user-456');
-  expect(window.remdoAnalyticsSuspended).toBe(false);
-});
-
-it('does not accept events while sending is suspended after sign-out', async () => {
-  const track = vi.fn();
-  window.remdoAnalyticsAllowed = true;
-  window.umami = { identify: vi.fn(), track };
-  const { endAnalyticsIdentity, trackAnalyticsEvent } = await import('./analytics');
-
-  endAnalyticsIdentity();
-
-  expect(trackAnalyticsEvent('search-used')).toBe(false);
-  expect(track).not.toHaveBeenCalled();
-});
-
-it('sends calls queued before Umami loaded ahead of the next call once it is available', async () => {
-  const identify = vi.fn();
-  const track = vi.fn();
-  window.remdoAnalyticsAllowed = true;
-  const { identifyAnalyticsUser, trackAnalyticsEvent } = await import('./analytics');
-  identifyAnalyticsUser('user-123');
-  trackAnalyticsEvent('app-opened');
-
-  window.umami = { identify, track };
-  trackAnalyticsEvent('search-used');
-
-  expect(identify).toHaveBeenCalledWith('user-123');
-  expect(track.mock.calls.map(([event]) => event)).toEqual(['app-opened', 'search-used']);
-});
-
-it('does not send calls queued for a user who signed out before Umami loaded', async () => {
-  const identify = vi.fn();
-  const track = vi.fn();
-  window.remdoAnalyticsAllowed = true;
-  const { endAnalyticsIdentity, identifyAnalyticsUser, trackAnalyticsEvent } = await import('./analytics');
-  identifyAnalyticsUser('user-123');
-  trackAnalyticsEvent('app-opened');
-
-  endAnalyticsIdentity();
-  window.umami = { identify, track };
-  window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
+  identifyAnalyticsUser('user-42');
 
   expect(identify).not.toHaveBeenCalled();
-  expect(track).not.toHaveBeenCalled();
 });
 
-it('discards calls queued before consent was withdrawn, even when it is granted again before Umami loads', async () => {
-  const track = vi.fn();
-  window.remdoAnalyticsAllowed = true;
-  const { trackAnalyticsEvent } = await import('./analytics');
-  trackAnalyticsEvent('document-created');
+it('identifies a user who was signed in when statistics are turned on again', () => {
+  const { identify } = installTracker();
+  window.remdoAnalyticsDisabled = true;
+  identifyAnalyticsUser('user-42');
 
-  window.remdoAnalyticsAllowed = false;
-  window.dispatchEvent(new Event(ANALYTICS_CONSENT_WITHDRAWN_EVENT));
-  window.remdoAnalyticsAllowed = true;
-  window.umami = { identify: vi.fn(), track };
-  window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
+  turnStatistics(false);
+
+  expect(identify).toHaveBeenCalledExactlyOnceWith('user-42');
+});
+
+it('identifies the user again after statistics were turned off and on', () => {
+  const { identify } = installTracker();
+  identifyAnalyticsUser('user-42');
+
+  turnStatistics(true);
+  turnStatistics(false);
+
+  expect(identify).toHaveBeenCalledTimes(2);
+});
+
+it('forgets the user when the identity ends', () => {
+  const { identify } = installTracker();
+  identifyAnalyticsUser('user-42');
+  identify.mockClear();
+
+  endAnalyticsIdentity();
+  turnStatistics(false);
   trackAnalyticsEvent('search-used');
 
-  expect(track.mock.calls.map(([event]) => event)).toEqual(['search-used']);
-});
-
-it('sends the identity registered before consent ahead of the first event reported after it', async () => {
-  const identify = vi.fn();
-  const track = vi.fn();
-  window.umami = { identify, track };
-  const { identifyAnalyticsUser, trackAnalyticsEvent } = await import('./analytics');
-  identifyAnalyticsUser('user-123');
   expect(identify).not.toHaveBeenCalled();
-
-  window.remdoAnalyticsAllowed = true;
-  trackAnalyticsEvent('document-edited');
-
-  expect(identify).toHaveBeenCalledExactlyOnceWith('user-123');
-  expect(identify.mock.invocationCallOrder[0]).toBeLessThan(track.mock.invocationCallOrder[0]!);
-});
-
-it('identifies the same user once however many events follow', async () => {
-  const identify = vi.fn();
-  window.remdoAnalyticsAllowed = true;
-  window.umami = { identify, track: vi.fn() };
-  const { identifyAnalyticsUser, trackAnalyticsEvent } = await import('./analytics');
-
-  identifyAnalyticsUser('user-123');
-  trackAnalyticsEvent('app-opened');
-  identifyAnalyticsUser('user-123');
-  trackAnalyticsEvent('search-used');
-
-  expect(identify).toHaveBeenCalledExactlyOnceWith('user-123');
-});
-
-it('stops queueing and drops what was queued when the Umami script cannot load', async () => {
-  const track = vi.fn();
-  window.remdoAnalyticsAllowed = true;
-  const { trackAnalyticsEvent } = await import('./analytics');
-  expect(trackAnalyticsEvent('document-created')).toBe(true);
-
-  window.remdoAnalyticsUnavailable = true;
-  window.dispatchEvent(new Event(ANALYTICS_UNAVAILABLE_EVENT));
-  window.umami = { identify: vi.fn(), track };
-  window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
-
-  expect(trackAnalyticsEvent('search-used')).toBe(false);
-  expect(track).not.toHaveBeenCalled();
 });

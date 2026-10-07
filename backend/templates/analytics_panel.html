@@ -1,0 +1,87 @@
+{% if umami_website_id %}
+  <aside class="analytics-panel" data-analytics-panel aria-label="Usage statistics" hidden>
+    <h2 class="analytics-panel-title">Usage statistics</h2>
+    <p class="analytics-panel-copy">
+      RemDo counts visits and feature use, linked to your account while you are
+      signed in, to learn what is useful and whether people come back. We never
+      send document contents, document IDs or search text.
+      <a href="/privacy/">Privacy details</a>
+    </p>
+    <p class="analytics-panel-state" role="status" data-analytics-state></p>
+    <div class="analytics-panel-actions">
+      <button type="button" data-analytics-toggle></button>
+      <button type="button" data-analytics-close>Close</button>
+    </div>
+  </aside>
+  <script>
+    (() => {
+      const panel = document.querySelector('[data-analytics-panel]');
+      const toggle = panel.querySelector('[data-analytics-toggle]');
+      const state = panel.querySelector('[data-analytics-state]');
+      const disabledKey = 'umami.disabled';
+      const toggledEvent = 'remdo-analytics-toggled';
+      let opener = null;
+
+      const doNotTrack = () => ['1', 'yes'].includes(
+        String(navigator.doNotTrack ?? window.doNotTrack ?? navigator.msDoNotTrack),
+      );
+      const readDisabled = () => {
+        try {
+          return Boolean(localStorage.getItem(disabledKey));
+        } catch {
+          return false;
+        }
+      };
+      const publish = (disabled) => {
+        const changed = window.remdoAnalyticsDisabled !== undefined && window.remdoAnalyticsDisabled !== disabled;
+        window.remdoAnalyticsDisabled = disabled;
+        if (changed) window.dispatchEvent(new Event(toggledEvent));
+      };
+      const render = () => {
+        const disabled = window.remdoAnalyticsDisabled;
+        state.textContent = disabled
+          ? 'Statistics are off.'
+          : doNotTrack()
+            ? "Your browser's Do Not Track setting is on, so nothing is sent."
+            : 'Statistics are on.';
+        toggle.textContent = disabled ? 'Turn on' : 'Turn off';
+      };
+      const close = () => {
+        panel.hidden = true;
+        opener?.focus();
+      };
+
+      toggle.addEventListener('click', () => {
+        const disabled = !window.remdoAnalyticsDisabled;
+        try {
+          if (disabled) localStorage.setItem(disabledKey, '1');
+          else localStorage.removeItem(disabledKey);
+        } catch {
+          // The choice still applies to this page when storage is unavailable.
+        }
+        publish(disabled);
+        render();
+      });
+      panel.querySelector('[data-analytics-close]').addEventListener('click', close);
+      panel.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') close();
+      });
+      document.querySelectorAll('[data-analytics-settings]').forEach((control) => {
+        control.addEventListener('click', () => {
+          opener = control;
+          render();
+          panel.hidden = false;
+          toggle.focus();
+        });
+      });
+      window.addEventListener('storage', (event) => {
+        if (event.key === null || event.key === disabledKey) {
+          publish(readDisabled());
+          render();
+        }
+      });
+
+      publish(readDisabled());
+    })();
+  </script>
+{% endif %}

@@ -66,6 +66,17 @@
 .landing-signin-heading {
   margin-bottom: 8px;
 }
+.landing-signin-notice {
+  margin: 0;
+  color: var(--landing-muted-light-text);
+  font-size: 14px;
+  line-height: 20px;
+}
+.landing-signin-notice a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 .landing-signin-divider {
   display: flex;
   align-items: center;

@@ -1,7 +1,4 @@
-export const ANALYTICS_CONSENT_GRANTED_EVENT = 'remdo-analytics-consent-granted';
-export const ANALYTICS_READY_EVENT = 'remdo-analytics-ready';
-export const ANALYTICS_CONSENT_WITHDRAWN_EVENT = 'remdo-analytics-consent-withdrawn';
-export const ANALYTICS_UNAVAILABLE_EVENT = 'remdo-analytics-unavailable';
+export const ANALYTICS_TOGGLED_EVENT = 'remdo-analytics-toggled';
 
 type AnalyticsEvent =
   | 'app-opened'
@@ -17,79 +14,45 @@ interface UmamiClient {
 
 declare global {
   interface Window {
-    remdoAnalyticsAllowed?: boolean;
-    remdoAnalyticsSuspended?: boolean;
-    remdoAnalyticsUnavailable?: boolean;
     umami?: UmamiClient;
+    remdoAnalyticsDisabled?: boolean;
+    remdoAnalyticsUserId?: string | null;
   }
 }
 
-const pendingCalls: Array<(client: UmamiClient) => void> = [];
-let userId: string | null = null;
 let deliveredUserId: string | null = null;
+let listeningForToggles = false;
 
-function deliverIdentity(client: UmamiClient) {
-  if (userId !== null && userId !== deliveredUserId) {
-    client.identify(userId);
+function deliverIdentity() {
+  const userId = window.remdoAnalyticsUserId;
+  if (window.remdoAnalyticsDisabled !== true && userId && window.umami && userId !== deliveredUserId) {
+    window.umami.identify(userId);
     deliveredUserId = userId;
   }
 }
 
-function flushPendingCalls() {
-  const client = window.umami;
-  if (!client || window.remdoAnalyticsAllowed !== true) {
-    return;
-  }
-  deliverIdentity(client);
-  pendingCalls.splice(0).forEach((call) => call(client));
-}
-
-function clearPendingCalls() {
-  pendingCalls.length = 0;
-}
-
-function waitForTracker() {
-  window.addEventListener(ANALYTICS_READY_EVENT, flushPendingCalls);
-  window.addEventListener(ANALYTICS_CONSENT_WITHDRAWN_EVENT, clearPendingCalls);
-  window.addEventListener(ANALYTICS_UNAVAILABLE_EVENT, clearPendingCalls);
-}
-
-function withAnalytics(call: (client: UmamiClient) => void): boolean {
-  if (
-    window.remdoAnalyticsAllowed !== true
-    || window.remdoAnalyticsSuspended === true
-    || window.remdoAnalyticsUnavailable === true
-  ) {
-    return false;
-  }
-  if (window.umami) {
-    flushPendingCalls();
-    call(window.umami);
-    return true;
-  }
-  pendingCalls.push(call);
-  waitForTracker();
-  return true;
-}
-
-// The user is remembered before consent so that whichever event is reported
-// first is preceded by the identity, whatever order callers act in.
-export function identifyAnalyticsUser(id: string) {
-  userId = id;
-  window.remdoAnalyticsSuspended = false;
-  withAnalytics(() => {});
-}
-
-// Umami cannot clear an identity, so the page stops sending until the next
-// identify or page load.
-export function endAnalyticsIdentity() {
-  window.remdoAnalyticsSuspended = true;
-  userId = null;
+function handleToggle() {
   deliveredUserId = null;
-  clearPendingCalls();
+  deliverIdentity();
 }
 
-/** Whether analytics accepted the event; false means consent is missing, sending is suspended, or the tracker failed to load. */
-export function trackAnalyticsEvent(event: AnalyticsEvent): boolean {
-  return withAnalytics((client) => client.track(event));
+// The before-send hook in the page drops the identity from every payload while
+// nobody is signed in, and every payload while statistics are turned off.
+export function identifyAnalyticsUser(userId: string) {
+  window.remdoAnalyticsUserId = userId;
+  if (!listeningForToggles) {
+    listeningForToggles = true;
+    window.addEventListener(ANALYTICS_TOGGLED_EVENT, handleToggle);
+  }
+  deliverIdentity();
+}
+
+export function endAnalyticsIdentity() {
+  window.remdoAnalyticsUserId = null;
+  deliveredUserId = null;
+}
+
+export function trackAnalyticsEvent(event: AnalyticsEvent): void {
+  deliverIdentity();
+  window.umami?.track(event);
 }

@@ -4,12 +4,7 @@ import { registerSW } from 'virtual:pwa-register';
 import { config } from '#config';
 import { useQuery } from '@tanstack/react-query';
 import { apiConfiguration } from '#platform/http/api-client';
-import {
-  ANALYTICS_CONSENT_GRANTED_EVENT,
-  endAnalyticsIdentity,
-  identifyAnalyticsUser,
-  trackAnalyticsEvent,
-} from '#platform/analytics';
+import { endAnalyticsIdentity, identifyAnalyticsUser, trackAnalyticsEvent } from '#platform/analytics';
 import { getCachedCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap';
 import { Link, Outlet, useLocation, useMatches } from 'react-router-dom';
 import type { UIMatch } from 'react-router-dom';
@@ -74,19 +69,16 @@ function AppFrameContent() {
     if (!analyticsUserId) {
       return;
     }
-    const recordAppOpen = () => {
-      identifyAnalyticsUser(analyticsUserId);
-      if (!appOpenedReportedRef.current) {
-        appOpenedReportedRef.current = trackAnalyticsEvent('app-opened');
-      }
-    };
-    recordAppOpen();
-    window.addEventListener(ANALYTICS_CONSENT_GRANTED_EVENT, recordAppOpen);
-    return () => {
-      window.removeEventListener(ANALYTICS_CONSENT_GRANTED_EVENT, recordAppOpen);
-      endAnalyticsIdentity();
-    };
+    identifyAnalyticsUser(analyticsUserId);
+    return endAnalyticsIdentity;
   }, [analyticsUserId]);
+
+  useEffect(() => {
+    if (signedIn && !appOpenedReportedRef.current) {
+      appOpenedReportedRef.current = true;
+      trackAnalyticsEvent('app-opened');
+    }
+  }, [signedIn]);
   const headerLinks = connectionUnavailable ? null : (
     <>
       <a href="/about/">About</a>

@@ -2,17 +2,21 @@ import { act, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
-import { ANALYTICS_CONSENT_GRANTED_EVENT } from '#platform/analytics';
 import { apiConfiguration } from '#platform/http/api-client';
+import type { SessionGateState } from '#client/app/session/client';
 import { writeStoredCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap-storage';
 import { TestMantineProvider } from '#tests';
-import type { SessionGateState } from '#client/app/session/client';
 import AppFrame from './AppFrame';
 
 let track: Mock<(event: string) => void>;
 let identify: Mock<(id: string) => void>;
 
-function renderFrame(signedInState: SessionGateState = { status: 'offline-remembered' }) {
+const authenticated: SessionGateState = {
+  status: 'authenticated',
+  session: { user: { id: 7, display: 'User', has_usable_password: true, is_staff: false }, methods: [] },
+};
+
+function renderFrame(signedInState: SessionGateState) {
   for (const slot of ['header-links', 'footer-status']) {
     const element = document.createElement('div');
     element.dataset.slot = slot;
@@ -44,64 +48,67 @@ function renderFrame(signedInState: SessionGateState = { status: 'offline-rememb
 }
 
 beforeEach(() => {
-  writeStoredCurrentUserBootstrap(JSON.stringify({ userId: '42' }));
   track = vi.fn<(event: string) => void>();
   identify = vi.fn<(id: string) => void>();
-  window.remdoAnalyticsAllowed = true;
   window.umami = { identify, track };
 });
 
 afterEach(() => {
   document.body.replaceChildren();
-  delete window.remdoAnalyticsAllowed;
-  delete window.remdoAnalyticsSuspended;
-  delete window.umami;
   localStorage.clear();
+  delete window.umami;
+  delete window.remdoAnalyticsDisabled;
+  delete window.remdoAnalyticsUserId;
 });
 
 describe('app frame analytics', () => {
-  it('identifies the signed-in user and reports the app opening', async () => {
-    renderFrame();
+  it('reports the app opening for an authenticated user, identified by their account', async () => {
+    renderFrame(authenticated);
 
     await waitFor(() => expect(track).toHaveBeenCalledExactlyOnceWith('app-opened'));
-    expect(identify).toHaveBeenCalledExactlyOnceWith('42');
+    expect(identify).toHaveBeenCalledExactlyOnceWith('7');
+    expect(identify.mock.invocationCallOrder[0]).toBeLessThan(track.mock.invocationCallOrder[0]!);
   });
 
-  it('identifies an authenticated user by the session user id', async () => {
-    renderFrame({
-      status: 'authenticated',
-      session: { user: { id: 7, display: 'User', has_usable_password: true, is_staff: false }, methods: [] },
-    });
+  it('identifies a remembered offline session by the cached account', async () => {
+    writeStoredCurrentUserBootstrap(JSON.stringify({ userId: '42' }));
 
-    await waitFor(() => expect(identify).toHaveBeenCalledExactlyOnceWith('7'));
-  });
+    renderFrame({ status: 'offline-remembered' });
 
-  it('reports the app opening when consent is granted after it was opened', async () => {
-    window.remdoAnalyticsAllowed = false;
-    renderFrame();
-    await waitFor(() => expect(document.body).toHaveTextContent('signed in'));
-    expect(track).not.toHaveBeenCalled();
-
-    window.remdoAnalyticsAllowed = true;
-    act(() => {
-      window.dispatchEvent(new Event(ANALYTICS_CONSENT_GRANTED_EVENT));
-    });
-
-    expect(identify).toHaveBeenCalledExactlyOnceWith('42');
+    await waitFor(() => expect(identify).toHaveBeenCalledExactlyOnceWith('42'));
     expect(track).toHaveBeenCalledExactlyOnceWith('app-opened');
   });
 
-  it('stops sending after sign-out and resumes without a second app opening when signed in again', async () => {
-    const router = renderFrame();
+  it('does not identify anyone while statistics are turned off', async () => {
+    window.remdoAnalyticsDisabled = true;
+
+    renderFrame(authenticated);
+
+    await waitFor(() => expect(track).toHaveBeenCalledOnce());
+    expect(identify).not.toHaveBeenCalled();
+  });
+
+  it('ends the identity and does not count another app opening once the user signs out', async () => {
+    const router = renderFrame(authenticated);
+    await waitFor(() => expect(track).toHaveBeenCalledOnce());
+    track.mockClear();
+
+    await act(() => router.navigate('/signed-out'));
+    await waitFor(() => expect(document.body).toHaveTextContent('signed out'));
+
+    expect(window.remdoAnalyticsUserId).toBeNull();
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it('counts the app opening once per page load however often the session returns', async () => {
+    const router = renderFrame(authenticated);
     await waitFor(() => expect(track).toHaveBeenCalledOnce());
 
     await act(() => router.navigate('/signed-out'));
     await waitFor(() => expect(document.body).toHaveTextContent('signed out'));
-    expect(window.remdoAnalyticsSuspended).toBe(true);
-
     await act(() => router.navigate('/'));
-    await waitFor(() => expect(window.remdoAnalyticsSuspended).toBe(false));
-    expect(identify).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(document.body).toHaveTextContent('signed in'));
+
     expect(track).toHaveBeenCalledOnce();
   });
 });

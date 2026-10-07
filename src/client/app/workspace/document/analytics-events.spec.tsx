@@ -14,13 +14,11 @@ let track: Mock<(event: string) => void>;
 beforeEach(() => {
   resetDocumentRouteHarness();
   track = vi.fn<(event: string) => void>();
-  window.remdoAnalyticsAllowed = true;
   window.umami = { identify: vi.fn(), track };
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete window.remdoAnalyticsAllowed;
   delete window.umami;
 });
 
@@ -46,18 +44,14 @@ describe('product analytics events', () => {
     expect(track).not.toHaveBeenCalled();
   });
 
-  it('reports one search per search session, counting it once consent is granted', async () => {
+  it('reports one search per search session', async () => {
     renderDocumentRoute();
     const input = await screen.findByRole('combobox', { name: 'Search document' });
     act(() => input.focus());
-    window.remdoAnalyticsAllowed = false;
 
-    fireEvent.change(input, { target: { value: 'before consent' } });
-    expect(track).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: 'first query' } });
+    fireEvent.change(input, { target: { value: 'first query, refined' } });
 
-    window.remdoAnalyticsAllowed = true;
-    fireEvent.change(input, { target: { value: 'after consent' } });
-    fireEvent.change(input, { target: { value: 'after consent, refined' } });
     expect(track).toHaveBeenCalledExactlyOnceWith('search-used');
   });
 

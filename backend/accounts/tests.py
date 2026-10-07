@@ -147,6 +147,12 @@ class LoginPageTests(TestCase):
         self.assertTrue(cookie["expires"])
         self.assertFalse(self.client.session.get_expire_at_browser_close())
 
+    def test_page_says_that_signing_in_means_agreeing_to_the_privacy_policy_and_terms(self):
+        page = self.client.get("/accounts/login/")
+        self.assertContains(page, "By signing in you agree to the")
+        self.assertContains(page, 'href="/privacy/"')
+        self.assertContains(page, 'href="/terms/"')
+
     def test_page_offers_google_before_the_password_form(self):
         content = self.client.get("/accounts/login/").content.decode()
         self.assertRegex(content, r'(?s)Sign in with Google.*?>\s*or\s*<.*?name="login"')

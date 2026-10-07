@@ -67,7 +67,7 @@ const domTests = [
   'src/collaboration/unsynced-local-changes.spec.ts',
   'src/platform/analytics.spec.ts',
   'src/platform/http/*.spec.ts',
-  'tests/unit/analytics-consent-script.spec.ts',
+  'tests/unit/analytics-scripts.spec.ts',
   'src/client/editor/keymap/keymap-plugin.spec.ts',
   'src/client/editor/mobile-toolbar/MobileActionToolbar.spec.tsx',
   'src/client/editor/view/editor-view-provider.spec.tsx',
