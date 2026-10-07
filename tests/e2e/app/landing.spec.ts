@@ -80,8 +80,9 @@ test('keeps collaboration, note links, and tasks visible in responsive illustrat
   }
 });
 
-test('sign-in shows its story beside the form on wide screens and drops it on narrower ones', async ({ page }) => {
+test('sign-in shows its story beside the form on wide screens and removes it on narrower ones', async ({ page }) => {
   await page.goto('/accounts/login/');
+  const storyPanel = page.getByRole('complementary', { name: 'About RemDo' });
   const story = page.getByText('A place for your next thought.', { exact: true });
   const google = page.getByRole('button', { name: 'Sign in with Google' });
   const email = page.getByLabel('Email:', { exact: true });
@@ -90,8 +91,13 @@ test('sign-in shows its story beside the form on wide screens and drops it on na
   for (const [width, beside] of [[1440, true], [1024, true], [768, false], [390, false]] as const) {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
-    if (beside) await expect(story).toBeVisible();
-    else await expect(story).toBeHidden();
+    if (beside) {
+      await expect(storyPanel).toBeVisible();
+      await expect(story).toBeVisible();
+    } else {
+      await expect(storyPanel).toBeHidden();
+      await expect(story).toBeHidden();
+    }
     await expect(signInLink).toBeInViewport({ ratio: 1 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
     expect((await google.boundingBox())!.y).toBeLessThan((await email.boundingBox())!.y);
@@ -144,6 +150,9 @@ test('reveals at most one FAQ answer at a time and allows closing every answer',
   await page.goto('/');
   const faq = page.getByRole('region', { name: 'Frequently asked questions.' });
   const visibleAnswers = faq.locator('p:visible');
+
+  await expect(faq.locator('summary').first()).toHaveCSS('text-align', 'left');
+  await expect(visibleAnswers).toHaveCSS('text-align', 'left');
 
   await expect(visibleAnswers).toHaveCount(1);
   await expect(visibleAnswers).toContainText('The outliner works today');

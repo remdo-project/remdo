@@ -94,16 +94,8 @@
 @media (max-width: 63.99em) {
   .landing-signin {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
   }
   .landing-signin-story {
-    min-height: 160px;
-    padding: 0;
-  }
-  .landing-signin-story::after {
-    background: linear-gradient(180deg, rgb(18 16 13 / 86%) 0, rgb(18 16 13 / 80%) 70px, rgb(18 16 13 / 55%) 100%);
-  }
-  .landing-signin-headline, .landing-signin-summary {
     display: none;
   }
   .landing-signin .site-footer-inner {
