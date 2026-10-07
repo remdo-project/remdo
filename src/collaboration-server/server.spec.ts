@@ -343,6 +343,9 @@ it('cancels headless acquisition during repeated authorization failures without 
     .then(() => { outcome = 'appended'; }, (error: Error) => { outcome = error.message; });
   try {
     await expect.poll(() => authorizations, { timeout: 3000 }).toBeGreaterThan(1);
+    // A request reaching Django does not mean the hub has reported its failure yet.
+    await expect.poll(() => vi.mocked(console.error).mock.calls
+      .filter(([message]) => message === '[onAuthenticate]').length).toBeGreaterThan(1);
     controller.abort(new Error('RemDo is busy; try again shortly.'));
     await expect.poll(() => outcome).toBe('RemDo is busy; try again shortly.');
   } finally {
