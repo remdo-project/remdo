@@ -64,19 +64,43 @@ test('keeps collaboration, note links, and tasks visible in responsive illustrat
   const collaboration = page.getByRole('img', { name: /Tom and Henry collaborate/u });
   const links = page.getByRole('img', { name: /Typing @Atlas opens related notes/u });
   const tasks = page.getByRole('img', { name: /completed launch note, upcoming tasks/u });
+  const expectMarkerAtTextEnd = async (inlineSelector: string, markerSelector: string) => {
+    const inline = page.locator(inlineSelector);
+    const marker = page.locator(markerSelector);
+    const [inlineBox, markerBox] = await Promise.all([inline.boundingBox(), marker.boundingBox()]);
+    expect(inlineBox).not.toBeNull();
+    expect(markerBox).not.toBeNull();
+    expect(Math.abs(markerBox!.x - (inlineBox!.x + inlineBox!.width))).toBeLessThan(1);
+  };
 
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await collaboration.scrollIntoViewIfNeeded();
     await expect(collaboration.getByText('Tom', { exact: true })).toBeInViewport({ ratio: 0.99 });
     await expect(collaboration.getByText('Henry', { exact: true })).toBeInViewport({ ratio: 0.99 });
+    await expectMarkerAtTextEnd(
+      '.landing-artifact-inline:has(.landing-artifact-peer--tom)',
+      '.landing-artifact-peer--tom',
+    );
+    await expectMarkerAtTextEnd(
+      '.landing-artifact-inline:has(.landing-artifact-peer--henry)',
+      '.landing-artifact-peer--henry',
+    );
 
     await links.scrollIntoViewIfNeeded();
     await expect(links.getByText('Atlas launch', { exact: true })).toBeInViewport({ ratio: 0.5 });
+    await expectMarkerAtTextEnd(
+      '.landing-artifact-inline:has-text("@Atlas")',
+      '.landing-artifact-inline:has-text("@Atlas") .landing-artifact-caret',
+    );
 
     await tasks.scrollIntoViewIfNeeded();
     await expect(tasks.getByText('Draft the launch note', { exact: true })).toBeInViewport({ ratio: 0.5 });
     await expect(tasks.getByText('Add one more idea', { exact: true })).toBeInViewport({ ratio: 0.5 });
+    await expectMarkerAtTextEnd(
+      '.landing-artifact-inline:has-text("Add one more idea")',
+      '.landing-artifact-inline:has-text("Add one more idea") .landing-artifact-caret',
+    );
   }
 });
 

@@ -23,8 +23,10 @@
         {% include "pages/landing/artifacts/note.html" with text="Plan next week" checkbox=True only %}
       </div>
       <div class="landing-artifact-row landing-artifact-row--nested">
-        <span class="landing-artifact-caret landing-artifact-caret--writing"></span>
-        {% include "pages/landing/artifacts/note.html" with text="Add one more idea" only %}
+        <div class="landing-artifact-note">
+          <img class="landing-artifact-handle" src="/site-assets/note-handle.svg" alt="">
+          <p class="landing-artifact-text"><span class="landing-artifact-inline">Add one more idea<span class="landing-artifact-caret"></span></span></p>
+        </div>
       </div>
     </div>
   </div>
