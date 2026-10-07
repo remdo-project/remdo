@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
@@ -294,12 +295,12 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
   });
 
   return {
-    listen: () => new Promise<void>((resolve, reject) => {
+    listen: () => new Promise<AddressInfo>((resolve, reject) => {
       const { hostname, port } = new URL(origin);
       http.once('error', reject);
       http.listen(Number(port), hostname, () => {
         http.off('error', reject);
-        resolve();
+        resolve(http.address() as AddressInfo);
       });
     }),
     stop: () => new Promise<void>((resolve, reject) => http.close((error) => error ? reject(error) : resolve())),

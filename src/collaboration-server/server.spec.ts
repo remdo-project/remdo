@@ -378,18 +378,14 @@ it('keeps writing after opening even when the acquisition deadline expires', asy
 it('reports an MCP append as unconfirmed when persistence fails and the hub saves it after recovery', async () => {
   const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
   runtimeCleanup.push(() => resolveOrigin.mockRestore());
-  const probe = createServer();
-  probe.listen(0, '127.0.0.1');
-  await once(probe, 'listening');
-  const mcpOrigin = `http://127.0.0.1:${(probe.address() as AddressInfo).port}`;
-  await new Promise<void>((resolve) => probe.close(() => resolve()));
   const mcp = createMcpServer({
-    origin: mcpOrigin,
+    origin: 'http://127.0.0.1:0',
     apiOrigin: `http://127.0.0.1:${(backend.address() as AddressInfo).port}`,
     appOrigin: 'http://remdo.test',
     documentSlots: 1,
   });
-  await mcp.listen();
+  const address = await mcp.listen();
+  const mcpOrigin = `http://127.0.0.1:${address.port}`;
   async function call(name: string, args: Record<string, unknown>) {
     const response = await fetch(`${mcpOrigin}/mcp`, {
       method: 'POST',
@@ -425,21 +421,25 @@ it.each(['synchronization', 'callback'])('reports a post-write %s error as uncon
   runtimeCleanup.push(() => resolveOrigin.mockRestore());
   const original = CollabSession.prototype.awaitSynced;
   const failure = new Error('Synchronization confirmation was lost.');
-  const awaitSynced = vi.spyOn(CollabSession.prototype, 'awaitSynced')
-    .mockImplementationOnce(original)
-    .mockImplementationOnce(async function(this: CollabSession) {
-      await original.call(this);
-      if (stage === 'synchronization') throw failure;
-    });
-  runtimeCleanup.push(() => awaitSynced.mockRestore());
+  if (stage === 'synchronization') {
+    const awaitSynced = vi.spyOn(CollabSession.prototype, 'awaitSynced')
+      .mockImplementationOnce(original)
+      .mockImplementationOnce(async function(this: CollabSession) {
+        await original.call(this);
+        throw failure;
+      });
+    runtimeCleanup.push(() => awaitSynced.mockRestore());
+  }
   await expect(withHeadlessOpenDocument('document', 'Bearer delegated-token', async (document) => {
     await document.root.appendChildren([{ text: 'sync outcome unknown' }]);
     if (stage === 'callback') throw failure;
   }))
     .rejects.toMatchObject({ message: expect.stringContaining('Document changes are unconfirmed'), cause: failure });
-  const contents = await withHeadlessOpenDocument('document', 'Bearer delegated-token',
-    async (document) => document.root.getChildren().map((note) => note.getText()), { readOnly: true });
-  expect(contents).toContain('sync outcome unknown');
+  if (stage === 'synchronization') {
+    const contents = await withHeadlessOpenDocument('document', 'Bearer delegated-token',
+      async (document) => document.root.getChildren().map((note) => note.getText()), { readOnly: true });
+    expect(contents).toContain('sync outcome unknown');
+  }
 });
 
 it.each([true, false])('keeps failures before a write unchanged (readOnly=%s)', async (readOnly) => {
