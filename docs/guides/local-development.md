@@ -75,6 +75,13 @@ With the default `HOST`, use Vite's Local URL. With `HOST=0.0.0.0`, use the
 machine hostname or explicit `PUBLIC_HOST` from the [development origin](../specs/runtime/configuration.md#network-addressing), not one
 of Vite's interface-IP Network URLs.
 
+### Recover Occupied Ports
+
+When a previous run left processes holding the stack's [ports](../specs/runtime/configuration.md#network-addressing),
+run `pnpm run dev:force`. It stops every listener on the gateway, API,
+collaboration, and MCP ports derived from `PORT_BASE`, whatever process owns it,
+then starts Main Development. Stacks in other 100-port blocks are untouched.
+
 ### Reset Development Data
 
 Run `pnpm run dev:data-reset` while Main Development is running to recreate the
