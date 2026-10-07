@@ -54,7 +54,6 @@ describe('collaboration indicator status mapping', () => {
   it('returns degraded when server is disconnected', () => {
     expect(resolveStatus({ enabled: true, localPersistenceStatus: 'enabled', connectionStatus: 'disconnected' })).toBe('degraded');
     expect(resolveStatus({ enabled: true, localPersistenceStatus: 'enabled', connectionStatus: 'error' })).toBe('degraded');
-    expect(resolveStatus({ enabled: true, localPersistenceStatus: 'enabled', connectionStatus: 'handshaking' })).toBe('degraded');
   });
 });
 

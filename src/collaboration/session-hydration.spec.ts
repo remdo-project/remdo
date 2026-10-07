@@ -1,5 +1,5 @@
 import { LOCAL_CACHE_ORIGIN } from '#collaboration/local-persistence';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 import { CollabSession } from '#collaboration/session';
 import { createMockProvider, createMockProviderFactory } from '#tests-collab/mock-provider';
@@ -13,8 +13,7 @@ describe('collaboration session hydration', () => {
     }
   });
 
-  function createSession() {
-    const doc = new Y.Doc();
+  function createSession(doc = new Y.Doc()) {
     const mock = createMockProvider();
     const session = new CollabSession({
       docId: 'cachedDoc',
@@ -26,36 +25,47 @@ describe('collaboration session hydration', () => {
     return { doc, mock, session };
   }
 
-  it.each(['before', 'after'] as const)('reads cached content loaded %s waiting, without server sync', async (timing) => {
+  it('makes cached content ready without server sync', () => {
     const { doc, session } = createSession();
-    const hydrate = () => doc.transact(() => {
+    expect(session.snapshot().hydrated).toBe(false);
+    expect(session.snapshot().localCacheHydrated).toBe(false);
+
+    doc.transact(() => {
       doc.getMap('user-data').set('title', 'Cached document');
     }, LOCAL_CACHE_ORIGIN);
-    if (timing === 'before') {
-      hydrate();
-    }
-    const ready = session.awaitHydrated();
-    if (timing === 'after') {
-      hydrate();
-    }
 
-    await ready;
+    expect(session.snapshot().hydrated).toBe(true);
+    expect(session.snapshot().localCacheHydrated).toBe(true);
     expect(doc.getMap('user-data').get('title')).toBe('Cached document');
     expect(session.snapshot().synced).toBe(false);
     expect(session.snapshot().hasLocalChanges).toBe(false);
   });
 
-  it('waits for the server when there is no cached content', async () => {
+  it('makes content already loaded before attach ready without server sync', () => {
+    const doc = new Y.Doc();
+    doc.getMap('user-data').set('title', 'Cached document');
+    const { session } = createSession(doc);
+
+    expect(session.snapshot()).toMatchObject({
+      hydrated: true, localCacheHydrated: true, synced: false, hasLocalChanges: false,
+    });
+    expect(doc.getMap('user-data').get('title')).toBe('Cached document');
+  });
+
+  it('rejects a pending synchronization wait when destroyed', async () => {
+    const { session } = createSession();
+    const rejected = expect(session.awaitSynced()).rejects.toThrow('Collaboration session destroyed');
+    session.destroy();
+    await rejected;
+  });
+
+  it('becomes ready through server synchronization without cached content', () => {
     const { mock, session } = createSession();
-    const hydrated = vi.fn();
-    const ready = session.awaitHydrated().then(hydrated);
-    await Promise.resolve();
-    expect(hydrated).not.toHaveBeenCalled();
+    expect(session.snapshot().hydrated).toBe(false);
 
     mock.synced = true;
     mock.emit('sync', true);
-    await ready;
-    expect(hydrated).toHaveBeenCalledOnce();
+    expect(session.snapshot().hydrated).toBe(true);
   });
 
   it('reports cache failure without losing server synchronization', () => {
@@ -72,12 +82,5 @@ describe('collaboration session hydration', () => {
     expect(session.snapshot()).toMatchObject({
       localPersistenceStatus: 'error', connectionStatus: 'connected', hydrated: true, synced: true,
     });
-  });
-
-  it('cancels a pending read when its session is destroyed', async () => {
-    const { session } = createSession();
-    const rejected = expect(session.awaitHydrated()).rejects.toThrow('Collaboration session destroyed');
-    session.destroy();
-    await rejected;
   });
 });

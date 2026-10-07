@@ -1,7 +1,8 @@
 import { defineConfig } from '@playwright/test';
 import path from 'node:path';
 import { config } from './config';
-import { resolveApiServerOrigin, resolveLocalGatewayOrigin } from './src/platform/net/origins';
+import { resolveApiServerOrigin } from './src/platform/net/origins';
+import { resolveLocalGatewayOrigin } from './tools/lib/origins';
 import { chromium, collaborationWebServer, playwrightBaseConfig } from './config/playwright/base';
 
 const baseURL = resolveLocalGatewayOrigin();

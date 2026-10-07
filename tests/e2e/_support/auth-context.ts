@@ -1,5 +1,5 @@
 import type { Browser, BrowserContext, BrowserContextOptions } from '@playwright/test';
-import { resolveLocalGatewayOrigin } from '#platform/net/origins';
+import { resolveLocalGatewayOrigin } from '../../../tools/lib/origins';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 import { authenticateDjangoTestUser } from '#tests-common/django-auth';
 import { provisionDjangoUser } from '../../../tools/lib/django-user';

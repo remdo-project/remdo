@@ -37,7 +37,6 @@ interface CollabSnapshot {
 type Listener = () => void;
 
 interface SessionOptions {
-  origin?: string;
   accountId?: string;
   enabled: boolean;
   docId: string;
@@ -78,9 +77,9 @@ export class CollabSession {
   private state: CollabSnapshot;
 
   constructor(options: SessionOptions) {
-    const { origin, accountId, enabled, docId, providerFactory } = options;
+    const { accountId, enabled, docId, providerFactory } = options;
     this.enabled = enabled;
-    this.providerFactory = providerFactory ?? createProviderFactory({ accountId, visibleOrigin: origin });
+    this.providerFactory = providerFactory ?? createProviderFactory({ accountId });
     this.state = {
       docId,
       hydrated: !enabled,
@@ -107,23 +106,6 @@ export class CollabSession {
     return () => {
       this.listeners.delete(listener);
     };
-  }
-
-  setDocId(docId: string) {
-    if (docId === this.state.docId) return;
-    trace('collab', 'switching document', { from: this.state.docId, to: docId });
-    this.teardown();
-    this.state = {
-      ...this.state,
-      docId,
-      hydrated: !this.enabled,
-      synced: !this.enabled,
-      localCacheHydrated: !this.enabled,
-      localPersistenceStatus: 'disabled',
-      connectionStatus: this.enabled ? 'connecting' : 'disconnected',
-      docEpoch: this.state.docEpoch, // increment on attach
-    };
-    this.notify();
   }
 
   attach(docMap: Map<string, Y.Doc>): void {
@@ -286,34 +268,6 @@ export class CollabSession {
       connectionStatus: 'disconnected',
     };
     this.notify();
-  }
-
-  async awaitHydrated(): Promise<void> {
-    if (this.state.hydrated) {
-      return;
-    }
-    if (!this.awaitController) {
-      throw new Error('Collaboration provider unavailable');
-    }
-    const signal = this.awaitController.signal;
-    signal.throwIfAborted();
-    await new Promise<void>((resolve, reject) => {
-      const unsubscribe = this.subscribe(() => {
-        if (this.state.hydrated) {
-          cleanup();
-          resolve();
-        }
-      });
-      const onAbort = () => {
-        cleanup();
-        reject(signal.reason);
-      };
-      function cleanup() {
-        unsubscribe();
-        signal.removeEventListener('abort', onAbort);
-      }
-      signal.addEventListener('abort', onAbort, { once: true });
-    });
   }
 
   async awaitSynced(signal?: AbortSignal) {
