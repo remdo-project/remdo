@@ -360,7 +360,11 @@ it('cancels headless acquisition during repeated authorization failures without 
     await expect.poll(() => outcome).toBe('RemDo is busy; try again shortly.');
   } finally {
     authorizeStatus = 200;
+    const rejected = authorizations;
     await opening;
+    // A rejection is logged only once its response reaches the server, which can
+    // follow the cancellation; a late log would otherwise fail the next check.
+    await expect.poll(() => vi.mocked(console.error).mock.calls.length, { timeout: 3000 }).toBe(rejected);
     expectDiagnostics(['[onAuthenticate]']);
   }
   const contents = await withHeadlessOpenDocument('document', 'Bearer delegated-token',
