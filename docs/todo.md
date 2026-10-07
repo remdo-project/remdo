@@ -209,9 +209,6 @@ RemDo document, minimal but useful for real work.
   root's list type nor the type of the list containing a note.
 - Expose search once server-side search spans a user's documents; searching a
   single document adds little over reading it whole.
-- **Headless append persistence failures.** When persistence
-  fails after the hub accepted the notes, the call fails without their note
-  addresses although the notes are later stored.
 - **Oversized upload regression coverage.** Django closing the connection before
   reading an over-limit body used to crash the MCP process. The fix in
   `src/platform/net/django-request.ts` was confirmed only against gunicorn;

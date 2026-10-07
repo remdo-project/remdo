@@ -12,6 +12,8 @@ import { DOCUMENT_LIST_KEEPALIVE, DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS, DOCUMENT_
 import { requestPersistence } from '../collaboration/persistence-barrier';
 import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '../collaboration/runtime';
 import { withHeadlessOpenDocument } from '../headless/open-document';
+import { CollabSession } from '../collaboration/session';
+import { createMcpServer } from '../mcp/server';
 import * as origins from '#platform/net/origins';
 import { createDeferred } from '../../tests/unit/_support/deferred';
 
@@ -37,8 +39,12 @@ const clients: HocuspocusProvider[] = [];
 let runtime: ReturnType<typeof createCollaborationServer>;
 const backend = createServer((request, response) => {
   void (async () => {
-    expect(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()]).toBe(secret);
     expect(request.headers.host).toBe('remdo.test');
+    if (request.url === '/api/mcp/current-user') {
+      response.writeHead(200).end('{}');
+      return;
+    }
+    expect(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()]).toBe(secret);
     if (request.url === '/internal/collaboration/session') {
       sessionHeaders.push(request.headers);
       await holdSession;
@@ -367,6 +373,83 @@ it('keeps writing after opening even when the acquisition deadline expires', asy
   const contents = await withHeadlessOpenDocument('document', 'Bearer delegated-token',
     async (document) => document.root.getChildren().map((note) => note.getText()), { readOnly: true });
   expect(contents).toContain('written after opening');
+});
+
+it('reports an MCP append as unconfirmed when persistence fails and the hub saves it after recovery', async () => {
+  const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
+  runtimeCleanup.push(() => resolveOrigin.mockRestore());
+  const probe = createServer();
+  probe.listen(0, '127.0.0.1');
+  await once(probe, 'listening');
+  const mcpOrigin = `http://127.0.0.1:${(probe.address() as AddressInfo).port}`;
+  await new Promise<void>((resolve) => probe.close(() => resolve()));
+  const mcp = createMcpServer({
+    origin: mcpOrigin,
+    apiOrigin: `http://127.0.0.1:${(backend.address() as AddressInfo).port}`,
+    appOrigin: 'http://remdo.test',
+    documentSlots: 1,
+  });
+  await mcp.listen();
+  async function call(name: string, args: Record<string, unknown>) {
+    const response = await fetch(`${mcpOrigin}/mcp`, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer delegated-token',
+        Accept: 'application/json, text/event-stream',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
+    });
+    const data = (await response.text()).split('\n').find((line) => line.startsWith('data: '))!;
+    return (JSON.parse(data.slice(6)) as { result: { isError?: boolean; content: Array<{ text: string }> } }).result;
+  }
+  try {
+    storeStatus = 503;
+    const result = await call('append_children', { parent: 'document', notes: [{ text: 'saved after recovery' }] });
+    expect(result).toEqual({ isError: true, content: [{ type: 'text', text:
+      'Document changes are unconfirmed and may still be saved. Check the document before retrying to avoid duplicate changes. '
+      + 'Collaboration persistence failed.' }] });
+    expect(persisted).toHaveLength(0);
+    storeStatus = 204;
+    await expect.poll(() => persisted.length, { timeout: 3000 }).toBeGreaterThan(0);
+    const read = await call('read_document', { target: 'document' });
+    expect(read.isError).toBeUndefined();
+    expect(read.content[0]!.text.match(/saved after recovery/gu)).toHaveLength(1);
+  } finally {
+    await mcp.stop();
+  }
+});
+
+it.each(['synchronization', 'callback'])('reports a post-write %s error as unconfirmed and preserves its cause', async (stage) => {
+  const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
+  runtimeCleanup.push(() => resolveOrigin.mockRestore());
+  const original = CollabSession.prototype.awaitSynced;
+  const failure = new Error('Synchronization confirmation was lost.');
+  const awaitSynced = vi.spyOn(CollabSession.prototype, 'awaitSynced')
+    .mockImplementationOnce(original)
+    .mockImplementationOnce(async function(this: CollabSession) {
+      await original.call(this);
+      if (stage === 'synchronization') throw failure;
+    });
+  runtimeCleanup.push(() => awaitSynced.mockRestore());
+  await expect(withHeadlessOpenDocument('document', 'Bearer delegated-token', async (document) => {
+    await document.root.appendChildren([{ text: 'sync outcome unknown' }]);
+    if (stage === 'callback') throw failure;
+  }))
+    .rejects.toMatchObject({ message: expect.stringContaining('Document changes are unconfirmed'), cause: failure });
+  const contents = await withHeadlessOpenDocument('document', 'Bearer delegated-token',
+    async (document) => document.root.getChildren().map((note) => note.getText()), { readOnly: true });
+  expect(contents).toContain('sync outcome unknown');
+});
+
+it.each([true, false])('keeps failures before a write unchanged (readOnly=%s)', async (readOnly) => {
+  const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
+  runtimeCleanup.push(() => resolveOrigin.mockRestore());
+  // Seed a normalized document so opening the writable host performs no normalization write.
+  await withHeadlessOpenDocument('document', 'Bearer delegated-token', async () => {});
+  const failure = new Error('The requested note is unavailable.');
+  await expect(withHeadlessOpenDocument('document', 'Bearer delegated-token', async () => { throw failure; }, { readOnly }))
+    .rejects.toBe(failure);
 });
 
 it.each([

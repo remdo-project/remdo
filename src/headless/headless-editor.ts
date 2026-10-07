@@ -163,6 +163,14 @@ export async function withHeadlessEditor<T>(
     result = await run(editor);
     await session.awaitSynced();
     if (wrote) await requestPersistence(provider);
+  } catch (error) {
+    if (!wrote) throw error;
+    const reason = error instanceof Error ? error.message : 'The operation failed.';
+    throw new Error(
+      'Document changes are unconfirmed and may still be saved. '
+      + `Check the document before retrying to avoid duplicate changes. ${reason}`,
+      { cause: error },
+    );
   } finally {
     syncDoc.off('update', recordWrite);
     sharedRoot.unobserveDeep(observer);
