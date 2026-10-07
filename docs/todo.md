@@ -44,36 +44,28 @@ rejects. Evidence and the rejected alternatives are recorded in
 
 Code items assume no contract change:
 
-1. **Collaboration state and provider adapter.** `sawProviderAck` masks
-   Y-Sweet's unacknowledged-at-construction sentinel, which Hocuspocus cannot
-   reproduce; the `handshaking` connection status has no writer; `setDocId` and
-   `awaitHydrated` have no production callers; and the neutral provider-event
-   vocabulary abstracts over a single provider. Rewrite the specs that pin the
-   masked state to the real invariant rather than deleting them.
+1. **Provider adapter.** The neutral provider-event vocabulary abstracts over
+   a single provider. Narrow it only where the resulting bridge is clearer;
+   preserve acknowledgement tracking and independent cache/network lifetimes.
 2. **Collaboration launcher asymmetry.** The development collaboration script
    spawns a detached child rather than executing the server directly as the API
    script does, which also routes its output to a log file instead of the
    aggregated development output. Collapsing it removes the spawn helper and one
    of four copies of the wait-for-port loop. Coordinate with
    [Tooling](#tooling)'s launcher-complexity entry.
-3. **Browser collaboration origin selection.** The client still chooses which
-   origin hosts collaboration, including a fallback that cannot resolve because
-   its configuration keys are not browser-exposed. [Architecture](architecture.md#routing-and-origin-boundary)
-   already states that browser collaboration uses the current same-origin
-   endpoint; the client has not caught up.
-4. **Single-source document residue.** Production supplies exactly one hard-coded
+3. **Single-source document residue.** Production supplies exactly one hard-coded
    document source, leaving statically false branches in the toolbar's label
    qualification, the source-local action split, and the workspace source
    lookup. Removing the dead branches is independent of the visible grouping in
    the Current Server decision below.
-5. **Duplicated server contract types.** The hand-written user-document and
+4. **Duplicated server contract types.** The hand-written user-document and
    document-access interfaces mirror serializers that the generated API schema
    already describes, following the precedent already used for the current-user
    payload. Aligning optionality removes a hand-maintained drift risk.
-6. **Test-only flexibility in product code.** The collection-source input
+5. **Test-only flexibility in product code.** The collection-source input
    normalization exists so tests can pass plain arrays; production always passes
    a live source.
-7. **Repeated internal-service constants and helpers.** The container port pair
+6. **Repeated internal-service constants and helpers.** The container port pair
    is hard-coded in three places after its configuration helper lost its
    Y-Sweet job; three credential-injecting WebSocket subclasses differ only by
    header; and an origin-printing script spawns a runtime to echo a value its

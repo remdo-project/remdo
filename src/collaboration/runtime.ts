@@ -10,13 +10,11 @@ type CollaborationProviderConnectionStatus =
   | 'offline'
   | 'connecting'
   | 'error'
-  | 'handshaking'
   | 'connected';
 export type CollaborationConnectionStatus =
   | 'disconnected'
   | 'connecting'
   | 'error'
-  | 'handshaking'
   | 'connected';
 
 export interface MinimalProviderEvents {

@@ -2,6 +2,7 @@ import process from "node:process";
 import path from "node:path";
 import { config } from './config/index.ts';
 import { VITEST_DEFAULT_TEST_TIMEOUT_MS } from './tests/unit/_support/timeouts.ts';
+import { resolveCollabServerOrigin } from './src/platform/net/origins.ts';
 import { createViteSharedConfig } from './config/vite/shared.ts';
 import { configDefaults, defineConfig } from 'vitest/config';
 
@@ -151,6 +152,7 @@ export default defineConfig({
         test: {
           name: 'editor',
           environment: 'jsdom',
+          environmentOptions: { jsdom: { url: resolveCollabServerOrigin() } },
           exclude: [...nodeTests, ...domTests],
           setupFiles: ['./tests/unit/_support/setup/index.ts'],
         },

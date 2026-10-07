@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 import type { Browser, BrowserContext } from 'playwright';
 import { chromium } from 'playwright';
 import { config } from '#config';
-import { resolveLocalGatewayOrigin } from '#platform/net/origins';
+import { resolveLocalGatewayOrigin } from '../lib/origins';
 import type { DemoAccount } from '../lib/demo-account';
 import { resetDemoAccount } from '../lib/demo-account';
 import { provisionDjangoUser } from '../lib/django-user';
