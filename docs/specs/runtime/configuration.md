@@ -181,6 +181,31 @@ lines. **Deterministic.** Reporting covers errors only, without tracing,
 profiling, or session tracking. Production frontend source maps are public so
 that browser reports resolve to source.
 
+## Managed analytics
+
+`UMAMI_WEBSITE_ID` enables Umami Cloud usage statistics for the managed
+deployment. Unset emits neither the tracker nor its settings control;
+verification ignores the setting. The Render production blueprint declares the
+value as an operator-supplied setting and the other deployment definitions leave
+it unset.
+
+The tracker reports only from the host of `APP_ORIGIN` and counts every visit.
+It excludes URL queries and fragments from pages and referrers,
+reduces every document route and same-origin document referrer to
+`/n/:document`, and never sends document or note contents, titles, identifiers,
+filenames, or search text. It emits only `app-opened`, `document-created`,
+`document-imported`, `document-edited`, and `search-used` product events,
+without event properties. `document-edited` reports a document's first local
+content change in each opening of it, including the content of an uploaded file.
+
+While a visitor is signed in, the internal user ID is sent as Umami's distinct
+ID; no user ID is sent otherwise, and none after sign-out.
+
+The tracker respects the browser's Do Not Track setting. The footer's **Privacy
+settings** control turns the statistics off or on for the browser, which stops
+sending, including the user ID, in every open tab. The sign-in page states that
+signing in means agreeing to the privacy policy and terms.
+
 ## Request diagnostics
 
 Production Django request errors reach standard error with status, exception type,

@@ -1,0 +1,71 @@
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
+import * as pendingDocumentImports from '#client/editor/runtime/pending-document-import';
+import {
+  createSearchResult,
+  mockDocumentSearch,
+  renderDocumentRoute,
+  resetDocumentRouteHarness,
+} from '../../../../../tests/unit/_support/document-route-harness';
+
+let track: Mock<(event: string) => void>;
+
+beforeEach(() => {
+  resetDocumentRouteHarness();
+  track = vi.fn<(event: string) => void>();
+  window.umami = { identify: vi.fn(), track };
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  delete window.umami;
+});
+
+describe('product analytics events', () => {
+  it('reports a created document', async () => {
+    renderDocumentRoute('/');
+    fireEvent.click(await screen.findByRole('button', { name: 'New document' }));
+    const dialog = await screen.findByRole('dialog', { name: 'New document' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create document' }));
+
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+    expect(track).toHaveBeenCalledExactlyOnceWith('document-created');
+  });
+
+  it('does not report an uploaded document as created', async () => {
+    const registerPendingImport = vi.spyOn(pendingDocumentImports, 'registerPendingDocumentImport');
+    renderDocumentRoute('/');
+    fireEvent.click(await screen.findByRole('button', { name: 'Upload document' }));
+    const file = new File(['{"root":{"type":"root","children":[]}}'], 'Backup.json', { type: 'application/json' });
+    fireEvent.change(screen.getByLabelText('Upload document'), { target: { files: [file] } });
+
+    await waitFor(() => expect(registerPendingImport).toHaveBeenCalledOnce());
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it('reports one search per search session', async () => {
+    renderDocumentRoute();
+    const input = await screen.findByRole('combobox', { name: 'Search document' });
+    act(() => input.focus());
+
+    fireEvent.change(input, { target: { value: 'first query' } });
+    fireEvent.change(input, { target: { value: 'first query, refined' } });
+
+    expect(track).toHaveBeenCalledExactlyOnceWith('search-used');
+  });
+
+  it('counts the next search after a result was accepted', async () => {
+    mockDocumentSearch('routeDoc').mockResolvedValue({ flatResults: [createSearchResult('note1', 'note1')], hasMore: false });
+    renderDocumentRoute();
+    const input = await screen.findByRole('combobox', { name: 'Search document' });
+    act(() => input.focus());
+
+    fireEvent.change(input, { target: { value: 'note' } });
+    await screen.findByRole('option', { name: 'note1' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.change(input, { target: { value: 'another' } });
+
+    expect(track.mock.calls.map(([event]) => event)).toEqual(['search-used', 'search-used']);
+  });
+});

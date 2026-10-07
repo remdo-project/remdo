@@ -5,6 +5,8 @@ os.environ["GOOGLE_CLIENT_ID"] = "test-google-client-id"
 os.environ["GOOGLE_CLIENT_SECRET"] = "test-google-client-secret"
 # Tests fail on purpose; their errors stay out of the operator's project.
 os.environ["SENTRY_DSN"] = ""
+# Verification never emits product analytics even if the host environment does.
+os.environ["UMAMI_WEBSITE_ID"] = ""
 
 from . import base  # noqa: E402
 from .development import *  # noqa: E402, F403

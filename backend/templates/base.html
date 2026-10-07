@@ -10,6 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="/logo.svg">
     <link rel="preload" href="/site-assets/fonts/dm-sans-400.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/site-assets/fonts/dm-sans-600.woff2" as="font" type="font/woff2" crossorigin>
+    {% include "analytics_head.html" %}
     {% block styles %}
       {% shared_styles_urls as stylesheets %}
       {% for stylesheet in stylesheets %}<link rel="stylesheet" href="{{ stylesheet }}">{% endfor %}
@@ -24,6 +25,7 @@
         {% block site_footer %}{% include "site_footer.html" %}{% endblock %}
       </div>
     {% endblock %}
+    {% include "analytics_panel.html" %}
     {% block extra_body %}{% endblock %}
   </body>
 </html>

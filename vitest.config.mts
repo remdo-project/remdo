@@ -65,7 +65,9 @@ const domTests = [
   'src/collaboration/session-hydration.spec.ts',
   'src/collaboration/session-unsynced-documents.spec.ts',
   'src/collaboration/unsynced-local-changes.spec.ts',
+  'src/platform/analytics.spec.ts',
   'src/platform/http/*.spec.ts',
+  'tests/unit/analytics-scripts.spec.ts',
   'src/client/editor/keymap/keymap-plugin.spec.ts',
   'src/client/editor/mobile-toolbar/MobileActionToolbar.spec.tsx',
   'src/client/editor/view/editor-view-provider.spec.tsx',
@@ -73,6 +75,7 @@ const domTests = [
 
   'src/client/app/dev/*.spec.tsx',
   'src/client/app/session/*.spec.{ts,tsx}',
+  'src/client/app/shell/app-frame-analytics.spec.tsx',
   'src/client/app/shell/error-reporting.spec.ts',
   'src/client/app/sharing/*.spec.tsx',
   'src/client/app/user-data/*.spec.{ts,tsx}',

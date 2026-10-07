@@ -9,6 +9,7 @@ import { $normalizeNoteIdsOnLoad } from '#client/editor/runtime/note-ids/note-id
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
 import { claimPendingDocumentImport } from '#client/editor/runtime/pending-document-import';
 import { NOTE_ID_NORMALIZE_TAG, TEST_BRIDGE_LOAD_TAG } from '#client/editor/foundation/update-tags';
+import { trackAnalyticsEvent } from '#platform/analytics';
 
 interface PendingDocumentImportPluginProps {
   onError: (error: Error) => void;
@@ -52,6 +53,7 @@ export function PendingDocumentImportPlugin({ onError }: PendingDocumentImportPl
         markSchemaValidationSkipOnce(editor);
         editor.setEditorState(parsed, { tag: TEST_BRIDGE_LOAD_TAG });
         await loadUpdate;
+        trackAnalyticsEvent('document-imported');
 
         const normalizeUpdate = waitForEditorUpdate(editor);
         editor.update(() => {

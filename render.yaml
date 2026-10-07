@@ -45,6 +45,8 @@ projects:
           sync: false
         - key: SENTRY_DSN
           sync: false
+        - key: UMAMI_WEBSITE_ID
+          sync: false
         - key: OPENAI_APPS_CHALLENGE
           sync: false
 

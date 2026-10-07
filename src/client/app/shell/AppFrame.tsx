@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { registerSW } from 'virtual:pwa-register';
 import { config } from '#config';
 import { useQuery } from '@tanstack/react-query';
 import { apiConfiguration } from '#platform/http/api-client';
+import { endAnalyticsIdentity, identifyAnalyticsUser, trackAnalyticsEvent } from '#platform/analytics';
+import { getCachedCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap';
 import { Link, Outlet, useLocation, useMatches } from 'react-router-dom';
 import type { UIMatch } from 'react-router-dom';
 import type { SessionGateState } from '#client/app/session/client';
@@ -48,6 +50,12 @@ function AppFrameContent() {
   const connectionUnavailable = sessionState?.status === 'offline-unavailable';
   const logout = useLogout();
   const authenticated = sessionState?.status === 'authenticated';
+  const appOpenedReportedRef = useRef(false);
+  const analyticsUserId = sessionState?.status === 'authenticated'
+    ? String(sessionState.session.user.id)
+    : sessionState?.status === 'offline-remembered'
+      ? getCachedCurrentUserBootstrap()?.userId ?? null
+      : null;
 
   // Offline entry is only for a device with a signed-in account; confirmed
   // logout removes it again.
@@ -56,6 +64,21 @@ function AppFrameContent() {
       registerSW({ immediate: true });
     }
   }, [authenticated]);
+
+  useEffect(() => {
+    if (!analyticsUserId) {
+      return;
+    }
+    identifyAnalyticsUser(analyticsUserId);
+    return endAnalyticsIdentity;
+  }, [analyticsUserId]);
+
+  useEffect(() => {
+    if (signedIn && !appOpenedReportedRef.current) {
+      appOpenedReportedRef.current = true;
+      trackAnalyticsEvent('app-opened');
+    }
+  }, [signedIn]);
   const headerLinks = connectionUnavailable ? null : (
     <>
       <a href="/about/">About</a>

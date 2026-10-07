@@ -16,6 +16,7 @@ import {
 } from 'react';
 import type { DocumentSearchResults, SearchResult } from '#note-sdk';
 import { useOpenDocument } from '#client/editor/view/EditorViewProvider';
+import { trackAnalyticsEvent } from '#platform/analytics';
 
 // Direct children shown in each result row's preview (the row reports "+N more"
 // for the remainder); kept beside the result limit since both bound the work the
@@ -109,6 +110,7 @@ export function useDocumentSearchModel({
   );
   const [searchInputComposing, setSearchInputComposing] = useState(false);
   const pendingEditorFocusAfterSearchExitRef = useRef(false);
+  const searchTrackedRef = useRef(false);
 
   // The host registers only an available document. A request belongs to one
   // opening/query/source, so an older completion cannot restore stale results.
@@ -172,6 +174,7 @@ export function useDocumentSearchModel({
 
   const closeSearchAndFocusEditor = useCallback(() => {
     setSearchModeRequested(false);
+    searchTrackedRef.current = false;
     queueMicrotask(() => {
       focusEditorInput();
     });
@@ -185,6 +188,7 @@ export function useDocumentSearchModel({
   const dismissSearch = useCallback(() => {
     setSearchModeRequested(false);
     setSearchInputComposing(false);
+    searchTrackedRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -304,7 +308,12 @@ export function useDocumentSearchModel({
   };
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.currentTarget.value);
+    const nextQuery = event.currentTarget.value;
+    if (!searchTrackedRef.current && nextQuery.trim().length > 0) {
+      searchTrackedRef.current = true;
+      trackAnalyticsEvent('search-used');
+    }
+    setSearchQuery(nextQuery);
   };
 
   const handleSearchCompositionStart = (_event: CompositionEvent<HTMLInputElement>) => {

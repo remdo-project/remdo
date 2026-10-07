@@ -5,6 +5,7 @@
       <nav aria-label="Footer">
         <a href="/privacy/"{% if request.path == '/privacy/' %} aria-current="page"{% endif %}>Privacy</a>
         <a href="/terms/"{% if request.path == '/terms/' %} aria-current="page"{% endif %}>Terms</a>
+        {% if umami_website_id %}<button class="site-footer-link" type="button" data-analytics-settings>Privacy settings</button>{% endif %}
         <a href="https://github.com/remdo-project/remdo" target="_blank" rel="noreferrer">Source</a>
       </nav>
     </div>

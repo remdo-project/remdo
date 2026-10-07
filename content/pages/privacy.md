@@ -3,7 +3,7 @@ title: Privacy Policy
 description: How RemDo handles personal data on the service at remdo.com.
 ---
 
-_Last updated: 1 October 2026._
+_Last updated: 6 October 2026._
 
 RemDo is an early-stage project under active development. This Privacy Policy
 explains how personal data is handled when you use the RemDo service operated at
@@ -34,9 +34,9 @@ Depending on how you use RemDo, we process:
 - **Technical and security information**, such as IP address, browser or device
   information, authentication events and server logs needed to operate, secure
   and troubleshoot the service.
-- **Usage information**, if you consent to optional analytics, such as features
-  used, interactions with the service and information used to understand usage
-  patterns or run product experiments such as A/B tests.
+- **Usage statistics**, such as page views, features used, and the browser,
+  device type and country of visits, linked to your account's internal
+  identifier while you are signed in.
 - **Information you provide when contacting us**, for example when requesting
   support or providing feedback.
 
@@ -56,8 +56,9 @@ The purposes and legal bases for processing are:
   the service where the request relates to your account or use of RemDo, and
   otherwise our legitimate interest in communicating with users and improving
   the service.
-- **Optional product analytics and experiments, including A/B tests.** Legal
-  basis: your consent.
+- **Usage statistics to understand how RemDo is used, whether people come back,
+  and to improve it.** Legal basis: our legitimate interests in improving the
+  service. You can turn them off at any time.
 - **Recording your request for occasional RemDo product updates and managing
   any later confirmation or withdrawal.** Legal basis: your consent. Requesting
   updates is optional and does not create an account.
@@ -80,7 +81,8 @@ method of signing in.
 Content, integrations and other information are provided when you choose to use
 the corresponding RemDo features.
 
-Optional analytics is not required to use the core RemDo service.
+Usage statistics are not required to use the core RemDo service, and you can
+turn them off.
 
 ## Product updates
 
@@ -96,19 +98,28 @@ and submitting that address through the public form again does not undo the
 withdrawal. Deleting an account alone does not delete a separate update request;
 a request to delete all your personal data includes both.
 
-## Analytics and product experiments
+## Usage statistics
 
-RemDo may use optional analytics to understand how the product is used and
-improve it. This can include measuring feature usage, usage patterns and
-retention, and testing different versions of features through experiments such
-as A/B tests.
+RemDo uses Umami Cloud on remdo.com to count how people find and use the
+product, so we can see which pages and features are useful and whether people
+come back. Umami's tracking code does not use cookies.
 
-Where analytics or experimentation involves non-essential cookies, browser
-storage or similar technologies, it is enabled only after you have given consent
-where consent is required.
+Umami receives basic usage information such as page views, referrer URLs,
+browser, operating system, device type and country. RemDo also sends a small set
+of explicit product events: opening the signed-in app, creating or importing a
+document, editing a document and using search. It does not send document or note
+contents, document titles or identifiers, filenames, or search text. Document
+routes are reduced to a generic route before the statistics are sent.
 
-Declining optional analytics does not prevent you from using the core RemDo
-service.
+While you are signed in, RemDo also sends your account's internal user
+identifier as a pseudonymous ID, so that visits on different days can be
+connected. It is not sent when you are signed out and it is not your name or
+email address.
+
+You can turn the statistics off at any time through **Privacy settings** in the
+RemDo footer, and RemDo respects your browser's Do Not Track setting. Turning
+them off does not prevent you from using the core RemDo service. Data already
+collected stays until it expires; to have it deleted sooner, contact us.
 
 RemDo does not use personal data for advertising and does not use the contents
 of your documents for advertising.
@@ -125,12 +136,11 @@ being stored in the browser.
 Authentication methods may also use cookies or similar browser mechanisms
 necessary to keep you signed in and secure your session.
 
-These technologies are used where necessary to provide functionality you request
-and do not depend on optional analytics consent.
+These technologies are used where necessary to provide functionality you
+request.
 
-Any additional browser storage used specifically for optional analytics or
-product experimentation is subject to the analytics consent described above
-where required by law.
+If you turn usage statistics off, your browser stores that choice in local
+storage so that it applies to later visits.
 
 ## Authentication
 
@@ -175,7 +185,7 @@ providers of:
 - authentication;
 - email delivery;
 - monitoring, security and error reporting;
-- analytics and product experimentation, where enabled.
+- usage statistics, where enabled.
 
 These providers process personal data only to the extent relevant to the
 services they provide.
@@ -229,10 +239,7 @@ In particular:
   address and request or withdrawal information needed to respect your choice
   unless you ask us to delete it. Requests are removed when they are no longer
   needed for this purpose.
-- **Analytics information**, when analytics is enabled with your consent, is
-  retained for a limited period appropriate to analysing product usage. The
-  applicable analytics setup and retention period will be described when such
-  analytics is enabled.
+- **Usage statistics** are retained for up to six months.
 - **Backup copies** can temporarily contain information that has already been
   deleted from active systems. Such copies disappear as backups are replaced
   according to the applicable backup rotation process.
