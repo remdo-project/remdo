@@ -15,7 +15,7 @@ interface AnalyticsWindow {
 
 const DISABLED_KEY = 'umami.disabled';
 const readTemplate = (name: string) => fs.readFileSync(path.join(process.cwd(), 'backend/templates', name), 'utf8');
-const inlineScript = (template: string) => /<script>([\s\S]*?)<\/script>/.exec(template)![1]!;
+const inlineScript = (template: string) => new JSDOM(template).window.document.querySelector('script:not([src])')!.textContent;
 const withoutDjangoTags = (template: string) => template.replace(/\{%[^%]*%\}/g, '');
 const headScript = inlineScript(readTemplate('analytics_head.html'));
 const panelTemplate = readTemplate('analytics_panel.html');
