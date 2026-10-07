@@ -1,4 +1,3 @@
-import { LOCAL_CACHE_ORIGIN } from '#collaboration/local-persistence';
 import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 
@@ -69,29 +68,6 @@ describe('collaboration session hydration persistence', { timeout: COLLAB_LONG_T
     expect(session.snapshot().hydrated).toBe(false);
     expect(session.snapshot().synced).toBe(false);
     expect(session.snapshot().connectionStatus).toBe('error');
-  });
-
-  it('marks hydrated from local doc updates without requiring server sync', async () => {
-    const docId = 'docId-local';
-    const doc = new Y.Doc();
-    const docMap = new Map<string, Y.Doc>([[docId, doc]]);
-    const provider = createMockProvider();
-    const factory = createMockProviderFactory(provider);
-    const session = new CollabSession({ enabled: true, docId, providerFactory: factory });
-
-    expect(session.snapshot().connectionStatus).toBe('connecting');
-    session.attach(docMap);
-    expect(session.snapshot().hydrated).toBe(false);
-    expect(session.snapshot().synced).toBe(false);
-    expect(session.snapshot().localCacheHydrated).toBe(false);
-
-    doc.transact(() => {
-      doc.getText('offline').insert(0, 'cached');
-    }, LOCAL_CACHE_ORIGIN);
-
-    expect(session.snapshot().hydrated).toBe(true);
-    expect(session.snapshot().localCacheHydrated).toBe(true);
-    expect(session.snapshot().synced).toBe(false);
   });
 
   it('does not mark hydrated from non-cache doc updates before provider sync', () => {

@@ -29,12 +29,14 @@ describe('collaboration session hydration', () => {
   it('makes cached content ready without server sync', () => {
     const { doc, session } = createSession();
     expect(session.snapshot().hydrated).toBe(false);
+    expect(session.snapshot().localCacheHydrated).toBe(false);
 
     doc.transact(() => {
       doc.getMap('user-data').set('title', 'Cached document');
     }, LOCAL_CACHE_ORIGIN);
 
     expect(session.snapshot().hydrated).toBe(true);
+    expect(session.snapshot().localCacheHydrated).toBe(true);
     expect(doc.getMap('user-data').get('title')).toBe('Cached document');
     expect(session.snapshot().synced).toBe(false);
     expect(session.snapshot().hasLocalChanges).toBe(false);
