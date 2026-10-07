@@ -37,7 +37,6 @@ interface CollabSnapshot {
 type Listener = () => void;
 
 interface SessionOptions {
-  origin?: string;
   accountId?: string;
   enabled: boolean;
   docId: string;
@@ -78,9 +77,9 @@ export class CollabSession {
   private state: CollabSnapshot;
 
   constructor(options: SessionOptions) {
-    const { origin, accountId, enabled, docId, providerFactory } = options;
+    const { accountId, enabled, docId, providerFactory } = options;
     this.enabled = enabled;
-    this.providerFactory = providerFactory ?? createProviderFactory({ accountId, visibleOrigin: origin });
+    this.providerFactory = providerFactory ?? createProviderFactory({ accountId });
     this.state = {
       docId,
       hydrated: !enabled,

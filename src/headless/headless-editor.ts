@@ -104,7 +104,6 @@ export async function withHeadlessEditor<T>(
   const session = new CollabSession({
     enabled: true,
     docId,
-    origin: resolveCollabServerOrigin(),
     providerFactory: createHeadlessProviderFactory(authorization),
   });
   session.attach(docMap);
