@@ -36,6 +36,7 @@
     "check:dev-boundary": "sh ./tools/check-dev-boundary.sh",
     "demo:record": "./tools/env.sh tsx ./tools/demo/record.ts",
     "dev": "concurrently --kill-others-on-fail --names web,api,collab,mcp \"pnpm run dev:web\" \"pnpm run dev:api\" \"pnpm run dev:collab\" \"pnpm run dev:mcp\"",
+    "dev:force": "./tools/env.sh ./tools/dev/free-ports.sh && pnpm run dev",
     "dev:collab": "./tools/env.sh tsx ./tools/collab-server.ts",
     "dev:mcp": "./tools/env.sh tsx ./src/mcp/main.ts",
     "dev:docker": "./tools/env.sh --port-base-offset 40 ./tools/dev/docker.sh",
