@@ -2,7 +2,6 @@ from http import HTTPMethod
 from uuid import uuid4
 
 import sentry_sdk
-from django.conf import settings
 
 
 class HttpErrorReportingMiddleware:
@@ -37,7 +36,6 @@ class HttpErrorReportingMiddleware:
                 event["tags"]["http.status_code"] = event_status
                 event["fingerprint"] = ["http-response", method, route, str(event_status)]
                 event["level"] = "error" if event_status >= 500 else "warning"
-            event.setdefault("request", {})["url"] = settings.APP_ORIGIN + "/" + route
             return event
 
         with sentry_sdk.new_scope() as scope:

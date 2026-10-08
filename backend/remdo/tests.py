@@ -363,6 +363,17 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         )
         self.assertNotIn("private-", json.dumps(events))
 
+    def test_streaming_failures_omit_confidential_request_urls(self):
+        ingest = FakeIngest()
+        self.addCleanup(ingest.close)
+        self.assertEqual(
+            self.reporting_probe("streaming-failure", SENTRY_DSN=ingest.dsn), ["200 OK"]
+        )
+        [(_, event)] = ingest.items()
+        [exception] = event["exception"]["values"]
+        self.assertEqual(exception["value"], "reported-streaming-exception")
+        self.assertNotIn("private-", json.dumps(event))
+
     def test_http_reporting_is_not_loaded_without_a_dsn(self):
         self.assertEqual(
             self.reporting_probe("disabled"),

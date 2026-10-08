@@ -1,4 +1,5 @@
 import sentry_sdk
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from sentry_sdk.integrations.argv import ArgvIntegration
 from sentry_sdk.utils import BadDsn, Dsn
@@ -9,6 +10,11 @@ KEPT_REQUEST_HEADERS = {"user-agent"}
 def scrub_event(event, hint):
     request = event.get("request")
     if request:
+        # Streaming failures can be captured after the HTTP reporter's scope
+        # ends. Keep only a route-pattern URL supplied by that reporter.
+        request.pop("url", None)
+        if route := event.get("tags", {}).get("http.route"):
+            request["url"] = settings.APP_ORIGIN + "/" + route
         # Internal collaboration calls carry the service credential in a header,
         # and OAuth callbacks carry authorization codes in the query string.
         request["headers"] = {

@@ -10,8 +10,8 @@ from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.management import call_command
-from django.http import HttpResponse
-from django.test import Client, override_settings
+from django.http import HttpResponse, StreamingHttpResponse
+from django.test import Client, RequestFactory, override_settings
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
 
@@ -42,11 +42,20 @@ def diagnostic(request, document):
     return HttpResponse(RESPONSE_BODY, status=410)
 
 
+def streaming(request, document):
+    def chunks():
+        yield RESPONSE_BODY
+        raise RuntimeError("reported-streaming-exception")
+
+    return StreamingHttpResponse(chunks())
+
+
 urlpatterns = [
     path("fail/<str:document>", fail),
     path("suspicious/<str:document>", suspicious),
     path("status/<int:code>/<str:document>", status),
     path("diagnostic/<str:document>", diagnostic),
+    path("streaming/<str:document>", streaming),
 ]
 
 
@@ -116,12 +125,33 @@ def disabled():
     }
 
 
+def streaming_failure():
+    request = RequestFactory().get(
+        "/streaming/private-document?secret=private-query",
+        secure=True,
+        HTTP_HOST="remdo.example",
+    )
+    statuses = []
+    with override_settings(ROOT_URLCONF=__name__):
+        response = WSGIHandler()(request.environ, lambda status, headers: statuses.append(status))
+        try:
+            list(response)
+        except RuntimeError:
+            pass
+        finally:
+            response.close()
+    return statuses
+
+
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "remdo.settings")
     django.setup()
-    result = {"exceptions": exceptions, "http-errors": http_errors, "disabled": disabled}[
-        sys.argv[1]
-    ]()
+    result = {
+        "exceptions": exceptions,
+        "http-errors": http_errors,
+        "disabled": disabled,
+        "streaming-failure": streaming_failure,
+    }[sys.argv[1]]()
     if settings.SENTRY_DSN:
         import sentry_sdk
 
