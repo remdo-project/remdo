@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 
 from allauth.account.adapter import DefaultAccountAdapter
-from allauth.account.utils import filter_users_by_email
+from allauth.account.authentication import get_authentication_records
+from allauth.account.utils import filter_users_by_email, get_next_redirect_url
 from allauth.core import context
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.headless.adapter import DefaultHeadlessAdapter
@@ -11,9 +12,31 @@ from django.shortcuts import render
 from django.urls import reverse
 
 
+def administers(user):
+    return user.is_staff or user.is_superuser
+
+
 class AccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request):
         return settings.EMAIL_SIGNUP_ENABLED
+
+    # Control of a mailbox must not grant administration, as with Google. Every
+    # login completes here whichever stage finishes it, so only a password
+    # authentication may complete an administrator's, and refusing before the
+    # session exists leaves no sign-in trace. The flush drops the pending stage
+    # that would otherwise capture the next attempt.
+    def login(self, request, user):
+        records = get_authentication_records(request)
+        if administers(user) and not (records and records[-1]["method"] == "password"):
+            request.session.flush()
+            raise ImmediateHttpResponse(
+                render(
+                    request,
+                    "account/password_only.html",
+                    {"next": get_next_redirect_url(request)},
+                )
+            )
+        super().login(request, user)
 
     # allauth's notice points to a password reset, which this app does not route.
     def send_account_already_exists_mail(self, email):
@@ -42,7 +65,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             user = next(iter(filter_users_by_email(email)), None)
         else:
             return
-        if user and (user.is_staff or user.is_superuser):
+        if user and administers(user):
             raise ImmediateHttpResponse(render(request, "account/signup_closed.html"))
         if user and not sociallogin.is_existing:
             sociallogin.connect(request, user)

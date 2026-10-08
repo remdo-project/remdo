@@ -594,6 +594,8 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
 
         self.assertTemplateUsed(response, "account/password_only.html")
         self.assertContains(response, "?method=password&amp;next=/admin/")
+        self.assertNotContains(response, "Successfully signed in")
+        self.assertIsNone(User.objects.get(email="alice@example.test").last_login)
         self.assertIsNone(self.session_email())
         response = self.post(
             "/accounts/login/?method=password",
@@ -637,6 +639,28 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         )
 
         self.assertTemplateUsed(response, "accounts/login_complete.html")
+
+    def test_administrator_with_an_unverified_address_verifies_it_after_the_password(self):
+        user = User.objects.create_user("alice@example.test", self.PASSWORD, is_staff=True)
+        EmailAddress.objects.create(user=user, email=user.email, primary=True, verified=False)
+
+        response = self.post(
+            "/accounts/login/?method=password",
+            {"login": "alice@example.test", "password": self.PASSWORD},
+        )
+        self.assertEqual(response["Location"], "/accounts/confirm-email/")
+        response = self.post(response["Location"], {"code": self.emailed_code()})
+
+        self.assertTemplateUsed(response, "accounts/login_complete.html")
+        self.assertEqual(self.session_email(), "alice@example.test")
+
+    def test_superuser_creation_skips_an_address_another_account_holds_verified(self):
+        other = self.account("other@example.test")
+        EmailAddress.objects.create(user=other, email="held@example.test", verified=True)
+
+        User.objects.create_superuser("held@example.test", self.PASSWORD)
+
+        self.assertEqual(EmailAddress.objects.filter(email="held@example.test").count(), 1)
 
     def test_superuser_without_staff_status_cannot_sign_in_with_a_code(self):
         self.account(is_superuser=True)

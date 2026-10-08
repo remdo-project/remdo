@@ -164,6 +164,8 @@ if EMAIL_HOST:
     DEFAULT_FROM_EMAIL = required("DEFAULT_FROM_EMAIL")
     try:
         EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "").strip() or 587)
+        if not 1 <= EMAIL_PORT <= 65535:
+            raise ValueError
     except ValueError as error:
         raise ImproperlyConfigured("EMAIL_PORT must be a port number.") from error
     EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "").strip()
