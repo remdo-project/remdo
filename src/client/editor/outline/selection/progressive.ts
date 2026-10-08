@@ -222,12 +222,12 @@ export function $computeDirectionalPlan(
   // Select All leaves the sweep unset, so the first arrow grows either way.
   if (isContinuing && sweep !== null && direction !== sweep) {
     const next = popStep(ladder);
-    // A pop that leaves nothing replayable (an empty stack, or only the
-    // inline rung of an empty label) ends the ladder and its sweep direction.
-    const plan = next.stack.length === 0 ? null : $replayLadder(anchorContent, next.stack, boundaryReplayKey);
+    const plan = $replayLadder(anchorContent, next.stack, boundaryReplayKey);
     if (!plan) {
       progressionRef.current = emptyLadder(anchorKey);
-      if (ladder.entrySelection) {
+      // Nothing structural left to replay: the stack is empty, or holds only the
+      // inline rung of an empty label.
+      if (ladder.entrySelection && !ladderHasStructuralRung(next)) {
         return { restore: ladder.entrySelection, anchorKey };
       }
       return { collapse: true };
