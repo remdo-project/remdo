@@ -14,8 +14,11 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+    @transaction.atomic
     def create_superuser(self, email, password=None, **extra_fields):
-        return self.create_user(email, password, is_staff=True, is_superuser=True, **extra_fields)
+        user = self.create_user(email, password, is_staff=True, is_superuser=True, **extra_fields)
+        record_verified_address(user)
+        return user
 
 
 class User(AbstractUser):
@@ -25,6 +28,10 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
     objects = UserManager()
 
+    @property
+    def is_administrator(self):
+        return self.is_staff or self.is_superuser
+
     def save(self, **kwargs):
         with transaction.atomic(using=kwargs.get("using")):
             super().save(**kwargs)
@@ -32,6 +39,16 @@ class User(AbstractUser):
     def clean(self):
         super().clean()
         self.email = self.email.lower()
+
+
+def record_verified_address(user):
+    """An operator vouches for the address, so mandatory verification cannot lock it out."""
+    from allauth.account.models import EmailAddress
+
+    if not EmailAddress.objects.filter(email=user.email).exclude(user=user).exists():
+        EmailAddress.objects.get_or_create(
+            user=user, email=user.email, defaults={"primary": True, "verified": True}
+        )
 
 
 @receiver(post_save, sender=User)

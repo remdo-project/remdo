@@ -6,7 +6,7 @@
     <p class="remdo-description">
       This Google account can't sign in to RemDo: either Google hasn't verified its email
       address, or the address belongs to an administrator account, which must
-      <a href="{% url 'account_login' %}">sign in</a> with its RemDo password.
+      <a href="{% url 'account_login' %}?method=password{% if next %}&amp;next={{ next|urlencode }}{% endif %}">sign in</a> with its RemDo password.
     </p>
   </div>
 {% endblock %}

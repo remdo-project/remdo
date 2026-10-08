@@ -1,8 +1,9 @@
 from allauth.account.models import EmailAddress
 from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
+from django.db import transaction
 
-from accounts.models import User
+from accounts.models import User, record_verified_address
 
 
 class Command(BaseCommand):
@@ -24,15 +25,15 @@ class Command(BaseCommand):
             or EmailAddress.objects.filter(email=email).exists()
         ):
             return
-        user, _ = User.objects.get_or_create(
-            email=email,
-            defaults={
-                "password": lambda: make_password(password),
-                "first_name": name,
-                "is_staff": admin,
-                "is_superuser": admin,
-            },
-        )
-        EmailAddress.objects.get_or_create(
-            user=user, email=user.email, defaults={"primary": True, "verified": True}
-        )
+        with transaction.atomic():
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    "password": lambda: make_password(password),
+                    "first_name": name,
+                    "is_staff": admin,
+                    "is_superuser": admin,
+                },
+            )
+            if created:
+                record_verified_address(user)

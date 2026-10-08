@@ -5,6 +5,9 @@ os.environ["GOOGLE_CLIENT_ID"] = "test-google-client-id"
 os.environ["GOOGLE_CLIENT_SECRET"] = "test-google-client-secret"
 # Tests fail on purpose; their errors stay out of the operator's project.
 os.environ["SENTRY_DSN"] = ""
+# Tests stay independent of a configured mail host and backend.
+os.environ["EMAIL_HOST"] = ""
+os.environ["EMAIL_BACKEND"] = ""
 # Verification never emits product analytics even if the host environment does.
 os.environ["UMAMI_WEBSITE_ID"] = ""
 

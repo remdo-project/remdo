@@ -368,9 +368,7 @@ export interface components {
         BaseSignup: {
             email: components["schemas"]["Email"];
         };
-        Signup: components["schemas"]["BaseSignup"] & {
-            password: components["schemas"]["Password"];
-        };
+        Signup: components["schemas"]["BaseSignup"];
         /**
          * @description The username.
          * @example wizard

@@ -32,17 +32,34 @@
       {% include "accounts/google_login.html" %}
       <p class="landing-signin-divider" aria-hidden="true">or</p>
     {% endif %}
-    {% url 'account_login' as login_url %}
-    {% element form form=form method="post" action=login_url %}
-      {% slot body %}
-        {% csrf_token %}
-        {% element fields form=form %}{% endelement %}
-        {{ redirect_field }}
-      {% endslot %}
-      {% slot actions %}
-        {% element button type="submit" %}Sign in{% endelement %}
-      {% endslot %}
-    {% endelement %}
+    {% if password_mode %}
+      {% element form form=form method="post" action=password_url %}
+        {% slot body %}
+          {% csrf_token %}
+          {% element fields form=form %}{% endelement %}
+          {{ redirect_field }}
+        {% endslot %}
+        {% slot actions %}
+          {% element button type="submit" %}Sign in{% endelement %}
+        {% endslot %}
+      {% endelement %}
+      {% if email_signup_enabled %}
+        <p><a href="{{ login_url }}">Email me a sign-in code instead</a></p>
+      {% endif %}
+    {% else %}
+      {% url 'account_continue_with_email' as continue_url %}
+      {% element form form=email_form method="post" action=continue_url %}
+        {% slot body %}
+          {% csrf_token %}
+          {% element fields form=email_form %}{% endelement %}
+          {{ redirect_field }}
+        {% endslot %}
+        {% slot actions %}
+          {% element button type="submit" %}Continue with email{% endelement %}
+        {% endslot %}
+      {% endelement %}
+      <p><a href="{{ password_url }}">Use a password instead</a></p>
+    {% endif %}
     <p class="landing-signin-notice">
       By signing in you agree to the <a href="/privacy/">Privacy Policy</a>
       and <a href="/terms/">Terms of Use</a>.

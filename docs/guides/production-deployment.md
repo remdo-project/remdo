@@ -163,6 +163,8 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
    deployments sign in as `admin@example.test` with the value the launcher
    generated in `.env`.
 3. Open `/admin/` on the application origin and sign in with that account.
+   With [email sign-in](../specs/runtime/configuration.md#email-delivery)
+   enabled, choose **Use a password instead**.
 4. Open the application home and sign in with the same account.
 
 ## Enable Google Sign-In
@@ -175,6 +177,18 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
    in the service's **Environment** view on Render or in `.env` for the
    self-hosted launcher, then redeploy.
 4. Confirm that the application home offers **Sign in with Google**.
+
+## Enable Email Sign-In
+
+1. Create an SMTP account with a mail provider and verify the sending domain,
+   publishing the provider's SPF, DKIM, and DMARC records so that sign-in codes
+   reach inboxes.
+2. Set [`EMAIL_HOST` and `DEFAULT_FROM_EMAIL`](../specs/runtime/configuration.md#email-delivery),
+   plus the provider's `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD` and
+   `EMAIL_PORT` when it is not 587, in the service's **Environment** view on
+   Render or in `.env` for the self-hosted launcher, then redeploy.
+3. In a private window, enter an address you control on the sign-in page and
+   confirm that the emailed code signs you in to a new account.
 
 ## Enable Error Reporting
 

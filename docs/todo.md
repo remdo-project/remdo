@@ -23,9 +23,9 @@ headings; remove rejected or obsolete items and empty sections.
 Redesign cross-server document access after the Django migration. Local
 sharing stays supported. Decide source discovery/registration, independent
 identities, consent scope, refresh/relink/unlink, private-instance
-reachability, failure reporting, and cache isolation together. Reconsider
-public signup independently of linking; preserve the [multi-origin direction](principles.md#multi-origin-direction)
-without committing to the previous OAuth topology.
+reachability, failure reporting, and cache isolation together. Preserve the
+[multi-origin direction](principles.md#multi-origin-direction) without
+committing to the previous OAuth topology.
 
 The withdrawn Node backend, source adapters, projections, linking
 implementation, and specification remain available in Git history as reference.

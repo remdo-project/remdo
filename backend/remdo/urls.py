@@ -7,7 +7,17 @@ from accounts.delegated import (
     token,
     unavailable,
 )
-from accounts.views import LoginView, admin_logout, google_callback
+from accounts.views import (
+    LoginView,
+    admin_logout,
+    cancel_confirmation,
+    confirm_email_code,
+    confirm_login_code,
+    continue_with_email,
+    google_callback,
+    request_login_code,
+    signup,
+)
 from allauth.account.decorators import secure_admin_login
 from allauth.account.views import AccountInactiveView
 from allauth.socialaccount.providers.google.views import oauth2_login
@@ -35,6 +45,16 @@ urlpatterns = [
     re_path(r"^sign-out/?$", app_page),
     path("accounts/login/", LoginView.as_view(), name="account_login"),
     path("accounts/inactive/", AccountInactiveView.as_view(), name="account_inactive"),
+    path("accounts/email/", continue_with_email, name="account_continue_with_email"),
+    path("accounts/signup/", signup, name="account_signup"),
+    path("accounts/logout/", cancel_confirmation, name="account_logout"),
+    path("accounts/login/code/", request_login_code, name="account_request_login_code"),
+    path("accounts/login/code/confirm/", confirm_login_code, name="account_confirm_login_code"),
+    path(
+        "accounts/confirm-email/",
+        confirm_email_code,
+        name="account_email_verification_sent",
+    ),
     path("accounts/connected-apps/", connected_apps),
     path(".well-known/oauth-protected-resource/mcp", protected_resource_metadata),
     path("identity/o/authorize", authorize),
