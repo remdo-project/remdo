@@ -472,6 +472,15 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
         self.assertEqual(self.session_email(), user.email)
         self.assertEqual(SocialAccount.objects.count(), 1)
 
+    @override_settings(**EMAIL_SIGNUP_SETTINGS)
+    def test_google_signs_in_to_an_unconfirmed_signup_without_a_code_step(self):
+        user = User.objects.create_user("alice@example.test")
+        EmailAddress.objects.create(user=user, email=user.email, primary=True, verified=False)
+
+        self.google_login("alice@example.test")
+
+        self.assertEqual(self.session_email(), user.email)
+
     def test_unverified_google_email_neither_registers_nor_matches(self):
         User.objects.create_user("alice@example.test", "alice-password-1234")
         for email in ("new@example.test", "alice@example.test"):
@@ -796,12 +805,21 @@ class VerifyExistingAddressesMigrationTests(TransactionTestCase):
             user=holder, email="held@example.test", primary=True, verified=True
         )
         HistoricalUser.objects.create(email="held@example.test")
+        HistoricalUser.objects.create(email="Mixed@Example.test")
+        HistoricalUser.objects.create(email="mixed@example.test")
+        HistoricalUser.objects.create(email="Held@Example.test")
 
         executor = MigrationExecutor(connection)
         executor.migrate(self.after)
 
         self.assertEqual(
             dict(EmailAddress.objects.values_list("email", "verified")),
-            {"legacy@example.test": True, "pending@example.test": False, "held@example.test": True},
+            {
+                "legacy@example.test": True,
+                "pending@example.test": False,
+                "held@example.test": True,
+                "mixed@example.test": True,
+            },
         )
         self.assertEqual(EmailAddress.objects.filter(email="held@example.test").count(), 1)
+        self.assertEqual(EmailAddress.objects.filter(email="mixed@example.test").count(), 1)

@@ -163,6 +163,8 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
    deployments sign in as `admin@example.test` with the value the launcher
    generated in `.env`.
 3. Open `/admin/` on the application origin and sign in with that account.
+   With [email sign-in](../specs/runtime/configuration.md#email-delivery)
+   enabled, choose **Use a password instead**.
 4. Open the application home and sign in with the same account.
 
 ## Enable Google Sign-In
