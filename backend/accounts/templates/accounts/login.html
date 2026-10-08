@@ -44,7 +44,7 @@
         {% endslot %}
       {% endelement %}
       {% if email_signup_enabled %}
-        <p><a href="{{ email_url }}">Email me a sign-in code instead</a></p>
+        <p><a href="{{ login_url }}">Email me a sign-in code instead</a></p>
       {% endif %}
     {% else %}
       {% url 'account_continue_with_email' as continue_url %}

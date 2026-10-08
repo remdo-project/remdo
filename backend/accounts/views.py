@@ -1,7 +1,7 @@
 from functools import wraps
-from urllib.parse import urlencode
 
 from allauth.account import views as allauth_views
+from allauth.account.forms import RequestLoginCodeForm
 from allauth.account.utils import filter_users_by_email
 from allauth.account.views import LoginView as AllauthLoginView
 from allauth.socialaccount.providers.google.views import oauth2_callback
@@ -12,8 +12,6 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
-
-from .forms import EmailEntryForm
 
 
 def email_signup_only(view):
@@ -60,23 +58,12 @@ class LoginView(AllauthLoginView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        next_url = context["redirect_field_value"]
-
-        def login_url(**query):
-            query = {**({"next": next_url} if next_url else {}), **query}
-            return (
-                f"{reverse('account_login')}?{urlencode(query)}"
-                if query
-                else reverse("account_login")
-            )
-
         context.update(
             email_signup_enabled=settings.EMAIL_SIGNUP_ENABLED,
             password_mode=not settings.EMAIL_SIGNUP_ENABLED
             or self.request.GET.get("method") == "password",
-            email_form=EmailEntryForm(),
-            password_url=login_url(method="password"),
-            email_url=login_url(),
+            email_form=RequestLoginCodeForm(),
+            password_url=self.passthrough_next_url(f"{reverse('account_login')}?method=password"),
         )
         return context
 

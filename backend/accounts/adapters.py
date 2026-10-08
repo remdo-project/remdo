@@ -20,9 +20,7 @@ class AccountAdapter(DefaultAccountAdapter):
     # allauth's notice points to a password reset, which this app does not route.
     def send_account_already_exists_mail(self, email):
         login_url = context.request.build_absolute_uri(reverse("account_login"))
-        self.send_mail(
-            "account/email/account_already_exists", email, {"email": email, "login_url": login_url}
-        )
+        self.send_mail("account/email/account_already_exists", email, {"login_url": login_url})
 
     # Control of a mailbox must not grant administration, as with Google. The
     # refused code stage would otherwise capture the next sign-in attempt.

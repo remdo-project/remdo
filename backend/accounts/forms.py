@@ -15,10 +15,3 @@ class PasswordLoginForm(LoginForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["password"] = PasswordField(label="Password", autocomplete="current-password")
-
-
-class EmailEntryForm(forms.Form):
-    email = forms.EmailField(
-        max_length=254,
-        widget=forms.EmailInput(attrs={"autocomplete": "email", "placeholder": "Email address"}),
-    )

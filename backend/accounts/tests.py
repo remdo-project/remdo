@@ -392,10 +392,16 @@ class LoginPageTests(TestCase):
         self.assertContains(response, 'autocomplete="current-password"')
 
 
+class SessionEmailMixin:
+    def session_email(self):
+        session = self.client.get("/api/auth/browser/v1/auth/session")
+        return session.json()["data"]["user"]["email"] if session.status_code == 200 else None
+
+
 @override_settings(
     ALLOWED_HOSTS=["testserver"], CSRF_TRUSTED_ORIGINS=["http://testserver"], DEBUG=True
 )
-class GoogleLoginTests(TestCase):
+class GoogleLoginTests(SessionEmailMixin, TestCase):
     def setUp(self):
         self.client = Client(enforce_csrf_checks=True)
 
@@ -429,10 +435,6 @@ class GoogleLoginTests(TestCase):
                 "/accounts/google/login/callback/",
                 {"code": "code", "state": state},
             )
-
-    def session_email(self):
-        session = self.client.get("/api/auth/browser/v1/auth/session")
-        return session.json()["data"]["user"]["email"] if session.status_code == 200 else None
 
     def test_sign_in_entries_offer_google(self):
         for path in ("/", "/accounts/login/?next=/n/exampleDoc"):
@@ -530,7 +532,7 @@ class GoogleLoginTests(TestCase):
     DEBUG=True,
     **EMAIL_SIGNUP_SETTINGS,
 )
-class EmailSignInTests(TestCase):
+class EmailSignInTests(SessionEmailMixin, TestCase):
     PASSWORD = "alice-password-1234"
 
     def setUp(self):
@@ -549,19 +551,15 @@ class EmailSignInTests(TestCase):
     def emailed_code(self):
         return re.search(r"\b[A-Z0-9]{4}-[A-Z0-9]{4}\b", mail.outbox[-1].body).group()
 
-    def signed_in_email(self):
-        session = self.client.get("/api/auth/browser/v1/auth/session")
-        return session.json()["data"]["user"]["email"] if session.status_code == 200 else None
-
     def test_new_address_gets_a_passwordless_account_once_its_code_is_confirmed(self):
         response = self.post("/accounts/email/", {"email": "new@example.test"})
         self.assertEqual(response["Location"], "/accounts/confirm-email/")
-        self.assertIsNone(self.signed_in_email())
+        self.assertIsNone(self.session_email())
 
         response = self.post("/accounts/confirm-email/", {"code": self.emailed_code()})
 
         self.assertTemplateUsed(response, "accounts/login_complete.html")
-        self.assertEqual(self.signed_in_email(), "new@example.test")
+        self.assertEqual(self.session_email(), "new@example.test")
         user = User.objects.get(email="new@example.test")
         self.assertFalse(user.has_usable_password())
         self.assertEqual(Document.objects.get(owner=user).title, "New Document")
@@ -585,7 +583,7 @@ class EmailSignInTests(TestCase):
         response = self.post(response["Location"], {"code": self.emailed_code()})
 
         self.assertEqual(response.context["next_url"], "/n/doc")
-        self.assertEqual(self.signed_in_email(), "alice@example.test")
+        self.assertEqual(self.session_email(), "alice@example.test")
         self.assertEqual(User.objects.count(), 1)
 
     def test_administrator_cannot_sign_in_with_a_code_but_can_with_a_password(self):
@@ -595,13 +593,13 @@ class EmailSignInTests(TestCase):
         response = self.post("/accounts/login/code/confirm/", {"code": self.emailed_code()})
 
         self.assertTemplateUsed(response, "account/password_only.html")
-        self.assertIsNone(self.signed_in_email())
+        self.assertIsNone(self.session_email())
         response = self.post(
             "/accounts/login/?method=password",
             {"login": "alice@example.test", "password": self.PASSWORD},
         )
         self.assertTemplateUsed(response, "accounts/login_complete.html")
-        self.assertEqual(self.signed_in_email(), "alice@example.test")
+        self.assertEqual(self.session_email(), "alice@example.test")
 
     def test_confirmation_can_be_cancelled_to_start_over(self):
         self.post("/accounts/email/", {"email": "new@example.test"})
@@ -633,11 +631,12 @@ class EmailSignInTests(TestCase):
         page = self.client.get("/accounts/login/?next=/n/doc")
         self.assertContains(page, 'name="email"')
         self.assertNotContains(page, 'name="password"')
-        self.assertContains(page, "/accounts/login/?next=%2Fn%2Fdoc&amp;method=password")
+        self.assertContains(page, "/accounts/login/?method=password&amp;next=%2Fn%2Fdoc")
 
-        page = self.client.get("/accounts/login/?method=password")
+        page = self.client.get("/accounts/login/?method=password&next=/n/doc")
         self.assertContains(page, 'name="password"')
         self.assertNotContains(page, 'name="email"')
+        self.assertContains(page, 'href="/accounts/login/?next=%2Fn%2Fdoc"')
 
     def test_wrong_password_keeps_the_password_form(self):
         self.account()
