@@ -107,6 +107,11 @@ describe('prod Docker launcher', () => {
         DATABASE_URL: '',
         GOOGLE_CLIENT_ID: '',
         GOOGLE_CLIENT_SECRET: '',
+        EMAIL_HOST: '',
+        EMAIL_PORT: '',
+        EMAIL_HOST_USER: '',
+        EMAIL_HOST_PASSWORD: '',
+        DEFAULT_FROM_EMAIL: '',
         SENTRY_DSN: '',
         OPENAI_APPS_CHALLENGE: '',
         HOST: '',
@@ -403,6 +408,20 @@ describe('prod Docker launcher', () => {
       GOOGLE_CLIENT_ID: 'launcher-google-client',
       GOOGLE_CLIENT_SECRET: 'launcher-google-secret',
     });
+  });
+
+  it('forwards configured email delivery to the container', () => {
+    const email = {
+      EMAIL_HOST: 'smtp.launcher.example',
+      EMAIL_PORT: '2525',
+      EMAIL_HOST_USER: 'launcher-mail-user',
+      EMAIL_HOST_PASSWORD: 'launcher-mail-password',
+      DEFAULT_FROM_EMAIL: 'RemDo <launcher@launcher.example>',
+    };
+    const { result, dockerCalls } = runLauncher(email);
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(dockerEnvironment(findDockerCall(dockerCalls, 'run'))).toMatchObject(email);
   });
 
   it('forwards the exact OpenAI app challenge to the container', () => {

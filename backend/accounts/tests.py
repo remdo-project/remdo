@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -9,10 +10,15 @@ from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialToken
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from django.conf import settings
+from django.core import mail
 from django.core.cache import cache
 from django.core.management import call_command
-from django.test import Client, TestCase, override_settings
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
+from django.test import Client, TestCase, TransactionTestCase, override_settings
 from django.urls import path as route
+from documents.models import Document
+from remdo.base import EMAIL_SIGNUP_SETTINGS
 
 from .models import User
 from .views import LoginView
@@ -516,3 +522,182 @@ class GoogleLoginTests(TestCase):
         )
         self.assertContains(response, 'href="/accounts/login/"')
         self.assertIsNone(self.session_email())
+
+
+@override_settings(
+    ALLOWED_HOSTS=["testserver"],
+    CSRF_TRUSTED_ORIGINS=["http://testserver"],
+    DEBUG=True,
+    **EMAIL_SIGNUP_SETTINGS,
+)
+class EmailSignInTests(TestCase):
+    PASSWORD = "alice-password-1234"
+
+    def setUp(self):
+        self.client = Client(enforce_csrf_checks=True)
+        self.client.get("/accounts/login/")
+
+    def post(self, path, data):
+        token = self.client.cookies[settings.CSRF_COOKIE_NAME].value
+        return self.client.post(path, {**data, "csrfmiddlewaretoken": token})
+
+    def account(self, email="alice@example.test", **fields):
+        user = User.objects.create_user(email, self.PASSWORD, **fields)
+        EmailAddress.objects.create(user=user, email=email, primary=True, verified=True)
+        return user
+
+    def emailed_code(self):
+        return re.search(r"\b[A-Z0-9]{4}-[A-Z0-9]{4}\b", mail.outbox[-1].body).group()
+
+    def signed_in_email(self):
+        session = self.client.get("/api/auth/browser/v1/auth/session")
+        return session.json()["data"]["user"]["email"] if session.status_code == 200 else None
+
+    def test_new_address_gets_a_passwordless_account_once_its_code_is_confirmed(self):
+        response = self.post("/accounts/email/", {"email": "new@example.test"})
+        self.assertEqual(response["Location"], "/accounts/confirm-email/")
+        self.assertIsNone(self.signed_in_email())
+
+        response = self.post("/accounts/confirm-email/", {"code": self.emailed_code()})
+
+        self.assertTemplateUsed(response, "accounts/login_complete.html")
+        self.assertEqual(self.signed_in_email(), "new@example.test")
+        user = User.objects.get(email="new@example.test")
+        self.assertFalse(user.has_usable_password())
+        self.assertEqual(Document.objects.get(owner=user).title, "New Document")
+
+    def test_signup_never_stores_a_submitted_password(self):
+        self.post(
+            "/accounts/email/",
+            {"email": "new@example.test", "password1": "attacker-password-9"},
+        )
+        self.post("/accounts/confirm-email/", {"code": self.emailed_code()})
+
+        user = User.objects.get(email="new@example.test")
+        self.assertFalse(user.has_usable_password())
+        self.assertFalse(user.check_password("attacker-password-9"))
+
+    def test_existing_account_signs_in_with_a_code_and_next_destination(self):
+        self.account()
+
+        response = self.post("/accounts/email/", {"email": "Alice@Example.test", "next": "/n/doc"})
+        self.assertTrue(response["Location"].startswith("/accounts/login/code/confirm/"))
+        response = self.post(response["Location"], {"code": self.emailed_code()})
+
+        self.assertEqual(response.context["next_url"], "/n/doc")
+        self.assertEqual(self.signed_in_email(), "alice@example.test")
+        self.assertEqual(User.objects.count(), 1)
+
+    def test_administrator_cannot_sign_in_with_a_code_but_can_with_a_password(self):
+        self.account(is_staff=True)
+
+        self.post("/accounts/email/", {"email": "alice@example.test"})
+        response = self.post("/accounts/login/code/confirm/", {"code": self.emailed_code()})
+
+        self.assertTemplateUsed(response, "account/password_only.html")
+        self.assertIsNone(self.signed_in_email())
+        response = self.post(
+            "/accounts/login/?method=password",
+            {"login": "alice@example.test", "password": self.PASSWORD},
+        )
+        self.assertTemplateUsed(response, "accounts/login_complete.html")
+        self.assertEqual(self.signed_in_email(), "alice@example.test")
+
+    def test_confirmation_can_be_cancelled_to_start_over(self):
+        self.post("/accounts/email/", {"email": "new@example.test"})
+        page = self.client.get("/accounts/confirm-email/")
+        self.assertContains(page, 'action="/accounts/logout/"')
+
+        response = self.post("/accounts/logout/", {})
+
+        self.assertEqual(response["Location"], "/accounts/login/")
+        self.assertEqual(self.client.get("/accounts/login/").status_code, 200)
+
+    def test_signing_up_a_known_address_sends_a_sign_in_pointer_not_a_password_reset(self):
+        self.account()
+
+        response = self.post("/accounts/signup/", {"email": "alice@example.test"})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(mail.outbox[-1].subject, "[testserver] Account Already Exists")
+        self.assertIn("http://testserver/accounts/login/", mail.outbox[-1].body)
+        self.assertNotIn("password", mail.outbox[-1].body.lower())
+        self.assertEqual(User.objects.count(), 1)
+
+    def test_login_code_page_renders_for_a_known_address(self):
+        self.account()
+        self.post("/accounts/email/", {"email": "alice@example.test"})
+        self.assertEqual(self.client.get("/accounts/login/code/confirm/").status_code, 200)
+
+    def test_login_page_offers_the_email_form_and_a_switch_to_the_password_form(self):
+        page = self.client.get("/accounts/login/?next=/n/doc")
+        self.assertContains(page, 'name="email"')
+        self.assertNotContains(page, 'name="password"')
+        self.assertContains(page, "/accounts/login/?next=%2Fn%2Fdoc&amp;method=password")
+
+        page = self.client.get("/accounts/login/?method=password")
+        self.assertContains(page, 'name="password"')
+        self.assertNotContains(page, 'name="email"')
+
+    def test_wrong_password_keeps_the_password_form(self):
+        self.account()
+        response = self.post(
+            "/accounts/login/?method=password",
+            {"login": "alice@example.test", "password": "wrong"},
+        )
+        self.assertContains(response, 'name="password"')
+
+    def test_operator_created_account_signs_in_with_its_password(self):
+        operator = User.objects.create_superuser("operator@example.test", self.PASSWORD)
+        self.client.force_login(operator)
+        self.post(
+            "/admin/accounts/user/add/",
+            {"email": "made@example.test", "password1": self.PASSWORD, "password2": self.PASSWORD},
+        )
+        self.client.logout()
+        self.client.get("/accounts/login/")
+
+        response = self.post(
+            "/accounts/login/?method=password",
+            {"login": "made@example.test", "password": self.PASSWORD},
+        )
+
+        self.assertTemplateUsed(response, "accounts/login_complete.html")
+
+
+class EmailSignInDisabledTests(TestCase):
+    def test_without_email_delivery_sign_in_is_password_only_and_signup_is_closed(self):
+        page = self.client.get("/accounts/login/")
+        self.assertContains(page, 'name="password"')
+        self.assertNotContains(page, 'name="email"')
+        for path in ("signup/", "login/code/", "login/code/confirm/", "confirm-email/"):
+            self.assertEqual(self.client.get(f"/accounts/{path}").status_code, 404)
+        self.assertEqual(
+            self.client.post("/accounts/email/", {"email": "a@b.test"}).status_code, 404
+        )
+        self.assertFalse(User.objects.exists())
+
+
+class VerifyExistingAddressesMigrationTests(TransactionTestCase):
+    before = [("accounts", "0003_productupdatesubscription")]
+    after = [("accounts", "0004_verify_existing_email_addresses")]
+
+    def test_only_accounts_without_an_address_record_gain_a_verified_one(self):
+        executor = MigrationExecutor(connection)
+        executor.migrate(self.before)
+        apps = executor.loader.project_state(
+            [*self.before, ("account", "0009_emailaddress_unique_primary_email")]
+        ).apps
+        HistoricalUser = apps.get_model("accounts", "User")
+        HistoricalAddress = apps.get_model("account", "EmailAddress")
+        HistoricalUser.objects.create(email="legacy@example.test")
+        pending = HistoricalUser.objects.create(email="pending@example.test")
+        HistoricalAddress.objects.create(user=pending, email=pending.email, primary=True)
+
+        executor = MigrationExecutor(connection)
+        executor.migrate(self.after)
+
+        self.assertEqual(
+            dict(EmailAddress.objects.values_list("email", "verified")),
+            {"legacy@example.test": True, "pending@example.test": False},
+        )

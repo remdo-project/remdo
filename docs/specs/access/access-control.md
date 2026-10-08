@@ -15,11 +15,12 @@ links carrying bearer credentials, or a local-only no-login mode.
 ## Authenticated App Access
 
 A Django session identifies the signed-in user. The server supports
-email/password authentication and, when
-[configured](../runtime/configuration.md#google-sign-in), Google sign-in. The
+email/password authentication and, when configured, [Google
+sign-in](../runtime/configuration.md#google-sign-in) and [email
+sign-in](../runtime/configuration.md#email-delivery). The
 [deployment account bootstrap](../runtime/configuration.md#deployment-accounts)
 creates the configured accounts at startup, and operators create further
-accounts through Django administration. Email/password signup is closed.
+accounts through Django administration. Password signup is closed.
 Creating an account also creates one empty document titled **New Document**.
 Account and document creation succeed together. Later account updates and reads
 leave the document inventory unchanged.
@@ -33,8 +34,18 @@ account linked before its promotion, and its email match creates no account.
 RemDo requests only basic identity and does not store Google access or refresh
 tokens.
 
+Email sign-in asks only for an email address and sends it a one-time code.
+An address that matches an account signs in to it once the code is confirmed.
+Any other address creates an account without a password once its code is
+confirmed, and grants no access before then. Signup never collects or stores a
+password. A staff or superuser account never signs in with a code and uses its
+password. Without email delivery, sign-in offers email/password only and signup
+is closed.
+
 Allauth renders sign-in at `/accounts/login/` and validates credentials.
-Sign-in and the public home offer **Sign in with Google**. Successful sign-in
+Sign-in and the public home offer **Sign in with Google**. With email sign-in,
+the sign-in page offers the email form and a link to the email/password form
+for accounts that have a password. Successful sign-in
 returns to the requested same-origin app destination, defaulting to Home. The
 app keeps an in-place signed-out screen after logout so offline logout does not
 require a server-rendered page.

@@ -1,16 +1,37 @@
 from dataclasses import dataclass
 
 from allauth.account.adapter import DefaultAccountAdapter
+from allauth.account.authentication import get_authentication_records
+from allauth.account.internal.stagekit import clear_login
 from allauth.account.utils import filter_users_by_email
+from allauth.core import context
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.headless.adapter import DefaultHeadlessAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+from django.conf import settings
 from django.shortcuts import render
+from django.urls import reverse
 
 
 class AccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request):
-        return False
+        return settings.EMAIL_SIGNUP_ENABLED
+
+    # allauth's notice points to a password reset, which this app does not route.
+    def send_account_already_exists_mail(self, email):
+        login_url = context.request.build_absolute_uri(reverse("account_login"))
+        self.send_mail(
+            "account/email/account_already_exists", email, {"email": email, "login_url": login_url}
+        )
+
+    # Control of a mailbox must not grant administration, as with Google. The
+    # refused code stage would otherwise capture the next sign-in attempt.
+    def pre_login(self, request, user, **kwargs):
+        records = get_authentication_records(request)
+        if (user.is_staff or user.is_superuser) and records and records[-1]["method"] == "code":
+            clear_login(request)
+            return render(request, "account/password_only.html")
+        return super().pre_login(request, user, **kwargs)
 
 
 def verified_email(sociallogin):

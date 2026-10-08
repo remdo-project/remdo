@@ -176,6 +176,18 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
    self-hosted launcher, then redeploy.
 4. Confirm that the application home offers **Sign in with Google**.
 
+## Enable Email Sign-In
+
+1. Create an SMTP account with a mail provider and verify the sending domain,
+   publishing the provider's SPF, DKIM, and DMARC records so that sign-in codes
+   reach inboxes.
+2. Set [`EMAIL_HOST` and `DEFAULT_FROM_EMAIL`](../specs/runtime/configuration.md#email-delivery),
+   plus the provider's `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD` and
+   `EMAIL_PORT` when it is not 587, in the service's **Environment** view on
+   Render or in `.env` for the self-hosted launcher, then redeploy.
+3. In a private window, enter an address you control on the sign-in page and
+   confirm that the emailed code signs you in to a new account.
+
 ## Enable Error Reporting
 
 1. In Sentry, create a project and copy its DSN. Choose an organization in the

@@ -43,6 +43,14 @@ projects:
           sync: false
         - key: GOOGLE_CLIENT_SECRET
           sync: false
+        - key: EMAIL_HOST
+          sync: false
+        - key: EMAIL_HOST_USER
+          sync: false
+        - key: EMAIL_HOST_PASSWORD
+          sync: false
+        - key: DEFAULT_FROM_EMAIL
+          sync: false
         - key: SENTRY_DSN
           sync: false
         - key: UMAMI_WEBSITE_ID

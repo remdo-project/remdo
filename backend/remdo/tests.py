@@ -40,6 +40,8 @@ print(json.dumps({
     'deployment_accounts': all(name in get_commands() for name in ('provision_user', 'setup_configured_users')),
     'rate_limits': bool(app_settings.RATE_LIMITS),
     'google_login': google_login_url(),
+    'email_signup': [settings.EMAIL_SIGNUP_ENABLED, settings.ACCOUNT_EMAIL_VERIFICATION],
+    'email_backend': settings.EMAIL_BACKEND.rsplit('.', 2)[-2],
 }))
 """
 LOGGING_REPORT = """
@@ -244,6 +246,24 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
             "/accounts/google/login/",
         )
 
+    def test_email_sign_in_is_enabled_only_with_a_mail_host(self):
+        self.assertEqual(self.settings()["email_signup"], [False, "none"])
+        enabled = self.settings(EMAIL_HOST="smtp.example", DEFAULT_FROM_EMAIL="hello@remdo.example")
+        self.assertEqual(enabled["email_signup"], [True, "mandatory"])
+
+    def test_development_prints_mail_while_production_sends_it(self):
+        mail = {"EMAIL_HOST": "smtp.example", "DEFAULT_FROM_EMAIL": "hello@remdo.example"}
+        self.assertEqual(self.settings(**mail)["email_backend"], "smtp")
+        development = self.settings(
+            DJANGO_SETTINGS_MODULE="remdo.development", EMAIL_BACKEND="", **mail
+        )
+        self.assertEqual(development["email_backend"], "console")
+        smtp = "django.core.mail.backends.smtp.EmailBackend"
+        sending = self.settings(
+            DJANGO_SETTINGS_MODULE="remdo.development", EMAIL_BACKEND=smtp, **mail
+        )
+        self.assertEqual(sending["email_backend"], "smtp")
+
     def test_native_management_defaults_to_production_without_node(self):
         result = self.settings(NODE_ENV="development")
         self.assertFalse(result["debug"])
@@ -376,6 +396,7 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
             ({"APP_ORIGIN": "http://user:password@localhost"}, "APP_ORIGIN must be an exact"),
             ({"GOOGLE_CLIENT_ID": "client"}, "must be set together"),
             ({"GOOGLE_CLIENT_SECRET": "secret"}, "must be set together"),
+            ({"EMAIL_HOST": "smtp.example"}, "DEFAULT_FROM_EMAIL is required"),
             ({"SENTRY_DSN": "not-a-dsn"}, "SENTRY_DSN must be a Sentry DSN"),
             (
                 {"SENTRY_DSN": "https://publickey@ingest.example/7 "},

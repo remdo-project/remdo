@@ -1,0 +1,9 @@
+{% extends "account/email/base_message.txt" %}
+
+{% block content %}{% autoescape off %}You are receiving this email because you or someone else tried to sign up for RemDo with {{ email }}, which already has an account.
+
+If it was you, sign in with an emailed code at:
+
+{{ login_url }}
+
+This mail can be safely ignored if you did not initiate this action.{% endautoescape %}{% endblock content %}

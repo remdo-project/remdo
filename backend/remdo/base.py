@@ -124,7 +124,10 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_RATE_LIMITS = {"product_update_subscription": "20/h/ip"}
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+# Signup never collects a password: one registered ahead of its mailbox owner
+# would stay valid after the owner verifies the address.
+ACCOUNT_SIGNUP_FIELDS = ["email*"]
+ACCOUNT_FORMS = {"login": "accounts.forms.PasswordLoginForm"}
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_ADAPTER = "accounts.adapters.AccountAdapter"
 SOCIALACCOUNT_ADAPTER = "accounts.adapters.SocialAccountAdapter"
@@ -145,6 +148,26 @@ if GOOGLE_CLIENT_ID:
             "SCOPE": ["openid", "email", "profile"],
         }
     }
+EMAIL_SIGNUP_ENABLED = False
+# Verification of an address by code is what grants access to a new account, so
+# sign-in by code, signup, and mandatory verification enable together.
+EMAIL_SIGNUP_SETTINGS = {
+    "EMAIL_SIGNUP_ENABLED": True,
+    "ACCOUNT_LOGIN_BY_CODE_ENABLED": True,
+    "ACCOUNT_LOGIN_BY_CODE_TIMEOUT": 600,
+    "ACCOUNT_EMAIL_VERIFICATION": "mandatory",
+    "ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED": True,
+    "ACCOUNT_EMAIL_VERIFICATION_SUPPORTS_RESEND": True,
+}
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "").strip()
+if EMAIL_HOST:
+    DEFAULT_FROM_EMAIL = required("DEFAULT_FROM_EMAIL")
+    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "").strip() or 587)
+    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "").strip()
+    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "").strip()
+    EMAIL_USE_TLS = True
+    EMAIL_TIMEOUT = 10
+    globals().update(EMAIL_SIGNUP_SETTINGS)
 IDP_OIDC_ADAPTER = "accounts.delegated.OIDCAdapter"
 IDP_OIDC_CIMD_ENABLED = True
 REST_FRAMEWORK = {

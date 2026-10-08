@@ -140,6 +140,16 @@ Both unset leaves it disabled and unrouted; setting only one fails at startup.
 Google must allow `<APP_ORIGIN>/accounts/google/login/callback/` as a redirect
 URI.
 
+## Email delivery
+
+`EMAIL_HOST` enables [email sign-in and signup](../access/access-control.md#authenticated-app-access),
+and `DEFAULT_FROM_EMAIL` is then required. Mail goes over SMTP with STARTTLS to
+`EMAIL_PORT`, default 587, authenticating with `EMAIL_HOST_USER` and
+`EMAIL_HOST_PASSWORD` when set. Unset leaves email sign-in disabled and
+unrouted and signup closed. Development prints each message to the API server's
+output instead of sending it unless `EMAIL_BACKEND` selects another Django
+backend, and verification never sends mail.
+
 ## OpenAI app domain verification
 
 `OPENAI_APPS_CHALLENGE` is an optional server-only environment variable. When

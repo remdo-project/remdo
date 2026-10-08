@@ -3,7 +3,7 @@ title: Privacy Policy
 description: How RemDo handles personal data on the service at remdo.com.
 ---
 
-_Last updated: 6 October 2026._
+_Last updated: 7 October 2026._
 
 RemDo is an early-stage project under active development. This Privacy Policy
 explains how personal data is handled when you use the RemDo service operated at
@@ -144,8 +144,9 @@ storage so that it applies to later visits.
 
 ## Authentication
 
-RemDo can support authentication using an email address and password or through
-third-party authentication providers.
+RemDo can support authentication using an email address and password, a
+one-time code sent to your email address, or third-party authentication
+providers.
 
 If you choose a third-party provider, RemDo receives information needed to
 identify your account, such as an account identifier, name or email address,

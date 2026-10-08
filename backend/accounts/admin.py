@@ -1,3 +1,4 @@
+from allauth.account.models import EmailAddress
 from allauth.idp.oidc.models import Client
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
@@ -12,6 +13,15 @@ class AccountAdmin(UserAdmin):
     search_fields = ("email",)
     fieldsets = None
     add_fieldsets = ((None, {"fields": ("email", "password1", "password2")}),)
+
+    # An operator vouches for the address; without the row, mandatory email
+    # verification would lock the new account out.
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if not change:
+            EmailAddress.objects.get_or_create(
+                user=obj, email=obj.email, defaults={"primary": True, "verified": True}
+            )
 
 
 @admin.register(ProductUpdateSubscription)
