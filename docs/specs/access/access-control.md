@@ -37,8 +37,8 @@ tokens.
 Email sign-in asks only for an email address and sends it a one-time code.
 An address that matches an account signs in to it once the code is confirmed.
 Any other address gets an account without a password, which grants no access
-until its code is confirmed. Signup never collects a password. A staff or
-superuser account never signs in with a code. The two outcomes are
+until its code is confirmed. Signup never collects a password. A code never
+replaces the password of a staff or superuser account. The two outcomes are
 distinguishable, since [sharing](#document-sharing) already reveals whether an
 address has an account.
 

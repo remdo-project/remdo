@@ -652,7 +652,9 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
     def test_login_code_page_renders_for_a_known_address(self):
         self.account()
         self.post("/accounts/email/", {"email": "alice@example.test"})
-        self.assertEqual(self.client.get("/accounts/login/code/confirm/").status_code, 200)
+        page = self.client.get("/accounts/login/code/confirm/")
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Request new code")
 
     def test_command_line_superuser_signs_in_with_its_password(self):
         User.objects.create_superuser("root@example.test", self.PASSWORD)
@@ -808,6 +810,9 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.assertContains(page, 'name="email"')
         self.assertNotContains(page, 'name="password"')
         self.assertContains(page, "/accounts/login/?method=password&amp;next=%2Fn%2Fdoc")
+        self.assertContains(
+            page, '<input type="hidden" name="next" value="/n/doc">', count=2, html=True
+        )
 
         page = self.client.get("/accounts/login/?method=password&next=/n/doc")
         self.assertContains(page, 'name="password"')
@@ -850,6 +855,7 @@ class EmailSignInDisabledTests(TestCase):
         self.assertEqual(
             self.client.post("/accounts/email/", {"email": "a@b.test"}).status_code, 404
         )
+        self.assertEqual(self.client.post("/accounts/logout/").status_code, 404)
         self.assertFalse(User.objects.exists())
 
 
