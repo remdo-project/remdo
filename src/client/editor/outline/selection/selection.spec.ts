@@ -179,9 +179,7 @@ describe('selection plugin', () => {
   });
 
   it('lets Shift+Click extend keyboard-driven note ranges without breaking contiguity', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'note2');
-    await stepSelectionLadder(remdo, 'down');
-    await stepSelectionLadder(remdo, 'down');
+    await selectNoteSubtree(remdo, 'note2');
 
     await waitFor(() => {
       expect(remdo).toMatchSelection({
@@ -907,9 +905,7 @@ describe('selection plugin', () => {
   });
 
   it('stores a concrete structural range whenever structural mode is active', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
-    await placeCaretAtNote(remdo, 'note2');
-    await stepSelectionLadder(remdo, 'down');
-    await stepSelectionLadder(remdo, 'down');
+    await selectNoteSubtree(remdo, 'note2');
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
     expect(remdo.editor.selection.get()?.kind).toBe('structural');
@@ -1056,6 +1052,16 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['space'] });
+  });
+
+  it('restores the caret in a whitespace-only note when contraction empties a directional ladder', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'space', 1);
+    await stepSelectionLadder(remdo, 'down');
+    expect(remdo).toMatchSelection({ state: 'structural', notes: ['space'] });
+
+    await stepSelectionLadder(remdo, 'up');
+    expect(remdo).toMatchSelection({ state: 'caret', note: 'space' });
+    expect(remdo.validate(() => ($getSelection() as RangeSelection).anchor.offset)).toBe(1);
   });
 
   it('skips the inline stage for empty notes with no text nodes on downward step', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {

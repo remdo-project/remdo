@@ -63,8 +63,6 @@ async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: st
   }, startElement);
 }
 
-// Setup helper: a caret at the note's start, then the directional ladder's
-// whole-label and note-plus-subtree rungs. Asserts nothing.
 export async function selectNoteSubtree(remdo: RemdoTestApi, noteId: string): Promise<void> {
   await placeCaretAtNote(remdo, noteId, 0);
   await stepSelectionLadder(remdo, 'down');
