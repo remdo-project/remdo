@@ -129,6 +129,21 @@ test('formats only the selected phrase, retains the range for repeated actions, 
   await expect(noteRow(page, 'before selected after').locator('.text-bold.text-italic.text-underline')).toHaveText('selected');
 });
 
+test('keeps typing after formatting in a separate undo step', async ({ page, editor }) => {
+  await editor.load('flat');
+  await label(page, 'before selected after');
+  // Hold the Yjs capture window open so elapsed test time cannot separate the edits.
+  await page.clock.setFixedTime(new Date('2026-10-08T12:00:00Z'));
+  await selectInlineRange(page, 'before selected after', 7, 15);
+  await toolbar(page).getByRole('button', { name: 'Inline code' }).click();
+  await page.keyboard.type('x');
+  await expect(noteRow(page, 'before x after').locator('.text-code')).toHaveText('x');
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(noteRow(page, 'before selected after').locator('.text-code')).toHaveText('selected');
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(noteRow(page, 'before selected after').locator('.text-code')).toHaveCount(0);
+});
+
 test('sets a backward mixed range uniformly on, toggles off, and preserves links, styles and direction', async ({ page, editor }) => {
   await editor.load('flat');
   await richLabel(page);
