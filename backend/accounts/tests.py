@@ -716,6 +716,26 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.assertContains(response, 'name="password"')
         self.assertNotContains(response, 'name="email"')
 
+    def test_signup_keeps_the_requested_destination(self):
+        response = self.post("/accounts/email/", {"email": "new@example.test", "next": "/n/doc"})
+
+        response = self.post(response["Location"], {"code": self.emailed_code()})
+
+        self.assertEqual(response.context["next_url"], "/n/doc")
+
+    def test_administrator_signs_in_through_the_headless_api_with_a_password(self):
+        self.account(is_staff=True)
+
+        response = self.client.post(
+            "/api/auth/browser/v1/auth/login",
+            {"email": "alice@example.test", "password": self.PASSWORD},
+            content_type="application/json",
+            headers={"X-CSRFToken": self.client.cookies[settings.CSRF_COOKIE_NAME].value},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["data"]["user"]["is_staff"])
+
     def test_superuser_without_staff_status_cannot_sign_in_with_a_code(self):
         self.account(is_superuser=True)
 
