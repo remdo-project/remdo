@@ -120,6 +120,7 @@ async function resolveWorkloadState(workloadId: WorkloadId): Promise<{ stateJson
 async function ensureStructuralSelection(remdo: RemdoTestApi, noteId: string): Promise<void> {
   await placeCaretAtNote(remdo, noteId, 0);
   await stepSelectionLadder(remdo, 'down');
+  await stepSelectionLadder(remdo, 'down');
 }
 
 const OPERATIONS: Operation[] = [

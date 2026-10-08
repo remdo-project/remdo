@@ -54,6 +54,13 @@ async function selectionState(page: Page) {
   });
 }
 
+async function expectWholeLabel(page: Page, text: string) {
+  await expect.poll(async () => {
+    const { kind, text: selected } = await selectionState(page);
+    return { kind, text: selected };
+  }).toEqual({ kind: 'inline', text });
+}
+
 async function expectStructure(page: Page, selectedNoteIds: string[]) {
   await expect.poll(async () => {
     const { kind, selectedNoteIds: actual } = await selectionState(page);
@@ -116,7 +123,7 @@ test('keeps a wrapped child caret on its visual line after a zoom-boundary no-op
 });
 
 for (const [direction, ranged] of [['up', false], ['down', false], ['up', true], ['down', true]] as const) {
-  test(`enters only the anchor subtree on actual ${direction} crossing and restores the ${ranged ? 'range' : 'caret'}`, async ({ page, editor }) => {
+  test(`enters the ladder at the whole label on actual ${direction} crossing and restores the ${ranged ? 'range' : 'caret'}`, async ({ page, editor }) => {
     await editor.load('basic');
     await setLabel(page, 'Alpha bravo', direction === 'up' ? 'middle' : 'first');
     await setCaretAtText(page, 'Alpha bravo', 6);
@@ -126,11 +133,15 @@ for (const [direction, ranged] of [['up', false], ['down', false], ['up', true],
     const outward = direction === 'up' ? 'Shift+ArrowUp' : 'Shift+ArrowDown';
     const reverse = direction === 'up' ? 'Shift+ArrowDown' : 'Shift+ArrowUp';
     await page.keyboard.press(outward);
+    await expectWholeLabel(page, 'Alpha bravo');
+    await page.keyboard.press(outward);
     await expectStructure(page, ['note1', 'note2']);
     await page.keyboard.press(outward);
     await expectStructure(page, direction === 'up' ? ['note3', 'note1', 'note2'] : ['note1', 'note2', 'note3']);
     await page.keyboard.press(reverse);
     await expectStructure(page, ['note1', 'note2']);
+    await page.keyboard.press(reverse);
+    await expectWholeLabel(page, 'Alpha bravo');
     await page.keyboard.press(reverse);
     await expect.poll(() => selectionState(page)).toEqual(before);
   });
@@ -219,7 +230,11 @@ for (const style of ['plain', 'link', 'bold'] as const) {
       const outward = position === 'End' ? 'Shift+ArrowUp' : 'Shift+ArrowDown';
       const reverse = position === 'End' ? 'Shift+ArrowDown' : 'Shift+ArrowUp';
       await page.keyboard.press(outward);
+      await expectWholeLabel(page, LABEL);
+      await page.keyboard.press(outward);
       await expectStructure(page, ['note1']);
+      await page.keyboard.press(reverse);
+      await expectWholeLabel(page, LABEL);
       await page.keyboard.press(reverse);
       await expect.poll(() => selectionState(page)).toEqual(before);
       await page.keyboard.press(reverse);
@@ -269,8 +284,16 @@ for (const side of ['before', 'after'] as const) {
     const before = await selectionState(page);
     const outward = side === 'before' ? 'Shift+ArrowUp' : 'Shift+ArrowDown';
     const inward = side === 'before' ? 'Shift+ArrowDown' : 'Shift+ArrowUp';
+    const expectLabelInline = () => expect.poll(async () => {
+      const { kind, anchor, focus } = await selectionState(page);
+      return { kind, anchor: anchor.note, focus: focus.note };
+    }).toEqual({ kind: 'inline', anchor: 'note1', focus: 'note1' });
+    await page.keyboard.press(outward);
+    await expectLabelInline();
     await page.keyboard.press(outward);
     await expectStructure(page, ['note1']);
+    await page.keyboard.press(inward);
+    await expectLabelInline();
     await page.keyboard.press(inward);
     await expect.poll(() => selectionState(page)).toEqual(before);
     await page.keyboard.press(inward);
@@ -328,6 +351,7 @@ test('settles a crossing before a rapid reversal and further growth', async ({ p
   await page.keyboard.press('Shift+ArrowUp');
   await page.keyboard.press('Shift+ArrowDown');
   await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Shift+ArrowDown');
   await expectStructure(page, ['note1', 'note2', 'note3']);
 });
 
@@ -364,7 +388,7 @@ test('keeps a directional ladder boundary no-op after select-all entry', async (
 test('keeps select-all neutral after directional growth reaches the document boundary', async ({ page, editor }) => {
   await editor.load('flat');
   await setCaretAtText(page, 'note1', 0);
-  for (let press = 0; press < 3; press++) await page.keyboard.press('Shift+ArrowDown');
+  for (let press = 0; press < 4; press++) await page.keyboard.press('Shift+ArrowDown');
   await expectStructure(page, ['note1', 'note2', 'note3']);
   await page.keyboard.press('ControlOrMeta+A');
   for (let press = 0; press < 2; press++) {
@@ -380,7 +404,11 @@ test('treats label-to-own-body crossing as entry and restores the label caret', 
   await page.keyboard.type('Synthetic body');
   await setCaretAtText(page, 'note1', 2);
   await page.keyboard.press('Shift+ArrowDown');
+  await expectWholeLabel(page, 'note1');
+  await page.keyboard.press('Shift+ArrowDown');
   await expectStructure(page, ['note1']);
+  await page.keyboard.press('Shift+ArrowUp');
+  await expectWholeLabel(page, 'note1');
   await page.keyboard.press('Shift+ArrowUp');
   await expect.poll(async () => (await selectionState(page)).focus).toEqual({ note: 'note1', offset: 2 });
 });
@@ -416,22 +444,25 @@ test('lets pointer input replace a pending held no-op checkpoint', async ({ page
   expect((await selectionState(page)).focus.note).toBe('note2');
 });
 
-for (const input of ['type', 'Enter', 'ArrowRight', 'Home', 'PageDown'] as const) {
+for (const input of ['type', 'Enter', 'ArrowRight', 'Home'] as const) {
   test(`settles a native note crossing before immediate ${input}`, async ({ page, editor }) => {
     await editor.load('flat');
     await setCaretAtText(page, 'note1', 0);
     await page.keyboard.press('Shift+ArrowDown');
     if (input === 'type') await page.keyboard.type('Z');
     else await page.keyboard.press(input);
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' }, { noteId: 'note2', text: 'note2' }, { noteId: 'note3', text: 'note3' },
-    ]);
-    if (input === 'ArrowRight' || input === 'Home' || input === 'PageDown') {
+    const untouched = [{ noteId: 'note2', text: 'note2' }, { noteId: 'note3', text: 'note3' }];
+    if (input === 'type') {
+      await expect(editor).toMatchOutline([{ noteId: 'note1', text: 'Z' }, ...untouched]);
+    } else if (input === 'Enter') {
+      await expect(editor).toMatchOutline([{ noteId: 'note1' }, { noteId: null }, ...untouched]);
+    } else {
+      await expect(editor).toMatchOutline([{ noteId: 'note1', text: 'note1' }, ...untouched]);
       await expect.poll(async () => {
         const { kind, focus } = await selectionState(page);
         return { kind, focus };
       }).toEqual({ kind: 'caret', focus: { note: 'note1', offset: input === 'Home' ? 0 : 5 } });
-    } else await expectStructure(page, ['note1']);
+    }
   });
 }
 
@@ -460,7 +491,7 @@ for (const ranged of [false, true]) {
       document.addEventListener('keydown', edit);
     });
     await page.keyboard.press('Shift+ArrowDown');
-    await expectStructure(page, ['note1']);
+    await expectWholeLabel(page, 'note1');
     await page.keyboard.press('Shift+ArrowUp');
     await expect.poll(() => selectionState(page)).toEqual(before);
     await expect(editor).toMatchOutline([

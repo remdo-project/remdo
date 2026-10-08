@@ -76,6 +76,17 @@ function $growLadder(
   return { ladder, plan };
 }
 
+function $captureLabelSelection(selection: RangeSelection, itemKey: string): InlineSelectionOrigin | undefined {
+  if (
+    resolveContentItemFromNode(selection.anchor.getNode())?.getKey() !== itemKey
+    || resolveContentItemFromNode(selection.focus.getNode())?.getKey() !== itemKey
+  ) {
+    return undefined;
+  }
+  const capturePoint = ({ key, offset, type }: RangeSelection['anchor']) => ({ key, offset, type });
+  return { anchor: capturePoint(selection.anchor), focus: capturePoint(selection.focus) };
+}
+
 function $resolveProgressionAnchorContent(
   selection: RangeSelection,
   progressionRef: ProgressiveSelectionRef,
@@ -228,22 +239,8 @@ export function $computeDirectionalPlan(
     return { plan };
   }
 
-  if (
-    !isContinuing
-    && resolveContentItemFromNode(selection.anchor.getNode())?.getKey() === anchorKey
-    && resolveContentItemFromNode(selection.focus.getNode())?.getKey() === anchorKey
-  ) {
-    const capturePoint = ({ key, offset, type }: RangeSelection['anchor']) => ({ key, offset, type });
-    progressionRef.current = {
-      anchorKey,
-      stack: [{ kind: 'subtree' }],
-      direction,
-      entrySelection: { anchor: capturePoint(selection.anchor), focus: capturePoint(selection.focus) },
-    };
-    return { plan: $createSubtreePlan(anchorContent) };
-  }
-
-  const base = isContinuing ? ladder : emptyLadder(anchorKey);
+  const entrySelection = isContinuing ? undefined : $captureLabelSelection(selection, anchorKey);
+  const base = isContinuing ? ladder : { ...emptyLadder(anchorKey), ...(entrySelection && { entrySelection }) };
   const { ladder: next, plan } = $growLadder(base, anchorContent, direction, boundaryReplayKey);
 
   if (!plan) {

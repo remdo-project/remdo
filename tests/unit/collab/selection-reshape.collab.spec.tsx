@@ -29,6 +29,7 @@ async function removeNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
 async function selectNote2Subtree(remdo: RemdoTestApi): Promise<void> {
   await placeCaretAtNote(remdo, 'note2');
   await stepSelectionLadder(remdo, 'down');
+  await stepSelectionLadder(remdo, 'down');
   await waitFor(() => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
@@ -47,6 +48,7 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
       return { anchor: point(selection.anchor), focus: point(selection.focus) };
     });
     const original = readPoints();
+    await stepSelectionLadder(remdo, 'down');
     await stepSelectionLadder(remdo, 'down');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
 
@@ -70,6 +72,7 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', newId!] });
     });
     await stepSelectionLadder(remdo, 'up');
+    await stepSelectionLadder(remdo, 'up');
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
       expect(readPoints()).toEqual(original);
@@ -82,9 +85,10 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
 
     // On A: note range sweeping the last root note5 down into the
     // final root sibling note6 (anchor note5 → note5, note6, note7). Climb the
-    // ladder: subtree, sibling-down. The terminal sibling rung resolves
+    // ladder: whole label, subtree, sibling-down. The terminal sibling rung resolves
     // only because note6 follows note5 at the root level.
     await placeCaretAtNote(remdo, 'note5');
+    await stepSelectionLadder(remdo, 'down');
     await stepSelectionLadder(remdo, 'down');
     await stepSelectionLadder(remdo, 'down');
     await waitFor(() => {
@@ -113,6 +117,7 @@ describe('collab selection reshape via replay', { timeout: COLLAB_LONG_TIMEOUT_M
     // On A: anchor note2 subtree, then sweep down to sibling note4
     // (anchor note2 → note2, note3, note4).
     await placeCaretAtNote(remdo, 'note2');
+    await stepSelectionLadder(remdo, 'down');
     await stepSelectionLadder(remdo, 'down');
     await stepSelectionLadder(remdo, 'down');
     await waitFor(() => {

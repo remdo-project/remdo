@@ -75,7 +75,8 @@ export async function selectStructuralNotes(
   if (startNoteId === endNoteId) {
     await placeCaretAtNote(remdo, startNoteId, 0);
 
-    await stepSelectionLadder(remdo, 'down');
+    await stepSelectionLadder(remdo, 'down'); // whole label
+    await stepSelectionLadder(remdo, 'down'); // note and subtree
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: [startNoteId] });
     });

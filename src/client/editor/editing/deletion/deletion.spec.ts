@@ -684,6 +684,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
 
     it('lands the caret on the parent body when deleting the only child in a subtree', meta({ fixture: 'basic' }), async ({ remdo }) => {
             await placeCaretAtNote(remdo, 'note2');
+      await stepSelectionLadder(remdo, 'down'); // whole label
       await stepSelectionLadder(remdo, 'down'); // structural stage
 
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });

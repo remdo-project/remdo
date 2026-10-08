@@ -51,10 +51,9 @@ export function ladderHasStructuralRung(ladder: LadderState): boolean {
   return ladder.stack.some((rung) => rung.kind !== 'inline');
 }
 
-function nextKind({ stack, entrySelection }: LadderState): Rung['kind'] {
+function nextKind({ stack }: LadderState): Rung['kind'] {
   if (stack.length === 0) return 'inline';
-  if (stack.length === 1 && !entrySelection) return 'subtree';
-  return 'sibling';
+  return stack.length === 1 ? 'subtree' : 'sibling';
 }
 
 export function pushStep(state: LadderState, direction: Direction | null): LadderState {
