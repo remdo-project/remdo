@@ -589,10 +589,11 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
     def test_administrator_cannot_sign_in_with_a_code_but_can_with_a_password(self):
         self.account(is_staff=True)
 
-        self.post("/accounts/email/", {"email": "alice@example.test"})
-        response = self.post("/accounts/login/code/confirm/", {"code": self.emailed_code()})
+        response = self.post("/accounts/email/", {"email": "alice@example.test", "next": "/admin/"})
+        response = self.post(response["Location"], {"code": self.emailed_code()})
 
         self.assertTemplateUsed(response, "account/password_only.html")
+        self.assertContains(response, "?method=password&amp;next=/admin/")
         self.assertIsNone(self.session_email())
         response = self.post(
             "/accounts/login/?method=password",

@@ -28,7 +28,9 @@ class AccountAdapter(DefaultAccountAdapter):
         records = get_authentication_records(request)
         if (user.is_staff or user.is_superuser) and records and records[-1]["method"] == "code":
             clear_login(request)
-            return render(request, "account/password_only.html")
+            return render(
+                request, "account/password_only.html", {"next": kwargs.get("redirect_url")}
+            )
         return super().pre_login(request, user, **kwargs)
 
 
@@ -40,10 +42,10 @@ def verified_email(sociallogin):
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
-    # Account emails are assigned by operators or verified by the provider, so a
-    # verified match identifies the owner. allauth's own email authentication
-    # would instead disable the password of accounts without a verified
-    # EmailAddress row, which operator-created accounts lack. Staff accounts
+    # Account emails are assigned by operators or verified by the provider or an
+    # emailed code, so a verified match identifies the owner. allauth's own email
+    # authentication would instead disable the password of accounts without a
+    # verified EmailAddress row, which operator tooling can still leave behind. Staff accounts
     # never use Google, even when linked before a promotion: control of a Google
     # account must not grant administration.
     def pre_social_login(self, request, sociallogin):

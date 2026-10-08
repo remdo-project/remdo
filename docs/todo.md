@@ -23,9 +23,9 @@ headings; remove rejected or obsolete items and empty sections.
 Redesign cross-server document access after the Django migration. Local
 sharing stays supported. Decide source discovery/registration, independent
 identities, consent scope, refresh/relink/unlink, private-instance
-reachability, failure reporting, and cache isolation together. Reconsider
-public signup independently of linking; preserve the [multi-origin direction](principles.md#multi-origin-direction)
-without committing to the previous OAuth topology.
+reachability, failure reporting, and cache isolation together. Preserve the
+[multi-origin direction](principles.md#multi-origin-direction) without
+committing to the previous OAuth topology.
 
 The withdrawn Node backend, source adapters, projections, linking
 implementation, and specification remain available in Git history as reference.
@@ -116,6 +116,14 @@ Decisions requiring a contract owner's judgement:
   addresses, session display, and local sharing lookup. Editing the user alone
   can leave the old primary address usable for login while sharing uses the new
   address. Prefer restricting duplicate writers over adding public email management.
+
+### Email sign-in
+
+- **Unconfirmed signups.** Email signup creates the passwordless account and its
+  starter document before the code is confirmed, so abandoned attempts leave
+  unusable rows. Add cleanup once they accumulate.
+- **Mail delivery failure.** The code request sends mail inside the request, so
+  a provider failure surfaces as a server error. Decide a visible failure state.
 
 ### Documentation
 
