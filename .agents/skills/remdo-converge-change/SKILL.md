@@ -49,7 +49,7 @@ available check results with it. Its configured reviewers provide the independen
 contexts; do not create a verifier subagent that only adds another waiting
 and reporting layer.
 
-At the uncommitted handoff step, invoke the check commands required by the
+At the handoff step, invoke the check commands required by the
 contributor [testing policy](../../../docs/dev/testing.md#verification-lifecycle)
 and retain their results as `handoff_checks`. Follow the specification's
 correction transition if these checks determine a correction.
