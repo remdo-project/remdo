@@ -21,11 +21,11 @@ interface InlineSelectionToolbarProps {
 
 export function InlineSelectionToolbar({ toolbarRef, states, mac, onFormatStart, onFormat }: InlineSelectionToolbarProps) {
   return (
-    <div onMouseDownCapture={event => event.preventDefault()}>
     <Toolbar
       ref={toolbarRef}
       aria-label="Text formatting"
       className="inline-selection-toolbar"
+      onMouseDownCapture={event => event.preventDefault()}
     >
       {INLINE_FORMATS.map(format => {
         const { label, key, Icon } = META[format];
@@ -49,6 +49,5 @@ export function InlineSelectionToolbar({ toolbarRef, states, mac, onFormatStart,
         );
       })}
     </Toolbar>
-    </div>
   );
 }

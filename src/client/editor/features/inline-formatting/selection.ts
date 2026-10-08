@@ -34,7 +34,7 @@ export function $readInlineFormatTarget(editor: LexicalEditor): InlineFormatTarg
   const focusBody = $getNoteBodyFromNode(focusNode);
   const region = anchorBody ?? resolveContentItemFromNode(anchorNode);
   const focusRegion = focusBody ?? resolveContentItemFromNode(focusNode);
-  if (!region || !region.isAttached() || region !== focusRegion || anchorBody !== focusBody) return null;
+  if (!region || !region.isAttached() || region !== focusRegion) return null;
   if ((!region.is(anchorNode) && !region.isParentOf(anchorNode))
     || (!region.is(focusNode) && !region.isParentOf(focusNode))) return null;
 
@@ -44,7 +44,6 @@ export function $readInlineFormatTarget(editor: LexicalEditor): InlineFormatTarg
   const slices: SelectedTextSlice[] = [];
   for (const node of selection.getNodes()) {
     if (!$isTextNode(node)) continue;
-    if (($getNoteBodyFromNode(node) ?? resolveContentItemFromNode(node)) !== region) return null;
     const sliceStart = start.type === 'text' && start.key === node.getKey() ? start.offset : 0;
     const sliceEnd = end.type === 'text' && end.key === node.getKey() ? end.offset : node.getTextContentSize();
     if (sliceStart < sliceEnd) slices.push({ node, start: sliceStart, end: sliceEnd });

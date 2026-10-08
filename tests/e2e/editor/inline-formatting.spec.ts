@@ -137,14 +137,7 @@ test('sets a backward mixed range uniformly on, toggles off, and preserves links
   await bold.click();
   await expect(bold).toHaveAttribute('aria-pressed', 'true');
   await expect(row.locator('.text-bold')).toHaveText(['bold', ' link']);
-  await expect.poll(() => selectedText(page)).toBe('bold link');
-  await expect.poll(() => page.evaluate(() => {
-    const sel = document.getSelection()!;
-    const range = document.createRange();
-    range.setStart(sel.focusNode!, sel.focusOffset);
-    range.setEnd(sel.anchorNode!, sel.anchorOffset);
-    return range.toString();
-  })).toBe('bold link');
+  await expect.poll(() => nativeRange(page)).toEqual({ text: 'bold link', collapsed: false, backward: true });
   await bold.click();
   await expect(bold).toHaveAttribute('aria-pressed', 'false');
   await expect(row.locator('.text-bold')).toHaveCount(0);

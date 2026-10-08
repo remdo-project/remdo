@@ -31,7 +31,7 @@ The row appears automatically after an eligible selection settles, without
 moving focus. It hides during selection dragging or when focus leaves the
 editor.
 
-On hosts with a coarse primary pointer and no hover, the floating row is absent;
+On [touch devices](./mobile-toolbar.md#presence), the floating row is absent;
 native touch selection and the [mobile toolbar](./mobile-toolbar.md) remain the editing surfaces.
 
 The row anchors horizontally to a visible selected text line, independent of
