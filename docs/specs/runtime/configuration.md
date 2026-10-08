@@ -179,10 +179,8 @@ authentication failures, as warnings for 4xx and errors for 5xx. A request
 already reported by Django exception handling produces no additional response event.
 Reports group by method, route pattern, and status and include a generated
 request identifier; unmatched paths and route parameter values are omitted.
-Google authorization redirects are checked against the configured client,
-callback origin, endpoint, response type, state, and identity scopes; invalid
-redirects are reported without their parameter values and remain unchanged.
-Errors displayed on the provider's own site remain outside this reporting.
+Responses from external services and failures generated before a request reaches
+Django remain outside this reporting.
 **Deterministic.**
 
 Beyond the [diagnostics principle](../../principles.md#data-and-trust), reports

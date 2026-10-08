@@ -1,40 +1,7 @@
-from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import sentry_sdk
 from django.conf import settings
-
-
-def google_redirect_errors(location):
-    try:
-        target = urlsplit(location)
-        params = parse_qs(target.query)
-        errors = []
-        if (
-            target.scheme != "https"
-            or target.netloc != "accounts.google.com"
-            or target.path != "/o/oauth2/v2/auth"
-        ):
-            errors.append("authorization_endpoint")
-        expected = {
-            "client_id": settings.GOOGLE_CLIENT_ID,
-            "redirect_uri": settings.APP_ORIGIN + "/accounts/google/login/callback/",
-            "response_type": "code",
-        }
-        for key, value in expected.items():
-            if params.get(key) != [value]:
-                errors.append(key)
-        if len(params.get("state", [])) != 1:
-            errors.append("state")
-        if len(params.get("scope", [])) != 1 or set(params["scope"][0].split()) != {
-            "openid",
-            "email",
-            "profile",
-        }:
-            errors.append("scope")
-        return errors
-    except ValueError:
-        return ["authorization_url"]
 
 
 class HttpErrorReportingMiddleware:
@@ -87,10 +54,4 @@ class HttpErrorReportingMiddleware:
             status = response.status_code
             if 400 <= status <= 599 and not captured:
                 sentry_sdk.capture_message("HTTP error response")
-            match = getattr(request, "resolver_match", None)
-            if status in {301, 302, 303, 307, 308} and match and match.url_name == "google_login":
-                errors = google_redirect_errors(response["Location"])
-                if errors:
-                    scope.set_context("google_redirect", {"invalid_fields": errors})
-                    sentry_sdk.capture_message("Invalid Google authorization redirect")
             return response
