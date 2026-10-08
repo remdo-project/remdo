@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.authentication import get_authentication_records
 from allauth.account.utils import filter_users_by_email, get_next_redirect_url
-from allauth.core import context
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.headless.adapter import DefaultHeadlessAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
@@ -43,7 +42,7 @@ class AccountAdapter(DefaultAccountAdapter):
 
     # allauth's notice points to a password reset, which this app does not route.
     def send_account_already_exists_mail(self, email):
-        login_url = context.request.build_absolute_uri(reverse("account_login"))
+        login_url = f"{settings.APP_ORIGIN}{reverse('account_login')}"
         self.send_mail("account/email/account_already_exists", email, {"login_url": login_url})
 
 

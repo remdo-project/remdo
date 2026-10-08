@@ -630,7 +630,7 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(mail.outbox[-1].subject, "[testserver] Account Already Exists")
-        self.assertIn("http://testserver/accounts/login/", mail.outbox[-1].body)
+        self.assertIn(f"{settings.APP_ORIGIN}/accounts/login/", mail.outbox[-1].body)
         self.assertNotIn("password", mail.outbox[-1].body.lower())
         self.assertEqual(User.objects.count(), 1)
 
@@ -692,6 +692,29 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         response = self.client.get("/accounts/confirm-email/")
 
         self.assertEqual(response["Location"], "/")
+
+    def test_deactivated_account_gets_no_session_from_either_email_endpoint(self):
+        self.account(is_active=False)
+        for path in ("/accounts/email/", "/accounts/login/code/"):
+            with self.subTest(path=path):
+                self.client.cookies.clear()
+                self.client.get("/accounts/login/")
+                mail.outbox.clear()
+
+                self.post(path, {"email": "alice@example.test"})
+
+                self.assertFalse([m for m in mail.outbox if "Sign-In Code" in m.subject])
+                self.assertIsNone(self.session_email())
+
+    def test_wrong_password_posted_to_the_bare_login_url_keeps_the_password_form(self):
+        self.account()
+
+        response = self.post(
+            "/accounts/login/", {"login": "alice@example.test", "password": "wrong"}
+        )
+
+        self.assertContains(response, 'name="password"')
+        self.assertNotContains(response, 'name="email"')
 
     def test_superuser_without_staff_status_cannot_sign_in_with_a_code(self):
         self.account(is_superuser=True)
@@ -808,6 +831,11 @@ class VerifyExistingAddressesMigrationTests(TransactionTestCase):
         HistoricalUser.objects.create(email="Mixed@Example.test")
         HistoricalUser.objects.create(email="mixed@example.test")
         HistoricalUser.objects.create(email="Held@Example.test")
+        cased = HistoricalUser.objects.create(email="cased-holder@example.test")
+        HistoricalAddress.objects.create(
+            user=cased, email="Cased@Example.test", primary=True, verified=True
+        )
+        HistoricalUser.objects.create(email="cased@example.test")
 
         executor = MigrationExecutor(connection)
         executor.migrate(self.after)
@@ -819,7 +847,9 @@ class VerifyExistingAddressesMigrationTests(TransactionTestCase):
                 "pending@example.test": False,
                 "held@example.test": True,
                 "mixed@example.test": True,
+                "Cased@Example.test": True,
             },
         )
         self.assertEqual(EmailAddress.objects.filter(email="held@example.test").count(), 1)
         self.assertEqual(EmailAddress.objects.filter(email="mixed@example.test").count(), 1)
+        self.assertEqual(EmailAddress.objects.filter(email__iexact="cased@example.test").count(), 1)

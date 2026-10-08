@@ -42,6 +42,7 @@ print(json.dumps({
     'google_login': google_login_url(),
     'email_signup': [settings.EMAIL_SIGNUP_ENABLED, settings.ACCOUNT_EMAIL_VERIFICATION],
     'email_backend': settings.EMAIL_BACKEND.rsplit('.', 2)[-2],
+    'email_tls': [settings.EMAIL_USE_TLS, settings.EMAIL_USE_SSL],
 }))
 """
 LOGGING_REPORT = """
@@ -250,6 +251,17 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         self.assertEqual(self.settings()["email_signup"], [False, "none"])
         enabled = self.settings(EMAIL_HOST="smtp.example", DEFAULT_FROM_EMAIL="hello@remdo.example")
         self.assertEqual(enabled["email_signup"], [True, "mandatory"])
+        self.assertEqual(enabled["email_tls"], [True, False])
+
+    def test_implicit_tls_ports_use_ssl_instead_of_starttls(self):
+        mail = {"EMAIL_HOST": "smtp.example", "DEFAULT_FROM_EMAIL": "hello@remdo.example"}
+        for port, expected in (
+            ("587", [True, False]),
+            ("465", [False, True]),
+            ("2465", [False, True]),
+        ):
+            with self.subTest(port=port):
+                self.assertEqual(self.settings(EMAIL_PORT=port, **mail)["email_tls"], expected)
 
     def test_development_prints_mail_while_production_sends_it(self):
         mail = {"EMAIL_HOST": "smtp.example", "DEFAULT_FROM_EMAIL": "hello@remdo.example"}

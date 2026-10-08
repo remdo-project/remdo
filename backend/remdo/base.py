@@ -171,7 +171,8 @@ if EMAIL_HOST:
         raise ImproperlyConfigured("EMAIL_PORT must be a port number.") from error
     EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "").strip()
     EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "").strip()
-    EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = EMAIL_PORT in {465, 2465}
+    EMAIL_USE_TLS = not EMAIL_USE_SSL
     EMAIL_TIMEOUT = 10
     globals().update(EMAIL_SIGNUP_SETTINGS)
 IDP_OIDC_ADAPTER = "accounts.delegated.OIDCAdapter"
