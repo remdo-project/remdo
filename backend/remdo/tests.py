@@ -397,6 +397,14 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
             ({"GOOGLE_CLIENT_ID": "client"}, "must be set together"),
             ({"GOOGLE_CLIENT_SECRET": "secret"}, "must be set together"),
             ({"EMAIL_HOST": "smtp.example"}, "DEFAULT_FROM_EMAIL is required"),
+            (
+                {
+                    "EMAIL_HOST": "smtp.example",
+                    "DEFAULT_FROM_EMAIL": "a@b.test",
+                    "EMAIL_PORT": "smtp",
+                },
+                "EMAIL_PORT must be a port number",
+            ),
             ({"SENTRY_DSN": "not-a-dsn"}, "SENTRY_DSN must be a Sentry DSN"),
             (
                 {"SENTRY_DSN": "https://publickey@ingest.example/7 "},

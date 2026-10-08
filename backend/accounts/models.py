@@ -15,7 +15,12 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
-        return self.create_user(email, password, is_staff=True, is_superuser=True, **extra_fields)
+        from allauth.account.models import EmailAddress
+
+        user = self.create_user(email, password, is_staff=True, is_superuser=True, **extra_fields)
+        # The operator vouches for the address, so mandatory verification cannot lock it out.
+        EmailAddress.objects.create(user=user, email=user.email, primary=True, verified=True)
+        return user
 
 
 class User(AbstractUser):

@@ -628,6 +628,58 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.post("/accounts/email/", {"email": "alice@example.test"})
         self.assertEqual(self.client.get("/accounts/login/code/confirm/").status_code, 200)
 
+    def test_command_line_superuser_signs_in_with_its_password(self):
+        User.objects.create_superuser("root@example.test", self.PASSWORD)
+
+        response = self.post(
+            "/accounts/login/?method=password",
+            {"login": "root@example.test", "password": self.PASSWORD},
+        )
+
+        self.assertTemplateUsed(response, "accounts/login_complete.html")
+
+    def test_superuser_without_staff_status_cannot_sign_in_with_a_code(self):
+        self.account(is_superuser=True)
+
+        response = self.post("/accounts/email/", {"email": "alice@example.test"})
+        response = self.post(response["Location"], {"code": self.emailed_code()})
+
+        self.assertTemplateUsed(response, "account/password_only.html")
+        self.assertIsNone(self.session_email())
+
+    def test_account_promoted_before_confirming_signup_cannot_sign_in_with_its_code(self):
+        self.post("/accounts/email/", {"email": "new@example.test"})
+        User.objects.filter(email="new@example.test").update(is_staff=True)
+
+        response = self.post("/accounts/confirm-email/", {"code": self.emailed_code()})
+
+        self.assertTemplateUsed(response, "account/password_only.html")
+        self.assertIsNone(self.session_email())
+
+    def test_abandoned_signup_resumes_with_a_sign_in_code(self):
+        self.post("/accounts/email/", {"email": "new@example.test"})
+        self.client.cookies.clear()
+        self.client.get("/accounts/login/")
+
+        response = self.post("/accounts/email/", {"email": "new@example.test"})
+        self.assertTrue(response["Location"].startswith("/accounts/login/code/confirm/"))
+        self.post(response["Location"], {"code": self.emailed_code()})
+
+        self.assertEqual(self.session_email(), "new@example.test")
+        self.assertEqual(User.objects.filter(email="new@example.test").count(), 1)
+
+    def test_signed_in_user_cancelling_leaves_through_the_app_sign_out(self):
+        self.account()
+        self.post(
+            "/accounts/login/?method=password",
+            {"login": "alice@example.test", "password": self.PASSWORD},
+        )
+
+        response = self.post("/accounts/logout/", {})
+
+        self.assertEqual(response["Location"], "/sign-out/")
+        self.assertEqual(self.session_email(), "alice@example.test")
+
     def test_login_page_offers_the_email_form_and_a_switch_to_the_password_form(self):
         page = self.client.get("/accounts/login/?next=/n/doc")
         self.assertContains(page, 'name="email"')

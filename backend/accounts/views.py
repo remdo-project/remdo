@@ -6,6 +6,7 @@ from allauth.account.utils import filter_users_by_email
 from allauth.account.views import LoginView as AllauthLoginView
 from allauth.socialaccount.providers.google.views import oauth2_callback
 from django.conf import settings
+from django.contrib.auth import logout
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -39,6 +40,29 @@ def completes_login(view):
             and isinstance(response, HttpResponseRedirect)
         ):
             return render(request, "accounts/login_complete.html", {"next_url": response.url})
+        return response
+
+    return wrapper
+
+
+def refuses_staff(view):
+    # Control of a mailbox must not grant administration, as with Google. Either
+    # code can complete a login, including for an account promoted after its
+    # signup began.
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        authenticated_before = request.user.is_authenticated
+        response = view(request, *args, **kwargs)
+        user = request.user
+        if (
+            user.is_authenticated
+            and not authenticated_before
+            and (user.is_staff or user.is_superuser)
+        ):
+            logout(request)
+            return render(
+                request, "account/password_only.html", {"next": getattr(response, "url", None)}
+            )
         return response
 
     return wrapper
@@ -83,10 +107,10 @@ def continue_with_email(request):
 signup = never_cache(email_signup_only(allauth_views.signup))
 request_login_code = never_cache(email_signup_only(allauth_views.request_login_code))
 confirm_login_code = never_cache(
-    email_signup_only(completes_login(allauth_views.confirm_login_code))
+    email_signup_only(completes_login(refuses_staff(allauth_views.confirm_login_code)))
 )
 confirm_email_code = never_cache(
-    email_signup_only(completes_login(allauth_views.email_verification_sent))
+    email_signup_only(completes_login(refuses_staff(allauth_views.email_verification_sent)))
 )
 
 
