@@ -74,6 +74,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+if SENTRY_DSN:
+    MIDDLEWARE.insert(0, "remdo.http_reporting.HttpErrorReportingMiddleware")
 ROOT_URLCONF = "remdo.urls"
 TEMPLATES = [
     {

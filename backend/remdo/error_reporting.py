@@ -1,4 +1,5 @@
 import sentry_sdk
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from sentry_sdk.integrations.argv import ArgvIntegration
 from sentry_sdk.utils import BadDsn, Dsn
@@ -9,6 +10,11 @@ KEPT_REQUEST_HEADERS = {"user-agent"}
 def scrub_event(event, hint):
     request = event.get("request")
     if request:
+        # Streaming failures can be captured after the HTTP reporter's scope
+        # ends. Keep only a route-pattern URL supplied by that reporter.
+        request.pop("url", None)
+        if route := event.get("tags", {}).get("http.route"):
+            request["url"] = settings.APP_ORIGIN + "/" + route
         # Internal collaboration calls carry the service credential in a header,
         # and OAuth callbacks carry authorization codes in the query string.
         request["headers"] = {
@@ -21,8 +27,14 @@ def scrub_event(event, hint):
     # Logging records from Django's request handling carry the request, whose
     # text form includes the query string.
     event.get("extra", {}).pop("request", None)
-    for breadcrumb in event.get("breadcrumbs", {}).get("values", []):
-        breadcrumb.get("data", {}).pop("request", None)
+    if breadcrumbs := event.get("breadcrumbs"):
+        # Django's request-log messages also contain the concrete path. Dropping
+        # their request field alone leaves that path in this and later reports.
+        breadcrumbs["values"] = [
+            breadcrumb
+            for breadcrumb in breadcrumbs.get("values", [])
+            if "request" not in breadcrumb.get("data", {})
+        ]
     return event
 
 

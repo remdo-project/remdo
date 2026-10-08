@@ -123,55 +123,6 @@ class FakeIngest:
         ]
 
 
-PRODUCTION_FAILURE = """
-import io
-import json
-from types import ModuleType
-import sentry_sdk
-from django.core.handlers.wsgi import WSGIHandler
-from django.core.exceptions import SuspiciousOperation
-from django.test import override_settings
-from django.urls import path
-from django.views.decorators.csrf import csrf_exempt
-
-@csrf_exempt
-def fail(request, document):
-    confidential_local = 'private-local-value'
-    raise RuntimeError('reported-exception-message')
-
-@csrf_exempt
-def suspicious(request, document):
-    raise SuspiciousOperation('reported-suspicious-request')
-
-routes = ModuleType('reporting_routes')
-routes.urlpatterns = [path('fail/<str:document>', fail), path('suspicious/<str:document>', suspicious)]
-body = b'private-form-field=private-form-value'
-environ = {
-    'REQUEST_METHOD': 'POST',
-    'QUERY_STRING': 'code=private-query-value',
-    'SERVER_NAME': 'remdo.example',
-    'SERVER_PORT': '443',
-    'REMOTE_ADDR': '198.51.100.7',
-    'wsgi.url_scheme': 'https',
-    'wsgi.input': io.BytesIO(body),
-    'CONTENT_TYPE': 'application/x-www-form-urlencoded',
-    'CONTENT_LENGTH': str(len(body)),
-    'HTTP_HOST': 'remdo.example',
-    'HTTP_USER_AGENT': 'reporting-test-agent',
-    'HTTP_COOKIE': 'private-cookie-name=private-cookie-value',
-    'HTTP_AUTHORIZATION': 'Bearer private-token',
-    'HTTP_X_REMDO_COLLABORATION_SECRET': 'private-collaboration-secret',
-}
-statuses = []
-with override_settings(ROOT_URLCONF=routes):
-    for route in ('/fail/document-id', '/suspicious/document-id'):
-        request = {**environ, 'PATH_INFO': route, 'wsgi.input': io.BytesIO(body)}
-        WSGIHandler()(request, lambda status, headers: statuses.append(status))
-sentry_sdk.flush()
-print(json.dumps(statuses))
-"""
-
-
 class ConfigurationTests(SimpleTestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -195,6 +146,17 @@ class ConfigurationTests(SimpleTestCase):
                 "-c",
                 report,
             ],
+            env={**self.env, **overrides},
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def reporting_probe(self, scenario, **overrides):
+        result = subprocess.run(
+            [sys.executable, "-m", "remdo.reporting_probes", scenario],
+            cwd=ROOT / "backend",
             env={**self.env, **overrides},
             capture_output=True,
             text=True,
@@ -387,8 +349,8 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         ingest = FakeIngest()
         self.addCleanup(ingest.close)
 
-        statuses = self.settings(
-            report=PRODUCTION_FAILURE,
+        statuses = self.reporting_probe(
+            "exceptions",
             SENTRY_DSN=ingest.dsn,
             BUILD_REVISION="reporting-test-revision",
         )
@@ -398,15 +360,79 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         self.assertEqual([item_type for item_type, _ in items], ["event", "event"])
         [(_, event), (_, logged)] = items
         self.assertEqual(logged["logger"], "django.security.SuspiciousOperation")
+        self.assertEqual(logged["level"], "warning")
+        self.assertEqual(logged["tags"]["http.status_code"], 400)
+        self.assertEqual(event["tags"]["http.status_code"], 500)
         [exception] = event["exception"]["values"]
         self.assertEqual(exception["type"], "RuntimeError")
         self.assertEqual(exception["value"], "reported-exception-message")
         self.assertEqual(event["release"], "reporting-test-revision")
         self.assertEqual(event["environment"], "remdo.example")
-        self.assertEqual(event["request"]["url"], "https://remdo.example/fail/document-id")
+        self.assertEqual(event["request"]["url"], "https://remdo.example/fail/<str:document>")
         self.assertEqual(event["request"]["headers"], {"User-Agent": "reporting-test-agent"})
         self.assertNotIn("private-", json.dumps(items))
         self.assertNotIn("198.51.100.7", json.dumps(items))
+
+    def test_http_errors_reach_sentry_without_private_urls(self):
+        ingest = FakeIngest()
+        self.addCleanup(ingest.close)
+        result = self.reporting_probe(
+            "http-errors",
+            SENTRY_DSN=ingest.dsn,
+            GOOGLE_CLIENT_ID="test-client",
+            GOOGLE_CLIENT_SECRET="private-client-secret",
+        )
+        self.assertEqual(
+            result["statuses"],
+            [200, 201, 204, 302, 304, 400, 401, 403, 404, 410, 429, 500, 503, 599],
+        )
+        self.assertEqual(result["callback_status"], 401)
+        events = [event for kind, event in ingest.items() if kind == "event"]
+        self.assertEqual(len(events), 15)
+        responses = [event for event in events if event.get("message") == "HTTP error response"]
+        self.assertEqual(len(responses), 14)
+        diagnostic = next(event for event in events if event.get("exception"))
+        self.assertEqual(diagnostic["level"], "error")
+        self.assertNotIn("http.status_code", diagnostic["tags"])
+        for event in responses:
+            status = event["tags"]["http.status_code"]
+            self.assertEqual(event["level"], "error" if status >= 500 else "warning")
+        unauthorized = [
+            event
+            for event in responses
+            if event["tags"]["http.route"] == "status/<int:code>/<str:document>"
+            and event["tags"]["http.status_code"] == 401
+        ]
+        self.assertEqual(len(unauthorized), 2)
+        self.assertEqual(unauthorized[0]["fingerprint"], unauthorized[1]["fingerprint"])
+        self.assertNotEqual(
+            unauthorized[0]["tags"]["request_id"], unauthorized[1]["tags"]["request_id"]
+        )
+        self.assertNotIn("private-", json.dumps(events))
+
+    def test_streaming_failures_omit_confidential_request_urls(self):
+        ingest = FakeIngest()
+        self.addCleanup(ingest.close)
+        self.assertEqual(
+            self.reporting_probe("streaming-failure", SENTRY_DSN=ingest.dsn), ["200 OK"]
+        )
+        [(_, event)] = ingest.items()
+        [exception] = event["exception"]["values"]
+        self.assertEqual(exception["value"], "reported-streaming-exception")
+        self.assertNotIn("private-", json.dumps(event))
+
+    def test_http_reporting_is_not_loaded_without_a_dsn(self):
+        self.assertEqual(
+            self.reporting_probe("disabled"),
+            {
+                "status": 503,
+                "loaded": {
+                    "remdo.error_reporting": False,
+                    "remdo.http_reporting": False,
+                    "sentry_sdk": False,
+                },
+            },
+        )
 
     def test_public_configuration_exposes_the_reporting_project(self):
         dsn = "https://publickey@ingest.example/7"
