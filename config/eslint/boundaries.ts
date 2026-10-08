@@ -10,6 +10,7 @@ const element = (type: string, pattern: string) =>
   ({ type, pattern, stopMatching: true }) as const;
 
 const FEATURE_TYPES = [
+  'features-inline-formatting',
   'features-list-types',
   'features-date',
   'features-folding',
@@ -42,6 +43,7 @@ export const editorBoundaries = {
     element('editing-reordering', `${EDITOR}/editing/reordering`),
     element('editing-clipboard', `${EDITOR}/editing/clipboard`),
     element('features-list-types', `${EDITOR}/features/list-types`),
+    element('features-inline-formatting', `${EDITOR}/features/inline-formatting`),
     element('features-date', `${EDITOR}/features/date`),
     element('features-folding', `${EDITOR}/features/folding`),
     element('features-links', `${EDITOR}/features/links`),

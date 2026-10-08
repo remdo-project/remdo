@@ -157,6 +157,8 @@ it perturbs the replay, evaluated from the anchor outward:
 
 ## Command compatibility
 
+[Inline formatting](./inline-formatting.md) owns the selection toolbar and Inline code shortcut.
+
 | Selection state | Allowed operations |
 | --------------- | ------------------ |
 | Caret selection | Typing, inline formatting, inline delete/backspace, and toggle checked (per [List types](./list-types.md#toggling)); structural commands may resolve a one-note target note range as defined by the command. |

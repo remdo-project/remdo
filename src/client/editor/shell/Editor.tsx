@@ -28,6 +28,7 @@ import { FoldingPlugin } from '#client/editor/features/folding/FoldingPlugin';
 import { NoteControlsPlugin } from '#client/editor/menu/NoteControlsPlugin';
 import { NoteMenuPlugin } from '#client/editor/menu/NoteMenuPlugin';
 import { MobileActionToolbarPlugin } from '#client/editor/mobile-toolbar/MobileActionToolbarPlugin';
+import { InlineSelectionToolbarPlugin } from '#client/editor/features/inline-formatting/InlineSelectionToolbarPlugin';
 import { PendingDocumentImportPlugin } from '#client/editor/runtime/PendingDocumentImportPlugin';
 import { DocumentEditAnalyticsPlugin } from '#client/editor/runtime/DocumentEditAnalyticsPlugin';
 import { useLexicalOpenDocument } from '#client/editor/note-sdk-adapters';
@@ -130,6 +131,7 @@ function EditorRuntime({
               <NoteControlsPlugin />
               <NoteMenuPlugin openDocument={openDocument} />
               <MobileActionToolbarPlugin openDocument={openDocument} />
+              <InlineSelectionToolbarPlugin />
               <ZoomPlugin onSelectHome={onSelectHome} />
               <ZoomVisibilityPlugin />
               <CheckListPlugin />
