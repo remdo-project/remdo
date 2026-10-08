@@ -81,6 +81,7 @@ test.describe('note body pointer selection contract (docs/specs/outliner/body.md
     await setCaretAtText(page, 'note1', 0);
     await page.keyboard.press('Shift+ArrowDown');
     await page.keyboard.press('Shift+ArrowDown');
+    await page.keyboard.press('Shift+ArrowDown');
     await expect(input(page)).toHaveClass(/editor-input--structural/);
 
     await shiftClickText(page, 'bodythree');

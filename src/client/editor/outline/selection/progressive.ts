@@ -239,8 +239,9 @@ export function $computeDirectionalPlan(
     return { plan };
   }
 
-  const entrySelection = isContinuing ? undefined : $captureLabelSelection(selection, anchorKey);
-  const base = isContinuing ? ladder : { ...emptyLadder(anchorKey), ...(entrySelection && { entrySelection }) };
+  const base = isContinuing
+    ? ladder
+    : { ...emptyLadder(anchorKey), entrySelection: $captureLabelSelection(selection, anchorKey) };
   const { ladder: next, plan } = $growLadder(base, anchorContent, direction, boundaryReplayKey);
 
   if (!plan) {

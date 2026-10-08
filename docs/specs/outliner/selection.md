@@ -69,15 +69,15 @@ ordered ladder whose every structural rung has a legal selected note range.
 Its defining property is **symmetric
 grow/shrink**: pressing the opposite direction *exactly inverts* the previous step.
 
-For label `Shift+Up/Down`, native text selection owns motion within the label.
-When the focus actually crosses into another selection region, the selection
-starts the ladder at rung 1 below. A native movement that stays in the label,
-including a no-op at a document or zoom boundary, remains non-structural.
-Contracting the last rung restores the exact inline range or caret before the
-crossing when content and wrapping are unchanged. Further arrows resume native
-text selection; a restored bare caret starts fresh. While a ladder is active,
-including at its inline rung, `Shift+Up/Down` steps the ladder rather than
-native text selection.
+For label `Shift+Up/Down` with no active ladder, native text selection owns
+motion within the label. When the focus actually crosses into another selection
+region, the selection starts the ladder at rung 1 below. A native movement that
+stays in the label, including a no-op at a document or zoom boundary, remains
+non-structural. While a ladder is active, including at its inline rung,
+`Shift+Up/Down` steps it. When contraction empties a ladder entered this way, it
+restores the exact inline range or caret before the crossing when content and
+wrapping are unchanged; further arrows then resume native text selection, and a
+restored bare caret starts fresh.
 
 The ladder is anchored and replayable:
 
@@ -89,9 +89,9 @@ The ladder is anchored and replayable:
   selection is the anchor plus the current rungs re-resolved against the live
   tree. The recurrence is:
   1. the anchor note's own [content text](./note-model.md#definitions), selected
-     inline — the first rung of a ladder entered from a caret or inline text
-     selection (skipped when that text is empty, so the first press lands on
-     rung 2);
+     inline — the first rung of a ladder started by a `Shift+Up/Down` crossing
+     or `Cmd/Ctrl+A` (skipped when that text is empty, so the first press lands
+     on rung 2);
   2. the anchor note plus its subtree — the first structural rung, direction-neutral;
   3. one more contiguous sibling (with its subtree) in the sweep direction;
   4. when siblings in that direction are exhausted, the parent note (with its

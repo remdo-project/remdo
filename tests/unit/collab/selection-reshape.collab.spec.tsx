@@ -3,7 +3,7 @@ import { waitFor } from '@testing-library/react';
 import { $getSelection } from 'lexical';
 import type { RangeSelection } from 'lexical';
 
-import { $getListItemByKeyOrThrow, pressKey, stepSelectionLadder, readOutline, getNoteKey, placeCaretAtNote, typeText, meta } from '#tests';
+import { $getListItemByKeyOrThrow, pressKey, selectNoteSubtree, stepSelectionLadder, readOutline, getNoteKey, placeCaretAtNote, typeText, meta } from '#tests';
 import type { RemdoTestApi } from '#client/editor/dev';
 import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { flattenOutline } from '#tests-common/outline';
@@ -27,9 +27,7 @@ async function removeNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
 // Build a note range over note2's subtree (anchor note2 → note2,
 // note3) through the directional ladder.
 async function selectNote2Subtree(remdo: RemdoTestApi): Promise<void> {
-  await placeCaretAtNote(remdo, 'note2');
-  await stepSelectionLadder(remdo, 'down');
-  await stepSelectionLadder(remdo, 'down');
+  await selectNoteSubtree(remdo, 'note2');
   await waitFor(() => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });

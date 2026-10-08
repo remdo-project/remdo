@@ -63,6 +63,14 @@ async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: st
   }, startElement);
 }
 
+// Setup helper: a caret at the note's start, then the directional ladder's
+// whole-label and note-plus-subtree rungs. Asserts nothing.
+export async function selectNoteSubtree(remdo: RemdoTestApi, noteId: string): Promise<void> {
+  await placeCaretAtNote(remdo, noteId, 0);
+  await stepSelectionLadder(remdo, 'down');
+  await stepSelectionLadder(remdo, 'down');
+}
+
 // Note-range helper: single-note uses the directional ladder to enter structural mode,
 // multi-note uses a Lexical range selection to trigger structural snapping.
 // Limitations: multi-note path requires text nodes in both notes and does not
@@ -73,10 +81,7 @@ export async function selectStructuralNotes(
   endNoteId: string = startNoteId
 ): Promise<void> {
   if (startNoteId === endNoteId) {
-    await placeCaretAtNote(remdo, startNoteId, 0);
-
-    await stepSelectionLadder(remdo, 'down'); // whole label
-    await stepSelectionLadder(remdo, 'down'); // note and subtree
+    await selectNoteSubtree(remdo, startNoteId);
     await waitFor(() => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: [startNoteId] });
     });
