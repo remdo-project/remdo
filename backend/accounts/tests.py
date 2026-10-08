@@ -615,6 +615,7 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
 
         self.assertTemplateUsed(response, "account/password_only.html")
         self.assertContains(response, "?method=password&amp;next=/admin/")
+        self.assertContains(response, "needs an operator to set one")
         self.assertNotContains(response, "Successfully signed in")
         self.assertIn("no-store", response["Cache-Control"])
         self.assertIsNone(User.objects.get(email="alice@example.test").last_login)
@@ -826,6 +827,20 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
             {"login": "alice@example.test", "password": "wrong"},
         )
         self.assertContains(response, 'name="password"')
+
+    def test_admin_add_form_skips_an_address_another_account_holds_verified(self):
+        other = self.account("other@example.test")
+        EmailAddress.objects.create(user=other, email="held@example.test", verified=True)
+        operator = User.objects.create_superuser("operator@example.test", self.PASSWORD)
+        self.client.force_login(operator)
+
+        response = self.post(
+            "/admin/accounts/user/add/",
+            {"email": "held@example.test", "password1": self.PASSWORD, "password2": self.PASSWORD},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(EmailAddress.objects.filter(email="held@example.test").count(), 1)
 
     def test_operator_created_account_signs_in_with_its_password(self):
         operator = User.objects.create_superuser("operator@example.test", self.PASSWORD)
