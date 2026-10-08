@@ -28,6 +28,10 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
     objects = UserManager()
 
+    @property
+    def is_administrator(self):
+        return self.is_staff or self.is_superuser
+
     def save(self, **kwargs):
         with transaction.atomic(using=kwargs.get("using")):
             super().save(**kwargs)

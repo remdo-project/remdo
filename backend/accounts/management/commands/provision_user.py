@@ -2,7 +2,7 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 
-from accounts.models import User
+from accounts.models import User, record_verified_address
 
 
 class Command(BaseCommand):
@@ -33,6 +33,4 @@ class Command(BaseCommand):
                 "is_superuser": admin,
             },
         )
-        EmailAddress.objects.get_or_create(
-            user=user, email=user.email, defaults={"primary": True, "verified": True}
-        )
+        record_verified_address(user)

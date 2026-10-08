@@ -662,6 +662,28 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
 
         self.assertEqual(EmailAddress.objects.filter(email="held@example.test").count(), 1)
 
+    def test_stale_password_record_of_another_account_does_not_admit_a_promoted_signup(self):
+        self.post("/accounts/email/", {"email": "new@example.test"})
+        session = self.client.session
+        session["account_authentication_methods"] = [
+            {"method": "password", "email": "other@example.test", "at": 0}
+        ]
+        session.save()
+        User.objects.filter(email="new@example.test").update(is_staff=True)
+
+        response = self.post("/accounts/confirm-email/", {"code": self.emailed_code()})
+
+        self.assertTemplateUsed(response, "account/password_only.html")
+        self.assertIsNone(self.session_email())
+
+    def test_signed_in_visit_to_the_confirmation_page_leaves_for_home(self):
+        self.post("/accounts/email/", {"email": "new@example.test"})
+        self.post("/accounts/confirm-email/", {"code": self.emailed_code()})
+
+        response = self.client.get("/accounts/confirm-email/")
+
+        self.assertEqual(response["Location"], "/")
+
     def test_superuser_without_staff_status_cannot_sign_in_with_a_code(self):
         self.account(is_superuser=True)
 
@@ -769,11 +791,17 @@ class VerifyExistingAddressesMigrationTests(TransactionTestCase):
         HistoricalUser.objects.create(email="legacy@example.test")
         pending = HistoricalUser.objects.create(email="pending@example.test")
         HistoricalAddress.objects.create(user=pending, email=pending.email, primary=True)
+        holder = HistoricalUser.objects.create(email="holder@example.test")
+        HistoricalAddress.objects.create(
+            user=holder, email="held@example.test", primary=True, verified=True
+        )
+        HistoricalUser.objects.create(email="held@example.test")
 
         executor = MigrationExecutor(connection)
         executor.migrate(self.after)
 
         self.assertEqual(
             dict(EmailAddress.objects.values_list("email", "verified")),
-            {"legacy@example.test": True, "pending@example.test": False},
+            {"legacy@example.test": True, "pending@example.test": False, "held@example.test": True},
         )
+        self.assertEqual(EmailAddress.objects.filter(email="held@example.test").count(), 1)

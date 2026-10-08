@@ -48,7 +48,7 @@ clientkit.is_loopback = _is_loopback
 
 def may_delegate(user):
     # Control of a third-party application must not grant administration.
-    return user.is_active and not user.is_staff and not user.is_superuser
+    return user.is_active and not user.is_administrator
 
 
 def bearer_token(authorization_header):

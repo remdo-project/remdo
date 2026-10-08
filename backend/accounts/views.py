@@ -44,6 +44,17 @@ def completes_login(view):
     return wrapper
 
 
+def redirects_signed_in(view):
+    # allauth sends a signed-in visitor to an email management page this app does not route.
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect(settings.LOGIN_REDIRECT_URL)
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
 @never_cache
 @require_POST
 def admin_logout(request):
@@ -86,7 +97,7 @@ confirm_login_code = never_cache(
     email_signup_only(completes_login(allauth_views.confirm_login_code))
 )
 confirm_email_code = never_cache(
-    email_signup_only(completes_login(allauth_views.email_verification_sent))
+    email_signup_only(completes_login(redirects_signed_in(allauth_views.email_verification_sent)))
 )
 
 

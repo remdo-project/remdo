@@ -12,8 +12,12 @@ from django.shortcuts import render
 from django.urls import reverse
 
 
-def administers(user):
-    return user.is_staff or user.is_superuser
+def password_authenticated(request, user):
+    records = get_authentication_records(request)
+    if not records or records[-1]["method"] != "password":
+        return False
+    addresses = {user.email, *user.emailaddress_set.values_list("email", flat=True)}
+    return records[-1].get("email", "").lower() in addresses
 
 
 class AccountAdapter(DefaultAccountAdapter):
@@ -21,13 +25,12 @@ class AccountAdapter(DefaultAccountAdapter):
         return settings.EMAIL_SIGNUP_ENABLED
 
     # Control of a mailbox must not grant administration, as with Google. Every
-    # login completes here whichever stage finishes it, so only a password
-    # authentication may complete an administrator's, and refusing before the
-    # session exists leaves no sign-in trace. The flush drops the pending stage
-    # that would otherwise capture the next attempt.
+    # login completes here whichever stage finishes it, so only the user's own
+    # password authentication may complete an administrator's, and refusing
+    # before the session exists leaves no sign-in trace. The flush drops the
+    # pending stage that would otherwise capture the next attempt.
     def login(self, request, user):
-        records = get_authentication_records(request)
-        if administers(user) and not (records and records[-1]["method"] == "password"):
+        if user.is_administrator and not password_authenticated(request, user):
             request.session.flush()
             raise ImmediateHttpResponse(
                 render(
@@ -65,7 +68,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             user = next(iter(filter_users_by_email(email)), None)
         else:
             return
-        if user and administers(user):
+        if user and user.is_administrator:
             raise ImmediateHttpResponse(render(request, "account/signup_closed.html"))
         if user and not sociallogin.is_existing:
             sociallogin.connect(request, user)
