@@ -174,10 +174,21 @@ reporting, and every failure in a page session whose startup configuration
 request fails, go unreported. Runtime delivery of the DSN lets one build serve
 every deployment.
 
+Django reports every HTTP response with status 400–599, including handled
+authentication failures, as warnings for 4xx and errors for 5xx. A request
+already reported by Django exception handling produces no additional response event.
+Reports group by method, route pattern, and status and include a generated
+request identifier; unmatched paths and route parameter values are omitted.
+Google authorization redirects are checked against the configured client,
+callback origin, endpoint, response type, state, and identity scopes; invalid
+redirects are reported without their parameter values and remain unchanged.
+Errors displayed on the provider's own site remain outside this reporting.
+**Deterministic.**
+
 Beyond the [diagnostics principle](../../principles.md#data-and-trust), reports
 and their delivery exclude user identity, client addresses, cookies, request
 headers other than the user agent, URL query strings and fragments, and command
-lines. **Deterministic.** Reporting covers errors only, without tracing,
+lines. **Deterministic.** Reporting covers failures only, without tracing,
 profiling, or session tracking. Production frontend source maps are public so
 that browser reports resolve to source.
 

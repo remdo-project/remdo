@@ -1,0 +1,96 @@
+from urllib.parse import parse_qs, urlsplit
+from uuid import uuid4
+
+import sentry_sdk
+from django.conf import settings
+
+
+def google_redirect_errors(location):
+    try:
+        target = urlsplit(location)
+        params = parse_qs(target.query)
+        errors = []
+        if (
+            target.scheme != "https"
+            or target.netloc != "accounts.google.com"
+            or target.path != "/o/oauth2/v2/auth"
+        ):
+            errors.append("authorization_endpoint")
+        expected = {
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "redirect_uri": settings.APP_ORIGIN + "/accounts/google/login/callback/",
+            "response_type": "code",
+        }
+        for key, value in expected.items():
+            if params.get(key) != [value]:
+                errors.append(key)
+        if len(params.get("state", [])) != 1:
+            errors.append("state")
+        if len(params.get("scope", [])) != 1 or set(params["scope"][0].split()) != {
+            "openid",
+            "email",
+            "profile",
+        }:
+            errors.append("scope")
+        return errors
+    except ValueError:
+        return ["authorization_url"]
+
+
+class HttpErrorReportingMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if not settings.SENTRY_DSN:
+            return self.get_response(request)
+
+        captured = False
+        status = None
+        method = (
+            request.method
+            if request.method
+            in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT"}
+            else "OTHER"
+        )
+
+        def prepare_event(event, hint):
+            nonlocal captured
+            record = hint.get("log_record")
+            exceptions = event.get("exception", {}).get("values", [])
+            automatic = any(
+                item.get("mechanism", {}).get("type") == "django" for item in exceptions
+            ) or (
+                record is not None
+                and record.name.startswith("django.")
+                and 400 <= getattr(record, "status_code", 0) <= 599
+            )
+            captured = captured or automatic
+            match = getattr(request, "resolver_match", None)
+            route = match.route if match else "<unmatched>"
+            event.setdefault("tags", {}).update({"http.method": method, "http.route": route})
+            event["transaction"] = f"{method} {route}"
+            # Unrelated diagnostics emitted by a view must neither invent a 500
+            # nor suppress reporting the response that eventually leaves Django.
+            if automatic or status is not None:
+                event_status = status or getattr(record, "status_code", 500)
+                event["tags"]["http.status_code"] = event_status
+                event["fingerprint"] = ["http-response", method, route, str(event_status)]
+                event["level"] = "error" if event_status >= 500 else "warning"
+            event.setdefault("request", {})["url"] = settings.APP_ORIGIN + "/" + route
+            return event
+
+        with sentry_sdk.new_scope() as scope:
+            scope.set_tag("request_id", uuid4().hex)
+            scope.add_event_processor(prepare_event)
+            response = self.get_response(request)
+            status = response.status_code
+            if 400 <= status <= 599 and not captured:
+                sentry_sdk.capture_message("HTTP error response")
+            match = getattr(request, "resolver_match", None)
+            if status in {301, 302, 303, 307, 308} and match and match.url_name == "google_login":
+                errors = google_redirect_errors(response["Location"])
+                if errors:
+                    scope.set_context("google_redirect", {"invalid_fields": errors})
+                    sentry_sdk.capture_message("Invalid Google authorization redirect")
+            return response

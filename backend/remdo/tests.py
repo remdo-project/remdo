@@ -351,15 +351,146 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         self.assertEqual([item_type for item_type, _ in items], ["event", "event"])
         [(_, event), (_, logged)] = items
         self.assertEqual(logged["logger"], "django.security.SuspiciousOperation")
+        self.assertEqual(logged["level"], "warning")
+        self.assertEqual(logged["tags"]["http.status_code"], 400)
+        self.assertEqual(event["tags"]["http.status_code"], 500)
         [exception] = event["exception"]["values"]
         self.assertEqual(exception["type"], "RuntimeError")
         self.assertEqual(exception["value"], "reported-exception-message")
         self.assertEqual(event["release"], "reporting-test-revision")
         self.assertEqual(event["environment"], "remdo.example")
-        self.assertEqual(event["request"]["url"], "https://remdo.example/fail/document-id")
+        self.assertEqual(event["request"]["url"], "https://remdo.example/fail/<str:document>")
         self.assertEqual(event["request"]["headers"], {"User-Agent": "reporting-test-agent"})
         self.assertNotIn("private-", json.dumps(items))
         self.assertNotIn("198.51.100.7", json.dumps(items))
+
+    def test_http_errors_and_google_redirects_reach_sentry_without_private_urls(self):
+        ingest = FakeIngest()
+        self.addCleanup(ingest.close)
+        report = """
+import io, json
+from types import ModuleType
+from urllib.parse import urlencode, urlsplit, parse_qsl, urlunsplit, parse_qs
+from unittest.mock import patch
+import sentry_sdk
+from allauth.socialaccount.providers.google.views import oauth2_login, oauth2_callback
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from allauth.socialaccount.providers.oauth2.client import OAuth2Error
+from django.conf import settings
+from django.core.management import call_command
+from django.http import HttpResponse
+from django.middleware.csrf import get_token
+from django.test import Client, override_settings
+from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
+
+call_command('migrate', interactive=False, stdout=io.StringIO())
+
+@csrf_exempt
+def status(request, code, document):
+    if code == 410:
+        sentry_sdk.capture_exception(RuntimeError('synthetic caught diagnostic'))
+    return HttpResponse('private-response-body', status=code)
+
+def csrf(request):
+    get_token(request)
+    return HttpResponse()
+
+def google(request):
+    response = oauth2_login(request)
+    if request.POST.get('truncate_redirect'):
+        target = urlsplit(response['Location'])
+        query = [(key, value) for key, value in parse_qsl(target.query)
+            if key not in {'state', 'scope', 'response_type'}]
+        response['Location'] = urlunsplit(target._replace(query=urlencode(query)))
+    return response
+
+routes = ModuleType('http_reporting_routes')
+routes.urlpatterns = [
+    path('status/<int:code>/<str:document>', status),
+    path('csrf', csrf),
+    path('accounts/google/login/', google, name='google_login'),
+    path('accounts/google/login/callback/', oauth2_callback, name='google_callback'),
+]
+client = Client(enforce_csrf_checks=True, raise_request_exception=False)
+options = dict(secure=True, HTTP_HOST='remdo.example',
+    HTTP_ORIGIN='https://remdo.example',
+    HTTP_USER_AGENT='reporting-test-agent', HTTP_AUTHORIZATION='Bearer private-token')
+statuses = []
+with override_settings(ROOT_URLCONF=routes):
+    for code in (200, 201, 204, 302, 304, 400, 401, 403, 404, 410, 429, 500, 503, 599):
+        statuses.append(client.get(f'/status/{code}/private-document?code=private-code',
+            **options).status_code)
+    client.get('/status/401/another-private-document', **options)
+    client.get('/private-bookmark?secret=private-query', **options)
+    client.post('/csrf', {'private-body': 'private-value'}, **options)
+    client.get('/accounts/google/login/callback/?code=private-code&state=private-state', **options)
+    client.get('/csrf', **options)
+    token = client.cookies[settings.CSRF_COOKIE_NAME].value
+    form = {'csrfmiddlewaretoken': token}
+    valid = client.post('/accounts/google/login/', form, **options)
+    state = parse_qs(urlsplit(valid['Location']).query)['state'][0]
+    with patch.object(GoogleOAuth2Adapter, 'get_access_token_data',
+            side_effect=OAuth2Error('private-provider-response')):
+        client.get('/accounts/google/login/callback/', {'code': 'private-code', 'state': state},
+            **options)
+    bad = client.post('/accounts/google/login/?' + urlencode({
+        'auth_params': 'redirect_uri=https://private-host/&client_id=private-client&response_type=bad'
+    }), form, **options)
+    missing = client.post('/accounts/google/login/', {**form, 'truncate_redirect': '1'}, **options)
+    proxy = client.post('/accounts/google/login/', form, HTTP_HOST='remdo.example',
+        HTTP_X_FORWARDED_PROTO='https', HTTP_ORIGIN='https://remdo.example')
+    print(json.dumps({'statuses': statuses, 'redirects': [valid.status_code, bad.status_code,
+        missing.status_code, proxy.status_code]}))
+sentry_sdk.flush()
+"""
+        result = self.settings(
+            report=report,
+            SENTRY_DSN=ingest.dsn,
+            GOOGLE_CLIENT_ID="test-client",
+            GOOGLE_CLIENT_SECRET="private-client-secret",
+        )
+        self.assertEqual(
+            result["statuses"],
+            [200, 201, 204, 302, 304, 400, 401, 403, 404, 410, 429, 500, 503, 599],
+        )
+        self.assertEqual(result["redirects"], [302, 302, 302, 302])
+        events = [event for kind, event in ingest.items() if kind == "event"]
+        self.assertEqual(len(events), 17)
+        responses = [event for event in events if event.get("message") == "HTTP error response"]
+        self.assertEqual(len(responses), 14)
+        diagnostic = next(event for event in events if event.get("exception"))
+        self.assertEqual(diagnostic["level"], "error")
+        self.assertNotIn("http.status_code", diagnostic["tags"])
+        for event in responses:
+            status = event["tags"]["http.status_code"]
+            self.assertEqual(event["level"], "error" if status >= 500 else "warning")
+        unauthorized = [
+            event
+            for event in responses
+            if event["tags"]["http.route"] == "status/<int:code>/<str:document>"
+            and event["tags"]["http.status_code"] == 401
+        ]
+        self.assertEqual(len(unauthorized), 2)
+        self.assertEqual(unauthorized[0]["fingerprint"], unauthorized[1]["fingerprint"])
+        self.assertNotEqual(
+            unauthorized[0]["tags"]["request_id"], unauthorized[1]["tags"]["request_id"]
+        )
+        redirects = [
+            event
+            for event in events
+            if event.get("message") == "Invalid Google authorization redirect"
+        ]
+        self.assertEqual(
+            [event["contexts"]["google_redirect"]["invalid_fields"] for event in redirects],
+            [["client_id", "redirect_uri", "response_type"], ["response_type", "state", "scope"]],
+        )
+        self.assertNotIn("private-", json.dumps(events))
+
+        self.settings(
+            report=report, GOOGLE_CLIENT_ID="test-client", GOOGLE_CLIENT_SECRET="private-secret"
+        )
+        self.assertEqual(len([item for item in ingest.items() if item[0] == "event"]), 17)
 
     def test_public_configuration_exposes_the_reporting_project(self):
         dsn = "https://publickey@ingest.example/7"

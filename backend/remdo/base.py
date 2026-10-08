@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "documents",
 ]
 MIDDLEWARE = [
+    "remdo.http_reporting.HttpErrorReportingMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
