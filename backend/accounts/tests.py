@@ -515,6 +515,7 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
         response = self.google_login("promoted@example.test")
 
         self.assertContains(response, "Google sign-in unavailable")
+        self.assertContains(response, "?method=password&amp;next=/n/exampleDoc")
         self.assertIsNone(self.session_email())
 
     def test_external_return_url_is_rejected(self):
@@ -604,6 +605,7 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.assertTemplateUsed(response, "account/password_only.html")
         self.assertContains(response, "?method=password&amp;next=/admin/")
         self.assertNotContains(response, "Successfully signed in")
+        self.assertIn("no-store", response["Cache-Control"])
         self.assertIsNone(User.objects.get(email="alice@example.test").last_login)
         self.assertNotIn("account_login", self.client.session)
         self.assertNotIn("account_authentication_methods", self.client.session)

@@ -31,13 +31,10 @@ class AccountAdapter(DefaultAccountAdapter):
     def login(self, request, user):
         if user.is_administrator and not password_authenticated(request, user):
             request.session.flush()
-            raise ImmediateHttpResponse(
-                render(
-                    request,
-                    "account/password_only.html",
-                    {"next": get_next_redirect_url(request)},
-                )
+            response = render(
+                request, "account/password_only.html", {"next": get_next_redirect_url(request)}
             )
+            raise ImmediateHttpResponse(response)
         super().login(request, user)
 
     # allauth's notice points to a password reset, which this app does not route.
@@ -68,7 +65,11 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         else:
             return
         if user and user.is_administrator:
-            raise ImmediateHttpResponse(render(request, "account/signup_closed.html"))
+            raise ImmediateHttpResponse(
+                render(
+                    request, "account/signup_closed.html", {"next": sociallogin.state.get("next")}
+                )
+            )
         if user and not sociallogin.is_existing:
             sociallogin.connect(request, user)
 

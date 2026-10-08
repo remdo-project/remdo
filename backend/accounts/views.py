@@ -73,7 +73,7 @@ class LoginView(AllauthLoginView):
             email_signup_enabled=settings.EMAIL_SIGNUP_ENABLED,
             password_mode=not settings.EMAIL_SIGNUP_ENABLED
             or self.request.GET.get("method") == "password"
-            or "password" in self.request.POST,
+            or self.request.method == "POST",
             email_form=RequestLoginCodeForm(),
             password_url=self.passthrough_next_url(f"{reverse('account_login')}?method=password"),
         )
