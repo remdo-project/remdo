@@ -655,7 +655,7 @@ describe('selection plugin', () => {
     it(`contracts to the caret, then a fresh ${word} press starts a new ladder`, meta({ fixture: 'flat' }), async ({ remdo }) => {
       const reverse = direction === 'down' ? 'up' : 'down';
       await placeCaretAtNote(remdo, 'note2', 2);
-        await stepSelectionLadder(remdo, direction);
+      await stepSelectionLadder(remdo, direction);
       expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
       // Stage 2: single-note range (anchor).
       await stepSelectionLadder(remdo, direction);
