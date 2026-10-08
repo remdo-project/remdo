@@ -385,6 +385,11 @@ from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
 
 call_command('migrate', interactive=False, stdout=io.StringIO())
+manifest = settings.DATA_DIR / 'frontend-manifest.json'
+manifest.write_text(json.dumps({
+    'src/client/ui/styles/shared.css': {'file': 'app-assets/shared-test.css'},
+    'src/client/ui/styles/site.css': {'file': 'app-assets/site-test.css'},
+}))
 
 @csrf_exempt
 def status(request, code, document):
@@ -408,14 +413,17 @@ options = dict(secure=True, HTTP_HOST='remdo.example',
     HTTP_ORIGIN='https://remdo.example',
     HTTP_USER_AGENT='reporting-test-agent', HTTP_AUTHORIZATION='Bearer private-token')
 statuses = []
-with override_settings(ROOT_URLCONF=routes):
+callback_statuses = []
+with override_settings(ROOT_URLCONF=routes, FRONTEND_MANIFEST=manifest):
     for code in (200, 201, 204, 302, 304, 400, 401, 403, 404, 410, 429, 500, 503, 599):
         statuses.append(client.get(f'/status/{code}/private-document?code=private-code',
             **options).status_code)
     client.get('/status/401/another-private-document', **options)
     client.get('/private-bookmark?secret=private-query', **options)
     client.post('/csrf', {'private-body': 'private-value'}, **options)
-    client.get('/accounts/google/login/callback/?code=private-code&state=private-state', **options)
+    callback_statuses.append(client.get(
+        '/accounts/google/login/callback/?code=private-code&state=private-state',
+        **options).status_code)
     client.get('/csrf', **options)
     token = client.cookies[settings.CSRF_COOKIE_NAME].value
     form = {'csrfmiddlewaretoken': token}
@@ -423,9 +431,10 @@ with override_settings(ROOT_URLCONF=routes):
     state = parse_qs(urlsplit(valid['Location']).query)['state'][0]
     with patch.object(GoogleOAuth2Adapter, 'get_access_token_data',
             side_effect=OAuth2Error('private-provider-response')):
-        client.get('/accounts/google/login/callback/', {'code': 'private-code', 'state': state},
-            **options)
-    print(json.dumps({'statuses': statuses, 'login_status': valid.status_code}))
+        callback_statuses.append(client.get('/accounts/google/login/callback/',
+            {'code': 'private-code', 'state': state}, **options).status_code)
+    print(json.dumps({'statuses': statuses, 'login_status': valid.status_code,
+        'callback_statuses': callback_statuses}))
 sentry_sdk.flush()
 """
         result = self.settings(
@@ -439,6 +448,7 @@ sentry_sdk.flush()
             [200, 201, 204, 302, 304, 400, 401, 403, 404, 410, 429, 500, 503, 599],
         )
         self.assertEqual(result["login_status"], 302)
+        self.assertEqual(result["callback_statuses"], [401, 401])
         events = [event for kind, event in ingest.items() if kind == "event"]
         self.assertEqual(len(events), 15)
         responses = [event for event in events if event.get("message") == "HTTP error response"]
