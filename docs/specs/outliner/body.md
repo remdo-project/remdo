@@ -24,8 +24,8 @@ navigation, lifecycle, and merge behavior.
    descendant's body hides with it, while the folded note keeps its own body.
    A body outside the current [zoom boundary](./zoom.md#definitions) is hidden
    with its note. A body is never independently collapsed.
-5. **Inline content.** Body text supports the same key-driven inline content as
-   note content — inline formatting (no separate formatting UI) and `@` note
+5. **Inline content.** Body text supports the same inline content as
+   note content — [inline formatting](./inline-formatting.md) and `@` note
    links (see [Links](./links.md)).
 
 ## Selection and structural targeting

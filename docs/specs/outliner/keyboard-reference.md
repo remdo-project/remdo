@@ -28,7 +28,7 @@ presentation.
      - [link a note](./links.md)
      - [insert a date](./dates.md)
    - **Editing:** undo, redo, bold, italic, underline, copy, cut, and paste, using
-     the platform's standard bindings.
+     the platform's standard bindings, and [inline code](./inline-formatting.md#formatting).
    - **Selection:** expand selection, select text, select notes, select to a
      note, and leave selection per [Selection](./selection.md#input-bindings),
      and [delete selection](./deletion.md#structural-selection).

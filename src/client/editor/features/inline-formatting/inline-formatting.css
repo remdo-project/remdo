@@ -1,0 +1,48 @@
+.inline-selection-toolbar {
+  position: fixed;
+  width: max-content;
+  visibility: hidden;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  z-index: 200;
+  color: var(--mantine-color-text);
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  box-shadow: var(--mantine-shadow-md);
+}
+
+.inline-selection-toolbar__button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--mantine-radius-sm);
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.inline-selection-toolbar__button[data-hovered],
+.inline-selection-toolbar__button[data-pressed] {
+  background: var(--mantine-color-default-hover);
+}
+
+.inline-selection-toolbar__button[aria-pressed='true'] {
+  color: var(--remdo-accent);
+  background: var(--mantine-color-default-hover);
+}
+
+.inline-selection-toolbar__button[aria-pressed='mixed'] {
+  color: var(--remdo-accent);
+  box-shadow: inset 0 -2px var(--remdo-accent);
+}
+
+.inline-selection-toolbar__button:focus-visible,
+.inline-selection-toolbar__button[data-focus-visible] {
+  outline: 2px solid var(--remdo-accent);
+  outline-offset: 1px;
+}

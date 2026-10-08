@@ -6,6 +6,7 @@ import type { LexicalEditor } from 'lexical';
 // while open; another instance consults this registry to refuse to open on top of
 // one already open. Keyed by editor so separate editors never block each other.
 const activePopupsByEditor = new WeakMap<LexicalEditor, Set<symbol>>();
+const listenersByEditor = new WeakMap<LexicalEditor, Set<() => void>>();
 
 export function setPopupActive(editor: LexicalEditor, token: symbol, active: boolean): void {
   let tokens = activePopupsByEditor.get(editor);
@@ -18,6 +19,17 @@ export function setPopupActive(editor: LexicalEditor, token: symbol, active: boo
   } else {
     tokens.delete(token);
   }
+  for (const listener of listenersByEditor.get(editor) ?? []) listener();
+}
+
+export function subscribeToActivePopup(editor: LexicalEditor, listener: () => void): () => void {
+  let listeners = listenersByEditor.get(editor);
+  if (!listeners) {
+    listeners = new Set();
+    listenersByEditor.set(editor, listeners);
+  }
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
 }
 
 // Whether any editor popup other than `token` is open in this editor.

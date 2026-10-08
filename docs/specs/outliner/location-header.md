@@ -13,9 +13,9 @@ editing depend on the location:
 - A [document root](./note-model.md#definitions) displays its own text as a read-only document name.
   [Rename](#document-rename) changes that name through an explicit submission.
 - A zoomed [editor note](./note-model.md#note-kinds) displays its own rich content as an editable heading. It
-  supports the same inline content as any editor note, including formatting and
-  [note links](./links.md). Edits apply in place through ordinary document editing, without a
-  separate draft or submit step.
+  supports the same inline content as any editor note, including
+  [inline formatting](./inline-formatting.md) and [note links](./links.md). Edits apply in place through ordinary document
+  editing, without a separate draft or submit step.
 
 Editable content and heading semantics remain separately exposed to assistive technology.
 

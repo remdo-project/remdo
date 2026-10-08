@@ -55,6 +55,7 @@ export function referenceGroups(platform: ReferencePlatform): readonly Reference
         { action: 'Bold', keys: [command, 'B'] },
         { action: 'Italic', keys: [command, 'I'] },
         { action: 'Underline', keys: [command, 'U'] },
+        { action: 'Inline code', keys: [command, 'E'] },
         { action: 'Copy', keys: [command, 'C'] },
         { action: 'Cut', keys: [command, 'X'] },
         { action: 'Paste', keys: [command, 'V'] },

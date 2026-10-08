@@ -166,3 +166,5 @@ it perturbs the replay, evaluated from the anchor outward:
 
 Clipboard behavior for structural selections and inline text selections is
 defined in [Clipboard](./clipboard.md).
+
+[Inline formatting](./inline-formatting.md) owns the selection toolbar and Inline code shortcut.
