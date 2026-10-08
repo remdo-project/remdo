@@ -14,7 +14,9 @@ INSTALLED_APPS = [*base.INSTALLED_APPS, "fixtures"]
 # Fixture workers share one loopback address and authenticate independently.
 ACCOUNT_RATE_LIMITS = False
 # A developer has no mail server, so sign-in codes appear in the API output.
-EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND") or "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = (
+    os.environ.get("EMAIL_BACKEND", "").strip() or "django.core.mail.backends.console.EmailBackend"
+)
 
 CSRF_TRUSTED_ORIGINS = [base.APP_ORIGIN]
 for host in ("localhost", "127.0.0.1", socket.gethostname().lower().rstrip(".")):

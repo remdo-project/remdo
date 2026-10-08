@@ -3,7 +3,7 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlsplit
 
 from allauth.account.models import EmailAddress
@@ -61,6 +61,17 @@ class DeploymentAccountTests(TestCase):
         self.assertTrue(admin.check_password("changed-admin-password"))
         self.assertFalse(user.is_staff or user.is_superuser)
         self.assertTrue(user.check_password("first-user-password"))
+
+    def test_provisioning_leaves_an_account_created_after_its_check_unverified(self):
+        pending = User.objects.create_user("admin@example.test")
+        with (
+            patch.dict(os.environ, self.BOOTSTRAP_ADMIN_ONLY),
+            patch.object(User.objects, "filter", return_value=Mock(exists=lambda: False)),
+        ):
+            call_command("setup_configured_users")
+
+        self.assertFalse(EmailAddress.objects.filter(user=pending).exists())
+        self.assertFalse(pending.check_password("first-admin-password"))
 
     def test_startup_survives_an_address_held_by_a_renamed_account(self):
         with patch.dict(os.environ, self.BOOTSTRAP_ADMIN_ONLY):

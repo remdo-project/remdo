@@ -26,7 +26,7 @@ class Command(BaseCommand):
         ):
             return
         with transaction.atomic():
-            user, _ = User.objects.get_or_create(
+            user, created = User.objects.get_or_create(
                 email=email,
                 defaults={
                     "password": lambda: make_password(password),
@@ -35,4 +35,5 @@ class Command(BaseCommand):
                     "is_superuser": admin,
                 },
             )
-            record_verified_address(user)
+            if created:
+                record_verified_address(user)

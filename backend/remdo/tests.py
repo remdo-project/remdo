@@ -43,6 +43,7 @@ print(json.dumps({
     'email_signup': [settings.EMAIL_SIGNUP_ENABLED, settings.ACCOUNT_EMAIL_VERIFICATION],
     'email_backend': settings.EMAIL_BACKEND.rsplit('.', 2)[-2],
     'email_tls': [settings.EMAIL_USE_TLS, settings.EMAIL_USE_SSL],
+    'email_values': [settings.EMAIL_HOST, settings.DEFAULT_FROM_EMAIL, settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD],
 }))
 """
 LOGGING_REPORT = """
@@ -252,6 +253,17 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         enabled = self.settings(EMAIL_HOST="smtp.example", DEFAULT_FROM_EMAIL="hello@remdo.example")
         self.assertEqual(enabled["email_signup"], [True, "mandatory"])
         self.assertEqual(enabled["email_tls"], [True, False])
+
+    def test_mail_settings_are_trimmed_like_other_environment_values(self):
+        result = self.settings(
+            EMAIL_HOST=" smtp.example ",
+            DEFAULT_FROM_EMAIL=" hello@remdo.example ",
+            EMAIL_HOST_USER=" user ",
+            EMAIL_HOST_PASSWORD=" secret ",
+        )
+        self.assertEqual(
+            result["email_values"], ["smtp.example", "hello@remdo.example", "user", "secret"]
+        )
 
     def test_implicit_tls_ports_use_ssl_instead_of_starttls(self):
         mail = {"EMAIL_HOST": "smtp.example", "DEFAULT_FROM_EMAIL": "hello@remdo.example"}
