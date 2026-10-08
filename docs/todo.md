@@ -121,7 +121,8 @@ Decisions requiring a contract owner's judgement:
 
 - **Unconfirmed signups.** Email signup creates the passwordless account and its
   starter document before the code is confirmed, so abandoned attempts leave
-  unusable rows. Add cleanup once they accumulate.
+  unusable rows. Such a row can also hold a deployment account's address before
+  provisioning, which then skips that account. Add cleanup once they accumulate.
 - **Mail delivery failure.** The code request sends mail inside the request, so
   a provider failure surfaces as a server error. Decide a visible failure state.
 
