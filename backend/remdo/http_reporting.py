@@ -1,3 +1,4 @@
+from http import HTTPMethod
 from uuid import uuid4
 
 import sentry_sdk
@@ -9,17 +10,9 @@ class HttpErrorReportingMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if not settings.SENTRY_DSN:
-            return self.get_response(request)
-
         captured = False
         status = None
-        method = (
-            request.method
-            if request.method
-            in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT"}
-            else "OTHER"
-        )
+        method = request.method if request.method in HTTPMethod else "OTHER"
 
         def prepare_event(event, hint):
             nonlocal captured

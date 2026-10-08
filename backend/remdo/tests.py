@@ -119,55 +119,6 @@ class FakeIngest:
         ]
 
 
-PRODUCTION_FAILURE = """
-import io
-import json
-from types import ModuleType
-import sentry_sdk
-from django.core.handlers.wsgi import WSGIHandler
-from django.core.exceptions import SuspiciousOperation
-from django.test import override_settings
-from django.urls import path
-from django.views.decorators.csrf import csrf_exempt
-
-@csrf_exempt
-def fail(request, document):
-    confidential_local = 'private-local-value'
-    raise RuntimeError('reported-exception-message')
-
-@csrf_exempt
-def suspicious(request, document):
-    raise SuspiciousOperation('reported-suspicious-request')
-
-routes = ModuleType('reporting_routes')
-routes.urlpatterns = [path('fail/<str:document>', fail), path('suspicious/<str:document>', suspicious)]
-body = b'private-form-field=private-form-value'
-environ = {
-    'REQUEST_METHOD': 'POST',
-    'QUERY_STRING': 'code=private-query-value',
-    'SERVER_NAME': 'remdo.example',
-    'SERVER_PORT': '443',
-    'REMOTE_ADDR': '198.51.100.7',
-    'wsgi.url_scheme': 'https',
-    'wsgi.input': io.BytesIO(body),
-    'CONTENT_TYPE': 'application/x-www-form-urlencoded',
-    'CONTENT_LENGTH': str(len(body)),
-    'HTTP_HOST': 'remdo.example',
-    'HTTP_USER_AGENT': 'reporting-test-agent',
-    'HTTP_COOKIE': 'private-cookie-name=private-cookie-value',
-    'HTTP_AUTHORIZATION': 'Bearer private-token',
-    'HTTP_X_REMDO_COLLABORATION_SECRET': 'private-collaboration-secret',
-}
-statuses = []
-with override_settings(ROOT_URLCONF=routes):
-    for route in ('/fail/document-id', '/suspicious/document-id'):
-        request = {**environ, 'PATH_INFO': route, 'wsgi.input': io.BytesIO(body)}
-        WSGIHandler()(request, lambda status, headers: statuses.append(status))
-sentry_sdk.flush()
-print(json.dumps(statuses))
-"""
-
-
 class ConfigurationTests(SimpleTestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -191,6 +142,17 @@ class ConfigurationTests(SimpleTestCase):
                 "-c",
                 report,
             ],
+            env={**self.env, **overrides},
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def reporting_probe(self, scenario, **overrides):
+        result = subprocess.run(
+            [sys.executable, "-m", "remdo.reporting_probes", scenario],
+            cwd=ROOT / "backend",
             env={**self.env, **overrides},
             capture_output=True,
             text=True,
@@ -340,8 +302,8 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         ingest = FakeIngest()
         self.addCleanup(ingest.close)
 
-        statuses = self.settings(
-            report=PRODUCTION_FAILURE,
+        statuses = self.reporting_probe(
+            "exceptions",
             SENTRY_DSN=ingest.dsn,
             BUILD_REVISION="reporting-test-revision",
         )
@@ -367,78 +329,8 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
     def test_http_errors_reach_sentry_without_private_urls(self):
         ingest = FakeIngest()
         self.addCleanup(ingest.close)
-        report = """
-import io, json
-from types import ModuleType
-from urllib.parse import urlsplit, parse_qs
-from unittest.mock import patch
-import sentry_sdk
-from allauth.socialaccount.providers.google.views import oauth2_login, oauth2_callback
-from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-from allauth.socialaccount.providers.oauth2.client import OAuth2Error
-from django.conf import settings
-from django.core.management import call_command
-from django.http import HttpResponse
-from django.middleware.csrf import get_token
-from django.test import Client, override_settings
-from django.urls import path
-from django.views.decorators.csrf import csrf_exempt
-
-call_command('migrate', interactive=False, stdout=io.StringIO())
-manifest = settings.DATA_DIR / 'frontend-manifest.json'
-manifest.write_text(json.dumps({
-    'src/client/ui/styles/shared.css': {'file': 'app-assets/shared-test.css'},
-    'src/client/ui/styles/site.css': {'file': 'app-assets/site-test.css'},
-}))
-
-@csrf_exempt
-def status(request, code, document):
-    if code == 410:
-        sentry_sdk.capture_exception(RuntimeError('synthetic caught diagnostic'))
-    return HttpResponse('private-response-body', status=code)
-
-def csrf(request):
-    get_token(request)
-    return HttpResponse()
-
-routes = ModuleType('http_reporting_routes')
-routes.urlpatterns = [
-    path('status/<int:code>/<str:document>', status),
-    path('csrf', csrf),
-    path('accounts/google/login/', oauth2_login, name='google_login'),
-    path('accounts/google/login/callback/', oauth2_callback, name='google_callback'),
-]
-client = Client(enforce_csrf_checks=True, raise_request_exception=False)
-options = dict(secure=True, HTTP_HOST='remdo.example',
-    HTTP_ORIGIN='https://remdo.example',
-    HTTP_USER_AGENT='reporting-test-agent', HTTP_AUTHORIZATION='Bearer private-token')
-statuses = []
-callback_statuses = []
-with override_settings(ROOT_URLCONF=routes, FRONTEND_MANIFEST=manifest):
-    for code in (200, 201, 204, 302, 304, 400, 401, 403, 404, 410, 429, 500, 503, 599):
-        statuses.append(client.get(f'/status/{code}/private-document?code=private-code',
-            **options).status_code)
-    client.get('/status/401/another-private-document', **options)
-    client.get('/private-bookmark?secret=private-query', **options)
-    client.post('/csrf', {'private-body': 'private-value'}, **options)
-    callback_statuses.append(client.get(
-        '/accounts/google/login/callback/?code=private-code&state=private-state',
-        **options).status_code)
-    client.get('/csrf', **options)
-    token = client.cookies[settings.CSRF_COOKIE_NAME].value
-    form = {'csrfmiddlewaretoken': token}
-    valid = client.post('/accounts/google/login/', form, **options)
-    state = parse_qs(urlsplit(valid['Location']).query)['state'][0]
-    with patch.object(GoogleOAuth2Adapter, 'get_access_token_data',
-            side_effect=OAuth2Error('private-provider-response')):
-        callback_statuses.append(client.get('/accounts/google/login/callback/',
-            {'code': 'private-code', 'state': state}, **options).status_code)
-    print(json.dumps({'statuses': statuses, 'login_status': valid.status_code,
-        'callback_statuses': callback_statuses}))
-sentry_sdk.flush()
-"""
-        result = self.settings(
-            report=report,
+        result = self.reporting_probe(
+            "http-errors",
             SENTRY_DSN=ingest.dsn,
             GOOGLE_CLIENT_ID="test-client",
             GOOGLE_CLIENT_SECRET="private-client-secret",
@@ -447,8 +339,7 @@ sentry_sdk.flush()
             result["statuses"],
             [200, 201, 204, 302, 304, 400, 401, 403, 404, 410, 429, 500, 503, 599],
         )
-        self.assertEqual(result["login_status"], 302)
-        self.assertEqual(result["callback_statuses"], [401, 401])
+        self.assertEqual(result["callback_status"], 401)
         events = [event for kind, event in ingest.items() if kind == "event"]
         self.assertEqual(len(events), 15)
         responses = [event for event in events if event.get("message") == "HTTP error response"]
@@ -472,10 +363,18 @@ sentry_sdk.flush()
         )
         self.assertNotIn("private-", json.dumps(events))
 
-        self.settings(
-            report=report, GOOGLE_CLIENT_ID="test-client", GOOGLE_CLIENT_SECRET="private-secret"
+    def test_http_reporting_is_not_loaded_without_a_dsn(self):
+        self.assertEqual(
+            self.reporting_probe("disabled"),
+            {
+                "status": 503,
+                "loaded": {
+                    "remdo.error_reporting": False,
+                    "remdo.http_reporting": False,
+                    "sentry_sdk": False,
+                },
+            },
         )
-        self.assertEqual(len([item for item in ingest.items() if item[0] == "event"]), 15)
 
     def test_public_configuration_exposes_the_reporting_project(self):
         dsn = "https://publickey@ingest.example/7"

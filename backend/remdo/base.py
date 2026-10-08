@@ -65,7 +65,6 @@ INSTALLED_APPS = [
     "documents",
 ]
 MIDDLEWARE = [
-    "remdo.http_reporting.HttpErrorReportingMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -75,6 +74,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+if SENTRY_DSN:
+    MIDDLEWARE.insert(0, "remdo.http_reporting.HttpErrorReportingMiddleware")
 ROOT_URLCONF = "remdo.urls"
 TEMPLATES = [
     {
