@@ -605,6 +605,8 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.assertContains(response, "?method=password&amp;next=/admin/")
         self.assertNotContains(response, "Successfully signed in")
         self.assertIsNone(User.objects.get(email="alice@example.test").last_login)
+        self.assertNotIn("account_login", self.client.session)
+        self.assertNotIn("account_authentication_methods", self.client.session)
         self.assertIsNone(self.session_email())
         response = self.post(
             "/accounts/login/?method=password",
@@ -735,6 +737,16 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["data"]["user"]["is_staff"])
+
+    def test_administrator_signs_in_with_a_password_typed_in_another_letter_case(self):
+        self.account(is_staff=True)
+
+        response = self.post(
+            "/accounts/login/?method=password",
+            {"login": "ALICE@Example.test", "password": self.PASSWORD},
+        )
+
+        self.assertTemplateUsed(response, "accounts/login_complete.html")
 
     def test_superuser_without_staff_status_cannot_sign_in_with_a_code(self):
         self.account(is_superuser=True)
