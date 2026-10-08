@@ -106,8 +106,7 @@ confirm_email_code = never_cache(
 @email_signup_only
 @require_POST
 def cancel_confirmation(request):
-    # The code pages post their cancel button to the logout route. A signed-in
-    # user leaves through the app's own sign-out flow instead.
+    # The code pages post their cancel button to the logout route.
     if request.user.is_authenticated:
         return redirect("/sign-out/")
     request.session.flush()

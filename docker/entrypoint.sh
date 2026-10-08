@@ -103,11 +103,11 @@ for attempt in range(100):
 else:
     raise SystemExit("Django did not become ready.")
 PYREADY
-start_child collaboration env -u AUTH_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET \
+start_child collaboration env -u AUTH_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET -u EMAIL_HOST_PASSWORD \
   node ${collaboration_heap_mb:+"--max-old-space-size=${collaboration_heap_mb}"} /app/collaboration.mjs
-start_child mcp env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET \
+start_child mcp env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET -u EMAIL_HOST_PASSWORD \
   node ${mcp_heap_mb:+"--max-old-space-size=${mcp_heap_mb}"} /app/mcp.mjs
-start_child caddy env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u GOOGLE_CLIENT_SECRET \
+start_child caddy env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u GOOGLE_CLIENT_SECRET -u EMAIL_HOST_PASSWORD \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 
 while :; do

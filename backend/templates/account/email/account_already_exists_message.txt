@@ -2,7 +2,7 @@
 
 {% block content %}{% autoescape off %}You are receiving this email because you or someone else tried to sign up for RemDo with {{ email }}, which already has an account.
 
-If it was you, sign in with an emailed code at:
+If it was you, sign in at:
 
 {{ login_url }}
 
