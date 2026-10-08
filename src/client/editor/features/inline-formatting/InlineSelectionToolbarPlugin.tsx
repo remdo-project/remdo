@@ -1,5 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $addUpdateTag, $onUpdate, COMMAND_PRIORITY_LOW, HISTORY_PUSH_TAG, IS_APPLE, KEY_DOWN_COMMAND, SET_TEXT_FORMAT_COMMAND } from 'lexical';
+import { $addUpdateTag, $onUpdate, COMMAND_PRIORITY_LOW, CONTROL_OR_META, HISTORY_PUSH_TAG, IS_APPLE, isExactShortcutMatch, KEY_DOWN_COMMAND, SET_TEXT_FORMAT_COMMAND } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -22,7 +22,7 @@ interface ToolbarView {
 function ownsNativeRange(root: HTMLElement): boolean {
   const doc = root.ownerDocument;
   const selection = doc.getSelection();
-  return root.contains(doc.activeElement) && root.contains(selection?.anchorNode ?? null)
+  return doc.hasFocus() && root.contains(doc.activeElement) && root.contains(selection?.anchorNode ?? null)
     && root.contains(selection?.focusNode ?? null);
 }
 
@@ -30,8 +30,7 @@ export function InlineSelectionToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
   const coarse = useCoarsePointer();
   useEffect(() => editor.registerCommand(KEY_DOWN_COMMAND, event => {
-    if (event.key.toLowerCase() !== 'e' || event.altKey || event.shiftKey || event.isComposing
-      || event.metaKey !== IS_APPLE || event.ctrlKey === IS_APPLE) return false;
+    if (event.isComposing || !isExactShortcutMatch(event, 'e', CONTROL_OR_META)) return false;
     const root = editor.getRootElement();
     if (!root || !ownsNativeRange(root)) return false;
     const target = $readInlineFormatTarget(editor);
@@ -98,16 +97,17 @@ function FinePointerToolbar() {
       frame = win.requestAnimationFrame(refresh);
     };
     scheduleRef.current = schedule;
-    const pointerDown = (event: PointerEvent) => {
+    const pointerDown = (event: MouseEvent) => {
       if (event.button !== 0 || toolbarRef.current?.contains(event.target as Node)) return;
       pointerRef.current = true;
       hide();
     };
-    const pointerEnd = (event: PointerEvent) => {
-      if (event.type === 'pointerup' && event.button !== 0) return;
+    const pointerEnd = (event: MouseEvent) => {
+      if (event.type !== 'pointercancel' && event.button !== 0) return;
       pointerRef.current = false;
       schedule();
     };
+    const blur = () => { pointerRef.current = false; hide(); };
     const compositionStart = () => { composingRef.current = true; hide(); };
     const compositionEnd = () => { composingRef.current = false; schedule(); };
     const resizeObserver = new ResizeObserver(schedule);
@@ -135,11 +135,16 @@ function FinePointerToolbar() {
     doc.addEventListener('pointerdown', pointerDown, true);
     doc.addEventListener('pointerup', pointerEnd, true);
     doc.addEventListener('pointercancel', pointerEnd, true);
+    // Mouse events report each button change when chorded pointer events report only motion.
+    doc.addEventListener('mousedown', pointerDown, true);
+    doc.addEventListener('mouseup', pointerEnd, true);
     doc.addEventListener('selectionchange', schedule);
     doc.addEventListener('focusin', schedule);
     doc.addEventListener('focusout', schedule);
     doc.addEventListener('scroll', schedule, true);
     win.addEventListener('resize', schedule);
+    win.addEventListener('blur', blur);
+    win.addEventListener('focus', schedule);
     win.visualViewport?.addEventListener('resize', schedule);
     win.visualViewport?.addEventListener('scroll', schedule);
     return () => {
@@ -153,11 +158,15 @@ function FinePointerToolbar() {
       doc.removeEventListener('pointerdown', pointerDown, true);
       doc.removeEventListener('pointerup', pointerEnd, true);
       doc.removeEventListener('pointercancel', pointerEnd, true);
+      doc.removeEventListener('mousedown', pointerDown, true);
+      doc.removeEventListener('mouseup', pointerEnd, true);
       doc.removeEventListener('selectionchange', schedule);
       doc.removeEventListener('focusin', schedule);
       doc.removeEventListener('focusout', schedule);
       doc.removeEventListener('scroll', schedule, true);
       win.removeEventListener('resize', schedule);
+      win.removeEventListener('blur', blur);
+      win.removeEventListener('focus', schedule);
       win.visualViewport?.removeEventListener('resize', schedule);
       win.visualViewport?.removeEventListener('scroll', schedule);
     };

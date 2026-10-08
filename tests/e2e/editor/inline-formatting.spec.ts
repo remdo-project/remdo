@@ -7,6 +7,9 @@ import { datePickerPanel, editorLocator, homeZoomBreadcrumb, noteRow, selectInli
 import { ensureReady, waitForSynced } from '#editor/bridge';
 import { createEditorDocumentPath } from './_support/routes';
 
+// The headless shell keeps each tab focused; full Chromium exposes native tab focus.
+test.use({ channel: 'chromium', permissions: ['local-network-access'] });
+
 const toolbar = (page: Page) => page.getByRole('toolbar', { name: 'Text formatting' });
 const input = (page: Page) => editorLocator(page).locator('.editor-input');
 const selectedText = (page: Page) => page.evaluate(() => document.getSelection()!.toString());
@@ -206,6 +209,12 @@ for (const mac of [false, true]) {
       await input(page).dispatchEvent('keydown', { key: 'e', ...modifiers });
       await expect(code).toHaveAttribute('aria-pressed', 'false');
     }
+    await input(page).dispatchEvent('keydown', { key: 'q', code: 'KeyE', metaKey: mac, ctrlKey: !mac });
+    await expect(code).toHaveAttribute('aria-pressed', 'false');
+    await input(page).dispatchEvent('keydown', { key: 'у', code: 'KeyE', metaKey: mac, ctrlKey: !mac });
+    await expect(code).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press(`${keys[0] === '⌘' ? 'Meta' : 'Control'}+${keys[1]}`);
+    await expect(code).toHaveAttribute('aria-pressed', 'false');
     await page.keyboard.press(`${keys[0] === '⌘' ? 'Meta' : 'Control'}+${keys[1]}`);
     await expect(code).toHaveAttribute('aria-pressed', 'true');
     await expect(noteRow(page, 'note1').locator('.text-code')).toHaveText('ote');
@@ -327,6 +336,23 @@ test('waits for primary drag settlement and completed button clicks, and cancels
   await page.mouse.down({ button: 'right' });
   await expect(toolbar(page)).toBeVisible();
   await page.mouse.up({ button: 'right' });
+  await page.mouse.down();
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.up();
+  await page.mouse.up({ button: 'right' });
+  await page.keyboard.press('ControlOrMeta+a');
+  await expect(toolbar(page)).toBeVisible();
+  await setCaretAtText(page, 'select these words', 0);
+  await page.mouse.move(box.x + 2, box.y + box.height / 2);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2, { steps: 8 });
+  await expect.poll(() => selectedText(page)).not.toBe('');
+  await expect(toolbar(page)).toHaveCount(0);
+  await page.mouse.up({ button: 'right' });
+  await expect(toolbar(page)).toHaveCount(0);
+  await page.mouse.up();
+  await expect(toolbar(page)).toBeVisible();
   const bold = toolbar(page).getByRole('button', { name: 'Bold', exact: true });
   await bold.hover();
   await page.mouse.down();
@@ -336,6 +362,31 @@ test('waits for primary drag settlement and completed button clicks, and cancels
   await expect(text).not.toHaveClass(/text-bold/u);
   await bold.click();
   await expect(noteRow(page, 'select these words').locator('.text-bold')).not.toHaveCount(0);
+});
+
+test('recovers a settled selection after window focus leaves during a primary press', async ({ page, editor }) => {
+  // Playwright emulates focus on every tab; disable it for this native blur/refocus flow.
+  const session = await page.context().newCDPSession(page);
+  await session.send('Emulation.setFocusEmulationEnabled', { enabled: false });
+  await page.bringToFront();
+  await editor.load('flat');
+  await selectInlineRange(page, 'note1', 0, 5);
+  const box = (await noteRow(page, 'note1').boundingBox())!;
+  await page.mouse.move(box.x + 20, box.y + box.height / 2);
+  await page.mouse.down();
+  const other = await page.context().newPage();
+  const otherSession = await page.context().newCDPSession(other);
+  await otherSession.send('Emulation.setFocusEmulationEnabled', { enabled: false });
+  await other.bringToFront();
+  await other.mouse.click(10, 10);
+  await expect.poll(() => page.evaluate(() => document.hasFocus())).toBe(false);
+  await expect(toolbar(page)).toHaveCount(0);
+  await page.bringToFront();
+  await page.keyboard.press('ControlOrMeta+a');
+  await expect(toolbar(page)).toBeVisible();
+  await expect(input(page)).toBeFocused();
+  await page.mouse.up();
+  await other.close();
 });
 
 test('suppresses the row during composition and while note, link and date popups own interaction', async ({ page, editor }) => {
