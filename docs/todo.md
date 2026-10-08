@@ -117,15 +117,6 @@ Decisions requiring a contract owner's judgement:
   can leave the old primary address usable for login while sharing uses the new
   address. Prefer restricting duplicate writers over adding public email management.
 
-### Email sign-in
-
-- **Unconfirmed signups.** Email signup creates the passwordless account and its
-  starter document before the code is confirmed, so abandoned attempts leave
-  unusable rows. Such a row can also hold a deployment account's address before
-  provisioning, which then skips that account. Add cleanup once they accumulate.
-- **Mail delivery failure.** The code request sends mail inside the request, so
-  a provider failure surfaces as a server error. Decide a visible failure state.
-
 ### Documentation
 
 - **Remaining agent-flow specification alignment.** Reassess [`remdo-verify-change`](specs/agents/skills/remdo-verify-change.md)
