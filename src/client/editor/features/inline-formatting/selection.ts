@@ -56,6 +56,6 @@ export function $readInlineFormatTarget(editor: LexicalEditor): InlineFormatTarg
   })) as FormatStates;
   const points = [selection.anchor, selection.focus].map(({ key, offset, type }) => [key, offset, type]);
   const fingerprint = JSON.stringify([region.getKey(), points,
-    slices.map(({ node, start: from, end: to }) => node.getTextContent().slice(from, to))]);
+    slices.map(({ node, start: from, end: to }) => node.getTextContent().slice(from, to)), states]);
   return { fingerprint, states, slices };
 }

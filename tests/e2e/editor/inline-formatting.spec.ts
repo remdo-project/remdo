@@ -312,7 +312,7 @@ test('hides for read-only headings, outside selection and read-only editing', as
   await expect(toolbar(page)).toHaveCount(0);
 });
 
-test('waits for drag settlement and completed button clicks, and cancels an abandoned press', async ({ page, editor }) => {
+test('waits for primary drag settlement and completed button clicks, and cancels an abandoned press', async ({ page, editor }) => {
   await editor.load('flat');
   await label(page, 'select these words');
   const text = noteRow(page, 'select these words').locator('[data-lexical-text=true]');
@@ -323,6 +323,10 @@ test('waits for drag settlement and completed button clicks, and cancels an aban
   await expect(toolbar(page)).toHaveCount(0);
   await page.mouse.up();
   await expect(toolbar(page)).toBeVisible();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down({ button: 'right' });
+  await expect(toolbar(page)).toBeVisible();
+  await page.mouse.up({ button: 'right' });
   const bold = toolbar(page).getByRole('button', { name: 'Bold', exact: true });
   await bold.hover();
   await page.mouse.down();
@@ -415,6 +419,17 @@ test('cancels a changed pressed target and keeps editor interaction safe after r
   await peer.goto(page.url());
   await input(peer).waitFor();
   await ensureReady(peer);
+  await selectInlineRange(page, 'note1', 0, 5);
+  await expect(toolbar(page)).toBeVisible();
+  await toolbar(page).getByRole('button', { name: 'Bold', exact: true }).hover();
+  await page.mouse.down();
+  await selectInlineRange(peer, 'note1', 0, 5);
+  await peer.keyboard.press('ControlOrMeta+b');
+  await expect(noteRow(page, 'note1').locator('.text-bold')).toHaveText('note1');
+  await page.mouse.up();
+  await expect(noteRow(page, 'note1').locator('.text-bold')).toHaveText('note1');
+  await peer.keyboard.press('ControlOrMeta+b');
+  await expect(noteRow(page, 'note1').locator('.text-bold')).toHaveCount(0);
   await selectInlineRange(page, 'note1', 0, 5);
   await expect(toolbar(page)).toBeVisible();
   await toolbar(page).getByRole('button', { name: 'Bold', exact: true }).hover();

@@ -37,18 +37,16 @@ export function InlineSelectionToolbarPlugin() {
     const target = $readInlineFormatTarget(editor);
     if (!target) return false;
     event.preventDefault();
-    $formatInlineSelection(editor, 'code', target.fingerprint);
+    $formatInlineSelection(editor, 'code', target.states);
     return true;
   }, COMMAND_PRIORITY_LOW), [editor]);
   return coarse ? null : <FinePointerToolbar />;
 }
 
-function $formatInlineSelection(editor: LexicalEditor, format: InlineFormat, expected: string) {
-  const target = $readInlineFormatTarget(editor);
-  if (!target || target.fingerprint !== expected) return;
+function $formatInlineSelection(editor: LexicalEditor, format: InlineFormat, states: FormatStates) {
   stopHistoryCapture(editor);
   $addUpdateTag(HISTORY_PUSH_TAG);
-  editor.dispatchCommand(SET_TEXT_FORMAT_COMMAND, { [format]: target.states[format] !== 'all' });
+  editor.dispatchCommand(SET_TEXT_FORMAT_COMMAND, { [format]: states[format] !== 'all' });
   $onUpdate(() => stopHistoryCapture(editor));
 }
 
@@ -101,11 +99,15 @@ function FinePointerToolbar() {
     };
     scheduleRef.current = schedule;
     const pointerDown = (event: PointerEvent) => {
-      if (toolbarRef.current?.contains(event.target as Node)) return;
+      if (event.button !== 0 || toolbarRef.current?.contains(event.target as Node)) return;
       pointerRef.current = true;
       hide();
     };
-    const pointerEnd = () => { pointerRef.current = false; schedule(); };
+    const pointerEnd = (event: PointerEvent) => {
+      if (event.type === 'pointerup' && event.button !== 0) return;
+      pointerRef.current = false;
+      schedule();
+    };
     const compositionStart = () => { composingRef.current = true; hide(); };
     const compositionEnd = () => { composingRef.current = false; schedule(); };
     const resizeObserver = new ResizeObserver(schedule);
@@ -184,7 +186,10 @@ function FinePointerToolbar() {
     activationRef.current = null;
     const root = editor.getRootElement();
     if (root && ownsNativeRange(root) && expected && !pointerRef.current && !composingRef.current) {
-      editor.update(() => $formatInlineSelection(editor, formatType, expected));
+      editor.update(() => {
+        const target = $readInlineFormatTarget(editor);
+        if (target?.fingerprint === expected) $formatInlineSelection(editor, formatType, target.states);
+      });
     }
     scheduleRef.current();
   };
