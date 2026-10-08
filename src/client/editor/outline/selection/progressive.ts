@@ -76,6 +76,17 @@ function $growLadder(
   return { ladder, plan };
 }
 
+function $captureLabelSelection(selection: RangeSelection, itemKey: string): InlineSelectionOrigin | undefined {
+  if (
+    resolveContentItemFromNode(selection.anchor.getNode())?.getKey() !== itemKey
+    || resolveContentItemFromNode(selection.focus.getNode())?.getKey() !== itemKey
+  ) {
+    return undefined;
+  }
+  const capturePoint = ({ key, offset, type }: RangeSelection['anchor']) => ({ key, offset, type });
+  return { anchor: capturePoint(selection.anchor), focus: capturePoint(selection.focus) };
+}
+
 function $resolveProgressionAnchorContent(
   selection: RangeSelection,
   progressionRef: ProgressiveSelectionRef,
@@ -211,39 +222,23 @@ export function $computeDirectionalPlan(
   // Select All leaves the sweep unset, so the first arrow grows either way.
   if (isContinuing && sweep !== null && direction !== sweep) {
     const next = popStep(ladder);
-    // The last pop ends the ladder and discards its sweep direction.
-    if (next.stack.length === 0) {
-      progressionRef.current = emptyLadder(anchorKey);
-      if (ladder.entrySelection) {
-        return { restore: ladder.entrySelection, anchorKey };
-      }
-      return { collapse: true };
-    }
     const plan = $replayLadder(anchorContent, next.stack, boundaryReplayKey);
     if (!plan) {
       progressionRef.current = emptyLadder(anchorKey);
+      // Nothing structural left to replay: the stack is empty, or holds only the
+      // inline rung of an empty label.
+      if (ladder.entrySelection && !ladderHasStructuralRung(next)) {
+        return { restore: ladder.entrySelection, anchorKey };
+      }
       return { collapse: true };
     }
     progressionRef.current = next;
     return { plan };
   }
 
-  if (
-    !isContinuing
-    && resolveContentItemFromNode(selection.anchor.getNode())?.getKey() === anchorKey
-    && resolveContentItemFromNode(selection.focus.getNode())?.getKey() === anchorKey
-  ) {
-    const capturePoint = ({ key, offset, type }: RangeSelection['anchor']) => ({ key, offset, type });
-    progressionRef.current = {
-      anchorKey,
-      stack: [{ kind: 'subtree' }],
-      direction,
-      entrySelection: { anchor: capturePoint(selection.anchor), focus: capturePoint(selection.focus) },
-    };
-    return { plan: $createSubtreePlan(anchorContent) };
-  }
-
-  const base = isContinuing ? ladder : emptyLadder(anchorKey);
+  const base = isContinuing
+    ? ladder
+    : { ...emptyLadder(anchorKey), entrySelection: $captureLabelSelection(selection, anchorKey) };
   const { ladder: next, plan } = $growLadder(base, anchorContent, direction, boundaryReplayKey);
 
   if (!plan) {
