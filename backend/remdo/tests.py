@@ -287,6 +287,9 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
             DJANGO_SETTINGS_MODULE="remdo.development", EMAIL_BACKEND=smtp, **mail
         )
         self.assertEqual(sending["email_backend"], "smtp")
+        testing = self.settings(DJANGO_SETTINGS_MODULE="remdo.testing", EMAIL_BACKEND=smtp, **mail)
+        self.assertEqual(testing["email_backend"], "console")
+        self.assertFalse(testing["email_signup"][0])
 
     def test_native_management_defaults_to_production_without_node(self):
         result = self.settings(NODE_ENV="development")
