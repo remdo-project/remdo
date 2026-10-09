@@ -98,6 +98,17 @@ normal account administration.
 The reset revokes the stable users' sessions. It preserves unrelated local users
 and their data. Deleting the old documents also deletes their persisted content.
 
+## Package the OpenAI Plugin
+
+Edit the [plugin sources](../../plugins/openai/), then build the [OpenAI plugin](../specs/integrations/openai-plugin.md):
+
+```sh
+pnpm run dev:openai-plugin
+```
+
+The ZIP is `plugins/openai/dist/remdo-openai-<version>.zip`, using the manifest
+version. Follow [OpenAI's submission instructions](https://developers.openai.com/plugins/deploy/submission) to upload it.
+
 ## Run Local Docker
 
 Local Docker runs the production frontend build, including its service worker,

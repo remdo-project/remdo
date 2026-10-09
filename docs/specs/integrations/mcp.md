@@ -15,6 +15,8 @@ descriptively titled document, and read a document before extending or relying
 on it. The append tool's description repeats the outline guidance because some
 clients ignore server guidance.
 
+The [OpenAI plugin](openai-plugin.md) distributes the hosted MCP connection for ChatGPT and Codex.
+
 ## Tools
 
 The server exposes tools that list, create, and rename the user's documents,

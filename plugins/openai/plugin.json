@@ -1,0 +1,47 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "remdo",
+  "version": "0.1.0",
+  "description": "Use RemDo notes and documents in ChatGPT and Codex.",
+  "author": {
+    "name": "Piotr Lewalski",
+    "email": "piotr@remdo.com",
+    "url": "https://remdo.com"
+  },
+  "homepage": "https://remdo.com",
+  "repository": "https://github.com/remdo-project/remdo",
+  "license": "MIT",
+  "keywords": [
+    "notes",
+    "outliner",
+    "knowledge",
+    "productivity"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "RemDo",
+        "shortDescription": "Read and write your notes",
+        "longDescription": "Connect ChatGPT and Codex to RemDo to list, read, create, rename, and extend documents and notes. Save conversations as outlines and summarize existing documents. A RemDo account is required; the connection accesses only documents available to your account.",
+        "developerName": "RemDo",
+        "category": "Productivity",
+        "capabilities": [
+          "Read RemDo documents",
+          "Create and update RemDo documents"
+        ],
+        "websiteURL": "https://remdo.com",
+        "privacyPolicyURL": "https://remdo.com/privacy/",
+        "termsOfServiceURL": "https://remdo.com/terms/",
+        "brandColor": "#17151F",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png",
+        "supportURL": "https://remdo.com/support/",
+        "defaultPrompt": [
+          "List my RemDo documents.",
+          "Save this conversation as a new RemDo outline.",
+          "Summarize one of my RemDo documents."
+        ]
+      }
+    }
+  }
+}
