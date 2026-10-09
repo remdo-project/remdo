@@ -13,6 +13,7 @@ import { parseDocumentRef } from '#document-routes';
 import { withHeadlessOpenDocument } from '../headless/open-document';
 import { renderOutline } from './outline';
 import { createDocumentSlots } from './document-slots';
+import { AuthorizationError } from '#platform/net/authorization-error';
 
 interface ServerOptions {
   /** The loopback origin this server listens on. */
@@ -54,7 +55,10 @@ const idempotentOverwrite = { readOnlyHint: false, destructiveHint: true, idempo
 
 const oauthSecuritySchemes = [{ type: 'oauth2', scopes: ['openid'] }];
 
-class AuthorizationError extends Error {}
+function needsReconnection(error: unknown): boolean {
+  if (error instanceof AuthorizationError) return true;
+  return error instanceof Error && needsReconnection(error.cause);
+}
 
 // The Claude connector directory reads annotations.title; newer clients read the tool's own title.
 function titled(title: string, annotations: ToolAnnotations) {
@@ -108,24 +112,16 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
   const documentUrl = (documentId: string, noteId?: string) =>
     new URL(`/n/${noteId ? `${documentId}_${noteId}` : documentId}`, appOrigin).href;
 
-  function checkAuthorization(authorization: string) {
-    return requestDjango(new URL('/api/mcp/current-user', apiOrigin), {
-      headers: { Authorization: authorization, Host: host },
-      signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
-    }).catch(() => null);
-  }
-
-  async function respond(authorization: string, run: () => Promise<unknown>): Promise<CallToolResult> {
+  async function respond(run: () => Promise<unknown>): Promise<CallToolResult> {
     try {
       const result = await run();
       return { content: [{ type: 'text', text: typeof result === 'string' ? result : JSON.stringify(result) }] };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'The operation failed.';
-      const unauthorized = error instanceof AuthorizationError || (await checkAuthorization(authorization))?.status === 401;
       return {
         isError: true,
         content: [{ type: 'text', text: message }],
-        ...(unauthorized ? {
+        ...(needsReconnection(error) ? {
           _meta: {
             'mcp/www_authenticate': [
               `Bearer resource_metadata="${resourceMetadata}", error="invalid_token", error_description="Reconnect RemDo."`,
@@ -174,7 +170,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     server.registerTool('list_documents', {
       ...titled('List documents', readOnly),
       description: 'List the RemDo documents the user can access, with their documentIds and URLs.',
-    }, () => respond(authorization, async () => {
+    }, () => respond(async () => {
       const documents = await callApi(authorization, '/api/documents') as Array<{ id: string; title: string }>;
       return documents.map(({ id, title }) => ({ documentId: id, title, url: documentUrl(id) }));
     }));
@@ -184,7 +180,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       description: 'Create an empty RemDo document owned by the user and return its documentId and URL. '
         + 'Each call creates a new document, including retries.',
       inputSchema: { title: z.string().describe('Document title.') },
-    }, ({ title }) => respond(authorization, async () => {
+    }, ({ title }) => respond(async () => {
       const { id } = await callApi(authorization, '/api/documents', 'POST', { title }) as { id: string };
       return { documentId: id, title, url: documentUrl(id) };
     }));
@@ -196,7 +192,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
         documentId: z.string().describe('A documentId.'),
         title: z.string().describe('The new document title.'),
       },
-    }, ({ documentId: input, title }) => respond(authorization, async () => {
+    }, ({ documentId: input, title }) => respond(async () => {
       const ref = parseDocumentRef(input);
       if (!ref || ref.noteId) throw new Error('The documentId is not valid.');
       const documentId = ref.docId;
@@ -217,7 +213,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
           + 'A note on the last level reports how many children it hides. Defaults to every level.',
         ),
       },
-    }, ({ target, depth }) => respond(authorization, async () => {
+    }, ({ target, depth }) => respond(async () => {
       const ref = parseDocumentRef(target);
       if (!ref) throw new Error('The target is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
@@ -240,7 +236,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
         parent: z.string().describe('A documentId or a noteAddress.'),
         notes: z.array(newNote).describe(`At most ${MAX_APPENDED_NOTES} notes, counting nested children.`),
       },
-    }, ({ parent, notes }) => respond(authorization, async () => {
+    }, ({ parent, notes }) => respond(async () => {
       if (countNotes(notes) > MAX_APPENDED_NOTES) {
         throw new Error(`Append at most ${MAX_APPENDED_NOTES} notes per call, counting nested children; `
           + 'split the outline across calls.');
@@ -261,7 +257,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
         noteAddress: z.string().describe('A noteAddress.'),
         listType: listTypeSchema.describe('The list type of the note\'s children.'),
       },
-    }, ({ noteAddress, listType }) => respond(authorization, async () => {
+    }, ({ noteAddress, listType }) => respond(async () => {
       const ref = parseDocumentRef(noteAddress);
       if (!ref?.noteId) throw new Error('The noteAddress is not valid.');
       const { docId: documentId, noteId } = ref;
@@ -284,7 +280,10 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       challenge(response, false);
       return;
     }
-    const check = await checkAuthorization(authorization);
+    const check = await requestDjango(new URL('/api/mcp/current-user', apiOrigin), {
+      headers: { Authorization: authorization, Host: host },
+      signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
+    }).catch(() => null);
     if (check?.status === 401) {
       challenge(response, true);
       return;
