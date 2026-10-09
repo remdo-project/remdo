@@ -423,9 +423,10 @@ it.each([
     });
     const data = (await response.text()).split('\n').find((line) => line.startsWith('data: '))!;
     const { result } = JSON.parse(data.slice(6)) as { result: unknown };
+    const reason = status === 401 ? 'RemDo no longer accepts this authorization. Reconnect RemDo.' : 'Document access denied.';
     const failure = {
       isError: true,
-      content: [{ type: 'text', text: 'Failed to connect to collaboration server: Document access denied.' }],
+      content: [{ type: 'text', text: `Failed to connect to collaboration server: ${reason}` }],
     };
     expect(result).toEqual(status === 401 ? {
       ...failure,

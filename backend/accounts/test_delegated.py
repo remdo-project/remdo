@@ -182,6 +182,9 @@ class DelegatedAccessTests(TestCase):
         rejected = self.documents("not-a-token")
         self.assertEqual(rejected.status_code, 401)
         self.assertEqual(rejected["WWW-Authenticate"], "Bearer")
+        rejected = self.authorize_collaboration("not-a-token", own)
+        self.assertEqual(rejected.status_code, 401)
+        self.assertEqual(rejected["WWW-Authenticate"], "Bearer")
 
     def test_native_clients_redirect_to_any_localhost_port(self):
         tokens = self.grant("http://localhost:53682/callback")
@@ -300,7 +303,9 @@ class DelegatedAccessTests(TestCase):
         self.client.logout()
         own = Document.objects.get(owner=self.user)
         self.assertEqual(self.documents(tokens["access_token"]).status_code, 401)
-        self.assertEqual(self.authorize_collaboration(tokens["access_token"], own).status_code, 403)
+        rejected = self.authorize_collaboration(tokens["access_token"], own)
+        self.assertEqual(rejected.status_code, 401)
+        self.assertEqual(rejected["WWW-Authenticate"], "Bearer")
         self.assertEqual(self.refresh(tokens["refresh_token"]).status_code, 400)
 
 
