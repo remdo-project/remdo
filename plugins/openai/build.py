@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path, PurePosixPath
-from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
+from zipfile import ZipFile, ZipInfo
 
 PLUGIN = Path(__file__).resolve().parent
 
@@ -33,7 +33,7 @@ def main():
             entry = ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
             entry.create_system = 3
             entry.external_attr = 0o100644 << 16
-            archive.writestr(entry, content, compress_type=ZIP_DEFLATED)
+            archive.writestr(entry, content)
 
     print(f"Built {output} ({len(files)} files)")
 

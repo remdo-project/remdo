@@ -3,8 +3,8 @@
   "vite": true,
   "vitest": true,
   "playwright": true,
-  // uv is the system-installed Python toolchain, not an npm dependency.
-  "ignoreBinaries": ["uv"],
+  // Python and uv are system-installed toolchains, not npm dependencies.
+  "ignoreBinaries": ["python3", "uv"],
   "ignoreUnresolved": [
     // Shell scripts invoked at runtime via spawnSync/execFileSync from specs, not module imports.
     "./tools/env.sh",

@@ -30,7 +30,7 @@ function fixture() {
 }
 
 function runPython(...args: string[]) {
-  return execFileSync('uv', ['run', '--locked', 'python', ...args], {
+  return execFileSync('python3', args, {
     cwd: repoRoot,
     encoding: 'utf8',
   });
@@ -96,7 +96,7 @@ it.each(['./assets/missing.png', './assets/../../private.png'])('refuses a missi
   manifest.extensions['com.openai'].interface.logo = logo;
   writeFileSync(manifestPath, JSON.stringify(manifest));
 
-  const result = spawnSync('uv', ['run', '--locked', 'python', script], { cwd: repoRoot, encoding: 'utf8' });
+  const result = spawnSync('python3', [script], { cwd: repoRoot, encoding: 'utf8' });
   expect(result.status).not.toBe(0);
   expect(readFileSync(output)).toEqual(previous);
 });
@@ -107,7 +107,7 @@ it('fails on a missing shared icon without replacing the last complete ZIP', () 
   const previous = readFileSync(output);
   unlinkSync(icon);
 
-  const result = spawnSync('uv', ['run', '--locked', 'python', script], {
+  const result = spawnSync('python3', [script], {
     cwd: repoRoot,
     encoding: 'utf8',
   });
