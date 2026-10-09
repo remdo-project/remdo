@@ -54,6 +54,8 @@ const idempotentOverwrite = { readOnlyHint: false, destructiveHint: true, idempo
 
 const oauthSecuritySchemes = [{ type: 'oauth2', scopes: ['openid'] }];
 
+class AuthorizationError extends Error {}
+
 // The Claude connector directory reads annotations.title; newer clients read the tool's own title.
 function titled(title: string, annotations: ToolAnnotations) {
   return { title, annotations: { ...annotations, title } };
@@ -99,22 +101,32 @@ function rejection(status: number, body: string): string {
   }
 }
 
-async function respond(run: () => Promise<unknown>): Promise<CallToolResult> {
-  try {
-    const result = await run();
-    return { content: [{ type: 'text', text: typeof result === 'string' ? result : JSON.stringify(result) }] };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'The operation failed.';
-    return { isError: true, content: [{ type: 'text', text: message }] };
-  }
-}
-
 export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }: ServerOptions) {
   const withDocumentSlot = createDocumentSlots(documentSlots);
   const { host, protocol } = new URL(appOrigin);
   const resourceMetadata = new URL('/.well-known/oauth-protected-resource/mcp', appOrigin).href;
   const documentUrl = (documentId: string, noteId?: string) =>
     new URL(`/n/${noteId ? `${documentId}_${noteId}` : documentId}`, appOrigin).href;
+
+  async function respond(run: () => Promise<unknown>): Promise<CallToolResult> {
+    try {
+      const result = await run();
+      return { content: [{ type: 'text', text: typeof result === 'string' ? result : JSON.stringify(result) }] };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'The operation failed.';
+      return {
+        isError: true,
+        content: [{ type: 'text', text: message }],
+        ...(error instanceof AuthorizationError ? {
+          _meta: {
+            'mcp/www_authenticate': [
+              `Bearer resource_metadata="${resourceMetadata}", error="invalid_token", error_description="Reconnect RemDo."`,
+            ],
+          },
+        } : {}),
+      };
+    }
+  }
 
   async function callApi(authorization: string, path: string, method = 'GET', body?: unknown) {
     const response = await requestDjango(new URL(path, apiOrigin), {
@@ -132,7 +144,10 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       const unconfirmed = method !== 'GET' && (error as NodeJS.ErrnoException).code !== 'ECONNREFUSED';
       throw new Error(unconfirmed ? UNCONFIRMED : UNAVAILABLE);
     });
-    if (!response.ok) throw new Error(rejection(response.status, response.body.toString()));
+    if (!response.ok) {
+      const ErrorType = response.status === 401 ? AuthorizationError : Error;
+      throw new ErrorType(rejection(response.status, response.body.toString()));
+    }
     return JSON.parse(response.body.toString()) as unknown;
   }
 
@@ -158,7 +173,8 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
 
     server.registerTool('create_document', {
       ...titled('Create document', additiveWrite),
-      description: 'Create a RemDo document owned by the user and return its documentId.',
+      description: 'Create an empty RemDo document owned by the user and return its documentId and URL. '
+        + 'Each call creates a new document, including retries.',
       inputSchema: { title: z.string().describe('Document title.') },
     }, ({ title }) => respond(async () => {
       const { id } = await callApi(authorization, '/api/documents', 'POST', { title }) as { id: string };
@@ -211,7 +227,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       ...titled('Append notes', additiveWrite),
       description: 'Append notes as the last children of a note (by noteAddress) '
         + 'or as the last top-level notes of a document (by documentId). Write an outline: short topic titles '
-        + 'at the top level, supporting details nested beneath.',
+        + 'at the top level, supporting details nested beneath. Each call adds new notes, including retries.',
       inputSchema: {
         parent: z.string().describe('A documentId or a noteAddress.'),
         notes: z.array(newNote).describe(`At most ${MAX_APPENDED_NOTES} notes, counting nested children.`),

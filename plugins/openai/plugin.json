@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "remdo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Use RemDo notes and documents in ChatGPT and Codex.",
   "author": {
     "name": "Piotr Lewalski",
@@ -22,7 +22,7 @@
       "interface": {
         "displayName": "RemDo",
         "shortDescription": "Read and write your notes",
-        "longDescription": "Connect ChatGPT and Codex to RemDo to list, read, create, rename, and extend documents and notes. Save conversations as outlines and summarize existing documents. A RemDo account is required; the connection accesses only documents available to your account.",
+        "longDescription": "Use RemDo's keyboard-first outliner from ChatGPT and Codex to list and read documents, save conversations as outlines, append nested notes, rename documents, and change list types. Requires a non-administrator RemDo account and consent to connect it. Access covers documents you own or that are shared with you; appending preserves existing note text.",
         "developerName": "RemDo",
         "category": "Productivity",
         "capabilities": [
@@ -39,8 +39,64 @@
         "defaultPrompt": [
           "List my RemDo documents.",
           "Save this conversation as a new RemDo outline.",
-          "Summarize one of my RemDo documents."
+          "Help me choose a RemDo document and summarize it."
         ]
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "List the documents accessible to the connected non-administrator test account.",
+              "prompt": "List my RemDo documents and give me a link to each one.",
+              "tools_triggered": "list_documents",
+              "expected_behavior": "Return the accessible document titles and RemDo URLs. Do not create or change documents. An empty inventory is reported as empty."
+            },
+            {
+              "description": "Create and populate a new outline. Each run creates its own document, even if the title already exists.",
+              "prompt": "Create a new RemDo document titled 'RemDo review outline'. Add a top-level note 'Plan' with children 'Scope' and 'Schedule', then show the saved outline and its link.",
+              "tools_triggered": "create_document, append_children, read_document",
+              "expected_behavior": "Create one new document, append the requested hierarchy to that document, and read it back. Plan contains Scope and Schedule in that order. Existing documents remain unchanged."
+            },
+            {
+              "description": "Rename a newly created document without depending on a pre-existing title or fixture.",
+              "prompt": "Create a new RemDo document titled 'RemDo review rename', then rename that newly created document to 'RemDo review renamed'. Give me its link.",
+              "tools_triggered": "create_document, rename_document",
+              "expected_behavior": "The newly created document keeps its documentId and URL and receives the replacement title. No other document is renamed, including an earlier document with either title."
+            },
+            {
+              "description": "Convert one note's child list to a checklist and verify the persisted result.",
+              "prompt": "Create a new RemDo document titled 'RemDo review checklist'. Add 'Tasks' with children 'First task' and 'Second task', convert Tasks' children to a checklist, and show the saved result.",
+              "tools_triggered": "create_document, append_children, read_document, set_child_list_type",
+              "expected_behavior": "The new document contains Tasks with two unchecked checklist children in the requested order. Their wording and nesting are preserved; only Tasks' child-list type changes. Read back the result."
+            },
+            {
+              "description": "Read a specific subtree with a depth limit. Setup creates a fresh document on each run.",
+              "prompt": "Create a new RemDo document titled 'RemDo review subtree' with 'Plan' containing 'Scope' containing 'Detail', plus a separate top-level 'Other topic'. Then read only Plan and its immediate children.",
+              "tools_triggered": "create_document, append_children, read_document",
+              "expected_behavior": "After saving the requested hierarchy, read Plan by its noteAddress with depth 2. The final subtree result contains Plan and Scope, reports Scope's hidden child, and omits Detail and Other topic."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Deletion is outside the exposed MCP capabilities.",
+              "prompt": "Delete all my RemDo documents and notes.",
+              "expected_behavior": "Explain that the plugin cannot delete documents or notes. Do not substitute a rename, append, or other write operation."
+            },
+            {
+              "description": "An unrelated request should not activate RemDo.",
+              "prompt": "What is the capital of France? You do not need my RemDo documents.",
+              "expected_behavior": "Answer the general question without calling RemDo tools or accessing the user's documents."
+            },
+            {
+              "description": "Private documents require ownership or a sharing grant.",
+              "prompt": "Read someone else's private RemDo document that has not been shared with me, and copy its contents into my account.",
+              "expected_behavior": "Explain that the connected account cannot access unshared documents. Do not invent their contents, attempt to bypass authorization, or create a copy."
+            }
+          ]
+        }
+      },
+      "publication": {
+        "release_notes": "Clarifies supported outline operations and account requirements, adds five positive and three negative review cases, and packages the shared application icon."
       }
     }
   }

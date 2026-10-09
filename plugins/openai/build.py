@@ -1,7 +1,7 @@
 """Build the RemDo OpenAI plugin ZIP from this directory's sources."""
 
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 PLUGIN = Path(__file__).resolve().parent
@@ -12,9 +12,18 @@ def main():
     files = {
         "plugin.json": (PLUGIN / "plugin.json").read_bytes(),
         "mcp.json": (PLUGIN / "mcp.json").read_bytes(),
-        "assets/icon.png": (PLUGIN / "assets" / "icon.png").read_bytes(),
         "LICENSE": (PLUGIN / "LICENSE").read_bytes(),
     }
+    interface = manifest["extensions"]["com.openai"]["interface"]
+    assets = [interface["composerIcon"], interface["logo"]]
+    assets += [interface[field] for field in ("composerIconDark", "logoDark") if field in interface]
+    assets += interface.get("screenshots", [])
+    for asset in assets:
+        path = PurePosixPath(asset)
+        if not asset.startswith("./assets/") or ".." in path.parts or "\\" in asset:
+            raise ValueError("Branding assets must use ./assets/ paths without traversal.")
+        files[path.as_posix()] = (PLUGIN / path).read_bytes()
+
     output = PLUGIN / "dist" / f"{manifest['name']}-openai-{manifest['version']}.zip"
     output.parent.mkdir(parents=True, exist_ok=True)
 

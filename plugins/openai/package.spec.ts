@@ -70,6 +70,37 @@ it('packages changes to the shared app icon without updating plugin sources', ()
   expect(readFileSync(join(extracted, 'assets/icon.png'))).toEqual(updated);
 });
 
+it('includes the branding assets referenced by the manifest', () => {
+  const { root, script, output } = fixture();
+  const logo = readFileSync(join(repoRoot, 'public/icon-512.png'));
+  writeFileSync(join(root, 'assets/listing.png'), logo);
+  const manifestPath = join(root, 'plugin.json');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  manifest.extensions['com.openai'].interface.logo = './assets/listing.png';
+  writeFileSync(manifestPath, JSON.stringify(manifest));
+  runPython(script);
+
+  const extracted = join(root, 'extracted');
+  runPython('-m', 'zipfile', '-e', output, extracted);
+  expect(readFileSync(join(extracted, 'assets/listing.png'))).toEqual(logo);
+  expect(readFileSync(join(extracted, 'assets/icon.png'))).toEqual(readFileSync(join(root, 'assets/icon.png')));
+});
+
+it.each(['./assets/missing.png', './assets/../../private.png'])('refuses a missing or escaping branding asset %s before replacing the ZIP', (logo) => {
+  const { root, script, output } = fixture();
+  copyFileSync(join(repoRoot, 'public/icon-512.png'), join(root, '../private.png'));
+  runPython(script);
+  const previous = readFileSync(output);
+  const manifestPath = join(root, 'plugin.json');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  manifest.extensions['com.openai'].interface.logo = logo;
+  writeFileSync(manifestPath, JSON.stringify(manifest));
+
+  const result = spawnSync('uv', ['run', '--locked', 'python', script], { cwd: repoRoot, encoding: 'utf8' });
+  expect(result.status).not.toBe(0);
+  expect(readFileSync(output)).toEqual(previous);
+});
+
 it('fails on a missing shared icon without replacing the last complete ZIP', () => {
   const { script, icon, output } = fixture();
   runPython(script);

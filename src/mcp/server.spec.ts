@@ -146,10 +146,28 @@ it('advertises the OAuth requirement of every tool at the descriptor top level a
   }
 });
 
+it('provides a reconnect challenge when authorization expires during a tool call', async () => {
+  const post = await start();
+  authorizeStatus = 200;
+  documentsResponse = { status: 401, body: '' };
+
+  const result = await rpc(post, 'tools/call', { name: 'list_documents', arguments: {} });
+
+  expect(result).toEqual({
+    isError: true,
+    content: [{ type: 'text', text: 'RemDo no longer accepts this authorization. Reconnect RemDo.' }],
+    _meta: {
+      'mcp/www_authenticate': [
+        'Bearer resource_metadata="https://remdo.example/.well-known/oauth-protected-resource/mcp", '
+          + 'error="invalid_token", error_description="Reconnect RemDo."',
+      ],
+    },
+  });
+});
+
 it.each([
   [{ status: 400, body: '{"title":["Invalid title."]}' }, 'RemDo rejected the request as invalid: {"title":["Invalid title."]}'],
   [{ status: 400, body: '<!doctype html><title>Bad Request</title>' }, 'RemDo rejected the request as invalid.'],
-  [{ status: 401, body: '' }, 'RemDo no longer accepts this authorization. Reconnect RemDo.'],
   [{ status: 403, body: '{}' }, 'The user is not allowed to do this in RemDo.'],
   [{ status: 413, body: '' }, 'RemDo could not complete the request (413).'],
   [{ status: 502, body: '' }, 'RemDo is unavailable. Try again later.'],
