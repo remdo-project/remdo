@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Codex CLI transcript</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #15161a; color: #e6e6e6; }
+  body { display: flex; flex-direction: column; font: 16px/1.5 monospace; }
+  header { padding: 12px 20px; border-bottom: 1px solid #34363d; color: #aeb1bb; }
+  #connection { padding: 10px 20px; border-bottom: 1px solid #34363d; font-size: 12px; color: #aeb1bb; }
+  #prompt { margin: 0; padding: 14px 20px; white-space: pre-wrap; color: #b5d9a7; }
+  #prompt:empty, #check:empty { display: none; }
+  #prompt::before { content: 'You'; display: block; margin-bottom: 6px; font-size: 12px; color: #aeb1bb; }
+  #output { flex: 1; min-height: 0; overflow: auto; padding: 0 20px 16px; }
+  .entry { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 12px; }
+  .tool { font-size: 13px; color: #aeb1bb; }
+  .tool::after { content: ' · ' attr(data-state); }
+  .tool[data-state='failed'] { color: #f0b78d; }
+  .assistant::before, .client-error::before { display: block; margin-bottom: 6px; font-size: 12px; color: #aeb1bb; }
+  .assistant::before { content: 'Codex'; }
+  .client-error::before { content: 'Codex CLI notice'; }
+  .client-error { color: #f0b78d; }
+  #check { padding: 10px 20px; border-top: 1px dashed #34363d; font: 14px/1.5 system-ui; color: #b5d9a7; }
+  #check::before { content: 'Recording check'; display: block; font-size: 11px; color: #aeb1bb; }
+  textarea { box-sizing: border-box; width: 100%; resize: none; padding: 12px 20px;
+    border: 0; border-top: 1px solid #34363d; background: #1c1e24; color: inherit; font: inherit; }
+</style>
+<header>Codex CLI · live transcript</header>
+<div id="connection"><div id="account"></div><div id="endpoint"></div>Authorization prepared before recording</div>
+<div id="prompt"></div><div id="output"></div><aside id="check"></aside>
+<textarea rows="3" aria-label="Codex prompt" placeholder="Codex prompt"></textarea>

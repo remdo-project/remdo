@@ -1,0 +1,69 @@
+import { expect, it } from 'vitest';
+import { completedTool, requireSuccessfulTools, resultText, safetyRefusal, transcriptEntry } from './codex';
+
+const call = {
+  id: 'read-1', type: 'mcp_tool_call' as const, server: 'remdo', tool: 'read_document',
+  arguments: { target: 'document_Plan', depth: 2 },
+  result: { content: [{ type: 'text', text: 'Plan\n  Scope (1 child hidden)' }] },
+  error: null, status: 'completed',
+};
+
+it('waits for the completed call and preserves its actual arguments and result', () => {
+  expect(completedTool({ type: 'item.started', item: { ...call, status: 'in_progress', result: null } })).toBeUndefined();
+  const completed = completedTool({ type: 'item.completed', item: call })!;
+  expect(completed.arguments).toEqual({ target: 'document_Plan', depth: 2 });
+  expect(resultText(completed)).toBe('Plan\n  Scope (1 child hidden)');
+});
+
+it.each([
+  { ...call, status: 'failed', result: null, error: { message: 'Access denied' } },
+  { ...call, result: { ...call.result, is_error: true } },
+])('rejects failed tool results even when the CLI process exits successfully', (item) => {
+  const failed = completedTool({ type: 'item.completed', item })!;
+  expect(() => requireSuccessfulTools([failed])).toThrow('read_document failed');
+});
+
+it('rejects tools from another server instead of accepting an unrelated activation as a negative case', () => {
+  expect(() => completedTool({ type: 'item.completed', item: { ...call, server: 'other' } })).toThrow('Unexpected MCP server');
+});
+
+it('distinguishes an explicit client safety refusal from a transport or authentication failure', () => {
+  const message = 'This content was flagged for possible cybersecurity risk.';
+  expect(safetyRefusal({ type: 'turn.failed', error: { message } })).toBe(message);
+  expect(safetyRefusal({ type: 'error', message: 'Connection failed' })).toBeUndefined();
+  expect(safetyRefusal({ type: 'turn.failed', error: { message: 'Authentication required' } })).toBeUndefined();
+});
+
+it('shows the actual assistant message without replacing its wording or exposing its event envelope', () => {
+  const text = 'Saved your plan:\n- Scope\n- Schedule\n[Open it](https://remdo.com/n/example)';
+  expect(transcriptEntry({ type: 'item.completed', item: { id: 'reply-1', type: 'agent_message', text } }))
+    .toEqual({ id: 'reply-1', kind: 'assistant', text });
+});
+
+it('keeps protocol metadata and reasoning out of the visible transcript', () => {
+  const events = [
+    { type: 'thread.started', thread_id: 'private-thread-id' },
+    { type: 'turn.completed', usage: { input_tokens: 40000, output_tokens: 100 } },
+    { type: 'item.completed', item: { id: 'reasoning-1', type: 'reasoning' as const, text: 'Internal reasoning' } },
+  ];
+  for (const event of events) expect(transcriptEntry(event)).toBeUndefined();
+});
+
+it('updates one compact tool entry from running to completed without displaying arguments or results', () => {
+  expect(transcriptEntry({ type: 'item.started', item: { ...call, status: 'in_progress', result: null } }))
+    .toEqual({ id: 'read-1', kind: 'tool', text: 'read_document', state: 'running' });
+  expect(transcriptEntry({ type: 'item.completed', item: call }))
+    .toEqual({ id: 'read-1', kind: 'tool', text: 'read_document', state: 'completed' });
+});
+
+it('shows failed tool responses as failed even when the CLI labels the completed event successful', () => {
+  expect(transcriptEntry({ type: 'item.completed', item: { ...call, result: { ...call.result, is_error: true } } }))
+    .toEqual({ id: 'read-1', kind: 'tool', text: 'read_document', state: 'failed' });
+});
+
+it('identifies a provider refusal as a CLI notice rather than an assistant explanation or RemDo denial', () => {
+  const message = 'This content was flagged for possible cybersecurity risk.';
+  for (const event of [{ type: 'error', message }, { type: 'turn.failed', error: { message } }]) {
+    expect(transcriptEntry(event)).toEqual({ id: 'client-error', kind: 'client-error', text: message });
+  }
+});

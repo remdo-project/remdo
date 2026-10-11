@@ -43,6 +43,7 @@
         ]
       },
       "review": {
+        "demo_recording_url": "https://share.remdo.com/openai-plugin.mp4",
         "test_cases": {
           "positive": [
             {

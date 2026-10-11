@@ -1,18 +1,18 @@
-# Demo video
+# Demo recordings
 
-The demo video is a scripted, repeatable recording of RemDo in use that
-covers its main capabilities in one run.
+The landing demo and [OpenAI plugin walkthrough](../integrations/openai-plugin.md#review-walkthrough) are separate scenarios for
+scripted, repeatable recordings of RemDo in use.
 
 ## Recording run
 
-A run records the checkout's running development instance as a dedicated demo
-account, leaving other accounts' data unchanged.
+A run records its selected scenario on the checkout's [running development instance](../../guides/local-development.md#run-main-development)
+as that scenario's dedicated account, leaving other accounts' data unchanged.
+Selecting no scenario records the landing demo.
 
-1. Create the demo account if missing, and reset it to a single empty document.
-2. Perform each [chapter](#chapters) in order through the instance's real user
-   interfaces and confirm its end state.
-3. Return the video, playable by current major browsers, and a poster image
-   showing its final frame before the closing card.
+1. Create the account if missing, and reset it to a single empty document.
+2. Perform the scenario and confirm its end states.
+3. Return separate files for each scenario: a video playable by current major
+   browsers and a poster showing its final frame before the closing card.
 
 ## Authenticity
 
@@ -23,20 +23,20 @@ from the product. Development-only tooling stays hidden.
 ## Presentation
 
 - **Panes.** A recording shows one or two panes side by side, each a separate
-  browser session. A pane appears or disappears within a recording as a chapter
-  requires, sliding in or out rather than cutting. Once the layout settles,
-  each page occupies its whole area and lays itself out for that size rather
-  than being scaled or cropped.
+  browser session or client transcript. A pane appears or disappears within a
+  recording as a chapter requires, sliding in or out rather than cutting. Once
+  the layout settles, each page occupies its whole area and lays itself out for
+  that size rather than being scaled or cropped.
 - **Annotations.** A title introduces each chapter. Key captions are
   optional; when enabled, each key press and pointer action is captioned as it
   happens, with a visible pointer for pointer actions.
 - **Pacing.** Typing and transitions run at a speed a viewer can follow, and
   each result stays visible long enough to read.
 
-## Chapters
+## Landing demo
 
-The chapters tell one story, planning and publishing the demo video itself,
-in this order. Conversations with Claude use RemDo's
+The landing demo's chapters tell one story, planning and publishing the demo
+video itself, in this order. Conversations with Claude use RemDo's
 [MCP server](../integrations/mcp.md) in the demo's own chat surface, styled as
 part of the video rather than as any Claude app; their end states constrain
 which notes exist, never Claude's wording.
@@ -66,3 +66,7 @@ which notes exist, never Claude's wording.
 - Narration or background audio.
 - Motion post-production such as zooming into a region, animated titles, or
   intro and outro sequences.
+
+## References
+
+- [Recorder help](../../../tools/demo/scenario.ts) — `pnpm demo:record --help` for invocation, prerequisites and outputs.
