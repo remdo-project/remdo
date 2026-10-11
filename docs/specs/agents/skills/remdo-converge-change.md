@@ -40,15 +40,19 @@ normal nonempty commit for that batch.
    2. If the audit determines corrections, then run
       [Correct the state](#correct-the-state) and restart these quality
       steps.
-   3. Invoke [`remdo-verify-change`](remdo-verify-change.md) with
+   3. If no verification has run, or a correction since the latest one did
+      anything other than change comments, reword documentation without
+      changing a contract, or update tracking, then invoke
+      [`remdo-verify-change`](remdo-verify-change.md) with
       `check_phase: iteration` for an uncommitted scope or its default phase
       for a commit range. Preserve its finding dispositions and leave
-      `material out of scope` findings unchanged.
-   4. If failed checks or
+      `material out of scope` findings unchanged. Otherwise keep the latest
+      verification result.
+   4. If failed checks or uncorrected
       [`confirmed` findings](remdo-verify-change.md#findings) determine
       corrections, then run [Correct the state](#correct-the-state) and
       restart these quality steps.
-   5. If the scope is uncommitted, then perform the contributor
+   5. Perform the contributor
       [testing policy's handoff verification](../../../dev/testing.md#verification-lifecycle)
       directly for the complete retained change. If a failed check determines
       an in-scope correction, then run [Correct the state](#correct-the-state)
@@ -66,10 +70,10 @@ with the refreshed scope.
    and return `not-converged`.
 2. Apply the batch.
 3. Validate it against its applicable authoritative contracts and run affected
-   tests and applicable static checks for the correction batch. If the scope
-   is a commit range, then also satisfy the contributor
-   [verification lifecycle](../../../dev/testing.md#verification-lifecycle)
-   before committing.
+   tests and applicable static checks for the correction batch, as the
+   contributor [verification lifecycle](../../../dev/testing.md#verification-lifecycle)
+   requires before a commit. Complete groups run in the handoff verification unless
+   that lifecycle requires them for the commit itself.
 4. If validation or a check fails and an in-scope correction can be
    determined, then repair the batch and repeat validation.
 5. If validation or a check still fails, then return `stopped` without
