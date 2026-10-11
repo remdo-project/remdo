@@ -40,14 +40,15 @@ normal nonempty commit for that batch.
    2. If the audit determines corrections, then run
       [Correct the state](#correct-the-state) and restart these quality
       steps.
-   3. If no verification has run, or a correction since the latest one changed
-      anything other than tests, comments, documentation, or tracking, then
-      invoke [`remdo-verify-change`](remdo-verify-change.md) with
+   3. If no verification has run, or a correction since the latest one did
+      anything other than add tests, change comments, reword documentation
+      without changing a contract, or update tracking, then invoke
+      [`remdo-verify-change`](remdo-verify-change.md) with
       `check_phase: iteration` for an uncommitted scope or its default phase
       for a commit range. Preserve its finding dispositions and leave
       `material out of scope` findings unchanged. Otherwise keep the latest
-      verification result. Test support, such as test settings and launchers,
-      counts as tests.
+      verification result. Changing an existing test expectation or test
+      execution, such as test settings and launchers, is not exempt.
    4. If failed checks or uncorrected
       [`confirmed` findings](remdo-verify-change.md#findings) determine
       corrections, then run [Correct the state](#correct-the-state) and
