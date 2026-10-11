@@ -14,6 +14,10 @@ On the [development instance](../../guides/local-development.md#run-main-develop
 persisted results.
 Negative cases leave documents unchanged; unrelated requests call no RemDo tools.
 
+The [access check](../access/access-control.md#document-access) uses the same account and read request for an owned document
+and an existing unshared document, changing only the document ID. It requires a
+successful read and a RemDo access denial respectively.
+
 The recording identifies the client, account and connection state without
 exposing credentials. CLI transcripts show readable prompts, actual replies and
 compact tool activity. Client refusals are distinguished from RemDo authorization

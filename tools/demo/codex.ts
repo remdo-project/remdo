@@ -50,13 +50,6 @@ export function transcriptEntry(event: Event): TranscriptEntry | undefined {
   }
 }
 
-// Codex reports a provider safety refusal as a turn failure, not an assistant reply.
-export function safetyRefusal(event: Event): string | undefined {
-  if (event.type !== 'turn.failed' && event.type !== 'error') return;
-  const message = event.error?.message ?? event.message;
-  return message?.includes('content was flagged for possible cybersecurity risk') ? message : undefined;
-}
-
 export function completedTool(event: Event): ToolCall | undefined {
   const item = event.item;
   if (event.type !== 'item.completed' || item?.type !== 'mcp_tool_call') return;
@@ -74,6 +67,17 @@ export function requireSuccessfulTools(calls: ToolCall[]): void {
 
 export function resultText(call: ToolCall): string {
   return call.result!.content.filter(({ type }) => type === 'text').map(({ text }) => text).join('\n');
+}
+
+export function requireDocumentRead(calls: ToolCall[], documentId: string, outcome: 'success' | 'access-denied' = 'success'): ToolCall {
+  const reads = calls.filter(({ tool, arguments: args }) => tool === 'read_document' && args.target === documentId);
+  if (reads.length === 0) throw new Error(`No read_document call addressed ${documentId}.`);
+  if (outcome === 'success') {
+    requireSuccessfulTools(reads);
+  } else if (reads.some((call) => !failedTool(call) || call.result === null || !resultText(call).includes('Document access denied.'))) {
+    throw new Error(`Reading ${documentId} did not return a RemDo document access denial.`);
+  }
+  return reads.at(-1)!;
 }
 
 interface Connection { url: string; token: string; account: string }
@@ -98,7 +102,7 @@ export class CodexTerminal {
     await this.pane.page.locator('#check').evaluate((check, note) => { check.textContent = note; }, text);
   }
 
-  async ask(prompt: string, acceptSafetyRefusal = false): Promise<{ calls: ToolCall[]; clientRefusal?: string }> {
+  async ask(prompt: string): Promise<{ calls: ToolCall[] }> {
     await this.pane.page.evaluate(() => {
       document.getElementById('prompt')!.textContent = '';
       document.getElementById('output')!.textContent = '';
@@ -145,7 +149,6 @@ export class CodexTerminal {
     const calls: ToolCall[] = [];
     let completed = false;
     let replied = false;
-    let refusal: string | undefined;
     try {
       for await (const line of lines) {
         const event = JSON.parse(line) as Event;
@@ -168,11 +171,7 @@ export class CodexTerminal {
           }, entry);
         }
         if (event.type === 'turn.failed' || event.type === 'error') {
-          const refused = safetyRefusal(event);
-          if (!acceptSafetyRefusal || !refused || calls.length !== 0) {
-            throw new Error(`Codex CLI failed: ${event.error?.message ?? event.message}`);
-          }
-          refusal = refused;
+          throw new Error(`Codex CLI failed: ${event.error?.message ?? event.message}`);
         }
         const call = completedTool(event);
         if (call) {
@@ -180,13 +179,10 @@ export class CodexTerminal {
         }
         if (event.type === 'turn.completed') completed = true;
       }
-      await exited.catch((error: unknown) => {
-        if (!refusal) throw error;
-      });
-      if (!completed && !refusal) throw new Error('Codex CLI ended without completing the turn.');
-      if (!replied && !refusal) throw new Error('Codex CLI completed without an assistant reply.');
-      if (refusal) console.info('OpenAI client safety refusal captured; no RemDo tools were called.');
-      return { calls, clientRefusal: refusal };
+      await exited;
+      if (!completed) throw new Error('Codex CLI ended without completing the turn.');
+      if (!replied) throw new Error('Codex CLI completed without an assistant reply.');
+      return { calls };
     } finally {
       lines.close();
       child.kill();

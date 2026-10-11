@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { completedTool, requireSuccessfulTools, resultText, safetyRefusal, transcriptEntry } from './codex';
+import { completedTool, requireDocumentRead, requireSuccessfulTools, resultText, transcriptEntry } from './codex';
 
 const call = {
   id: 'read-1', type: 'mcp_tool_call' as const, server: 'remdo', tool: 'read_document',
@@ -25,13 +25,6 @@ it.each([
 
 it('rejects tools from another server instead of accepting an unrelated activation as a negative case', () => {
   expect(() => completedTool({ type: 'item.completed', item: { ...call, server: 'other' } })).toThrow('Unexpected MCP server');
-});
-
-it('distinguishes an explicit client safety refusal from a transport or authentication failure', () => {
-  const message = 'This content was flagged for possible cybersecurity risk.';
-  expect(safetyRefusal({ type: 'turn.failed', error: { message } })).toBe(message);
-  expect(safetyRefusal({ type: 'error', message: 'Connection failed' })).toBeUndefined();
-  expect(safetyRefusal({ type: 'turn.failed', error: { message: 'Authentication required' } })).toBeUndefined();
 });
 
 it('shows the actual assistant message without replacing its wording or exposing its event envelope', () => {
@@ -66,4 +59,40 @@ it('identifies a provider refusal as a CLI notice rather than an assistant expla
   for (const event of [{ type: 'error', message }, { type: 'turn.failed', error: { message } }]) {
     expect(transcriptEntry(event)).toEqual({ id: 'client-error', kind: 'client-error', text: message });
   }
+});
+
+it('requires a successful read of the requested owned document ID', () => {
+  const read = { ...call, arguments: { target: 'ownedDoc' } };
+  expect(requireDocumentRead([read], 'ownedDoc')).toBe(read);
+  expect(() => requireDocumentRead([{ ...read, result: { ...read.result, is_error: true } }], 'ownedDoc')).toThrow('read_document failed');
+});
+
+it.each([
+  { status: 'failed', result: { content: [{ type: 'text', text: 'Failed to connect to collaboration server: Document access denied.' }] } },
+  { status: 'completed', result: { is_error: true, content: [{ type: 'text', text: 'Failed to connect to collaboration server: Document access denied.' }] } },
+])('accepts an actual RemDo access error for the requested private document ID', ({ status, result }) => {
+  const read = {
+    ...call, arguments: { target: 'privateDoc' }, status, result,
+  };
+  expect(requireDocumentRead([read], 'privateDoc', 'access-denied')).toBe(read);
+});
+
+it.each([{ calls: [] }, { calls: [{ ...call, arguments: { target: 'otherDoc' } }] }])(
+  'rejects an access case that never reads the specified document',
+  ({ calls }) => {
+    expect(() => requireDocumentRead(calls, 'privateDoc', 'access-denied')).toThrow('No read_document call addressed privateDoc');
+  },
+);
+
+it.each([
+  { calls: [{ ...call, arguments: { target: 'privateDoc' } }] },
+  { calls: [{ ...call, arguments: { target: 'privateDoc' }, result: { content: [{ type: 'text', text: 'Document access denied.' }] } }] },
+  { calls: [{ ...call, arguments: { target: 'privateDoc' }, status: 'failed', result: null, error: { message: 'Connection timed out.' } }] },
+  { calls: [{ ...call, arguments: { target: 'privateDoc' }, result: { is_error: true, content: [{ type: 'text', text: 'Connection timed out.' }] } }] },
+  { calls: [
+    { ...call, arguments: { target: 'privateDoc' } },
+    { ...call, arguments: { target: 'privateDoc' }, result: { is_error: true, content: [{ type: 'text', text: 'Document access denied.' }] } },
+  ] },
+])('rejects a successful private read or an unrelated failure, including before a denied retry', ({ calls }) => {
+  expect(() => requireDocumentRead(calls, 'privateDoc', 'access-denied')).toThrow('did not return a RemDo document access denial');
 });

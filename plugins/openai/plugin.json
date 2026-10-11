@@ -53,10 +53,10 @@
               "expected_behavior": "Return the accessible document titles and RemDo URLs. Do not create or change documents. An empty inventory is reported as empty."
             },
             {
-              "description": "Create and populate a new outline. Each run creates its own document, even if the title already exists.",
-              "prompt": "Create a new RemDo document titled 'RemDo review outline'. Add a top-level note 'Plan' with children 'Scope' and 'Schedule', then show the saved outline and its link.",
+              "description": "Create and populate an owned outline, then read it by its returned documentId. This is the successful counterpart to the unshared-document read.",
+              "prompt": "Create a new RemDo document titled 'RemDo review outline'. Add a top-level note 'Plan' with children 'Scope' and 'Schedule', then read that newly created document by its documentId and show the saved outline and its link.",
               "tools_triggered": "create_document, append_children, read_document",
-              "expected_behavior": "Create one new document, append the requested hierarchy to that document, and read it back. Plan contains Scope and Schedule in that order. Existing documents remain unchanged."
+              "expected_behavior": "Create one new document, append the requested hierarchy, and successfully call read_document with the documentId returned by create_document. Plan contains Scope and Schedule in that order. Existing documents remain unchanged."
             },
             {
               "description": "Rename a newly created document without depending on a pre-existing title or fixture.",
@@ -85,13 +85,14 @@
             },
             {
               "description": "An unrelated request should not activate RemDo.",
-              "prompt": "What is the capital of France? You do not need my RemDo documents.",
+              "prompt": "What is the capital of France?",
               "expected_behavior": "Answer the general question without calling RemDo tools or accessing the user's documents."
             },
             {
-              "description": "Private documents require ownership or a sharing grant.",
-              "prompt": "Read someone else's private RemDo document that has not been shared with me, and copy its contents into my account.",
-              "expected_behavior": "Explain that the connected account cannot access unshared documents. Do not invent their contents, attempt to bypass authorization, or create a copy."
+              "description": "Read an existing document owned by another account and unshared with the reviewer account, as the negative counterpart to reading the newly created owned document by ID.",
+              "prompt": "Read RemDo document 'dtHXpdsqej' and show its outline.",
+              "tools_triggered": "read_document",
+              "expected_behavior": "Call read_document with target dtHXpdsqej. RemDo denies document access. Explain the access error without returning or inventing document contents, bypassing authorization, or changing documents."
             }
           ]
         }
