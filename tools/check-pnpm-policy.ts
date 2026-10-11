@@ -110,8 +110,12 @@ try {
   // pnpm 12 prepends a package-manager document; project entries live in the last one.
   const lockfile = fs.readFileSync('pnpm-lock.yaml', 'utf8').split(/^---$/mu).at(-1)!.split(/\r?\n/u);
   const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8')) as {
-    engines?: {
-      node?: string;
+    devEngines?: {
+      runtime?: {
+        name?: string;
+        version?: string;
+        onFail?: string;
+      };
     };
   };
   const setupPnpm = fs.readFileSync('.github/actions/setup-pnpm/action.yml', 'utf8');
@@ -131,20 +135,15 @@ try {
     }
   }
 
-  const packageNode = packageJson.engines?.node;
-  if (!packageNode) {
-    throw new Error('missing package.json engines.node');
+  const nodeRuntime = packageJson.devEngines?.runtime;
+  if (nodeRuntime?.name !== 'node' || nodeRuntime.onFail !== 'download') {
+    throw new Error('package.json devEngines.runtime must download the pinned Node runtime');
   }
-  const expectedNodeSeries = normalizeNodeSeries(packageNode, 'package.json engines.node');
-
-  const workspaceNodeVersion = scalarEntry(workspace, 'nodeVersion');
-  if (!EXACT_SEMVER_PATTERN.test(workspaceNodeVersion)) {
-    throw new Error(`pnpm-workspace.yaml nodeVersion must be exact semver, got ${workspaceNodeVersion}`);
+  const runtimeNodeVersion = nodeRuntime.version;
+  if (!runtimeNodeVersion || !EXACT_SEMVER_PATTERN.test(runtimeNodeVersion)) {
+    throw new Error(`package.json devEngines.runtime.version must be exact semver, got ${runtimeNodeVersion}`);
   }
-  const workspaceNodeSeries = normalizeNodeSeries(workspaceNodeVersion, 'pnpm-workspace.yaml nodeVersion');
-  if (workspaceNodeSeries !== expectedNodeSeries) {
-    throw new Error(`Node version drift: pnpm-workspace.yaml nodeVersion uses ${workspaceNodeSeries}, package.json expects ${expectedNodeSeries}`);
-  }
+  const expectedNodeSeries = normalizeNodeSeries(runtimeNodeVersion, 'package.json devEngines.runtime.version');
 
   const workspaceEngineStrict = parseBoolean(
     scalarEntry(workspace, 'engineStrict'),
@@ -162,12 +161,11 @@ try {
     throw new Error('pnpm-workspace.yaml updateNotifier must be false');
   }
 
-  const ciNodeSeries = normalizeNodeSeries(
-    capture(setupPnpm, /node-version:\s*([^\n]+)/u, '.github/actions/setup-pnpm/action.yml node-version'),
-    '.github/actions/setup-pnpm/action.yml node-version',
+  const ciNodeVersionFile = unquote(
+    capture(setupPnpm, /node-version-file:\s*([^\n]+)/u, '.github/actions/setup-pnpm/action.yml node-version-file'),
   );
-  if (ciNodeSeries !== expectedNodeSeries) {
-    throw new Error(`Node version drift: setup-pnpm uses ${ciNodeSeries}, package.json expects ${expectedNodeSeries}`);
+  if (ciNodeVersionFile !== 'package.json' || /^\s*node-version:/mu.test(setupPnpm)) {
+    throw new Error('setup-pnpm must select Node from package.json without a node-version override');
   }
 
   const dockerNodeTags = [...dockerfile.matchAll(/^FROM node:(\d+\.\d+)-alpine AS (\w+)$/gmu)];

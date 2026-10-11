@@ -52,10 +52,10 @@ category that produces no diff advances to the next category.
    `node:<major>.<minor>-alpine` Docker tags. Select the newest LTS release in
    the newest LTS major that has an available image; try older releases within
    that major when a tag is confirmed absent, but do not cross to an older
-   major. Apply the selected full or minor release, as appropriate, to
-   `package.json`, `pnpm-workspace.yaml`, `docker/Dockerfile`, and
-   `.github/actions/setup-pnpm/action.yml`. Verify that all four edits landed,
-   then run `pnpm run audit:policy`.
+   major. Update `package.json` `devEngines.runtime.version`
+   and the matching minor release in `docker/Dockerfile`. CI reads the Node pin
+   from `package.json`. Run `CI=true pnpm install --no-frozen-lockfile` to refresh
+   the locked runtime, then run `pnpm run audit:policy`.
 4. Enumerate distinct bare `uses: owner/repository@vN` references under
    `.github/`. Query each repository's latest stable release with `gh api`, and
    update every occurrence when its major is newer. Leave local references and
