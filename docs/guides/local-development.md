@@ -106,7 +106,7 @@ Edit the [plugin sources](../../plugins/openai/), then build the [OpenAI plugin]
 pnpm run dev:openai-plugin
 ```
 
-The ZIP is `plugins/openai/dist/remdo-openai-<version>.zip`, using the manifest
+The ZIP is `data/plugins/openai/remdo-openai-<version>.zip`, using the manifest
 version. Follow [OpenAI's submission instructions](https://developers.openai.com/plugins/deploy/submission) to upload it.
 
 ## Run Local Docker

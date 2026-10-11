@@ -26,7 +26,7 @@ function fixture() {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   manifest.version = '2.3.4';
   writeFileSync(manifestPath, `${JSON.stringify(manifest)}\n`);
-  return { root, script, icon, output: join(root, 'dist/remdo-openai-2.3.4.zip') };
+  return { root, script, icon, output: join(directory, 'data/plugins/openai/remdo-openai-2.3.4.zip') };
 }
 
 function runPython(...args: string[]) {
