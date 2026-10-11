@@ -36,7 +36,7 @@ branch prefix because the prefix describes the branch's combined outcome.
 
 RemDo's supported runtimes are declared by their executable owners:
 
-- **Node.js:** [`package.json`](package.json) `engines.node`.
+- **Node.js:** the major/minor series selected by [`package.json`](package.json) `devEngines.runtime.version`.
 - **Browsers:** [`package.json`](package.json) `browserslist.production`.
 - **Python:** [`pyproject.toml`](pyproject.toml) `requires-python`; [`.python-version`](.python-version) selects the
   development interpreter.

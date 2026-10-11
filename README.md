@@ -114,11 +114,11 @@ RemDo supports separate production, development, and verification workflows.
 
 Requirements:
 
-- Node.js and pnpm at the versions declared in [package.json](package.json)
+- pnpm at the version declared in [package.json](package.json)
 - uv for the locked Python backend environment
 - a modern browser
 
-Install dependencies:
+Prepare [pnpm and its pinned Node.js runtime](docs/guides/local-development.md#prepare-the-workspace), then install dependencies:
 
 ```bash
 pnpm install --frozen-lockfile

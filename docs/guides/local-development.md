@@ -7,6 +7,11 @@ the [package scripts](../../package.json) own executable commands and their vari
 
 ## Prepare the Workspace
 
+Install [pnpm](https://pnpm.io/installation), run `pnpm setup`, and open a fresh
+shell. If [pnpm's global bin directory](https://pnpm.io/global-packages#binaries-location) has no `node` command, run
+`pnpm shim add node` once. pnpm downloads and uses the
+[pinned Node.js runtime](../../package.json) for project commands.
+
 Run `pnpm install --frozen-lockfile` after a fresh clone or after removing
 `node_modules`. The command installs the locked frontend dependencies. Install
 [uv](https://docs.astral.sh/uv/getting-started/installation/); backend commands automatically prepare the Python environment using
