@@ -34,6 +34,8 @@ def authorize(request, document_id):
         return JsonResponse({"operator": True})
     if bearer_token(authorization := request.headers.get("Authorization", "")):
         user = delegated_user(authorization)
+        if user is None:
+            return HttpResponse(status=401, headers={"WWW-Authenticate": "Bearer"})
     elif request.headers.get("Origin") in settings.CSRF_TRUSTED_ORIGINS:
         user = request.user
     else:

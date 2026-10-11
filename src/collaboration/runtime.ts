@@ -3,6 +3,7 @@ import { HocuspocusProvider, HocuspocusProviderWebsocket, WebSocketStatus } from
 import { trace } from '#platform/log';
 import { createLocalPersistence } from './local-persistence';
 import type { LocalPersistence } from './local-persistence';
+import { AuthorizationError, COLLABORATION_AUTHORIZATION_REJECTED } from '#platform/net/authorization-error';
 import * as Y from 'yjs';
 
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
@@ -291,7 +292,13 @@ export function createProviderFactory({ visibleOrigin, accountId, WebSocketPolyf
       }
       websocket.disconnect();
       status = 'error';
-      network.notify('connection-error', { reason: 'Document access denied.' });
+      const authorizationRejected = reason === COLLABORATION_AUTHORIZATION_REJECTED;
+      network.notify('connection-error', {
+        reason: authorizationRejected
+          ? 'RemDo no longer accepts this authorization. Reconnect RemDo.'
+          : 'Document access denied.',
+        authorizationRejected,
+      });
     });
     function pageHide() {
       restore = active;
@@ -495,9 +502,10 @@ function toAbortError(reason: unknown): Error {
 
 function createConnectionError(payload: unknown): Error {
   if (payload && typeof payload === 'object') {
-    const maybeReason = (payload as { reason?: unknown }).reason;
-    if (typeof maybeReason === 'string' && maybeReason.length > 0) {
-      return new Error(`Failed to connect to collaboration server: ${maybeReason}`);
+    const { reason, authorizationRejected } = payload as { reason?: unknown; authorizationRejected?: unknown };
+    if (typeof reason === 'string' && reason.length > 0) {
+      const ErrorType = authorizationRejected === true ? AuthorizationError : Error;
+      return new ErrorType(`Failed to connect to collaboration server: ${reason}`);
     }
   }
   return new Error('Failed to connect to collaboration server');

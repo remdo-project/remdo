@@ -19,6 +19,7 @@ import { createDeferred } from '../../tests/unit/_support/deferred';
 
 const secret = 'test-internal-secret';
 let authorizeStatus: number;
+let mcpAuthorizationChecks: number;
 let sessionStatus: number | 'reset';
 let authorizeHeaders: Array<Record<string, string | string[] | undefined>>;
 let loadStatus: number | 'dropped';
@@ -42,6 +43,7 @@ const backend = createServer((request, response) => {
   void (async () => {
     expect(request.headers.host).toBe('remdo.test');
     if (request.url === '/api/mcp/current-user') {
+      mcpAuthorizationChecks++;
       response.writeHead(200).end('{}');
       return;
     }
@@ -90,6 +92,7 @@ const backend = createServer((request, response) => {
 
 beforeEach(async () => {
   authorizeStatus = 200;
+  mcpAuthorizationChecks = 0;
   sessionStatus = 200;
   authorizeHeaders = [];
   loadStatus = 200;
@@ -390,6 +393,56 @@ it('keeps writing after opening even when the acquisition deadline expires', asy
   const contents = await withHeadlessOpenDocument('document', 'Bearer delegated-token',
     async (document) => document.root.getChildren().map((note) => note.getText()), { readOnly: true });
   expect(contents).toContain('written after opening');
+});
+
+it.each([
+  [401, 'read_document', { target: 'document' }],
+  [401, 'append_children', { parent: 'document', notes: [{ text: 'Note' }] }],
+  [401, 'set_child_list_type', { noteAddress: 'document_note', listType: 'check' }],
+  [403, 'read_document', { target: 'document' }],
+])('preserves authorization status %s when MCP %s opens a document', async (status, name, args) => {
+  const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
+  runtimeCleanup.push(() => resolveOrigin.mockRestore());
+  authorizeStatus = status;
+  const mcp = createMcpServer({
+    origin: 'http://127.0.0.1:0',
+    apiOrigin: `http://127.0.0.1:${(backend.address() as AddressInfo).port}`,
+    appOrigin: 'http://remdo.test',
+    documentSlots: 1,
+  });
+  const address = await mcp.listen();
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/mcp`, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer delegated-token',
+        Accept: 'application/json, text/event-stream',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
+    });
+    const data = (await response.text()).split('\n').find((line) => line.startsWith('data: '))!;
+    const { result } = JSON.parse(data.slice(6)) as { result: unknown };
+    const reason = status === 401 ? 'RemDo no longer accepts this authorization. Reconnect RemDo.' : 'Document access denied.';
+    const failure = {
+      isError: true,
+      content: [{ type: 'text', text: `Failed to connect to collaboration server: ${reason}` }],
+    };
+    expect(result).toEqual(status === 401 ? {
+      ...failure,
+      _meta: {
+        'mcp/www_authenticate': [
+          'Bearer resource_metadata="http://remdo.test/.well-known/oauth-protected-resource/mcp", '
+            + 'error="invalid_token", error_description="Reconnect RemDo."',
+        ],
+      },
+    } : failure);
+    expect(mcpAuthorizationChecks).toBe(1);
+    expect(loaded).toBe(0);
+    expectDiagnostics(['[onAuthenticate]']);
+  } finally {
+    await mcp.stop();
+  }
 });
 
 it('reports an MCP append as unconfirmed when persistence fails and the hub saves it after recovery', async () => {

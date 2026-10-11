@@ -15,6 +15,8 @@ descriptively titled document, and read a document before extending or relying
 on it. The append tool's description repeats the outline guidance because some
 clients ignore server guidance.
 
+The [OpenAI plugin](openai-plugin.md) distributes the hosted MCP connection for ChatGPT and Codex.
+
 ## Tools
 
 The server exposes tools that list, create, and rename the user's documents,
@@ -40,7 +42,9 @@ operation's owner defines its behavior.
 - Each tool declares a title, that it requires the user's authorization, and
   whether it only reads or changes the user's data, so clients can require
   confirmation before changes.
-- A failed tool call returns a tool error naming its cause.
+- A failed tool call returns a tool error naming its cause. If the RemDo API
+  rejects the call's token, the error includes an OAuth challenge for
+  reconnection.
 
 ## Limits
 
@@ -57,3 +61,4 @@ operation's owner defines its behavior.
 ## References
 
 - [Model Context Protocol: Authorization](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)
+- [OpenAI: Authentication](https://developers.openai.com/plugins/build/auth#triggering-authentication-ui)

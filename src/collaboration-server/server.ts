@@ -10,6 +10,7 @@ import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { decodePersistenceMessage, encodePersistenceMessage } from '#platform/net/persistence-barrier';
+import { COLLABORATION_AUTHORIZATION_REJECTED } from '#platform/net/authorization-error';
 import {
   DOCUMENT_LIST_CHANGED,
   DOCUMENT_LIST_KEEPALIVE,
@@ -29,6 +30,11 @@ interface ServerOptions {
 class CollaborationUnavailable extends Error {
   readonly reason = 'collaboration.service-unavailable';
   constructor(message = 'collaboration.service-unavailable') { super(message); }
+}
+
+class AuthorizationRejected extends Error {
+  readonly reason = COLLABORATION_AUTHORIZATION_REJECTED;
+  constructor() { super(COLLABORATION_AUTHORIZATION_REJECTED); }
 }
 
 class DocumentDeleted extends Error {
@@ -251,7 +257,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
       } catch {
         throw new CollaborationUnavailable();
       }
-      if ([401, 403, 404].includes(response.status)) throw new Error('collaboration.access-denied');
+      if (response.status === 401) throw new AuthorizationRejected();
+      if ([403, 404].includes(response.status)) throw new Error('collaboration.access-denied');
       if (!response.ok) throw new CollaborationUnavailable();
       return { operator };
     },

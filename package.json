@@ -41,6 +41,7 @@
     "dev:mcp": "./tools/env.sh tsx ./src/mcp/main.ts",
     "dev:docker": "./tools/env.sh --port-base-offset 40 ./tools/dev/docker.sh",
     "dev:data-reset": "./tools/env.sh tsx ./tools/dev/data-reset.ts",
+    "dev:openai-plugin": "uv run --no-project ./plugins/openai/build.py",
     "dev:web": "./tools/env.sh vite",
     "hosted:deploy-test": "sh ./tools/deploy-test.sh",
     "hosted:demo-reset": "./tools/env.sh tsx ./tools/hosted-demo-reset.ts",

@@ -1,19 +1,29 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { createMcpServer } from './server';
+import { withHeadlessOpenDocument } from '../headless/open-document';
+import { AuthorizationError } from '#platform/net/authorization-error';
+
+vi.mock('../headless/open-document', () => ({ withHeadlessOpenDocument: vi.fn() }));
 
 let authorizeStatus: number;
+let authorizationChecks: number;
 let documentsResponse: { status: number; body: string } | 'dropped';
 const stops: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
   await Promise.all(stops.splice(0).map((stop) => stop()));
+  vi.resetAllMocks();
 });
 
 async function start() {
+  authorizationChecks = 0;
   const django = http.createServer((req, res) => {
-    if (req.url === '/api/mcp/current-user') res.writeHead(authorizeStatus).end('{}');
+    if (req.url === '/api/mcp/current-user') {
+      authorizationChecks++;
+      res.writeHead(authorizeStatus).end('{}');
+    }
     else if (documentsResponse === 'dropped') req.socket.destroy();
     else res.writeHead(documentsResponse.status).end(documentsResponse.body);
   });
@@ -146,10 +156,63 @@ it('advertises the OAuth requirement of every tool at the descriptor top level a
   }
 });
 
+it('provides a reconnect challenge when authorization expires during a tool call', async () => {
+  const post = await start();
+  authorizeStatus = 200;
+  documentsResponse = { status: 401, body: '' };
+
+  const result = await rpc(post, 'tools/call', { name: 'list_documents', arguments: {} });
+
+  expect(result).toEqual({
+    isError: true,
+    content: [{ type: 'text', text: 'RemDo no longer accepts this authorization. Reconnect RemDo.' }],
+    _meta: {
+      'mcp/www_authenticate': [
+        'Bearer resource_metadata="https://remdo.example/.well-known/oauth-protected-resource/mcp", '
+          + 'error="invalid_token", error_description="Reconnect RemDo."',
+      ],
+    },
+  });
+  expect(authorizationChecks).toBe(1);
+});
+
+it('keeps a document access denial distinct from a revoked connection', async () => {
+  const post = await start();
+  authorizeStatus = 200;
+  vi.mocked(withHeadlessOpenDocument).mockRejectedValueOnce(new Error('Failed to connect to collaboration server: Document access denied.'));
+
+  const result = await rpc(post, 'tools/call', { name: 'read_document', arguments: { target: 'doc' } });
+
+  expect(result).toEqual({
+    isError: true,
+    content: [{ type: 'text', text: 'Failed to connect to collaboration server: Document access denied.' }],
+  });
+  expect(authorizationChecks).toBe(1);
+});
+
+it('preserves an unconfirmed write warning when reconnection is also required', async () => {
+  const post = await start();
+  authorizeStatus = 200;
+  const message = 'Document changes are unconfirmed and may still be saved. Check the document before retrying.';
+  vi.mocked(withHeadlessOpenDocument).mockRejectedValueOnce(new Error(message, {
+    cause: new AuthorizationError('Document access denied.'),
+  }));
+
+  const result = await rpc(post, 'tools/call', {
+    name: 'append_children', arguments: { parent: 'doc', notes: [{ text: 'Note' }] },
+  });
+
+  expect(result).toMatchObject({
+    isError: true,
+    content: [{ type: 'text', text: message }],
+    _meta: { 'mcp/www_authenticate': [expect.stringContaining('error="invalid_token"')] },
+  });
+  expect(authorizationChecks).toBe(1);
+});
+
 it.each([
   [{ status: 400, body: '{"title":["Invalid title."]}' }, 'RemDo rejected the request as invalid: {"title":["Invalid title."]}'],
   [{ status: 400, body: '<!doctype html><title>Bad Request</title>' }, 'RemDo rejected the request as invalid.'],
-  [{ status: 401, body: '' }, 'RemDo no longer accepts this authorization. Reconnect RemDo.'],
   [{ status: 403, body: '{}' }, 'The user is not allowed to do this in RemDo.'],
   [{ status: 413, body: '' }, 'RemDo could not complete the request (413).'],
   [{ status: 502, body: '' }, 'RemDo is unavailable. Try again later.'],
@@ -162,6 +225,7 @@ it.each([
   const result = await rpc(post, 'tools/call', { name: 'create_document', arguments: { title: 'Plan' } });
 
   expect(result).toEqual({ isError: true, content: [{ type: 'text', text: message }] });
+  expect(authorizationChecks).toBe(1);
 });
 
 it('reports a dropped read as unavailable because it cannot have changed anything', async () => {
@@ -172,6 +236,7 @@ it('reports a dropped read as unavailable because it cannot have changed anythin
   const result = await rpc(post, 'tools/call', { name: 'list_documents', arguments: {} });
 
   expect(result).toEqual({ isError: true, content: [{ type: 'text', text: 'RemDo is unavailable. Try again later.' }] });
+  expect(authorizationChecks).toBe(1);
 });
 
 it('refuses a request body over 1 MiB before running any tool', async () => {
@@ -202,6 +267,8 @@ it('refuses to append more than 1000 notes, counting nested children, before ope
       text: 'Append at most 1000 notes per call, counting nested children; split the outline across calls.',
     }],
   });
+  expect(withHeadlessOpenDocument).not.toHaveBeenCalled();
+  expect(authorizationChecks).toBe(1);
 });
 
 it('rejects a target or address that is not valid before opening a document or calling the API', async () => {
@@ -228,4 +295,6 @@ it('rejects a target or address that is not valid before opening a document or c
       content: [{ text: 'The noteAddress is not valid.' }],
     });
   }
+  expect(withHeadlessOpenDocument).not.toHaveBeenCalled();
+  expect(authorizationChecks).toBe(9);
 });
