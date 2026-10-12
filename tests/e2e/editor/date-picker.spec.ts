@@ -37,6 +37,22 @@ async function openInsertPicker(page: Page) {
 }
 
 test.describe('date picker (docs/specs/outliner/dates.md)', () => {
+  test('stays beside its caret after a click on the calendar text and a window resize', async ({ page, editor }) => {
+    await editor.load('flat');
+    await openInsertPicker(page);
+    const panel = datePickerPanel(page);
+    const before = await panel.boundingBox();
+
+    // A click on non-interactive calendar text moves the DOM selection into the popup.
+    await datePickerWeekdays(page).first().click();
+    await page.evaluate(() => {
+      globalThis.dispatchEvent(new Event('resize'));
+      return new Promise(requestAnimationFrame);
+    });
+
+    expect(await panel.boundingBox()).toEqual(before);
+  });
+
   test('the ! picker renders at full width, not collapsed', async ({ page, editor }) => {
     await editor.load('basic');
     await openInsertPicker(page);

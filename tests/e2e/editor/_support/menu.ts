@@ -56,6 +56,29 @@ const openMenuByShortcut = async (page: Page): Promise<void> => {
   await page.keyboard.press('Shift');
 };
 
+const ROW_MENU_GAP = 16;
+
+/**
+ * The menu is fully inside the viewport width and touches the row's vertical band.
+ * `besideRow` also requires it to start right of the row's left edge, as beside a caret.
+ */
+export const expectMenuNearRow = async (
+  menu: Locator,
+  row: Locator,
+  viewportWidth: number,
+  { besideRow = false } = {},
+): Promise<void> => {
+  const menuBox = (await menu.boundingBox())!;
+  const rowBox = (await row.boundingBox())!;
+  if (besideRow) {
+    expect(menuBox.x).toBeGreaterThan(rowBox.x);
+  }
+  expect(menuBox.x).toBeGreaterThanOrEqual(0);
+  expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(viewportWidth);
+  expect(menuBox.y).toBeLessThanOrEqual(rowBox.y + rowBox.height + ROW_MENU_GAP);
+  expect(menuBox.y + menuBox.height).toBeGreaterThanOrEqual(rowBox.y - ROW_MENU_GAP);
+};
+
 export const openNoteMenu = async (page: Page, label: string, options?: OpenMenuOptions): Promise<MenuHandle> => {
   const openMethod = options?.openMethod ?? 'hover';
   const anchor = options?.anchor ?? 'note';

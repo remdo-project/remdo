@@ -1,5 +1,6 @@
 import { expect, test } from '#editor/fixtures';
-import { noteRow, setCaretAtText } from '#editor/locators';
+import { editorLocator, noteRow, setCaretAtText } from '#editor/locators';
+import { expectMenuNearRow } from './_support/menu';
 
 test.describe('Mobile action toolbar', () => {
   test.use({
@@ -53,6 +54,23 @@ test.describe('Mobile action toolbar', () => {
 
     await expect.poll(() => toolbar.evaluate((element) => element.getBoundingClientRect().bottom))
       .toBe(600);
+  });
+
+  test('opens the note menu inside the viewport beside a deeply nested note', async ({ page, editor }) => {
+    await editor.load('flat');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    for (const label of ['depth2', 'depth3', 'depth4']) {
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Tab');
+      await page.keyboard.type(label);
+    }
+
+    await page.getByRole('toolbar', { name: 'Note actions' }).getByRole('button', { name: 'Note menu' }).tap();
+
+    const menu = editorLocator(page).locator('[data-note-menu]');
+    await expect(menu).toHaveCount(1);
+    await expectMenuNearRow(menu, noteRow(page, 'depth4'), 390);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   });
 
   test('updates fold availability with the focus note and folds its children', async ({
