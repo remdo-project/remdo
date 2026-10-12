@@ -51,7 +51,10 @@ function DocumentGroup({
         {documents.map((document) => {
           const note = resolveDocument(document.id);
           const label = formatNavigationLabel(document.label);
-          const shared = note !== null && !note.canShareWith();
+          const shareable = note?.canShareWith() === true;
+          const sharedNote = note === null ? null : !shareable
+            ? 'Shared with you'
+            : note.getAccess().getChildren().length > 0 ? 'Shared by you' : null;
           const sharedId = `home-doc-shared-${document.id}`;
           return (
             <li
@@ -69,7 +72,7 @@ function DocumentGroup({
                 <DocumentMenu label={label} note={note} onDelete={onDelete} onRename={onRename} onShare={onShare} />
               )}
               <button
-                aria-describedby={shared ? sharedId : undefined}
+                aria-describedby={sharedNote ? sharedId : undefined}
                 className="home-doc remdo-interaction-surface"
                 data-home-document-ref={document.id}
                 id={`home-doc-link-${document.id}`}
@@ -77,9 +80,22 @@ function DocumentGroup({
                 type="button"
               >
                 <span className="home-doc-label">{label}</span>
-                {shared && <span aria-hidden="true" className="home-doc-shared">Shared</span>}
+                {sharedNote && !shareable && (
+                  <span aria-hidden="true" className="home-doc-shared" title={sharedNote}>Shared</span>
+                )}
               </button>
-              {shared && <span hidden id={sharedId}>Shared with you</span>}
+              {sharedNote && <span hidden id={sharedId}>{sharedNote}</span>}
+              {note && shareable && sharedNote && (
+                <button
+                  aria-label={`${sharedNote}, manage sharing for ${label}`}
+                  className="home-doc-shared home-doc-shared-action remdo-interaction-surface"
+                  onClick={(event) => onShare(note, event.currentTarget)}
+                  title={sharedNote}
+                  type="button"
+                >
+                  Shared
+                </button>
+              )}
             </li>
           );
         })}

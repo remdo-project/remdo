@@ -129,7 +129,8 @@ users are denied before document content loads.
 
 ### Document sharing
 
-An owner manages one document's access from that document's [quick action menu](../outliner/menu.md).
+An owner manages one document's access from that document's [quick action menu](../outliner/menu.md)
+or from the [**Shared** marker](../outliner/home.md#signed-in-behavior) on its Home row.
 The surface names the document it acts on and presents current recipients
 before the controls that change them. Each change applies on its own; the
 surface has no combined submission and closes without discarding applied

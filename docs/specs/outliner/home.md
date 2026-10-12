@@ -58,8 +58,13 @@ blur halo around the button.
    in one list under Current Server, omitted when the user has none.
 3. Each listed document shows its display name and opens that document when
    activated, landing on its [document-root view](./zoom.md#visibility-and-editing-boundary).
-   A document owned by another user also shows a **Shared** marker beside its
-   name, which adds to the row's description without changing its accessible name.
+   A document owned by another user, or owned by the user with at least one
+   [grant](../access/access-control.md#document-access), also shows a **Shared** marker beside its
+   name. The marker adds **Shared with you** or **Shared by you** to the row's
+   description, respectively, and shows the same text on hover, without changing
+   the row's accessible name. On a document the user owns, the marker is a
+   separate button that opens the document's
+   [sharing surface](../access/access-control.md#document-sharing).
 4. Above the list, Home offers [document search](./search.md#document-scope),
    omitted with the list.
 
