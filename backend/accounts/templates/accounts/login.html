@@ -41,23 +41,13 @@
         {% endslot %}
         {% slot actions %}
           {% element button type="submit" %}Sign in{% endelement %}
+          {% if email_signup_enabled %}
+            {% url 'account_continue_with_email' as continue_url %}
+            <button class="remdo-account-button" type="submit" name="method" value="code"
+              formaction="{{ continue_url }}" formnovalidate>Email me a code instead</button>
+          {% endif %}
         {% endslot %}
       {% endelement %}
-      {% if code_email %}
-        {% url 'account_continue_with_email' as continue_url %}
-        {% element form method="post" action=continue_url %}
-          {% slot body %}
-            {% csrf_token %}
-            <input type="hidden" name="email" value="{{ code_email }}">
-            {{ redirect_field }}
-          {% endslot %}
-          {% slot actions %}
-            {% element button type="submit" name="method" value="code" %}Email me a code instead{% endelement %}
-          {% endslot %}
-        {% endelement %}
-      {% elif code_link %}
-        <p><a href="{{ login_url }}">Email me a sign-in code instead</a></p>
-      {% endif %}
     {% else %}
       {% url 'account_continue_with_email' as continue_url %}
       {% element form form=email_form method="post" action=continue_url %}

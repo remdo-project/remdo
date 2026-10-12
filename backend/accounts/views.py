@@ -13,6 +13,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_POST
 
 
@@ -97,20 +98,14 @@ class LoginView(AllauthLoginView):
             or self.request.method == "POST"
         )
         context.update(
+            email_signup_enabled=settings.EMAIL_SIGNUP_ENABLED,
             password_mode=password_mode,
             email_form=RequestLoginCodeForm(),
             password_url=self.passthrough_next_url(f"{reverse('account_login')}?method=password"),
         )
-        if password_mode and settings.EMAIL_SIGNUP_ENABLED:
-            form = context["form"]
-            email = (form["login"].value() or "").strip()
-            account = active_account(email)
-            context.update(
-                code_email=email if account else "",
-                code_link=not account,
-            )
-            if email and not form["login"].errors:
-                form.fields["password"].widget.attrs["autofocus"] = True
+        form = context["form"]
+        if (form["login"].value() or "").strip() and not form["login"].errors:
+            form.fields["password"].widget.attrs["autofocus"] = True
         return context
 
 
@@ -129,9 +124,14 @@ def password_step(request, email):
 @never_cache
 @email_signup_only
 @require_POST
+@sensitive_post_parameters("password")
 @abandons_login_step
 def continue_with_email(request):
-    email = request.POST.get("email", "").strip()
+    # The password form's code button submits its own address field, named login.
+    post = request.POST.copy()
+    post.setdefault("email", post.get("login", ""))
+    request.POST = post
+    email = post["email"].strip()
     account = active_account(email)
     if not account:
         return allauth_views.signup(request)

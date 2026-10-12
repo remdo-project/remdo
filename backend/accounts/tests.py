@@ -818,11 +818,12 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
             page, '<input type="hidden" name="next" value="/n/doc">', count=2, html=True
         )
 
-    def test_password_form_page_offers_the_way_back_to_the_email_form(self):
+    def test_password_form_page_offers_the_code_button(self):
         page = self.client.get("/accounts/login/?method=password&next=/n/doc")
         self.assertContains(page, 'name="password"')
         self.assertNotContains(page, 'name="email"')
-        self.assertContains(page, 'href="/accounts/login/?next=%2Fn%2Fdoc"')
+        self.assertContains(page, "Email me a code instead")
+        self.assertContains(page, 'formaction="/accounts/email/"')
 
     def test_known_address_with_a_password_gets_the_password_step_before_any_code(self):
         self.account()
@@ -832,24 +833,37 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.assertEqual(mail.outbox, [])
         self.assertContains(page, 'name="password"')
         self.assertRegex(page.content.decode(), r'<input[^>]*name="password"[^>]*autofocus')
-        self.assertContains(page, 'value="Alice@Example.test"', count=2)
+        self.assertContains(page, 'value="Alice@Example.test"', count=1)
         self.assertContains(page, "Email me a code instead")
         self.assertContains(page, 'action="/accounts/login/?method=password&amp;next=%2Fn%2Fdoc"')
         self.assertContains(
-            page, '<input type="hidden" name="next" value="/n/doc">', count=3, html=True
+            page, '<input type="hidden" name="next" value="/n/doc">', count=2, html=True
         )
 
     def test_password_step_sends_a_code_only_when_asked_for_one(self):
         self.account()
 
         response = self.post(
-            "/accounts/email/", {"email": "alice@example.test", "method": "code", "next": "/n/doc"}
+            "/accounts/email/",
+            {"login": "alice@example.test", "password": "", "method": "code", "next": "/n/doc"},
         )
         self.assertTrue(response["Location"].startswith("/accounts/login/code/confirm/"))
         response = self.post(response["Location"], {"code": self.emailed_code()})
 
         self.assertEqual(response.context["next_url"], "/n/doc")
         self.assertEqual(self.session_email(), "alice@example.test")
+
+    def test_code_button_sends_to_the_address_currently_in_the_field(self):
+        self.account()
+        self.account("bob@example.test", password=None)
+
+        response = self.post(
+            "/accounts/email/",
+            {"login": "bob@example.test", "password": "typed-for-alice", "method": "code"},
+        )
+
+        self.assertTrue(response["Location"].startswith("/accounts/login/code/confirm/"))
+        self.assertEqual(mail.outbox[-1].to, ["bob@example.test"])
 
     def test_signed_in_visit_to_the_email_step_leaves_for_home(self):
         self.account()
@@ -862,7 +876,7 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
 
         self.assertEqual(response["Location"], "/")
 
-    def test_wrong_password_keeps_the_offer_to_email_a_code_for_that_address(self):
+    def test_wrong_password_keeps_the_code_button(self):
         self.account()
 
         page = self.post(
@@ -874,18 +888,7 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.assertContains(
             page, "The email address and/or password you specified are not correct."
         )
-        self.assertContains(
-            page, '<input type="hidden" name="email" value="alice@example.test">', html=True
-        )
-
-    def test_wrong_password_offers_a_link_back_for_an_unknown_address(self):
-        page = self.post(
-            "/accounts/login/?method=password", {"login": "nobody@example.test", "password": "x"}
-        )
-
-        self.assertNotContains(page, "Email me a code instead")
-        self.assertNotContains(page, 'name="email"')
-        self.assertContains(page, "Email me a sign-in code instead")
+        self.assertContains(page, "Email me a code instead")
 
     def test_password_step_shares_the_login_rate_limit(self):
         cache.clear()
