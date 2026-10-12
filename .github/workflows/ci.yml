@@ -1,0 +1,157 @@
+name: CI
+permissions:
+  contents: read
+  actions: write
+
+on: push
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    timeout-minutes: 8
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-pnpm
+      - uses: ./.github/actions/setup-python
+      - run: pnpm run lint:dockerfile
+      - run: pnpm run audit:policy
+      - run: pnpm run audit:unused:prod
+      - run: pnpm run lint
+      - run: pnpm run check:dev-boundary
+      - run: pnpm run api:check
+
+  unit:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    # Stays above the suite's own TEST_TIMEOUT below plus dependency setup, so an
+    # overrun surfaces as that command's exit 124 rather than the runner killing
+    # the job first.
+    timeout-minutes: 12
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-pnpm
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - env:
+          TEST_TIMEOUT: 360
+        run: pnpm run test:unit --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+  backend:
+    timeout-minutes: 8
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-python
+      - run: ./tools/check-backend.sh && ./tools/django.sh test
+      - name: Verify PostgreSQL backend
+        run: ./tools/postgres.sh run ./tools/django.sh test
+
+  collab:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    # Dependency setup can take over a minute; keep the test deadline in control.
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-pnpm
+      - uses: ./.github/actions/setup-python
+
+      - name: Run collaboration unit tests
+        run: TEST_TIMEOUT=$((60 * 10)) pnpm run test:collab --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+  e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    # Stays above the suite's own TEST_TIMEOUT below, so an overrun surfaces as
+    # that command's exit 124 rather than the runner killing the job first.
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-pnpm
+      - uses: ./.github/actions/setup-python
+
+      - name: Resolve Playwright version
+        run: echo "PLAYWRIGHT_VERSION=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_ENV"
+
+      - name: Cache Playwright browsers (optional)
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium
+
+      - name: Run Playwright E2E suite
+        env:
+          TEST_TIMEOUT: 900
+        run: pnpm run test:e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+      - name: Upload Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-failure-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
+          path: data/e2e-runtime/test-results/playwright
+          if-no-files-found: ignore
+          retention-days: 7
+
+  docker:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-pnpm
+
+      - name: Resolve Playwright version
+        run: echo "PLAYWRIGHT_VERSION=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_ENV"
+
+      # The Docker E2E command installs Chromium into this cache itself.
+      - name: Cache Playwright browsers (optional)
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+
+      - name: Run Docker E2E suite
+        run: pnpm run test:e2e:docker
+
+      - name: Upload Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          path: data/test-results/playwright
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The single required status check for merging. `always()` keeps it running
+  # after an upstream failure or cancellation: a skipped required check counts as
+  # passing.
+  ci:
+    name: CI gate
+    if: always()
+    needs: [static, unit, backend, collab, e2e, docker]
+    timeout-minutes: 2
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: echo '::error::A CI job did not succeed' && exit 1
