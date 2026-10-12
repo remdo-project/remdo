@@ -106,7 +106,7 @@ class LoginView(AllauthLoginView):
             email = (form["login"].value() or "").strip()
             account = active_account(email)
             context.update(
-                code_email=email if account and not account.is_administrator else "",
+                code_email=email if account else "",
                 code_link=not account,
             )
             if email and not form["login"].errors:
@@ -136,7 +136,7 @@ def continue_with_email(request):
     if not account:
         return allauth_views.signup(request)
     wants_code = request.POST.get("method") == "code"
-    if account.is_administrator or (account.has_usable_password() and not wants_code):
+    if account.has_usable_password() and not wants_code:
         return password_step(request, email)
     return allauth_views.request_login_code(request)
 

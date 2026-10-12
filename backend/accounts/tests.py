@@ -611,7 +611,8 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.account(is_staff=True)
 
         response = self.post(
-            "/accounts/login/code/", {"email": "alice@example.test", "next": "/admin/"}
+            "/accounts/email/",
+            {"email": "alice@example.test", "method": "code", "next": "/admin/"},
         )
         response = self.post(response["Location"], {"code": self.emailed_code()})
 
@@ -769,7 +770,7 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
     def test_superuser_without_staff_status_cannot_sign_in_with_a_code(self):
         self.account(is_superuser=True)
 
-        response = self.post("/accounts/login/code/", {"email": "alice@example.test"})
+        response = self.post("/accounts/email/", {"email": "alice@example.test", "method": "code"})
         response = self.post(response["Location"], {"code": self.emailed_code()})
 
         self.assertTemplateUsed(response, "account/password_only.html")
@@ -850,18 +851,6 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.assertEqual(response.context["next_url"], "/n/doc")
         self.assertEqual(self.session_email(), "alice@example.test")
 
-    def test_administrator_address_gets_the_password_step_without_any_code(self):
-        self.account("staff@example.test", password=None, is_staff=True)
-        self.account("super@example.test", password=None, is_superuser=True)
-        for email in ("staff@example.test", "super@example.test"):
-            for extra in ({}, {"method": "code"}):
-                with self.subTest(email=email, **extra):
-                    page = self.post("/accounts/email/", {"email": email, **extra})
-
-                    self.assertEqual(mail.outbox, [])
-                    self.assertContains(page, 'name="password"')
-                    self.assertNotContains(page, "code instead")
-
     def test_signed_in_visit_to_the_email_step_leaves_for_home(self):
         self.account()
         self.post(
@@ -889,17 +878,14 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
             page, '<input type="hidden" name="email" value="alice@example.test">', html=True
         )
 
-    def test_wrong_password_offers_no_code_button_for_an_administrator_or_unknown_address(self):
-        self.account("staff@example.test", is_staff=True)
-        for email, link in (("staff@example.test", False), ("nobody@example.test", True)):
-            with self.subTest(email=email):
-                page = self.post(
-                    "/accounts/login/?method=password", {"login": email, "password": "wrong"}
-                )
+    def test_wrong_password_offers_a_link_back_for_an_unknown_address(self):
+        page = self.post(
+            "/accounts/login/?method=password", {"login": "nobody@example.test", "password": "x"}
+        )
 
-                self.assertNotContains(page, "Email me a code instead")
-                self.assertNotContains(page, 'name="email"')
-                self.assertEqual("Email me a sign-in code instead" in page.text, link)
+        self.assertNotContains(page, "Email me a code instead")
+        self.assertNotContains(page, 'name="email"')
+        self.assertContains(page, "Email me a sign-in code instead")
 
     def test_password_step_shares_the_login_rate_limit(self):
         cache.clear()

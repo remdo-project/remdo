@@ -36,16 +36,14 @@ tokens.
 
 Email sign-in asks first only for an email address. An address that matches an
 active account with a password continues to the email/password form with that
-address filled in, and an active staff or superuser account always does. That
-form offers a one-time code by email on request, except for a staff or superuser
-account's address. An address that matches an active account without a password
-is sent a one-time code and signs in once the code is confirmed. Any other
-address gets an account without a password, which grants no access until its
-code is confirmed. Signup never collects a password. A code never replaces the
-password of a staff or superuser account. The outcomes are distinguishable:
-[sharing](#document-sharing) already reveals whether an address has an account,
-and the routing also reveals whether it has a password or a staff or superuser
-role.
+address filled in, which offers a one-time code by email on request. An address
+that matches an active account without a password is sent a one-time code and
+signs in once the code is confirmed. Any other address gets an account without a
+password, which grants no access until its code is confirmed. Signup never
+collects a password. A code never replaces the password of a staff or superuser
+account. The outcomes are distinguishable: [sharing](#document-sharing) already
+reveals whether an address has an account, and the routing also reveals whether
+it has a password.
 
 Allauth renders sign-in at `/accounts/login/` and validates credentials.
 Sign-in and the public home offer **Sign in with Google**. With email sign-in,
