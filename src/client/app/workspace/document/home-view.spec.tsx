@@ -6,7 +6,7 @@ import type { HomeViewProps } from './HomeView';
 import { TestMantineProvider, setCoarsePointer } from '#tests';
 
 const documentNote = (
-  { id, title, rename = vi.fn(), remove = vi.fn(), canRename = true, canShareWith = false, canDelete = false }:
+  { id, title, rename = vi.fn(), remove = vi.fn(), canRename = true, canShareWith = false, canDelete = false, recipients = 0 }:
   {
     id: string;
     title: string;
@@ -15,10 +15,12 @@ const documentNote = (
     canRename?: boolean;
     canShareWith?: boolean;
     canDelete?: boolean;
+    recipients?: number;
   },
 ): DocumentNote => ({
   getId: () => id,
   getText: () => title,
+  getAccess: () => ({ getChildren: () => Array.from({ length: recipients }) }),
   canRename: () => canRename,
   canShareWith: () => canShareWith,
   canDelete: () => canDelete,
@@ -136,17 +138,25 @@ describe('home view', () => {
     expect(screen.queryByRole('group', { name: 'Empty server' })).toBeNull();
   });
 
-  it('marks only documents the user cannot share as Shared, leaving the accessible name unchanged', () => {
+  it('marks documents shared with or by the user as Shared, leaving the accessible name unchanged', () => {
     const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: docId, canShareWith: docId === 'doc-a' });
+    props.resolveDocument = (docId) => documentNote({
+      id: docId,
+      title: docId,
+      canShareWith: docId !== 'doc-c',
+      recipients: docId === 'doc-b' ? 2 : 0,
+    });
     renderHome(props);
 
     const owned = screen.getByRole('button', { name: 'Project Roadmap' });
-    const shared = screen.getByRole('button', { name: 'Ideas' });
+    const sharedByYou = screen.getByRole('button', { name: 'Ideas' });
+    const sharedWithYou = screen.getByRole('button', { name: 'Team notes' });
     expect(owned).toHaveAccessibleDescription('');
-    expect(shared).toHaveAccessibleDescription('Shared with you');
-    expect(within(shared).getByText('Shared')).toBeInTheDocument();
     expect(within(owned).queryByText('Shared')).toBeNull();
+    expect(sharedByYou).toHaveAccessibleDescription('Shared by you');
+    expect(within(sharedByYou).getByText('Shared')).toHaveAttribute('title', 'Shared by you');
+    expect(sharedWithYou).toHaveAccessibleDescription('Shared with you');
+    expect(within(sharedWithYou).getByText('Shared')).toHaveAttribute('title', 'Shared with you');
   });
 
   it('invokes the New document action', () => {
