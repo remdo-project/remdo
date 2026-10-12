@@ -82,6 +82,8 @@ interface HeadlessEditorOptions {
   authorization?: string;
   /** Keep editor changes local instead of syncing them to the document. */
   readOnly?: boolean;
+  /** Runs once the document has synced, before `run`; its changes are not counted as `run`'s writes. */
+  prepare?: (editor: LexicalEditor) => void;
   /** Cancel opening the document; the signal does not cancel work once `run` starts. */
   signal?: AbortSignal;
 }
@@ -97,7 +99,7 @@ interface HeadlessEditorOptions {
 export async function withHeadlessEditor<T>(
   docId: string,
   run: (editor: LexicalEditor) => Promise<T> | T,
-  { authorization, readOnly = false, signal }: HeadlessEditorOptions = {},
+  { authorization, readOnly = false, prepare, signal }: HeadlessEditorOptions = {},
 ): Promise<T> {
   signal?.throwIfAborted();
   const docMap = new Map<string, Doc>();
@@ -158,6 +160,7 @@ export async function withHeadlessEditor<T>(
     await initialUpdate;
     signal?.throwIfAborted();
 
+    prepare?.(editor);
     syncDoc.on('update', recordWrite);
     result = await run(editor);
     await session.awaitSynced();

@@ -220,6 +220,17 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(malformed.isError).toBe(true);
   });
 
+  it('refuses a missing note in a new document without calling the write unconfirmed', async () => {
+    const client = await connect(await delegatedToken());
+    const { documentId } = (await call(client, 'create_document', { title: 'Empty' })).value as { documentId: string };
+
+    const appended = await call(client, 'append_children', {
+      parent: `${documentId}_missingnote`, notes: [{ text: 'Lost' }],
+    });
+
+    expect(appended).toEqual({ isError: true, value: 'Note "missingnote" is not available.' });
+  });
+
   it("refuses to write to another user's document", async () => {
     const owner = await connect(await delegatedToken('mcp-owner@example.test'));
     const { documentId } = (await call(owner, 'create_document', { title: 'Private' })).value as { documentId: string };
