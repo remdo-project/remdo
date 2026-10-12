@@ -107,13 +107,13 @@ function isJson(body: string): boolean {
   }
 }
 
-function rejection(status: number, body: string): Error {
+function rejection(status: number, body: string, addressesDocument: boolean): Error {
   if (status >= 500) return new ToolError('UNAVAILABLE', UNAVAILABLE);
+  if (status === 404 && addressesDocument) return new ToolError('NOT_FOUND', DOCUMENT_NOT_FOUND);
   switch (status) {
     case 400: return new ToolError('INVALID_ARGUMENT', isJson(body) ? `RemDo rejected the request as invalid: ${body}` : 'RemDo rejected the request as invalid.');
     case 401: return new AuthorizationError();
     case 403: return new ToolError('PERMISSION_DENIED', 'The user is not allowed to do this in RemDo.');
-    case 404: return new ToolError('NOT_FOUND', DOCUMENT_NOT_FOUND);
     default: return new ToolError('INTERNAL', `RemDo could not complete the request (${status}).`);
   }
 }
@@ -161,7 +161,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       const unconfirmed = method !== 'GET' && (error as NodeJS.ErrnoException).code !== 'ECONNREFUSED';
       throw unconfirmed ? new ToolError('OUTCOME_UNCONFIRMED', UNCONFIRMED) : new ToolError('UNAVAILABLE', UNAVAILABLE);
     });
-    if (!response.ok) throw rejection(response.status, response.body.toString());
+    if (!response.ok) throw rejection(response.status, response.body.toString(), path.startsWith('/api/documents/'));
     return JSON.parse(response.body.toString()) as unknown;
   }
 

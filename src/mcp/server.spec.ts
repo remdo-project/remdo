@@ -243,7 +243,7 @@ it.each([
   [{ status: 400, body: '{"title":["Invalid title."]}' }, 'INVALID_ARGUMENT: RemDo rejected the request as invalid: {"title":["Invalid title."]}'],
   [{ status: 400, body: '<!doctype html><title>Bad Request</title>' }, 'INVALID_ARGUMENT: RemDo rejected the request as invalid.'],
   [{ status: 403, body: '{}' }, 'PERMISSION_DENIED: The user is not allowed to do this in RemDo.'],
-  [{ status: 404, body: '' }, DOCUMENT_NOT_FOUND],
+  [{ status: 404, body: '' }, 'INTERNAL: RemDo could not complete the request (404).'],
   [{ status: 413, body: '' }, 'INTERNAL: RemDo could not complete the request (413).'],
   [{ status: 502, body: '' }, 'UNAVAILABLE: RemDo is unavailable. Try again later.'],
   ['dropped' as const, 'OUTCOME_UNCONFIRMED: RemDo did not confirm whether the request took effect. Check with list_documents before retrying.'],
@@ -255,6 +255,17 @@ it.each([
   const result = await rpc(post, 'tools/call', { name: 'create_document', arguments: { title: 'Plan' } });
 
   expect(result).toEqual({ isError: true, content: [{ type: 'text', text: message }] });
+  expect(authorizationChecks).toBe(1);
+});
+
+it('reports a document the API cannot find as not found', async () => {
+  const post = await start();
+  authorizeStatus = 200;
+  documentsResponse = { status: 404, body: '' };
+
+  const result = await rpc(post, 'tools/call', { name: 'rename_document', arguments: { documentId: 'doc', title: 'Plan' } });
+
+  expect(result).toEqual({ isError: true, content: [{ type: 'text', text: DOCUMENT_NOT_FOUND }] });
   expect(authorizationChecks).toBe(1);
 });
 

@@ -32,7 +32,7 @@ it('fails work that cannot start within the wait', async () => {
   const running = withSlot(() => first.promise);
   const run = vi.fn(() => Promise.resolve());
   const queued = withSlot(run);
-  const rejected = expect(queued).rejects.toThrow('RemDo is busy');
+  const rejected = expect(queued).rejects.toMatchObject({ code: 'UNAVAILABLE', message: 'RemDo is busy; try again shortly.' });
   await vi.advanceTimersByTimeAsync(1000);
   await rejected;
   first.resolve();
@@ -59,7 +59,7 @@ it('includes queue time in the deadline for opening a document', async () => {
   expect(signal.aborted).toBe(false);
   await vi.advanceTimersByTimeAsync(1);
   expect(signal.aborted).toBe(true);
-  expect(signal.reason.message).toBe('RemDo is busy; try again shortly.');
+  expect(signal.reason).toMatchObject({ code: 'UNAVAILABLE', message: 'RemDo is busy; try again shortly.' });
   opened.resolve();
   await queued;
   await expect(withSlot(async () => 'ran')).resolves.toBe('ran');
