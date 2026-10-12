@@ -68,4 +68,6 @@ published as a CI artifact.
 
 CI runs the same full harness variants and runtime lifecycles as local full
 runs. The CI runner provides their working-directory and runtime-data isolation
-and additionally retains available browser failure traces as artifacts.
+and additionally retains available browser failure traces as artifacts. CI
+reports one aggregate check that passes only when every CI job passes; it is the
+sole check integration requires.
