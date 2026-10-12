@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 import sentry_sdk
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -13,8 +15,10 @@ def scrub_event(event, hint):
         # Streaming failures can be captured after the HTTP reporter's scope
         # ends. Keep only a route-pattern URL supplied by that reporter.
         request.pop("url", None)
-        if route := event.get("tags", {}).get("http.route"):
-            request["url"] = settings.APP_ORIGIN + "/" + route
+        # The home route is empty, and an unescaped `?` in a regex route would
+        # cut the URL where a query string begins.
+        if (route := event.get("tags", {}).get("http.route")) is not None:
+            request["url"] = settings.APP_ORIGIN + "/" + quote(route, safe="/<>:")
         # Internal collaboration calls carry the service credential in a header,
         # and OAuth callbacks carry authorization codes in the query string.
         request["headers"] = {

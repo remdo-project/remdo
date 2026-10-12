@@ -12,7 +12,7 @@ from django.core.handlers.wsgi import WSGIHandler
 from django.core.management import call_command
 from django.http import HttpResponse, StreamingHttpResponse
 from django.test import Client, RequestFactory, override_settings
-from django.urls import path
+from django.urls import path, re_path
 from django.views.decorators.csrf import csrf_exempt
 
 LOCAL_VALUE = "private-local-value"
@@ -35,6 +35,11 @@ def status(request, code, document):
     return HttpResponse(RESPONSE_BODY, status=code)
 
 
+@csrf_exempt
+def unavailable(request, **route_values):
+    return HttpResponse(RESPONSE_BODY, status=503)
+
+
 def diagnostic(request, document):
     import sentry_sdk
 
@@ -51,6 +56,8 @@ def streaming(request, document):
 
 
 urlpatterns = [
+    path("", unavailable),
+    re_path(r"^pages/(?P<slug>[a-z-]+)/$", unavailable),
     path("fail/<str:document>", fail),
     path("suspicious/<str:document>", suspicious),
     path("status/<int:code>/<str:document>", status),
@@ -98,7 +105,9 @@ def http_errors():
             client.get(f"/status/{code}/private-document?code=private-code", **options).status_code
             for code in (200, 201, 204, 302, 304, 400, 401, 403, 404, 410, 429, 500, 503, 599)
         ]
-        client.get("/status/401/another-private-document", **options)
+        client.get("/status/503/another-private-document", **options)
+        client.get("/", **options)
+        client.get("/pages/private-page/", **options)
         client.get("/private-bookmark?secret=private-query", **options)
         client.post("/diagnostic/private-document", {"private-body": "private-value"}, **options)
         client.get("/diagnostic/private-document", **options)
