@@ -134,8 +134,15 @@ exec "\${REMDO_FAKE_CHILD:?}" "$service"\n`);
 fi
 if [ "\${1:-}" = -c ]; then
   case "\${2:-}" in
+    *urlsplit*)
+      case "\${4:-}" in
+        protocol) echo https: ;;
+        hostname) echo remdo.localhost ;;
+        *) exit 1 ;;
+      esac
+      ;;
     *settings.COLLAB_INTERNAL_SECRET*) echo test-internal-secret ;;
-    *) exec python3 "$@" ;;
+    *) exit 1 ;;
   esac
 fi
 `);
