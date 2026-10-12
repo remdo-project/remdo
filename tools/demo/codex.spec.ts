@@ -1,5 +1,12 @@
-import { expect, it } from 'vitest';
-import { completedTool, requireDocumentRead, requireSuccessfulTools, resultText, transcriptEntry } from './codex';
+import type { ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
+import { expect, it, vi } from 'vitest';
+import { CodexTerminal, completedTool, requireDocumentRead, requireSuccessfulTools, resultText, transcriptEntry } from './codex';
+import type { Pane } from './pane';
+
+vi.mock('node:child_process', () => ({ spawn: vi.fn() }));
 
 const call = {
   id: 'read-1', type: 'mcp_tool_call' as const, server: 'remdo', tool: 'read_document',
@@ -95,4 +102,48 @@ it.each([
   ] },
 ])('rejects a successful private read or an unrelated failure, including before a denied retry', ({ calls }) => {
   expect(() => requireDocumentRead(calls, 'privateDoc', 'access-denied')).toThrow('did not return a RemDo document access denial');
+});
+
+async function askWithEvents(events: object[], exitCode = 0) {
+  const child = Object.assign(new EventEmitter(), {
+    stdin: new PassThrough(), stdout: new PassThrough(), stderr: new PassThrough(), kill: vi.fn(),
+  });
+  vi.mocked(spawn).mockImplementationOnce(() => {
+    queueMicrotask(() => {
+      child.stdout.end(`${events.map((event) => JSON.stringify(event)).join('\n')}\n`);
+      child.emit('close', exitCode);
+    });
+    return child as unknown as ChildProcessWithoutNullStreams;
+  });
+  const pane = {
+    page: { setContent: vi.fn(), evaluate: vi.fn(), getByRole: () => ({ focus: vi.fn() }) },
+    type: vi.fn(), press: vi.fn(),
+  } as unknown as Pane;
+  const terminal = await CodexTerminal.open(pane, {
+    url: 'https://remdo.example/mcp', token: 'test-credential', account: 'Plugin review',
+  });
+  try {
+    return await terminal.ask('Read my RemDo outline.');
+  } finally {
+    await terminal.close();
+  }
+}
+
+const reconnect = { type: 'error', message: 'Reconnecting... 2/5' };
+const reply = { type: 'item.completed', item: { id: 'reply', type: 'agent_message', text: 'Your outline contains Plan and Scope.' } };
+const completed = { type: 'turn.completed' };
+
+it('keeps reading tool calls and the reply when Codex recovers after a reconnect notice', async () => {
+  await expect(askWithEvents([
+    reconnect, { type: 'item.completed', item: call }, reply, completed,
+  ])).resolves.toEqual({ calls: [call] });
+});
+
+it.each([
+  { events: [reconnect, { type: 'turn.failed', error: { message: 'Retry limit reached.' } }], exitCode: 0, message: 'Codex CLI failed: Retry limit reached.' },
+  { events: [reconnect, reply, completed], exitCode: 1, message: 'Codex CLI exited 1' },
+  { events: [reconnect, reply], exitCode: 0, message: 'without completing the turn' },
+  { events: [reconnect, completed], exitCode: 0, message: 'without an assistant reply' },
+])('rejects an unsuccessful Codex run after reconnecting', async ({ events, exitCode, message }) => {
+  await expect(askWithEvents(events, exitCode)).rejects.toThrow(message);
 });

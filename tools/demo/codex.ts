@@ -121,7 +121,7 @@ export class CodexTerminal {
     delete cliEnv.REMDO_USER_PASSWORD;
     delete cliEnv.REMDO_ADMIN_PASSWORD;
     const child = spawn('codex', [
-      '--no-daemon', '-a', 'never', 'exec', '--ignore-user-config', '--ignore-rules',
+      '-a', 'never', 'exec', '--ignore-user-config', '--ignore-rules',
       '--ephemeral', '--skip-git-repo-check', '--sandbox', 'read-only', '-C', this.workdir, '--json',
       '-c', `mcp_servers.remdo.url=${JSON.stringify(this.mcp.url)}`,
       '-c', 'mcp_servers.remdo.bearer_token_env_var="REMDO_RECORDING_MCP_TOKEN"',
@@ -170,7 +170,8 @@ export class CodexTerminal {
             output.scrollTop = output.scrollHeight;
           }, entry);
         }
-        if (event.type === 'turn.failed' || event.type === 'error') {
+        // Error notices can precede successful reconnects; turn.failed is terminal.
+        if (event.type === 'turn.failed') {
           throw new Error(`Codex CLI failed: ${event.error?.message ?? event.message}`);
         }
         const call = completedTool(event);
