@@ -3,7 +3,7 @@ import { createDocumentPath } from '#document-routes';
 import { normalizeDocumentId } from '#domain/documents/ids';
 
 export function createSignInPath(search: string): string {
-  return `/accounts/login/?${new URLSearchParams({ next: `/${search}` })}`;
+  return search ? `/accounts/login/?${new URLSearchParams({ next: `/${search}` })}` : '/accounts/login/';
 }
 
 export function createPostAuthNextSearch(request: Request): string {

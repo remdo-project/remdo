@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEV_LEXICAL_DEMO_ROUTE } from '#client/app/shell/dev-route';
 import {
   createPostAuthNextSearch,
+  createSignInPath,
   resolvePostAuthPath,
   resolvePostAuthTargetPath,
 } from '#client/app/session/post-auth-path';
@@ -13,6 +14,11 @@ describe('post-auth paths', () => {
     const search = createPostAuthNextSearch(new Request(`https://remdo.test${DEV_LEXICAL_DEMO_ROUTE}`));
 
     expect(new URLSearchParams(search).get('next')).toBe(DEV_LEXICAL_DEMO_ROUTE);
+  });
+
+  it('omits the default destination from the sign-in path', () => {
+    expect(createSignInPath('')).toBe('/accounts/login/');
+    expect(createSignInPath('?doc=main')).toBe('/accounts/login/?next=%2F%3Fdoc%3Dmain');
   });
 
   it('allows relative post-auth targets', () => {

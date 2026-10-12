@@ -16,7 +16,7 @@
           {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
           <a href="/sign-out/">Logout</a>
         {% else %}
-          <a href="{{ login_url }}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}"{% if request.path == login_url %} aria-current="page"{% endif %}>Sign in</a>
+          <a href="{{ login_url }}{% if redirect_field_value and redirect_field_value != "/" %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}"{% if request.path == login_url %} aria-current="page"{% endif %}>Sign in</a>
         {% endif %}
       {% endif %}
     </nav>

@@ -192,6 +192,12 @@ class LoginPageTests(TestCase):
             response, '<input type="hidden" name="next" value="/n/exampleDoc">', html=True, count=2
         )
 
+    def test_header_link_omits_the_default_destination(self):
+        response = self.client.get("/accounts/login/?next=/")
+        self.assertContains(
+            response, '<a href="/accounts/login/" aria-current="page">Sign in</a>', html=True
+        )
+
     def test_page_links_the_site_header_and_footer(self):
         response = self.client.get("/accounts/login/")
         self.assertContains(response, '<a href="/about/">About</a>', html=True)
