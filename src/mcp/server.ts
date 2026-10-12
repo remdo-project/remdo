@@ -11,7 +11,7 @@ import type { NewNote, NoteListType } from '#note-sdk';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { parseDocumentRef } from '#document-routes';
 import { withHeadlessOpenDocument } from '../headless/open-document';
-import { renderOutline } from './outline';
+import { findNoteList, renderOutline } from './outline';
 import { createDocumentSlots } from './document-slots';
 import { AuthorizationError } from '#platform/net/authorization-error';
 
@@ -217,13 +217,14 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       const ref = parseDocumentRef(target);
       if (!ref) throw new Error('The target is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
-      const outline = await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, async (openDocument, isStored) =>
-        renderOutline(
-          noteId ? [openDocument.noteRef(noteId)] : openDocument.root.getChildren(),
+      const outline = await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, async (openDocument, isStored) => {
+        const target = noteId ? findNoteList(openDocument.root, noteId) : null;
+        return renderOutline(
+          target ? [target.note] : openDocument.root.getChildren(),
           (id) => isStored(id) ? documentUrl(documentId, id) : null,
-          { depth },
-        ),
-      { readOnly: true, signal }));
+          { depth, listType: target?.listType },
+        );
+      }, { readOnly: true, signal }));
       return `Document: ${documentUrl(documentId)}\n\n${outline}`;
     }));
 

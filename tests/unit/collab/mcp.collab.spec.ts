@@ -199,7 +199,12 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(converted).toMatchObject({ isError: false, value: { noteAddress: trip!.noteAddress, listType: 'check' } });
 
     const read = await client.callTool({ name: 'read_document', arguments: { target: documentId } });
-    expect((read.content as Array<{ text: string }>)[0]!.text).toMatch(/\n {2}- \[ \] \[Passport\]\(/);
+    const text = (read.content as Array<{ text: string }>)[0]!.text;
+    expect(text).toMatch(/\n {2}- \[ \] \[Passport\]\(/);
+
+    const passportAddress = /\[Passport\]\([^)]*\/([^/)]+)\)/.exec(text)![1];
+    const isolated = await client.callTool({ name: 'read_document', arguments: { target: passportAddress } });
+    expect((isolated.content as Array<{ text: string }>)[0]!.text).toMatch(/\n\n- \[ \] \[Passport\]\(/);
 
     const refused = await call(client, 'set_child_list_type', { noteAddress: visa!.noteAddress, listType: 'number' });
     expect(refused).toEqual({ isError: true, value: 'Only a note with children has a child list.' });
