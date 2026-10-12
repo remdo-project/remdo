@@ -34,23 +34,29 @@ account linked before its promotion, and its email match creates no account.
 RemDo requests only basic identity and does not store Google access or refresh
 tokens.
 
-Email sign-in asks only for an email address and sends it a one-time code.
-An address that matches an account signs in to it once the code is confirmed.
-Any other address gets an account without a password, which grants no access
-until its code is confirmed. Signup never collects a password. A code never
-replaces the password of a staff or superuser account. The two outcomes are
-distinguishable, since [sharing](#document-sharing) already reveals whether an
-address has an account.
+Email sign-in asks first only for an email address. An address that matches an
+active account with a password continues to the email/password form with that
+address filled in. That form offers a one-time code by email to the address it
+holds, on request. An address that matches an active account without a password
+is sent a one-time code and signs in once the code is confirmed. Any other
+address gets an account without a password, which grants no access until its
+code is confirmed. Signup never collects a password. A code never replaces the
+password of a staff or superuser account. The outcomes are distinguishable:
+[sharing](#document-sharing) already reveals whether an address has an account,
+and the routing also reveals whether it has a password.
 
 Allauth renders sign-in at `/accounts/login/` and validates credentials.
 Sign-in and the public home offer **Sign in with Google**. With email sign-in,
-the sign-in page offers the email form and a link to the email/password form
-for accounts that have a password. Successful sign-in
-returns to the requested same-origin app destination, defaulting to Home. The
-app keeps an in-place signed-out screen after logout so offline logout does not
-require a server-rendered page.
+the sign-in page offers the email form, and the refusal of a code or Google
+sign-in to a staff or superuser account links to the email/password form.
+Opening or submitting the sign-in page abandons an unfinished code step.
+Successful sign-in returns to the requested same-origin app destination,
+defaulting to Home. The app keeps an in-place signed-out screen after logout
+so offline logout does not require a server-rendered page.
 
-Production allauth sign-in retains the framework's rate limits. IP-based limits
+Production allauth sign-in retains the framework's rate limits, and the email
+step that continues to the email/password form counts against the same limit as
+password sign-in attempts. IP-based limits
 use the client address established by the trusted gateway or hosting edge, not
 caller-supplied forwarding values.
 

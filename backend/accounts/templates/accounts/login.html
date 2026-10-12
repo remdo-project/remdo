@@ -41,11 +41,13 @@
         {% endslot %}
         {% slot actions %}
           {% element button type="submit" %}Sign in{% endelement %}
+          {% if email_signup_enabled %}
+            {% url 'account_continue_with_email' as continue_url %}
+            <button class="remdo-account-button" type="submit" name="method" value="code"
+              formaction="{{ continue_url }}" formnovalidate>Email me a code instead</button>
+          {% endif %}
         {% endslot %}
       {% endelement %}
-      {% if email_signup_enabled %}
-        <p><a href="{{ login_url }}">Email me a sign-in code instead</a></p>
-      {% endif %}
     {% else %}
       {% url 'account_continue_with_email' as continue_url %}
       {% element form form=email_form method="post" action=continue_url %}
@@ -58,7 +60,6 @@
           {% element button type="submit" %}Continue with email{% endelement %}
         {% endslot %}
       {% endelement %}
-      <p><a href="{{ password_url }}">Use a password instead</a></p>
     {% endif %}
     <p class="landing-signin-notice">
       By signing in you agree to the <a href="/privacy/">Privacy Policy</a>
