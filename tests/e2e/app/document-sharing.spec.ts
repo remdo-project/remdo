@@ -36,6 +36,11 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     await shareDialog.getByRole('button', { name: 'Done', exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(row.locator('[data-home-document-ref]')).toHaveAccessibleDescription('Shared by you');
+    const sharedMarker = row.getByRole('button', { name: /^Shared by you/u });
+    await sharedMarker.click();
+    await expect(shareDialog.getByText(recipient.email, { exact: true })).toBeVisible();
+    await shareDialog.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(sharedMarker).toBeFocused();
 
     const peer = await peerContext.newPage();
     await withPageGuards(peer, async () => {

@@ -20,7 +20,15 @@ const documentNote = (
 ): DocumentNote => ({
   getId: () => id,
   getText: () => title,
-  getAccess: () => ({ getChildren: () => Array.from({ length: recipients }) }),
+  getAccess: () => ({
+    getChildren: () => Array.from({ length: recipients }, (_, index) => ({
+      getEmail: () => `recipient-${index}@example.test`,
+      getId: () => `recipient-${index}`,
+      getName: () => '',
+      getText: () => `recipient-${index}@example.test`,
+    })),
+  }),
+  subscribe: () => vi.fn(),
   canRename: () => canRename,
   canShareWith: () => canShareWith,
   canDelete: () => canDelete,
@@ -154,9 +162,28 @@ describe('home view', () => {
     expect(owned).toHaveAccessibleDescription('');
     expect(within(owned).queryByText('Shared')).toBeNull();
     expect(sharedByYou).toHaveAccessibleDescription('Shared by you');
-    expect(within(sharedByYou).getByText('Shared')).toHaveAttribute('title', 'Shared by you');
     expect(sharedWithYou).toHaveAccessibleDescription('Shared with you');
     expect(within(sharedWithYou).getByText('Shared')).toHaveAttribute('title', 'Shared with you');
+    expect(screen.getByRole('button', { name: 'Shared by you, manage sharing for Ideas' }))
+      .toHaveAttribute('title', 'Shared by you');
+  });
+
+  it('opens the sharing surface from the marker of a document the user shared, not from a received one', async () => {
+    const props = baseProps();
+    props.resolveDocument = (docId) => documentNote({
+      id: docId,
+      title: docId,
+      canShareWith: docId !== 'doc-c',
+      recipients: docId === 'doc-b' ? 1 : 0,
+    });
+    renderHome(props);
+
+    expect(screen.queryByRole('button', { name: /manage sharing for Team notes/u })).toBeNull();
+    expect(screen.queryByRole('button', { name: /manage sharing for Project Roadmap/u })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Shared by you, manage sharing for Ideas' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Share “doc-b”' });
+    expect(within(dialog).getByText('recipient-0@example.test')).toBeInTheDocument();
   });
 
   it('invokes the New document action', () => {
