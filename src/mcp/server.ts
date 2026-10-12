@@ -14,6 +14,9 @@ import { withHeadlessOpenDocument } from '../headless/open-document';
 import { findNoteList, renderOutline } from './outline';
 import { createDocumentSlots } from './document-slots';
 import { AuthorizationError } from '#platform/net/authorization-error';
+import {
+  DOCUMENT_NOT_FOUND, ERROR_CODES, RECONNECT, ToolError, UNAVAILABLE, describeFailure,
+} from './tool-error';
 
 interface ServerOptions {
   /** The loopback origin this server listens on. */
@@ -45,7 +48,6 @@ const INSTRUCTIONS = [
 const MAX_REQUEST_BYTES = 1024 * 1024;
 const MAX_APPENDED_NOTES = 1000;
 
-const UNAVAILABLE = 'RemDo is unavailable. Try again later.';
 const UNCONFIRMED = 'RemDo did not confirm whether the request took effect. '
   + 'Check with list_documents before retrying.';
 
@@ -75,11 +77,21 @@ function withOAuthSchemes(message: JSONRPCMessage): JSONRPCMessage {
   return { ...message, result: { ...message.result, tools } };
 }
 
+const CODED_TEXT = new RegExp(`^(${ERROR_CODES.join('|')}): `);
+
+// The SDK rejects invalid input before a tool runs, so respond() never codes that error.
+function withErrorCode(message: JSONRPCMessage): JSONRPCMessage {
+  if (!('result' in message) || message.result.isError !== true) return message;
+  const [first, ...rest] = message.result.content as Array<{ type: 'text'; text: string }>;
+  if (!first || CODED_TEXT.test(first.text)) return message;
+  return { ...message, result: { ...message.result, content: [{ ...first, text: `INVALID_ARGUMENT: ${first.text}` }, ...rest] } };
+}
+
 // The SDK's tools/list drops fields it does not know, but ChatGPT reads securitySchemes at the top level of the
 // tool descriptor; _meta mirrors it for clients that read only _meta.
-function advertiseOAuth(transport: Transport) {
+function rewriteResponses(transport: Transport) {
   const send = transport.send.bind(transport);
-  transport.send = (message, options) => send(withOAuthSchemes(message), options);
+  transport.send = (message, options) => send(withErrorCode(withOAuthSchemes(message)), options);
 }
 
 function countNotes(notes: readonly NewNote[]): number {
@@ -95,13 +107,14 @@ function isJson(body: string): boolean {
   }
 }
 
-function rejection(status: number, body: string): string {
-  if (status >= 500) return UNAVAILABLE;
+function rejection(status: number, body: string): Error {
+  if (status >= 500) return new ToolError('UNAVAILABLE', UNAVAILABLE);
   switch (status) {
-    case 400: return isJson(body) ? `RemDo rejected the request as invalid: ${body}` : 'RemDo rejected the request as invalid.';
-    case 401: return 'RemDo no longer accepts this authorization. Reconnect RemDo.';
-    case 403: return 'The user is not allowed to do this in RemDo.';
-    default: return `RemDo could not complete the request (${status}).`;
+    case 400: return new ToolError('INVALID_ARGUMENT', isJson(body) ? `RemDo rejected the request as invalid: ${body}` : 'RemDo rejected the request as invalid.');
+    case 401: return new AuthorizationError(RECONNECT);
+    case 403: return new ToolError('PERMISSION_DENIED', 'The user is not allowed to do this in RemDo.');
+    case 404: return new ToolError('NOT_FOUND', DOCUMENT_NOT_FOUND);
+    default: return new ToolError('INTERNAL', `RemDo could not complete the request (${status}).`);
   }
 }
 
@@ -117,10 +130,10 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       const result = await run();
       return { content: [{ type: 'text', text: typeof result === 'string' ? result : JSON.stringify(result) }] };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'The operation failed.';
+      const { code, message } = describeFailure(error);
       return {
         isError: true,
-        content: [{ type: 'text', text: message }],
+        content: [{ type: 'text', text: `${code}: ${message}` }],
         ...(needsReconnection(error) ? {
           _meta: {
             'mcp/www_authenticate': [
@@ -146,12 +159,9 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     }).catch((error: unknown) => {
       // Once Django has a write, a timeout or dropped connection leaves its outcome unknown.
       const unconfirmed = method !== 'GET' && (error as NodeJS.ErrnoException).code !== 'ECONNREFUSED';
-      throw new Error(unconfirmed ? UNCONFIRMED : UNAVAILABLE);
+      throw unconfirmed ? new ToolError('OUTCOME_UNCONFIRMED', UNCONFIRMED) : new ToolError('UNAVAILABLE', UNAVAILABLE);
     });
-    if (!response.ok) {
-      const ErrorType = response.status === 401 ? AuthorizationError : Error;
-      throw new ErrorType(rejection(response.status, response.body.toString()));
-    }
+    if (!response.ok) throw rejection(response.status, response.body.toString());
     return JSON.parse(response.body.toString()) as unknown;
   }
 
@@ -194,7 +204,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       },
     }, ({ documentId: input, title }) => respond(async () => {
       const ref = parseDocumentRef(input);
-      if (!ref || ref.noteId) throw new Error('The documentId is not valid.');
+      if (!ref || ref.noteId) throw new ToolError('INVALID_ARGUMENT', 'The documentId is not valid.');
       const documentId = ref.docId;
       const renamed = await callApi(authorization, `/api/documents/${documentId}`, 'PUT', { title }) as { id: string; title: string };
       return { documentId: renamed.id, title: renamed.title, url: documentUrl(renamed.id) };
@@ -215,7 +225,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       },
     }, ({ target, depth }) => respond(async () => {
       const ref = parseDocumentRef(target);
-      if (!ref) throw new Error('The target is not a documentId or a noteAddress.');
+      if (!ref) throw new ToolError('INVALID_ARGUMENT', 'The target is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
       const outline = await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, async (openDocument, isStored) => {
         const { root } = openDocument;
@@ -240,11 +250,11 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       },
     }, ({ parent, notes }) => respond(async () => {
       if (countNotes(notes) > MAX_APPENDED_NOTES) {
-        throw new Error(`Append at most ${MAX_APPENDED_NOTES} notes per call, counting nested children; `
+        throw new ToolError('INVALID_ARGUMENT', `Append at most ${MAX_APPENDED_NOTES} notes per call, counting nested children; `
           + 'split the outline across calls.');
       }
       const ref = parseDocumentRef(parent);
-      if (!ref) throw new Error('The parent is not a documentId or a noteAddress.');
+      if (!ref) throw new ToolError('INVALID_ARGUMENT', 'The parent is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
       const noteIds = await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
         (noteId ? openDocument.noteRef(noteId) : openDocument.root).appendChildren(notes), { signal }));
@@ -261,7 +271,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       },
     }, ({ noteAddress, listType }) => respond(async () => {
       const ref = parseDocumentRef(noteAddress);
-      if (!ref?.noteId) throw new Error('The noteAddress is not valid.');
+      if (!ref?.noteId) throw new ToolError('INVALID_ARGUMENT', 'The noteAddress is not valid.');
       const { docId: documentId, noteId } = ref;
       await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
         openDocument.noteRef(noteId).setChildListType(listType), { signal }));
@@ -296,7 +306,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
     }
     const server = createTools(authorization);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, maxRequestBodySize: MAX_REQUEST_BYTES });
-    advertiseOAuth(transport);
+    rewriteResponses(transport);
     response.on('close', () => {
       void transport.close();
       void server.close();

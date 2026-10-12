@@ -298,7 +298,7 @@ export function createLexicalOpenDocumentRuntime({
   const $requireNote = (noteId: NoteId): ListItemNode => {
     const note = $findNoteById(noteId);
     if (!note) {
-      throw new IneligibleOperationError(`Note "${noteId}" is not available.`);
+      throw new NoteUnavailableError(noteId);
     }
     return note;
   };

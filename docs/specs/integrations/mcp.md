@@ -42,9 +42,23 @@ operation's owner defines its behavior.
 - Each tool declares a title, that it requires the user's authorization, and
   whether it only reads or changes the user's data, so clients can require
   confirmation before changes.
-- A failed tool call returns a tool error naming its cause. If the RemDo API
-  rejects the call's token, the error includes an OAuth challenge for
-  reconnection.
+- A failed tool call returns a tool error whose text begins with one of these
+  codes, followed by its cause and the action that applies:
+  - `INVALID_ARGUMENT`: the call cannot be performed as given, because an
+    argument is malformed, the target cannot take the operation, or a
+    [limit](#limits) is exceeded. Correct the call.
+  - `NOT_FOUND`: the document or note is unavailable. A document that does not
+    exist and one the user cannot access are reported identically, so no error
+    reveals which. The message says where to find what is available.
+  - `UNAUTHENTICATED`: the RemDo API rejected the call's token. The error
+    includes an OAuth challenge for reconnection.
+  - `PERMISSION_DENIED`: RemDo does not let the user perform the operation for a
+    reason other than a document's accessibility.
+  - `UNAVAILABLE`: RemDo could not be reached, or the document could not be
+    opened within its [limit](#limits). Retry later.
+  - `OUTCOME_UNCONFIRMED`: the call may have changed the document. Check it
+    before retrying. Load-time normalization does not count as a change.
+  - `INTERNAL`: any other failure.
 
 ## Limits
 

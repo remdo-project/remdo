@@ -9,6 +9,7 @@ import { config } from '#config';
 import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '#collaboration/runtime';
 import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
 import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveMcpServerOrigin } from '#platform/net/origins';
+import { DOCUMENT_NOT_FOUND } from '../../../src/mcp/tool-error';
 import { ensureCollabTestUser } from './_support/auth';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
@@ -207,17 +208,33 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect((isolated.content as Array<{ text: string }>)[0]!.text).toMatch(/\n\n- \[ \] \[Passport\]\(/);
 
     const refused = await call(client, 'set_child_list_type', { noteAddress: visa!.noteAddress, listType: 'number' });
-    expect(refused).toEqual({ isError: true, value: 'Only a note with children has a child list.' });
+    expect(refused).toEqual({ isError: true, value: 'INVALID_ARGUMENT: Only a note with children has a child list.' });
   });
 
-  it('reports an unavailable document as a tool error', async () => {
+  it('reports a missing document and one the user cannot open identically', async () => {
+    const owner = await connect(await delegatedToken('mcp-owner@example.test'));
+    const { documentId: privateId } = (await call(owner, 'create_document', { title: 'Private' })).value as { documentId: string };
+    const other = await connect(await delegatedToken());
+    const outcomes = async (documentId: string) => [
+      await call(other, 'read_document', { target: documentId }),
+      await call(other, 'append_children', { parent: documentId, notes: [{ text: 'Lost' }] }),
+      await call(other, 'set_child_list_type', { noteAddress: `${documentId}_note`, listType: 'check' }),
+      await call(other, 'rename_document', { documentId, title: 'Lost' }),
+    ];
+
+    const missing = await outcomes('missingdoc');
+
+    expect(missing.map(({ isError }) => isError)).toEqual([true, true, true, true]);
+    expect(missing.map(({ value }) => value)).toEqual([
+      `NOT_FOUND: ${DOCUMENT_NOT_FOUND}`, `NOT_FOUND: ${DOCUMENT_NOT_FOUND}`, `NOT_FOUND: ${DOCUMENT_NOT_FOUND}`, `NOT_FOUND: ${DOCUMENT_NOT_FOUND}`,
+    ]);
+    expect(await outcomes(privateId)).toEqual(missing);
+  });
+
+  it('refuses a malformed address as an invalid argument', async () => {
     const client = await connect(await delegatedToken());
-    const appended = await call(client, 'append_children', { parent: 'missingdoc', notes: [{ text: 'Lost' }] });
-    expect(appended.isError).toBe(true);
-    const read = await client.callTool({ name: 'read_document', arguments: { target: 'missingdoc' } });
-    expect(read.isError).toBe(true);
     const malformed = await call(client, 'append_children', { parent: 'missingdoc_', notes: [{ text: 'Lost' }] });
-    expect(malformed.isError).toBe(true);
+    expect(malformed).toEqual({ isError: true, value: 'INVALID_ARGUMENT: The parent is not a documentId or a noteAddress.' });
   });
 
   it('refuses a missing note in a new document without calling the write unconfirmed', async () => {
@@ -228,7 +245,10 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       parent: `${documentId}_missingnote`, notes: [{ text: 'Lost' }],
     });
 
-    expect(appended).toEqual({ isError: true, value: 'Note "missingnote" is not available.' });
+    expect(appended).toEqual({
+      isError: true,
+      value: 'NOT_FOUND: Note "missingnote" is not available. Read the document for its current notes.',
+    });
   });
 
   it("refuses to write to another user's document", async () => {

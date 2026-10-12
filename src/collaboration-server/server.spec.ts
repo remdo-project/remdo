@@ -14,6 +14,7 @@ import { asCollaborationProviderEvents, createProviderFactory, waitForSync } fro
 import { withHeadlessOpenDocument } from '../headless/open-document';
 import { CollabSession } from '../collaboration/session';
 import { createMcpServer } from '../mcp/server';
+import { DOCUMENT_NOT_FOUND } from '../mcp/tool-error';
 import * as origins from '#platform/net/origins';
 import { createDeferred } from '../../tests/unit/_support/deferred';
 
@@ -423,10 +424,14 @@ it.each([
     });
     const data = (await response.text()).split('\n').find((line) => line.startsWith('data: '))!;
     const { result } = JSON.parse(data.slice(6)) as { result: unknown };
-    const reason = status === 401 ? 'RemDo no longer accepts this authorization. Reconnect RemDo.' : 'Document access denied.';
     const failure = {
       isError: true,
-      content: [{ type: 'text', text: `Failed to connect to collaboration server: ${reason}` }],
+      content: [{
+        type: 'text',
+        text: status === 401
+          ? 'UNAUTHENTICATED: RemDo no longer accepts this authorization. Reconnect RemDo.'
+          : `NOT_FOUND: ${DOCUMENT_NOT_FOUND}`,
+      }],
     };
     expect(result).toEqual(status === 401 ? {
       ...failure,
@@ -473,7 +478,7 @@ it('reports an MCP append as unconfirmed when persistence fails and the hub save
     storeStatus = 503;
     const result = await call('append_children', { parent: 'document', notes: [{ text: 'saved after recovery' }] });
     expect(result).toEqual({ isError: true, content: [{ type: 'text', text:
-      'Document changes are unconfirmed and may still be saved. Check the document before retrying to avoid duplicate changes. '
+      'OUTCOME_UNCONFIRMED: Document changes are unconfirmed and may still be saved. Check the document before retrying to avoid duplicate changes. '
       + 'Collaboration persistence failed.' }] });
     expect(persisted).toHaveLength(0);
     storeStatus = 204;

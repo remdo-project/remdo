@@ -18,6 +18,7 @@ import { resolveCollabServerOrigin } from '#platform/net/origins';
 import { requestPersistence } from '#collaboration/persistence-barrier';
 import { CollabSession } from '#collaboration/session';
 import { editorConfig } from '#client/editor/runtime/config';
+import { UnconfirmedWriteError } from './unconfirmed-write-error';
 
 type SharedRootObserver = (
   events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
@@ -168,7 +169,7 @@ export async function withHeadlessEditor<T>(
   } catch (error) {
     if (!wrote) throw error;
     const reason = error instanceof Error ? error.message : 'The operation failed.';
-    throw new Error(
+    throw new UnconfirmedWriteError(
       'Document changes are unconfirmed and may still be saved. '
       + `Check the document before retrying to avoid duplicate changes. ${reason}`,
       { cause: error },

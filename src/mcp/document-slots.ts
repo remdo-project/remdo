@@ -1,3 +1,5 @@
+import { ToolError } from './tool-error';
+
 const DOCUMENT_OPEN_TIMEOUT_MS = 30_000;
 
 /**
@@ -36,7 +38,7 @@ export function createDocumentSlots(slots: number, timeoutMs = DOCUMENT_OPEN_TIM
 
   return async <T>(run: (signal: AbortSignal) => Promise<T>): Promise<T> => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(new Error('RemDo is busy; try again shortly.')), timeoutMs);
+    const timer = setTimeout(() => controller.abort(new ToolError('UNAVAILABLE', 'RemDo is busy; try again shortly.')), timeoutMs);
     try {
       await acquire(controller.signal);
       try {

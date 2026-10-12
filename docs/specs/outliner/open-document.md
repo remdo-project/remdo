@@ -49,7 +49,8 @@ Mutations of the document root or an addressed note are independent of the
 current view. An asynchronous
 mutation resolves once reads reflect its change, which does not imply
 collaboration or persistence. It rejects with an ineligible-operation error,
-leaving the document unchanged, when its target is unavailable or ineligible. A
+leaving the document unchanged, when its target is unavailable or ineligible; an
+unavailable note's error is the unavailable-note error. A
 synchronous mutation no-ops instead.
 
 A host without a viewer exposes the same open document. Its focus, selection,
