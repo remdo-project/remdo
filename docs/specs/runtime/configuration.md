@@ -185,9 +185,12 @@ reporting, and every failure in a page session whose startup configuration
 request fails, go unreported. Runtime delivery of the DSN lets one build serve
 every deployment.
 
-Django reports every HTTP response with status 400–599, including handled
-authentication failures, as warnings for 4xx and errors for 5xx. A request
-already reported by Django exception handling produces no additional response event.
+Django reports every HTTP response with status 500–599 as an error, and every
+4xx response from the [Google sign-in](#google-sign-in) callback, the only place
+a failed round trip with Google reaches the server, as a warning. Other client
+errors, including unmatched paths and handled authentication failures, go
+unreported. A request already reported by Django exception handling produces no
+additional response event.
 Reports group by method, route pattern, and status and include a generated
 request identifier; unmatched paths and route parameter values are omitted.
 Responses from external services and failures generated before a request reaches
@@ -228,6 +231,8 @@ signing in means agreeing to the privacy policy and terms.
 
 ## Request diagnostics
 
-Production Django request errors reach standard error with status, exception type,
-and code locations when available. Beyond the [diagnostics principle](../../principles.md#data-and-trust),
-they exclude request data, exception messages, and source excerpts.
+Production Django server errors and rejected-request security failures reach
+standard error with status, exception type, and code locations when available.
+Beyond the [diagnostics principle](../../principles.md#data-and-trust),
+they exclude request data, exception messages, and source excerpts. Other client
+errors are not logged.

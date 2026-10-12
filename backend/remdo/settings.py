@@ -27,7 +27,8 @@ LOGGING = {
         },
     },
     "loggers": {
-        "django.request": {"handlers": ["stderr"], "level": "WARNING", "propagate": False},
+        # Client-error lines carry no path, so they only count internet probes.
+        "django.request": {"handlers": ["stderr"], "level": "ERROR", "propagate": False},
         "django.security": {"handlers": ["stderr"], "level": "WARNING", "propagate": False},
         # Application diagnostics share the formatter rather than falling through
         # to Django's last-resort handler and its unformatted output. Scoped to

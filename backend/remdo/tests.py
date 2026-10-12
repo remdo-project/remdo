@@ -357,11 +357,7 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
 
         self.assertEqual(statuses, ["500 Internal Server Error", "400 Bad Request"])
         items = ingest.items()
-        self.assertEqual([item_type for item_type, _ in items], ["event", "event"])
-        [(_, event), (_, logged)] = items
-        self.assertEqual(logged["logger"], "django.security.SuspiciousOperation")
-        self.assertEqual(logged["level"], "warning")
-        self.assertEqual(logged["tags"]["http.status_code"], 400)
+        [event] = [item for kind, item in items if kind == "event"]
         self.assertEqual(event["tags"]["http.status_code"], 500)
         [exception] = event["exception"]["values"]
         self.assertEqual(exception["type"], "RuntimeError")
@@ -388,26 +384,42 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         )
         self.assertEqual(result["callback_status"], 401)
         events = [event for kind, event in ingest.items() if kind == "event"]
-        self.assertEqual(len(events), 15)
         responses = [event for event in events if event.get("message") == "HTTP error response"]
-        self.assertEqual(len(responses), 14)
+        status_route = "status/<int:code>/<str:document>"
+        self.assertCountEqual(
+            [
+                (event["tags"]["http.route"], event["tags"]["http.status_code"], event["level"])
+                for event in responses
+            ],
+            [
+                (status_route, 500, "error"),
+                (status_route, 503, "error"),
+                (status_route, 503, "error"),
+                (status_route, 599, "error"),
+                ("", 503, "error"),
+                ("^pages/(?P<slug>[a-z-]+)/$", 503, "error"),
+                ("accounts/google/login/callback/", 401, "warning"),
+            ],
+        )
         diagnostic = next(event for event in events if event.get("exception"))
+        self.assertEqual(len(events), len(responses) + 1)
         self.assertEqual(diagnostic["level"], "error")
         self.assertNotIn("http.status_code", diagnostic["tags"])
-        for event in responses:
-            status = event["tags"]["http.status_code"]
-            self.assertEqual(event["level"], "error" if status >= 500 else "warning")
-        unauthorized = [
+        by_route = {event["tags"]["http.route"]: event for event in responses}
+        self.assertEqual(by_route[""]["request"]["url"], "https://remdo.example/")
+        self.assertEqual(
+            by_route["^pages/(?P<slug>[a-z-]+)/$"]["request"]["url"],
+            "https://remdo.example/%5Epages/%28%3FP<slug>%5Ba-z-%5D%2B%29/%24",
+        )
+        repeated = [
             event
             for event in responses
-            if event["tags"]["http.route"] == "status/<int:code>/<str:document>"
-            and event["tags"]["http.status_code"] == 401
+            if event["tags"]["http.route"] == status_route
+            and event["tags"]["http.status_code"] == 503
         ]
-        self.assertEqual(len(unauthorized), 2)
-        self.assertEqual(unauthorized[0]["fingerprint"], unauthorized[1]["fingerprint"])
-        self.assertNotEqual(
-            unauthorized[0]["tags"]["request_id"], unauthorized[1]["tags"]["request_id"]
-        )
+        self.assertEqual(len(repeated), 2)
+        self.assertEqual(repeated[0]["fingerprint"], repeated[1]["fingerprint"])
+        self.assertNotEqual(repeated[0]["tags"]["request_id"], repeated[1]["tags"]["request_id"])
         self.assertNotIn("private-", json.dumps(events))
 
     def test_streaming_failures_omit_confidential_request_urls(self):
@@ -512,6 +524,7 @@ with override_settings(ROOT_URLCONF=routes):
         HTTP_AUTHORIZATION='Bearer private-token',
     ).status_code for route in ('fail', 'unavailable')]
     responses.append(client.get('/', HTTP_HOST='private-invalid-host.example').status_code)
+    responses.append(client.get('/private-missing', HTTP_HOST='remdo.example').status_code)
 logging.getLogger('django.db.backends').warning('unrelated-django-warning')
 print(json.dumps(responses))
 """
@@ -529,7 +542,7 @@ print(json.dumps(responses))
             text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout), [500, 503, 400])
+        self.assertEqual(json.loads(result.stdout), [500, 503, 400, 404])
         records = [json.loads(line) for line in result.stderr.splitlines()]
         self.assertEqual(len(records), 3, records)
         self.assertEqual([record["status"] for record in records], [500, 503, 400])
