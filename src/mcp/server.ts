@@ -218,11 +218,12 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       if (!ref) throw new Error('The target is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
       const outline = await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, async (openDocument, isStored) => {
-        const target = noteId ? findNoteList(openDocument.root, noteId) : null;
+        const { root } = openDocument;
+        const target = noteId ? findNoteList(root, noteId) : null;
         return renderOutline(
-          target ? [target.note] : openDocument.root.getChildren(),
+          target ? [target.note] : root.getChildren(),
           (id) => isStored(id) ? documentUrl(documentId, id) : null,
-          { depth, listType: target?.listType },
+          { depth, listType: target?.listType ?? root.getChildListType() },
         );
       }, { readOnly: true, signal }));
       return `Document: ${documentUrl(documentId)}\n\n${outline}`;

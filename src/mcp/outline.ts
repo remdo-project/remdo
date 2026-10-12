@@ -15,7 +15,7 @@ export function findNoteList(
   root: OpenDocumentParentNote,
   noteId: NoteId,
 ): { note: OpenDocumentNote; listType: NoteListType } {
-  const levels: Array<Omit<Level, 'indent'>> = [{ notes: root.getChildren(), next: 0, listType: 'bullet' }];
+  const levels: Array<Omit<Level, 'indent'>> = [{ notes: root.getChildren(), next: 0, listType: root.getChildListType() ?? 'bullet' }];
   while (levels.length > 0) {
     const level = levels.at(-1)!;
     const note = level.notes[level.next++];
@@ -41,10 +41,10 @@ export function findNoteList(
 export function renderOutline(
   notes: readonly OpenDocumentNote[],
   noteUrl: (noteId: NoteId) => string | null,
-  { depth = Infinity, listType: notesListType = 'bullet' }: { depth?: number; listType?: NoteListType } = {},
+  { depth = Infinity, listType: notesListType }: { depth?: number; listType?: NoteListType | null } = {},
 ): string {
   const lines: string[] = [];
-  const levels: Level[] = [{ notes, next: 0, listType: notesListType, indent: '' }];
+  const levels: Level[] = [{ notes, next: 0, listType: notesListType ?? 'bullet', indent: '' }];
   while (levels.length > 0) {
     const level = levels.at(-1)!;
     const note = level.notes[level.next++];

@@ -41,6 +41,21 @@ it('renders a note read on its own with the marker of its containing list', meta
   expect(() => findNoteList(root, 'missing')).toThrow(NoteUnavailableError);
 });
 
+it('renders top-level notes with the marker of the document root list', meta({ fixture: 'tree-ordered-root' }), ({ remdo }) => {
+  const { root } = remdo.openDocument;
+
+  expect(renderOutline(root.getChildren(), url, { listType: root.getChildListType() })).toBe([
+    '1. [note1](https://remdo.example/n/doc_note1)',
+    '1. [note2](https://remdo.example/n/doc_note2)',
+    '   - [note3](https://remdo.example/n/doc_note3)',
+  ].join('\n'));
+  const { note, listType } = findNoteList(root, 'note2');
+  expect(renderOutline([note], url, { listType })).toBe([
+    '1. [note2](https://remdo.example/n/doc_note2)',
+    '   - [note3](https://remdo.example/n/doc_note3)',
+  ].join('\n'));
+});
+
 it('leaves notes without a URL unlinked', meta({ fixture: 'flat' }), async ({ remdo }) => {
   await remdo.updateNoteText('note2', 'see [ref]');
   expect(renderOutline(remdo.openDocument.root.getChildren(), (noteId) => noteId === 'note2' ? null : url(noteId))).toBe([

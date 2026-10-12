@@ -232,6 +232,10 @@ describe('lexical open document', () => {
     await waitFor(() => expect(runtime.openDocument.noteRef('note2').getFolded()).toBe(true));
   });
 
+  it('reads the document root list type', meta({ fixture: 'tree-ordered-root' }), ({ remdo }) => {
+    expect(remdo.openDocument.root.getChildListType()).toBe('number');
+  });
+
   it('reads addressed-note values without subscribing', meta({ fixture: 'tree' }), async ({ remdo }) => {
     const runtime = createLexicalOpenDocumentRuntime({
       editor: remdo.editor,
@@ -804,6 +808,7 @@ describe('lexical open document', () => {
     expect(runtime.openDocument.history.canUndo()).toBe(false);
     await expect(runtime.openDocument.noteRef('note1').toggleFold()).rejects.toThrow(IneligibleOperationError);
     expect(runtime.openDocument.root.getChildren).toThrow(NoteUnavailableError);
+    expect(runtime.openDocument.root.getChildListType).toThrow(NoteUnavailableError);
 
     await typeText(remdo, 'fresh ');
     runtime.setSourceReady(true);

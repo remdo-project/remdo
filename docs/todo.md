@@ -188,9 +188,6 @@ RemDo document, minimal but useful for real work.
   and delete a note, which first need [open document](specs/outliner/open-document.md)
   operations addressing a note. Appending cannot add a body, although reading
   returns bodies.
-- Reading renders top-level notes, and the addressed note of a subtree read, as
-  bullet-list items because the open document exposes neither the document
-  root's list type nor the type of the list containing a note.
 - Expose search once server-side search spans a user's documents; searching a
   single document adds little over reading it whole.
 - **Oversized upload regression coverage.** Django closing the connection before
