@@ -12,7 +12,7 @@ Operate a persistent application instance.
 ## Development
 
 Work on the application locally.
-[Local Development](guides/local-development.md) owns workspace setup, run procedures, and combined workflows.
+[Local Development](guides/local-development.md) owns workspace setup and run procedures.
 
 ## Verification
 

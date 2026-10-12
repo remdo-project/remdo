@@ -384,6 +384,8 @@ concrete unmet need.
 
 ### Tooling
 
+- **Media uploads.** Add upload tooling for [recordings](specs/demo/demo-video.md), likely reusing `remdo-share`.
+
 - **Development setup and workflow.** Allow per-checkout backend settings
   overrides and reduce setup and launcher complexity in [local development](guides/local-development.md).
   Preserve independent instances and Node-independent backend commands; reassess
