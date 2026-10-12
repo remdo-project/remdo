@@ -4,6 +4,7 @@ import { trace } from '#platform/log';
 import { createLocalPersistence } from './local-persistence';
 import type { LocalPersistence } from './local-persistence';
 import { AuthorizationError, COLLABORATION_AUTHORIZATION_REJECTED } from '#platform/net/authorization-error';
+import { CollaborationUnavailableError, DocumentAccessDeniedError } from '#platform/net/collaboration-errors';
 import * as Y from 'yjs';
 
 export type CollaborationProviderInstance = Provider & { destroy: () => void };
@@ -292,12 +293,12 @@ export function createProviderFactory({ visibleOrigin, accountId, WebSocketPolyf
       }
       websocket.disconnect();
       status = 'error';
-      const authorizationRejected = reason === COLLABORATION_AUTHORIZATION_REJECTED;
+      const denial = reason === COLLABORATION_AUTHORIZATION_REJECTED ? 'authorization' : 'access';
       network.notify('connection-error', {
-        reason: authorizationRejected
+        reason: denial === 'authorization'
           ? 'RemDo no longer accepts this authorization. Reconnect RemDo.'
           : 'Document access denied.',
-        authorizationRejected,
+        denial,
       });
     });
     function pageHide() {
@@ -502,11 +503,13 @@ function toAbortError(reason: unknown): Error {
 
 function createConnectionError(payload: unknown): Error {
   if (payload && typeof payload === 'object') {
-    const { reason, authorizationRejected } = payload as { reason?: unknown; authorizationRejected?: unknown };
+    const { reason, denial } = payload as { reason?: unknown; denial?: unknown };
     if (typeof reason === 'string' && reason.length > 0) {
-      const ErrorType = authorizationRejected === true ? AuthorizationError : Error;
-      return new ErrorType(`Failed to connect to collaboration server: ${reason}`);
+      const message = `Failed to connect to collaboration server: ${reason}`;
+      if (denial === 'authorization') return new AuthorizationError(message);
+      if (denial === 'access') return new DocumentAccessDeniedError(message);
+      return new CollaborationUnavailableError(message);
     }
   }
-  return new Error('Failed to connect to collaboration server');
+  return new CollaborationUnavailableError('Failed to connect to collaboration server');
 }

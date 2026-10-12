@@ -365,7 +365,7 @@ describe('lexical open document', () => {
 
     await runtime.openDocument.noteRef('note6').toggleFold();
     await expect(runtime.openDocument.noteRef('note7').toggleFold()).rejects.toThrow(IneligibleOperationError);
-    await expect(runtime.openDocument.noteRef('missing').toggleFold()).rejects.toThrow(IneligibleOperationError);
+    await expect(runtime.openDocument.noteRef('missing').toggleFold()).rejects.toThrow(NoteUnavailableError);
     expect(runtime.openDocument.noteRef('note6').getFolded()).toBe(true);
     expect(runtime.openDocument.noteRef('note7').getFolded()).toBe(false);
   });

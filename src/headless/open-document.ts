@@ -45,8 +45,8 @@ export function withHeadlessOpenDocument<T>(
   run: (openDocument: OpenDocument, isStored: (noteId: NoteId) => boolean) => Promise<T>,
   { readOnly = false, signal }: { readOnly?: boolean; signal?: AbortSignal } = {},
 ): Promise<T> {
+  let isStored!: (noteId: NoteId) => boolean;
   return withHeadlessEditor(docId, async (editor) => {
-    const isStored = normalizeLoadedDocument(editor, docId, readOnly);
     const runtime = createLexicalOpenDocumentRuntime({ editor, docId });
     runtime.start();
     runtime.setSourceReady(true);
@@ -55,5 +55,12 @@ export function withHeadlessOpenDocument<T>(
     } finally {
       runtime.dispose();
     }
-  }, { authorization, readOnly, signal });
+  }, {
+    authorization,
+    readOnly,
+    signal,
+    prepare: (editor) => {
+      isStored = normalizeLoadedDocument(editor, docId, readOnly);
+    },
+  });
 }

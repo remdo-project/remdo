@@ -18,6 +18,7 @@ import { resolveCollabServerOrigin } from '#platform/net/origins';
 import { requestPersistence } from '#collaboration/persistence-barrier';
 import { CollabSession } from '#collaboration/session';
 import { editorConfig } from '#client/editor/runtime/config';
+import { UnconfirmedWriteError } from './unconfirmed-write-error';
 
 type SharedRootObserver = (
   events: Parameters<typeof syncYjsChangesToLexicalV2__EXPERIMENTAL>[2],
@@ -82,6 +83,8 @@ interface HeadlessEditorOptions {
   authorization?: string;
   /** Keep editor changes local instead of syncing them to the document. */
   readOnly?: boolean;
+  /** Runs once the document has synced, before `run`; its changes are not counted as `run`'s writes. */
+  prepare?: (editor: LexicalEditor) => void;
   /** Cancel opening the document; the signal does not cancel work once `run` starts. */
   signal?: AbortSignal;
 }
@@ -97,7 +100,7 @@ interface HeadlessEditorOptions {
 export async function withHeadlessEditor<T>(
   docId: string,
   run: (editor: LexicalEditor) => Promise<T> | T,
-  { authorization, readOnly = false, signal }: HeadlessEditorOptions = {},
+  { authorization, readOnly = false, prepare, signal }: HeadlessEditorOptions = {},
 ): Promise<T> {
   signal?.throwIfAborted();
   const docMap = new Map<string, Doc>();
@@ -158,6 +161,7 @@ export async function withHeadlessEditor<T>(
     await initialUpdate;
     signal?.throwIfAborted();
 
+    prepare?.(editor);
     syncDoc.on('update', recordWrite);
     result = await run(editor);
     await session.awaitSynced();
@@ -165,7 +169,7 @@ export async function withHeadlessEditor<T>(
   } catch (error) {
     if (!wrote) throw error;
     const reason = error instanceof Error ? error.message : 'The operation failed.';
-    throw new Error(
+    throw new UnconfirmedWriteError(
       'Document changes are unconfirmed and may still be saved. '
       + `Check the document before retrying to avoid duplicate changes. ${reason}`,
       { cause: error },

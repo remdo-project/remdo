@@ -3,9 +3,14 @@ import type { AddressInfo } from 'node:net';
 import { afterEach, expect, it, vi } from 'vitest';
 import { createMcpServer } from './server';
 import { withHeadlessOpenDocument } from '../headless/open-document';
+import { IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
 import { AuthorizationError } from '#platform/net/authorization-error';
+import { CollaborationUnavailableError, DocumentAccessDeniedError } from '#platform/net/collaboration-errors';
+import { UnconfirmedWriteError } from '../headless/unconfirmed-write-error';
 
 vi.mock('../headless/open-document', () => ({ withHeadlessOpenDocument: vi.fn() }));
+
+const DOCUMENT_NOT_FOUND = 'NOT_FOUND: The document is not available. Check list_documents for the documents the user can access.';
 
 let authorizeStatus: number;
 let authorizationChecks: number;
@@ -165,7 +170,7 @@ it('provides a reconnect challenge when authorization expires during a tool call
 
   expect(result).toEqual({
     isError: true,
-    content: [{ type: 'text', text: 'RemDo no longer accepts this authorization. Reconnect RemDo.' }],
+    content: [{ type: 'text', text: 'UNAUTHENTICATED: RemDo no longer accepts this authorization. Reconnect RemDo.' }],
     _meta: {
       'mcp/www_authenticate': [
         'Bearer resource_metadata="https://remdo.example/.well-known/oauth-protected-resource/mcp", '
@@ -176,25 +181,49 @@ it('provides a reconnect challenge when authorization expires during a tool call
   expect(authorizationChecks).toBe(1);
 });
 
-it('keeps a document access denial distinct from a revoked connection', async () => {
+it.each([
+  { name: 'a denied document', failure: new DocumentAccessDeniedError('Document access denied.'), text: DOCUMENT_NOT_FOUND },
+  {
+    name: 'an unavailable note',
+    failure: new NoteUnavailableError('note'),
+    text: 'NOT_FOUND: Note "note" is not available. Read the document for its current notes.',
+  },
+  {
+    name: 'an ineligible operation',
+    failure: new IneligibleOperationError('Only a note with children has a child list.'),
+    text: 'INVALID_ARGUMENT: Only a note with children has a child list.',
+  },
+  {
+    name: 'a lost collaboration connection',
+    failure: new CollaborationUnavailableError('Failed to connect to collaboration server'),
+    text: 'UNAVAILABLE: RemDo is unavailable. Try again later.',
+  },
+  { name: 'an unexpected error', failure: new Error('Unexpected failure.'), text: 'INTERNAL: Unexpected failure.' },
+])('codes $name without a reconnect challenge', async ({ failure, text }) => {
   const post = await start();
   authorizeStatus = 200;
-  vi.mocked(withHeadlessOpenDocument).mockRejectedValueOnce(new Error('Failed to connect to collaboration server: Document access denied.'));
+  vi.mocked(withHeadlessOpenDocument).mockRejectedValueOnce(failure);
 
   const result = await rpc(post, 'tools/call', { name: 'read_document', arguments: { target: 'doc' } });
 
-  expect(result).toEqual({
-    isError: true,
-    content: [{ type: 'text', text: 'Failed to connect to collaboration server: Document access denied.' }],
-  });
-  expect(authorizationChecks).toBe(1);
+  expect(result).toEqual({ isError: true, content: [{ type: 'text', text }] });
+});
+
+it('codes input the SDK rejects as an invalid argument', async () => {
+  const post = await start();
+  authorizeStatus = 200;
+
+  const result = await rpc(post, 'tools/call', { name: 'read_document', arguments: { target: 'doc', depth: 0 } });
+
+  expect(result).toMatchObject({ isError: true, content: [{ text: expect.stringMatching(/^INVALID_ARGUMENT: .*depth/s) as string }] });
+  expect(withHeadlessOpenDocument).not.toHaveBeenCalled();
 });
 
 it('preserves an unconfirmed write warning when reconnection is also required', async () => {
   const post = await start();
   authorizeStatus = 200;
   const message = 'Document changes are unconfirmed and may still be saved. Check the document before retrying.';
-  vi.mocked(withHeadlessOpenDocument).mockRejectedValueOnce(new Error(message, {
+  vi.mocked(withHeadlessOpenDocument).mockRejectedValueOnce(new UnconfirmedWriteError(message, {
     cause: new AuthorizationError('Document access denied.'),
   }));
 
@@ -204,20 +233,21 @@ it('preserves an unconfirmed write warning when reconnection is also required', 
 
   expect(result).toMatchObject({
     isError: true,
-    content: [{ type: 'text', text: message }],
+    content: [{ type: 'text', text: `OUTCOME_UNCONFIRMED: ${message}` }],
     _meta: { 'mcp/www_authenticate': [expect.stringContaining('error="invalid_token"')] },
   });
   expect(authorizationChecks).toBe(1);
 });
 
 it.each([
-  [{ status: 400, body: '{"title":["Invalid title."]}' }, 'RemDo rejected the request as invalid: {"title":["Invalid title."]}'],
-  [{ status: 400, body: '<!doctype html><title>Bad Request</title>' }, 'RemDo rejected the request as invalid.'],
-  [{ status: 403, body: '{}' }, 'The user is not allowed to do this in RemDo.'],
-  [{ status: 413, body: '' }, 'RemDo could not complete the request (413).'],
-  [{ status: 502, body: '' }, 'RemDo is unavailable. Try again later.'],
-  ['dropped' as const, 'RemDo did not confirm whether the request took effect. Check with list_documents before retrying.'],
-])('reports API outcome %j as a tool error naming its cause', async (outcome, message) => {
+  [{ status: 400, body: '{"title":["Invalid title."]}' }, 'INVALID_ARGUMENT: RemDo rejected the request as invalid: {"title":["Invalid title."]}'],
+  [{ status: 400, body: '<!doctype html><title>Bad Request</title>' }, 'INVALID_ARGUMENT: RemDo rejected the request as invalid.'],
+  [{ status: 403, body: '{}' }, 'PERMISSION_DENIED: The user is not allowed to do this in RemDo.'],
+  [{ status: 404, body: '' }, 'INTERNAL: RemDo could not complete the request (404).'],
+  [{ status: 413, body: '' }, 'INTERNAL: RemDo could not complete the request (413).'],
+  [{ status: 502, body: '' }, 'UNAVAILABLE: RemDo is unavailable. Try again later.'],
+  ['dropped' as const, 'OUTCOME_UNCONFIRMED: RemDo did not confirm whether the request took effect. Check with list_documents before retrying.'],
+])('reports API outcome %j as a coded tool error', async (outcome, message) => {
   const post = await start();
   authorizeStatus = 200;
   documentsResponse = outcome;
@@ -228,6 +258,17 @@ it.each([
   expect(authorizationChecks).toBe(1);
 });
 
+it('reports a document the API cannot find as not found', async () => {
+  const post = await start();
+  authorizeStatus = 200;
+  documentsResponse = { status: 404, body: '' };
+
+  const result = await rpc(post, 'tools/call', { name: 'rename_document', arguments: { documentId: 'doc', title: 'Plan' } });
+
+  expect(result).toEqual({ isError: true, content: [{ type: 'text', text: DOCUMENT_NOT_FOUND }] });
+  expect(authorizationChecks).toBe(1);
+});
+
 it('reports a dropped read as unavailable because it cannot have changed anything', async () => {
   const post = await start();
   authorizeStatus = 200;
@@ -235,7 +276,7 @@ it('reports a dropped read as unavailable because it cannot have changed anythin
 
   const result = await rpc(post, 'tools/call', { name: 'list_documents', arguments: {} });
 
-  expect(result).toEqual({ isError: true, content: [{ type: 'text', text: 'RemDo is unavailable. Try again later.' }] });
+  expect(result).toEqual({ isError: true, content: [{ type: 'text', text: 'UNAVAILABLE: RemDo is unavailable. Try again later.' }] });
   expect(authorizationChecks).toBe(1);
 });
 
@@ -264,7 +305,7 @@ it('refuses to append more than 1000 notes, counting nested children, before ope
     isError: true,
     content: [{
       type: 'text',
-      text: 'Append at most 1000 notes per call, counting nested children; split the outline across calls.',
+      text: 'INVALID_ARGUMENT: Append at most 1000 notes per call, counting nested children; split the outline across calls.',
     }],
   });
   expect(withHeadlessOpenDocument).not.toHaveBeenCalled();
@@ -280,21 +321,27 @@ it('rejects a target or address that is not valid before opening a document or c
   for (const target of ['', 'doc_', 'doc/..']) {
     expect(await refused('read_document', { target })).toMatchObject({
       isError: true,
-      content: [{ text: 'The target is not a documentId or a noteAddress.' }],
+      content: [{ text: 'INVALID_ARGUMENT: The target is not a documentId or a noteAddress.' }],
     });
   }
   for (const documentId of ['', 'doc_note', 'doc/..']) {
     expect(await refused('rename_document', { documentId, title: 'Plan' })).toMatchObject({
       isError: true,
-      content: [{ text: 'The documentId is not valid.' }],
+      content: [{ text: 'INVALID_ARGUMENT: The documentId is not valid.' }],
+    });
+  }
+  for (const parent of ['', 'doc_', 'doc/..']) {
+    expect(await refused('append_children', { parent, notes: [] })).toMatchObject({
+      isError: true,
+      content: [{ text: 'INVALID_ARGUMENT: The parent is not a documentId or a noteAddress.' }],
     });
   }
   for (const noteAddress of ['', 'doc', 'doc/..']) {
     expect(await refused('set_child_list_type', { noteAddress, listType: 'check' })).toMatchObject({
       isError: true,
-      content: [{ text: 'The noteAddress is not valid.' }],
+      content: [{ text: 'INVALID_ARGUMENT: The noteAddress is not valid.' }],
     });
   }
   expect(withHeadlessOpenDocument).not.toHaveBeenCalled();
-  expect(authorizationChecks).toBe(9);
+  expect(authorizationChecks).toBe(12);
 });

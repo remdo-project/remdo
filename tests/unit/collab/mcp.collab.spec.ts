@@ -207,17 +207,41 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect((isolated.content as Array<{ text: string }>)[0]!.text).toMatch(/\n\n- \[ \] \[Passport\]\(/);
 
     const refused = await call(client, 'set_child_list_type', { noteAddress: visa!.noteAddress, listType: 'number' });
-    expect(refused).toEqual({ isError: true, value: 'Only a note with children has a child list.' });
+    expect(refused).toEqual({ isError: true, value: 'INVALID_ARGUMENT: Only a note with children has a child list.' });
   });
 
-  it('reports an unavailable document as a tool error', async () => {
+  it('reports a missing document and one the user cannot open identically', async () => {
+    const owner = await connect(await delegatedToken('mcp-owner@example.test'));
+    const { documentId: privateId } = (await call(owner, 'create_document', { title: 'Private' })).value as { documentId: string };
+    const other = await connect(await delegatedToken());
+    const outcomes = async (documentId: string) => [
+      await call(other, 'read_document', { target: documentId }),
+      await call(other, 'append_children', { parent: documentId, notes: [{ text: 'Lost' }] }),
+      await call(other, 'set_child_list_type', { noteAddress: `${documentId}_note`, listType: 'check' }),
+      await call(other, 'rename_document', { documentId, title: 'Lost' }),
+    ];
+
+    const notFound = Array.from({ length: 4 }, () => ({
+      isError: true,
+      value: 'NOT_FOUND: The document is not available. Check list_documents for the documents the user can access.',
+    }));
+
+    expect(await outcomes('missingdoc')).toEqual(notFound);
+    expect(await outcomes(privateId)).toEqual(notFound);
+  });
+
+  it('refuses a missing note in a new document without calling the write unconfirmed', async () => {
     const client = await connect(await delegatedToken());
-    const appended = await call(client, 'append_children', { parent: 'missingdoc', notes: [{ text: 'Lost' }] });
-    expect(appended.isError).toBe(true);
-    const read = await client.callTool({ name: 'read_document', arguments: { target: 'missingdoc' } });
-    expect(read.isError).toBe(true);
-    const malformed = await call(client, 'append_children', { parent: 'missingdoc_', notes: [{ text: 'Lost' }] });
-    expect(malformed.isError).toBe(true);
+    const { documentId } = (await call(client, 'create_document', { title: 'Empty' })).value as { documentId: string };
+
+    const appended = await call(client, 'append_children', {
+      parent: `${documentId}_missingnote`, notes: [{ text: 'Lost' }],
+    });
+
+    expect(appended).toEqual({
+      isError: true,
+      value: 'NOT_FOUND: Note "missingnote" is not available. Read the document for its current notes.',
+    });
   });
 
   it("refuses to write to another user's document", async () => {

@@ -423,10 +423,14 @@ it.each([
     });
     const data = (await response.text()).split('\n').find((line) => line.startsWith('data: '))!;
     const { result } = JSON.parse(data.slice(6)) as { result: unknown };
-    const reason = status === 401 ? 'RemDo no longer accepts this authorization. Reconnect RemDo.' : 'Document access denied.';
     const failure = {
       isError: true,
-      content: [{ type: 'text', text: `Failed to connect to collaboration server: ${reason}` }],
+      content: [{
+        type: 'text',
+        text: status === 401
+          ? 'UNAUTHENTICATED: RemDo no longer accepts this authorization. Reconnect RemDo.'
+          : 'NOT_FOUND: The document is not available. Check list_documents for the documents the user can access.',
+      }],
     };
     expect(result).toEqual(status === 401 ? {
       ...failure,
@@ -473,7 +477,7 @@ it('reports an MCP append as unconfirmed when persistence fails and the hub save
     storeStatus = 503;
     const result = await call('append_children', { parent: 'document', notes: [{ text: 'saved after recovery' }] });
     expect(result).toEqual({ isError: true, content: [{ type: 'text', text:
-      'Document changes are unconfirmed and may still be saved. Check the document before retrying to avoid duplicate changes. '
+      'OUTCOME_UNCONFIRMED: Document changes are unconfirmed and may still be saved. Check the document before retrying to avoid duplicate changes. '
       + 'Collaboration persistence failed.' }] });
     expect(persisted).toHaveLength(0);
     storeStatus = 204;
@@ -484,6 +488,16 @@ it('reports an MCP append as unconfirmed when persistence fails and the hub save
   } finally {
     await mcp.stop();
   }
+});
+
+it('keeps load-time normalization out of an unconfirmed write when the operation fails before changing anything', async () => {
+  const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
+  runtimeCleanup.push(() => resolveOrigin.mockRestore());
+  const failure = new Error('Operation refused.');
+
+  await expect(withHeadlessOpenDocument('empty-document', 'Bearer delegated-token', async () => {
+    throw failure;
+  })).rejects.toBe(failure);
 });
 
 it.each(['synchronization', 'callback'])('reports a post-write %s error as unconfirmed and preserves its cause', async (stage) => {

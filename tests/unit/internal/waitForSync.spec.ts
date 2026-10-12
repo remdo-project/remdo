@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { waitForSync } from '#collaboration/runtime';
+import { AuthorizationError } from '#platform/net/authorization-error';
+import { CollaborationUnavailableError, DocumentAccessDeniedError } from '#platform/net/collaboration-errors';
 import { createMockProvider } from '../collab/_support/mock-provider';
 
 describe('waitForSync', () => {
@@ -49,6 +51,20 @@ describe('waitForSync', () => {
     await expect(readyPromise).rejects.toThrow(/collaboration server/i);
   });
 
+  it.each([
+    [{ reason: 'boom', denial: 'authorization' }, AuthorizationError],
+    [{ reason: 'boom', denial: 'access' }, DocumentAccessDeniedError],
+    [{ reason: 'boom' }, CollaborationUnavailableError],
+    [{}, CollaborationUnavailableError],
+  ])('rejects the connection error %j as %o', async (payload, ErrorType) => {
+    const provider = createMockProvider();
+    const readyPromise = waitForSync(provider);
+
+    provider.emit('connection-error', payload);
+
+    await expect(readyPromise).rejects.toBeInstanceOf(ErrorType);
+  });
+
   it('ignores transient connection closes and resolves on the reconnect sync', async () => {
     const provider = createMockProvider();
     const readyPromise = waitForSync(provider, { timeoutMs: null });
@@ -69,7 +85,7 @@ describe('waitForSync', () => {
     try {
       const provider = createMockProvider();
       const readyPromise = waitForSync(provider, { timeoutMs: null, reconnectTimeoutMs: 25 });
-      const assertion = expect(readyPromise).rejects.toThrow(/gone/u);
+      const assertion = expect(readyPromise).rejects.toBeInstanceOf(CollaborationUnavailableError);
 
       provider.emit('connection-close', { reason: 'gone' });
       await vi.advanceTimersByTimeAsync(25);
