@@ -250,7 +250,7 @@ attached. Any connection authorized for the document may request it over that
 connection. It completes only after Django commits the full current state,
 including deletion-only changes, and rejects on persistence failure.
 If an operation fails after changing the document, other than by
-[load-time normalization](specs/outliner/note-ids.md#persisted-json-and-normalization),
+[load-time normalization](specs/editor/lexical-outline.md#runtime-and-persistence-boundaries),
 the host reports the cause and that the write's outcome is unconfirmed: changes
 may still be saved, and retrying before checking the document may duplicate them.
 
