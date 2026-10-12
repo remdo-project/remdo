@@ -17,7 +17,9 @@ import { createDeferred } from '../../../../../tests/unit/_support/deferred';
 
 async function openSearch() {
   const searchInput = await screen.findByRole('combobox', { name: 'Search document' });
-  act(() => searchInput.focus());
+  await act(async () => {
+    searchInput.focus();
+  });
   return searchInput;
 }
 
@@ -425,29 +427,23 @@ describe('document search', () => {
       expect(getActiveResultLabel()).toBe('note1');
     });
 
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveResultLabel()).toBe('note2');
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveResultLabel()).toBe('note3');
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveResultLabel()).toBe('note5');
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
-    expect(getActiveResultLabel()).toBe('note5');
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getActiveResultLabel()).toBe('note4');
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getActiveResultLabel()).toBe('note1');
-
-    fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
-    expect(getActiveResultLabel()).toBe('note1');
+    for (const [key, label] of [
+      ['ArrowDown', 'note2'],
+      ['ArrowDown', 'note3'],
+      ['ArrowDown', 'note4'],
+      ['ArrowDown', 'note5'],
+      ['ArrowDown', 'note5'],
+      ['ArrowUp', 'note4'],
+      ['ArrowUp', 'note3'],
+      ['ArrowUp', 'note2'],
+      ['ArrowUp', 'note1'],
+      ['ArrowUp', 'note1'],
+    ]) {
+      await act(async () => {
+        fireEvent.keyDown(searchInput, { key });
+      });
+      expect(getActiveResultLabel()).toBe(label);
+    }
   });
 
   it('highlights a flat result on hover, like arrow navigation', async () => {
