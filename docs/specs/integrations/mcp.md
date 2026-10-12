@@ -45,19 +45,20 @@ operation's owner defines its behavior.
 - A failed tool call returns a tool error whose text begins with one of these
   codes, followed by its cause and the action that applies:
   - `INVALID_ARGUMENT`: the call cannot be performed as given, because an
-    argument is malformed, the target cannot take the operation, or a
-    [limit](#limits) is exceeded. Correct the call.
-  - `NOT_FOUND`: the document or note is unavailable. A document that does not
-    exist and one the user cannot access are reported identically, so no error
-    reveals which. The message says where to find what is available.
+    argument is malformed, the target cannot take the operation, or an append
+    exceeds its [limit](#limits). Correct the call.
+  - `NOT_FOUND`: the document or
+    [note is unavailable](../outliner/open-document.md#state-and-observation).
+    No error reveals whether an unavailable document does not exist or the user
+    cannot access it. The message says where to find what is available.
   - `UNAUTHENTICATED`: the RemDo API rejected the call's token. The error
     includes an OAuth challenge for reconnection.
   - `PERMISSION_DENIED`: RemDo does not let the user perform the operation for a
     reason other than a document's accessibility.
-  - `UNAVAILABLE`: RemDo could not be reached, or the document could not be
-    opened within its [limit](#limits). Retry later.
+  - `UNAVAILABLE`: RemDo is unavailable, or the document could not be opened
+    within its [limit](#limits). Retry later.
   - `OUTCOME_UNCONFIRMED`: the call may have changed the document. Check it
-    before retrying. Load-time normalization does not count as a change.
+    before retrying.
   - `INTERNAL`: any other failure.
 
 ## Limits
@@ -67,8 +68,7 @@ operation's owner defines its behavior.
 - **Append:** at most 1,000 notes per call, counting nested children; a larger
   append fails without changing the document.
 - **Open documents:** as many at once as the server's memory allows; a call
-  that cannot open its document within 30 seconds fails as busy before changing
-  it.
+  that cannot open its document within 30 seconds fails before changing it.
 - **RemDo API:** a request that gets no answer within 10 seconds fails; for a
   change, the error states that its outcome is unconfirmed.
 

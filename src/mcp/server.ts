@@ -15,7 +15,7 @@ import { findNoteList, renderOutline } from './outline';
 import { createDocumentSlots } from './document-slots';
 import { AuthorizationError } from '#platform/net/authorization-error';
 import {
-  DOCUMENT_NOT_FOUND, ERROR_CODES, RECONNECT, ToolError, UNAVAILABLE, describeFailure,
+  DOCUMENT_NOT_FOUND, ERROR_CODES, ToolError, UNAVAILABLE, describeFailure,
 } from './tool-error';
 
 interface ServerOptions {
@@ -67,6 +67,8 @@ function titled(title: string, annotations: ToolAnnotations) {
   return { title, annotations: { ...annotations, title } };
 }
 
+// The SDK's tools/list drops fields it does not know, but ChatGPT reads securitySchemes at the top level of the
+// tool descriptor; _meta mirrors it for clients that read only _meta.
 function withOAuthSchemes(message: JSONRPCMessage): JSONRPCMessage {
   if (!('result' in message) || !Array.isArray(message.result.tools)) return message;
   const tools = (message.result.tools as Array<{ _meta?: object }>).map((tool) => ({
@@ -87,8 +89,6 @@ function withErrorCode(message: JSONRPCMessage): JSONRPCMessage {
   return { ...message, result: { ...message.result, content: [{ ...first, text: `INVALID_ARGUMENT: ${first.text}` }, ...rest] } };
 }
 
-// The SDK's tools/list drops fields it does not know, but ChatGPT reads securitySchemes at the top level of the
-// tool descriptor; _meta mirrors it for clients that read only _meta.
 function rewriteResponses(transport: Transport) {
   const send = transport.send.bind(transport);
   transport.send = (message, options) => send(withErrorCode(withOAuthSchemes(message)), options);
@@ -111,7 +111,7 @@ function rejection(status: number, body: string): Error {
   if (status >= 500) return new ToolError('UNAVAILABLE', UNAVAILABLE);
   switch (status) {
     case 400: return new ToolError('INVALID_ARGUMENT', isJson(body) ? `RemDo rejected the request as invalid: ${body}` : 'RemDo rejected the request as invalid.');
-    case 401: return new AuthorizationError(RECONNECT);
+    case 401: return new AuthorizationError();
     case 403: return new ToolError('PERMISSION_DENIED', 'The user is not allowed to do this in RemDo.');
     case 404: return new ToolError('NOT_FOUND', DOCUMENT_NOT_FOUND);
     default: return new ToolError('INTERNAL', `RemDo could not complete the request (${status}).`);

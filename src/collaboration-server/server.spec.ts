@@ -14,7 +14,6 @@ import { asCollaborationProviderEvents, createProviderFactory, waitForSync } fro
 import { withHeadlessOpenDocument } from '../headless/open-document';
 import { CollabSession } from '../collaboration/session';
 import { createMcpServer } from '../mcp/server';
-import { DOCUMENT_NOT_FOUND } from '../mcp/tool-error';
 import * as origins from '#platform/net/origins';
 import { createDeferred } from '../../tests/unit/_support/deferred';
 
@@ -430,7 +429,7 @@ it.each([
         type: 'text',
         text: status === 401
           ? 'UNAUTHENTICATED: RemDo no longer accepts this authorization. Reconnect RemDo.'
-          : `NOT_FOUND: ${DOCUMENT_NOT_FOUND}`,
+          : 'NOT_FOUND: The document is not available. Check list_documents for the documents the user can access.',
       }],
     };
     expect(result).toEqual(status === 401 ? {

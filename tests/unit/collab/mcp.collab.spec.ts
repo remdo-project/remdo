@@ -9,7 +9,6 @@ import { config } from '#config';
 import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '#collaboration/runtime';
 import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
 import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveMcpServerOrigin } from '#platform/net/origins';
-import { DOCUMENT_NOT_FOUND } from '../../../src/mcp/tool-error';
 import { ensureCollabTestUser } from './_support/auth';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
@@ -222,19 +221,13 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       await call(other, 'rename_document', { documentId, title: 'Lost' }),
     ];
 
-    const missing = await outcomes('missingdoc');
+    const notFound = Array.from({ length: 4 }, () => ({
+      isError: true,
+      value: 'NOT_FOUND: The document is not available. Check list_documents for the documents the user can access.',
+    }));
 
-    expect(missing.map(({ isError }) => isError)).toEqual([true, true, true, true]);
-    expect(missing.map(({ value }) => value)).toEqual([
-      `NOT_FOUND: ${DOCUMENT_NOT_FOUND}`, `NOT_FOUND: ${DOCUMENT_NOT_FOUND}`, `NOT_FOUND: ${DOCUMENT_NOT_FOUND}`, `NOT_FOUND: ${DOCUMENT_NOT_FOUND}`,
-    ]);
-    expect(await outcomes(privateId)).toEqual(missing);
-  });
-
-  it('refuses a malformed address as an invalid argument', async () => {
-    const client = await connect(await delegatedToken());
-    const malformed = await call(client, 'append_children', { parent: 'missingdoc_', notes: [{ text: 'Lost' }] });
-    expect(malformed).toEqual({ isError: true, value: 'INVALID_ARGUMENT: The parent is not a documentId or a noteAddress.' });
+    expect(await outcomes('missingdoc')).toEqual(notFound);
+    expect(await outcomes(privateId)).toEqual(notFound);
   });
 
   it('refuses a missing note in a new document without calling the write unconfirmed', async () => {

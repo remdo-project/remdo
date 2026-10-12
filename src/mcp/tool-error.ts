@@ -16,7 +16,7 @@ export const ERROR_CODES = [
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
 export const UNAVAILABLE = 'RemDo is unavailable. Try again later.';
-export const RECONNECT = 'RemDo no longer accepts this authorization. Reconnect RemDo.';
+const RECONNECT = 'RemDo no longer accepts this authorization. Reconnect RemDo.';
 export const DOCUMENT_NOT_FOUND = 'The document is not available. Check list_documents for the documents the user can access.';
 
 export class ToolError extends Error {

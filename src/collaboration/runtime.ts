@@ -293,13 +293,12 @@ export function createProviderFactory({ visibleOrigin, accountId, WebSocketPolyf
       }
       websocket.disconnect();
       status = 'error';
-      const authorizationRejected = reason === COLLABORATION_AUTHORIZATION_REJECTED;
+      const denial = reason === COLLABORATION_AUTHORIZATION_REJECTED ? 'authorization' : 'access';
       network.notify('connection-error', {
-        reason: authorizationRejected
+        reason: denial === 'authorization'
           ? 'RemDo no longer accepts this authorization. Reconnect RemDo.'
           : 'Document access denied.',
-        authorizationRejected,
-        accessDenied: !authorizationRejected,
+        denial,
       });
     });
     function pageHide() {
@@ -504,15 +503,11 @@ function toAbortError(reason: unknown): Error {
 
 function createConnectionError(payload: unknown): Error {
   if (payload && typeof payload === 'object') {
-    const { reason, authorizationRejected, accessDenied } = payload as {
-      reason?: unknown;
-      authorizationRejected?: unknown;
-      accessDenied?: unknown;
-    };
+    const { reason, denial } = payload as { reason?: unknown; denial?: unknown };
     if (typeof reason === 'string' && reason.length > 0) {
       const message = `Failed to connect to collaboration server: ${reason}`;
-      if (authorizationRejected === true) return new AuthorizationError(message);
-      if (accessDenied === true) return new DocumentAccessDeniedError(message);
+      if (denial === 'authorization') return new AuthorizationError(message);
+      if (denial === 'access') return new DocumentAccessDeniedError(message);
       return new CollaborationUnavailableError(message);
     }
   }
