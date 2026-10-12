@@ -564,8 +564,8 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         token = self.client.cookies[settings.CSRF_COOKIE_NAME].value
         return self.client.post(path, {**data, "csrfmiddlewaretoken": token})
 
-    def account(self, email="alice@example.test", **fields):
-        user = User.objects.create_user(email, self.PASSWORD, **fields)
+    def account(self, email="alice@example.test", password=PASSWORD, **fields):
+        user = User.objects.create_user(email, password, **fields)
         EmailAddress.objects.create(user=user, email=email, primary=True, verified=True)
         return user
 
@@ -597,7 +597,7 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.assertFalse(user.check_password("attacker-password-9"))
 
     def test_existing_account_signs_in_with_a_code_and_next_destination(self):
-        self.account()
+        self.account(password=None)
 
         response = self.post("/accounts/email/", {"email": "Alice@Example.test", "next": "/n/doc"})
         self.assertTrue(response["Location"].startswith("/accounts/login/code/confirm/"))
@@ -610,7 +610,9 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
     def test_administrator_cannot_sign_in_with_a_code_but_can_with_a_password(self):
         self.account(is_staff=True)
 
-        response = self.post("/accounts/email/", {"email": "alice@example.test", "next": "/admin/"})
+        response = self.post(
+            "/accounts/login/code/", {"email": "alice@example.test", "next": "/admin/"}
+        )
         response = self.post(response["Location"], {"code": self.emailed_code()})
 
         self.assertTemplateUsed(response, "account/password_only.html")
@@ -651,7 +653,7 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.assertEqual(User.objects.count(), 1)
 
     def test_login_code_page_renders_for_a_known_address(self):
-        self.account()
+        self.account(password=None)
         self.post("/accounts/email/", {"email": "alice@example.test"})
         page = self.client.get("/accounts/login/code/confirm/")
         self.assertEqual(page.status_code, 200)
@@ -732,7 +734,7 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         )
 
         self.assertContains(response, 'name="password"')
-        self.assertNotContains(response, 'name="email"')
+        self.assertNotContains(response, "Continue with email")
 
     def test_signup_keeps_the_requested_destination(self):
         response = self.post("/accounts/email/", {"email": "new@example.test", "next": "/n/doc"})
@@ -767,7 +769,7 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
     def test_superuser_without_staff_status_cannot_sign_in_with_a_code(self):
         self.account(is_superuser=True)
 
-        response = self.post("/accounts/email/", {"email": "alice@example.test"})
+        response = self.post("/accounts/login/code/", {"email": "alice@example.test"})
         response = self.post(response["Location"], {"code": self.emailed_code()})
 
         self.assertTemplateUsed(response, "account/password_only.html")
@@ -806,27 +808,162 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.assertEqual(response["Location"], "/sign-out/")
         self.assertEqual(self.session_email(), "alice@example.test")
 
-    def test_login_page_offers_the_email_form_and_a_switch_to_the_password_form(self):
+    def test_login_page_offers_only_the_email_form(self):
         page = self.client.get("/accounts/login/?next=/n/doc")
         self.assertContains(page, 'name="email"')
         self.assertNotContains(page, 'name="password"')
-        self.assertContains(page, "/accounts/login/?method=password&amp;next=%2Fn%2Fdoc")
+        self.assertNotContains(page, "password instead")
         self.assertContains(
             page, '<input type="hidden" name="next" value="/n/doc">', count=2, html=True
         )
 
+    def test_password_form_page_offers_the_way_back_to_the_email_form(self):
         page = self.client.get("/accounts/login/?method=password&next=/n/doc")
         self.assertContains(page, 'name="password"')
         self.assertNotContains(page, 'name="email"')
         self.assertContains(page, 'href="/accounts/login/?next=%2Fn%2Fdoc"')
 
-    def test_wrong_password_keeps_the_password_form(self):
+    def test_known_address_with_a_password_gets_the_password_step_before_any_code(self):
         self.account()
+
+        page = self.post("/accounts/email/", {"email": "Alice@Example.test", "next": "/n/doc"})
+
+        self.assertEqual(mail.outbox, [])
+        self.assertContains(page, 'name="password"')
+        self.assertRegex(page.content.decode(), r'<input[^>]*name="password"[^>]*autofocus')
+        self.assertContains(page, 'value="Alice@Example.test"', count=2)
+        self.assertContains(page, "Email me a code instead")
+        self.assertContains(page, 'action="/accounts/login/?method=password&amp;next=%2Fn%2Fdoc"')
+        self.assertContains(
+            page, '<input type="hidden" name="next" value="/n/doc">', count=3, html=True
+        )
+
+    def test_password_step_sends_a_code_only_when_asked_for_one(self):
+        self.account()
+
         response = self.post(
+            "/accounts/email/", {"email": "alice@example.test", "method": "code", "next": "/n/doc"}
+        )
+        self.assertTrue(response["Location"].startswith("/accounts/login/code/confirm/"))
+        response = self.post(response["Location"], {"code": self.emailed_code()})
+
+        self.assertEqual(response.context["next_url"], "/n/doc")
+        self.assertEqual(self.session_email(), "alice@example.test")
+
+    def test_administrator_address_gets_the_password_step_without_any_code(self):
+        self.account("staff@example.test", password=None, is_staff=True)
+        self.account("super@example.test", password=None, is_superuser=True)
+        for email in ("staff@example.test", "super@example.test"):
+            for extra in ({}, {"method": "code"}):
+                with self.subTest(email=email, **extra):
+                    page = self.post("/accounts/email/", {"email": email, **extra})
+
+                    self.assertEqual(mail.outbox, [])
+                    self.assertContains(page, 'name="password"')
+                    self.assertNotContains(page, "code instead")
+
+    def test_signed_in_visit_to_the_email_step_leaves_for_home(self):
+        self.account()
+        self.post(
+            "/accounts/login/?method=password",
+            {"login": "alice@example.test", "password": self.PASSWORD},
+        )
+
+        response = self.post("/accounts/email/", {"email": "alice@example.test"})
+
+        self.assertEqual(response["Location"], "/")
+
+    def test_wrong_password_keeps_the_offer_to_email_a_code_for_that_address(self):
+        self.account()
+
+        page = self.post(
             "/accounts/login/?method=password",
             {"login": "alice@example.test", "password": "wrong"},
         )
-        self.assertContains(response, 'name="password"')
+
+        self.assertContains(page, 'name="password"')
+        self.assertContains(
+            page, "The email address and/or password you specified are not correct."
+        )
+        self.assertContains(
+            page, '<input type="hidden" name="email" value="alice@example.test">', html=True
+        )
+
+    def test_wrong_password_offers_no_code_button_for_an_administrator_or_unknown_address(self):
+        self.account("staff@example.test", is_staff=True)
+        for email, link in (("staff@example.test", False), ("nobody@example.test", True)):
+            with self.subTest(email=email):
+                page = self.post(
+                    "/accounts/login/?method=password", {"login": email, "password": "wrong"}
+                )
+
+                self.assertNotContains(page, "Email me a code instead")
+                self.assertNotContains(page, 'name="email"')
+                self.assertEqual("Email me a sign-in code instead" in page.text, link)
+
+    def test_password_step_shares_the_login_rate_limit(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.account()
+
+        with override_settings(ACCOUNT_RATE_LIMITS={"login": "1/m/ip"}):
+            first = self.post("/accounts/email/", {"email": "alice@example.test"})
+            second = self.post("/accounts/email/", {"email": "alice@example.test"})
+
+        self.assertEqual((first.status_code, second.status_code), (200, 429))
+
+    def test_password_sign_in_is_not_captured_by_an_unfinished_login_code(self):
+        self.account()
+        self.post("/accounts/email/", {"email": "alice@example.test", "method": "code"})
+
+        response = self.post(
+            "/accounts/login/?method=password",
+            {"login": "alice@example.test", "password": self.PASSWORD},
+        )
+
+        self.assertTemplateUsed(response, "accounts/login_complete.html")
+        self.assertEqual(self.session_email(), "alice@example.test")
+
+    def test_email_step_and_code_button_are_not_captured_by_an_unfinished_step(self):
+        self.account("alice@example.test", password=None)
+        self.account("bob@example.test")
+        for pending, email, extra in (
+            ("alice@example.test", "bob@example.test", {"method": "code"}),
+            ("new@example.test", "alice@example.test", {}),
+        ):
+            with self.subTest(pending=pending, email=email):
+                self.post("/accounts/email/", {"email": pending})
+
+                response = self.post("/accounts/email/", {"email": email, **extra})
+
+                self.assertTrue(response["Location"].startswith("/accounts/login/code/confirm/"))
+                self.assertEqual(mail.outbox[-1].to, [email])
+
+    def test_malformed_address_does_not_move_focus_to_the_password(self):
+        page = self.post(
+            "/accounts/login/?method=password", {"login": "alice@", "password": "wrong"}
+        )
+
+        self.assertNotRegex(page.text, r'<input[^>]*name="password"[^>]*autofocus')
+
+    def test_sign_in_page_abandons_an_unfinished_login_code(self):
+        self.account(password=None)
+        self.post("/accounts/email/", {"email": "alice@example.test"})
+
+        page = self.client.get("/accounts/login/")
+
+        self.assertContains(page, 'name="email"')
+        stale = self.client.get("/accounts/login/code/confirm/")
+        self.assertEqual(stale["Location"], "/accounts/login/")
+
+    def test_sign_in_page_abandons_an_unfinished_signup_verification(self):
+        self.post("/accounts/email/", {"email": "new@example.test"})
+
+        page = self.client.get("/accounts/login/")
+
+        self.assertContains(page, 'name="email"')
+        stale = self.client.get("/accounts/confirm-email/")
+        self.assertEqual(stale["Location"], "/accounts/login/")
 
     def test_admin_add_form_skips_an_address_another_account_holds_verified(self):
         other = self.account("other@example.test")

@@ -2,8 +2,10 @@ from functools import wraps
 
 from allauth.account import views as allauth_views
 from allauth.account.forms import RequestLoginCodeForm
+from allauth.account.internal.stagekit import clear_login
 from allauth.account.utils import filter_users_by_email
 from allauth.account.views import LoginView as AllauthLoginView
+from allauth.decorators import rate_limit
 from allauth.socialaccount.providers.google.views import oauth2_callback
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
@@ -44,6 +46,19 @@ def completes_login(view):
     return wrapper
 
 
+def abandons_login_step(view):
+    # allauth would send a visitor with an unfinished code step back to it, leaving
+    # the header's Sign in link unable to reach the sign-in page and capturing any
+    # sign-in submitted meanwhile.
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            clear_login(request)
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
 def redirects_signed_in(view):
     # allauth sends a signed-in visitor to an email management page this app does not route.
     @wraps(view)
@@ -55,6 +70,12 @@ def redirects_signed_in(view):
     return wrapper
 
 
+def active_account(email):
+    if not email:
+        return None
+    return next(iter(filter_users_by_email(email, is_active=True, prefer_verified=True)), None)
+
+
 @never_cache
 @require_POST
 def admin_logout(request):
@@ -64,32 +85,60 @@ def admin_logout(request):
 
 @method_decorator(never_cache, name="dispatch")
 @method_decorator(completes_login, name="dispatch")
+@method_decorator(abandons_login_step, name="dispatch")
 class LoginView(AllauthLoginView):
     template_name = "accounts/login.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(
-            email_signup_enabled=settings.EMAIL_SIGNUP_ENABLED,
-            password_mode=not settings.EMAIL_SIGNUP_ENABLED
+        password_mode = (
+            not settings.EMAIL_SIGNUP_ENABLED
             or self.request.GET.get("method") == "password"
-            or self.request.method == "POST",
+            or self.request.method == "POST"
+        )
+        context.update(
+            password_mode=password_mode,
             email_form=RequestLoginCodeForm(),
             password_url=self.passthrough_next_url(f"{reverse('account_login')}?method=password"),
         )
+        if password_mode and settings.EMAIL_SIGNUP_ENABLED:
+            form = context["form"]
+            email = (form["login"].value() or "").strip()
+            account = active_account(email)
+            context.update(
+                code_email=email if account and not account.is_administrator else "",
+                code_link=not account,
+            )
+            if email and not form["login"].errors:
+                form.fields["password"].widget.attrs["autofocus"] = True
         return context
 
 
 google_callback = never_cache(completes_login(oauth2_callback))
 
 
+@redirects_signed_in
+@rate_limit(action="login")
+def password_step(request, email):
+    view = LoginView()
+    view.setup(request)
+    form = view.get_form_class()(request=request, initial={"login": email})
+    return view.render_to_response(view.get_context_data(form=form))
+
+
 @never_cache
 @email_signup_only
 @require_POST
+@abandons_login_step
 def continue_with_email(request):
     email = request.POST.get("email", "").strip()
-    known = filter_users_by_email(email, is_active=True, prefer_verified=True)
-    return (allauth_views.request_login_code if known else allauth_views.signup)(request)
+    account = active_account(email)
+    if not account:
+        return allauth_views.signup(request)
+    wants_code = request.POST.get("method") == "code"
+    if account.is_administrator or (account.has_usable_password() and not wants_code):
+        return password_step(request, email)
+    return allauth_views.request_login_code(request)
 
 
 signup = never_cache(email_signup_only(allauth_views.signup))

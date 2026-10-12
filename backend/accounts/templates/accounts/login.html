@@ -43,7 +43,19 @@
           {% element button type="submit" %}Sign in{% endelement %}
         {% endslot %}
       {% endelement %}
-      {% if email_signup_enabled %}
+      {% if code_email %}
+        {% url 'account_continue_with_email' as continue_url %}
+        {% element form method="post" action=continue_url %}
+          {% slot body %}
+            {% csrf_token %}
+            <input type="hidden" name="email" value="{{ code_email }}">
+            {{ redirect_field }}
+          {% endslot %}
+          {% slot actions %}
+            {% element button type="submit" name="method" value="code" %}Email me a code instead{% endelement %}
+          {% endslot %}
+        {% endelement %}
+      {% elif code_link %}
         <p><a href="{{ login_url }}">Email me a sign-in code instead</a></p>
       {% endif %}
     {% else %}
@@ -58,7 +70,6 @@
           {% element button type="submit" %}Continue with email{% endelement %}
         {% endslot %}
       {% endelement %}
-      <p><a href="{{ password_url }}">Use a password instead</a></p>
     {% endif %}
     <p class="landing-signin-notice">
       By signing in you agree to the <a href="/privacy/">Privacy Policy</a>
