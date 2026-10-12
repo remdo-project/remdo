@@ -4,6 +4,7 @@ import { useOverlayPosition } from 'react-aria';
 import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { hasArea } from './target-rect';
 
 interface EditorPopupOverlayProps {
   editor: LexicalEditor;
@@ -41,11 +42,11 @@ export function EditorPopupOverlay({
     shouldFlip: true,
     getTargetRect: () => {
       const rect = getTargetRect();
-      if (rect) {
+      if (rect && hasArea(rect)) {
         lastTargetRectRef.current = rect;
         return rect;
       }
-      return lastTargetRectRef.current ?? new DOMRect();
+      return lastTargetRectRef.current ?? rect ?? new DOMRect();
     },
   });
 

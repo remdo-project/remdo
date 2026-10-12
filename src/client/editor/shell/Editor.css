@@ -421,7 +421,7 @@
 
 .note-link-picker {
   min-width: 16rem;
-  max-width: 24rem;
+  max-width: min(24rem, calc(100vw - 1.5rem));
   border: 1px solid var(--mantine-color-dark-4);
   border-radius: var(--mantine-radius-sm);
   background: var(--mantine-color-dark-7);

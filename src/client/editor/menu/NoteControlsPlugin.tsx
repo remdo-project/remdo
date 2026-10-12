@@ -172,7 +172,7 @@ export function NoteControlsPlugin() {
       const container = root.closest<HTMLElement>('.editor-container');
       const eventTarget = event.target;
       const eventTargetElement = eventTarget instanceof Element ? eventTarget : null;
-      if (eventTargetElement?.closest('[data-note-menu]')) {
+      if (container?.querySelector('[data-note-menu]')) {
         return;
       }
       const isWithinContainer = !!(eventTargetElement && container?.contains(eventTargetElement));

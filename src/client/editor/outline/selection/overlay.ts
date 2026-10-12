@@ -18,6 +18,17 @@ export function clearStructuralOverlay(rootElement: HTMLElement | null, config: 
   rootElement.style.removeProperty(config.heightVar);
 }
 
+// A folded note's subtree is display:none, so a range ending in it ends visually
+// at the last row before the hidden wrapper.
+function resolveRenderedEnd(element: HTMLElement): HTMLElement {
+  let hidden: HTMLElement | null = null;
+  for (let node: HTMLElement | null = element; node && node.getClientRects().length === 0; node = node.parentElement) {
+    hidden = node;
+  }
+  const previous = hidden?.previousElementSibling;
+  return previous instanceof HTMLElement ? previous : element;
+}
+
 export function updateStructuralOverlay(
   editor: LexicalEditor,
   range: OutlineSelectionRange | null,
@@ -46,7 +57,7 @@ export function updateStructuralOverlay(
 
   const rootRect = rootElement.getBoundingClientRect();
   const startRect = startElement.getBoundingClientRect();
-  const endRect = endElement.getBoundingClientRect();
+  const endRect = resolveRenderedEnd(endElement).getBoundingClientRect();
   const scrollTop = rootElement.scrollTop;
   const top = startRect.top - rootRect.top + scrollTop;
   const bottom = endRect.bottom - rootRect.top + scrollTop;

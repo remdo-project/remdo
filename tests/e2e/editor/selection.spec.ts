@@ -1,5 +1,6 @@
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, noteRow, selectInlineRange, setCaretAtNoteTextNode, setCaretAtText } from '#editor/locators';
+import { openNoteMenu } from './_support/menu';
 
 test.describe('selection (structural highlight)', () => {
   test('toggles the structural highlight class', async ({ page, editor }) => {
@@ -18,6 +19,28 @@ test.describe('selection (structural highlight)', () => {
     await page.keyboard.press('Escape');
 
     await expect(input).not.toHaveClass(/editor-input--structural/);
+  });
+
+  test('ends the highlight at a folded note instead of its hidden children', async ({ page, editor }) => {
+    await editor.load('tree');
+    const foldMenu = await openNoteMenu(page, 'note2', { anchor: 'caret', openMethod: 'shortcut' });
+    await foldMenu.pressShortcut('f');
+    await foldMenu.expectClosed();
+
+    await page.keyboard.press('ControlOrMeta+A');
+    await page.keyboard.press('ControlOrMeta+A');
+
+    const input = editorLocator(page).locator('.editor-input');
+    await expect(input).toHaveClass(/editor-input--structural/);
+    const highlight = await input.evaluate((element) => {
+      const style = getComputedStyle(element, '::before');
+      const top = element.getBoundingClientRect().top + Number.parseFloat(style.top);
+      return { top, bottom: top + Number.parseFloat(style.height) };
+    });
+    const row = (await noteRow(page, 'note2').boundingBox())!;
+    expect(highlight.top).toBeLessThanOrEqual(row.y + 1);
+    expect(highlight.bottom).toBeGreaterThanOrEqual(row.y + row.height - 1);
+    expect(highlight.bottom).toBeLessThanOrEqual(row.y + row.height + 1);
   });
 
   test('keeps Cmd/Ctrl+A on an empty note structural after Lexical normalizes the DOM range', async ({ page, editor }) => {

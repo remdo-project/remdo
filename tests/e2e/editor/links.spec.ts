@@ -392,3 +392,23 @@ test.describe('note links', () => {
     }
   });
 });
+
+test.describe('note link picker on a phone-width viewport', () => {
+  test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
+
+  test('fits inside the viewport without widening the page', async ({ page, editor }) => {
+    await editor.load('flat');
+    // A long label takes the picker to its full width.
+    await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
+    await page.keyboard.type(' with a label long enough to give the picker its full width');
+    await setCaretAtText(page, 'note1', Number.POSITIVE_INFINITY);
+    await page.keyboard.type(' @');
+
+    const picker = editorLocator(page).locator('[data-note-link-picker]');
+    await expect(picker).toHaveCount(1);
+    const box = (await picker.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(390);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  });
+});

@@ -614,7 +614,7 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
     <EditorPopupOverlay
       className="trigger-picker-anchor"
       editor={editor}
-      getTargetRect={resolveCaretTargetRect}
+      getTargetRect={() => resolveCaretTargetRect(editor.getRootElement())}
       portalRoot={portalRoot}
     >
       <div

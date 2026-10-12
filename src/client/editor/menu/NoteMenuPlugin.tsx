@@ -3,11 +3,12 @@ import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND, mergeRegister } from 'l
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { OpenDocument, NoteId } from '#note-sdk';
 import { OPEN_NOTE_MENU_COMMAND } from '#client/editor/foundation/commands';
+import { useCoarsePointer } from '#client/browser/useCoarsePointer';
 import { focusEditorRoot } from '#client/editor/runtime/focus';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { isOtherPopupActive, setPopupActive } from '#client/editor/triggers/active-popup';
 import { EditorPopupOverlay } from '#client/editor/triggers/overlay';
-import { resolveCaretTargetRect } from '#client/editor/triggers/target-rect';
+import { resolveCaretTargetRect, resolveNoteStartRect } from '#client/editor/triggers/target-rect';
 import { resolveMenuNoteElement, resolveMenuNoteId } from './note-menu-target';
 import { NoteMenu } from './NoteMenu';
 
@@ -22,6 +23,7 @@ const DOUBLE_SHIFT_WINDOW_MS = 500;
 
 export function NoteMenuPlugin({ openDocument }: { openDocument: OpenDocument }) {
   const [editor] = useLexicalComposerContext();
+  const coarsePointer = useCoarsePointer();
   const popupToken = useRef(Symbol('note-menu')).current;
   const rootRef = useRef(editor.getRootElement());
   const [rootElement, setRootElement] = useState(() => editor.getRootElement());
@@ -227,15 +229,18 @@ export function NoteMenuPlugin({ openDocument }: { openDocument: OpenDocument })
 
   const resolveMenuTargetRect = (): DOMRect | null => {
     if (menu.target === 'caret') {
-      return resolveCaretTargetRect();
-    }
-    if (menu.target === 'controls') {
+      const caretRect = resolveCaretTargetRect(rootElement);
+      if (caretRect) {
+        return caretRect;
+      }
+    } else if (menu.target === 'controls') {
       const button = portalRoot.querySelector<HTMLElement>('.note-controls__button--menu');
       if (button) {
         return button.getBoundingClientRect();
       }
     }
-    return resolveMenuNoteElement(editor, menu.noteId)?.getBoundingClientRect() ?? null;
+    const noteElement = resolveMenuNoteElement(editor, menu.noteId);
+    return noteElement ? resolveNoteStartRect(noteElement) : null;
   };
 
   return (
@@ -244,7 +249,9 @@ export function NoteMenuPlugin({ openDocument }: { openDocument: OpenDocument })
       editor={editor}
       getTargetRect={resolveMenuTargetRect}
       offset={8}
-      placement="right"
+      // React Aria clamps only the cross axis, and a 280px menu beside a
+      // deeply nested row on a phone fits neither side.
+      placement={coarsePointer ? 'bottom start' : 'right'}
       portalRoot={portalRoot}
     >
       <NoteMenu

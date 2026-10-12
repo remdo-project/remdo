@@ -1,6 +1,7 @@
 import { expect, test } from '#editor/fixtures';
+import type { Page } from '#editor/fixtures';
 import { editorLocator, noteRow, setCaretAtText } from '#editor/locators';
-import { openNoteMenu } from './_support/menu';
+import { expectMenuNearRow, openNoteMenu } from './_support/menu';
 
 test.describe('Note menu', () => {
   test('opens and closes via icon, outside click, and Escape', async ({ page, editor }) => {
@@ -54,6 +55,40 @@ test.describe('Note menu', () => {
     await expect(menu.item('list-bullet')).toHaveCount(0);
   });
 
+  test.describe('double-shift placement on a caret without a rect', () => {
+    // An empty note's caret has no client rect; the menu must still open beside the note.
+    const viewportWidth = (page: Page) => page.viewportSize()!.width;
+
+    test('empty root note', async ({ page, editor }) => {
+      await editor.load('empty-labels');
+      await setCaretAtText(page, 'beta', Number.POSITIVE_INFINITY);
+      await page.keyboard.press('ArrowDown');
+
+      const menu = await openNoteMenu(page, 'beta', { openMethod: 'shortcut' });
+      const emptyRow = noteRow(page, 'beta').locator('xpath=following-sibling::li[1]');
+      await expectMenuNearRow(menu.menu, emptyRow, viewportWidth(page), { besideRow: true });
+    });
+
+    test('empty nested note', async ({ page, editor }) => {
+      await editor.load('empty-labels');
+      await setCaretAtText(page, 'child-of-empty');
+      await page.keyboard.press('ArrowUp');
+
+      const menu = await openNoteMenu(page, 'child-of-empty', { openMethod: 'shortcut' });
+      const emptyRow = noteRow(page, 'child-of-empty').locator('xpath=preceding-sibling::li[1]');
+      await expectMenuNearRow(menu.menu, emptyRow, viewportWidth(page), { besideRow: true });
+    });
+
+    test('empty body', async ({ page, editor }) => {
+      await editor.load('empty-labels');
+      await setCaretAtText(page, 'alpha', Number.POSITIVE_INFINITY);
+      await page.keyboard.press('Shift+Enter');
+
+      const menu = await openNoteMenu(page, 'alpha', { openMethod: 'shortcut' });
+      await expectMenuNearRow(menu.menu, noteRow(page, 'alpha'), viewportWidth(page), { besideRow: true });
+    });
+  });
+
   test('closes when clicking the menu button again', async ({ page, editor }) => {
     await editor.load('tree');
 
@@ -97,6 +132,28 @@ test.describe('Note menu', () => {
     const nextControlsCenter = nextControlsBox.y + nextControlsBox.height / 2;
     expect(nextControlsCenter).toBeGreaterThan(note2Box.y);
     expect(nextControlsCenter).toBeLessThan(note2Box.y + note2Box.height);
+  });
+
+  test('an open menu holds its target while the pointer moves to another row', async ({ page, editor }) => {
+    await editor.load('tree');
+
+    const menu = await openNoteMenu(page, 'note1');
+    const controls = editorLocator(page).locator('.note-controls');
+    const note1Box = (await noteRow(page, 'note1').boundingBox())!;
+    const note2 = noteRow(page, 'note2');
+    const note2Box = (await note2.boundingBox())!;
+    const controlsCenter = async () => {
+      const box = (await controls.boundingBox())!;
+      return box.y + box.height / 2;
+    };
+
+    // The far end of the row is clear of the menu, which opens beside the icon.
+    await note2.hover({ position: { x: note2Box.width - 40, y: note2Box.height / 2 } });
+    expect(await controlsCenter()).toBeLessThan(note1Box.y + note1Box.height);
+
+    await menu.close();
+    await note2.hover({ position: { x: note2Box.width - 60, y: note2Box.height / 2 } });
+    await expect.poll(controlsCenter).toBeGreaterThan(note2Box.y);
   });
 
   test('double-shift is canceled by other keys', async ({ page, editor }) => {
