@@ -512,6 +512,12 @@ export function createLexicalOpenDocumentRuntime({
         .read(() => $getChildNoteIds($requireRootContentList()), { editor })
         .map(createNoteRef);
     },
+    getChildListType: () => {
+      if (!started || disposed || !sourceReady) {
+        throw new NoteUnavailableError(docId);
+      }
+      return editor.getEditorState().read(() => $requireRootContentList().getListType(), { editor });
+    },
     appendChildren: (notes: readonly NewNote[]) => appendChildren(null, notes),
   });
 

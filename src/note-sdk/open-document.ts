@@ -64,6 +64,8 @@ export interface NewNote {
 export interface OpenDocumentParentNote {
   /** References to the current direct children in order. */
   readonly getChildren: () => readonly OpenDocumentNote[];
+  /** The list holding the children, or null when there are none. The document root always has children. */
+  readonly getChildListType: () => NoteListType | null;
   /** Appends notes as the last children; resolves with their IDs in order. */
   readonly appendChildren: (notes: readonly NewNote[]) => Promise<NoteId[]>;
 }
@@ -84,8 +86,6 @@ export interface OpenDocumentNote extends OpenDocumentParentNote {
   /** Returns the current stored fold state. */
   readonly getFolded: () => boolean;
   readonly getChecked: () => boolean;
-  /** The list owned by this note, or null for a leaf. */
-  readonly getChildListType: () => NoteListType | null;
   readonly canToggleFold: () => boolean;
   readonly canToggleChecked: () => boolean;
   readonly canSetChildListType: () => boolean;

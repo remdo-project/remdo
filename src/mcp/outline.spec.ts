@@ -1,10 +1,11 @@
 import { $createTextNode } from 'lexical';
 import { expect, it } from 'vitest';
+import { NoteUnavailableError } from '#note-sdk';
 import type { OpenDocumentNote } from '#note-sdk';
 import { meta } from '#tests';
 import { $addNoteBody } from '#client/editor/features/note-body/note-body-ops';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { renderOutline } from './outline';
+import { findNoteList, renderOutline } from './outline';
 
 const url = (noteId: string) => `https://remdo.example/n/doc_${noteId}`;
 
@@ -23,6 +24,35 @@ it('renders list types, checked state, bodies, and note links as nested Markdown
     '  - [x] [note4](https://remdo.example/n/doc_note4)',
     String.raw`- [see \[ref\]](https://remdo.example/n/doc_note5)`,
     '  - [note6](https://remdo.example/n/doc_note6)',
+  ].join('\n'));
+});
+
+it('renders a note read on its own with the marker of its containing list', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
+  const { root } = remdo.openDocument;
+  const read = (noteId: string) => {
+    const { note, listType } = findNoteList(root, noteId);
+    return renderOutline([note], url, { listType });
+  };
+
+  expect(read('note2')).toBe('1. [note2](https://remdo.example/n/doc_note2)');
+  await remdo.openDocument.noteRef('note1').setChildListType('check');
+  expect(read('note2')).toBe('- [ ] [note2](https://remdo.example/n/doc_note2)');
+  expect(read('note1')).toBe('- [note1](https://remdo.example/n/doc_note1)\n  - [ ] [note2](https://remdo.example/n/doc_note2)');
+  expect(() => findNoteList(root, 'missing')).toThrow(NoteUnavailableError);
+});
+
+it('renders top-level notes with the marker of the document root list', meta({ fixture: 'tree-ordered-root' }), ({ remdo }) => {
+  const { root } = remdo.openDocument;
+
+  expect(renderOutline(root.getChildren(), url, { listType: root.getChildListType() })).toBe([
+    '1. [note1](https://remdo.example/n/doc_note1)',
+    '1. [note2](https://remdo.example/n/doc_note2)',
+    '   - [note3](https://remdo.example/n/doc_note3)',
+  ].join('\n'));
+  const { note, listType } = findNoteList(root, 'note2');
+  expect(renderOutline([note], url, { listType })).toBe([
+    '1. [note2](https://remdo.example/n/doc_note2)',
+    '   - [note3](https://remdo.example/n/doc_note3)',
   ].join('\n'));
 });
 
