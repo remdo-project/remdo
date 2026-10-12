@@ -490,6 +490,16 @@ it('reports an MCP append as unconfirmed when persistence fails and the hub save
   }
 });
 
+it('keeps load-time normalization out of an unconfirmed write when the operation fails before changing anything', async () => {
+  const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
+  runtimeCleanup.push(() => resolveOrigin.mockRestore());
+  const failure = new Error('Operation refused.');
+
+  await expect(withHeadlessOpenDocument('empty-document', 'Bearer delegated-token', async () => {
+    throw failure;
+  })).rejects.toBe(failure);
+});
+
 it.each(['synchronization', 'callback'])('reports a post-write %s error as unconfirmed and preserves its cause', async (stage) => {
   const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
   runtimeCleanup.push(() => resolveOrigin.mockRestore());
