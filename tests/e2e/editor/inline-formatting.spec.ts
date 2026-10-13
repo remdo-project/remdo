@@ -177,7 +177,10 @@ test('keeps formatting shortcuts in the editor and leaves Alt+F10 unclaimed', as
   }
   const code = toolbar(page).getByRole('button', { name: 'Inline code' });
   await expect(code).toHaveAttribute('aria-keyshortcuts', 'Control+E');
-  await expect(code.locator('[title]')).toHaveAttribute('title', 'Inline code (Ctrl+E)');
+  await expect(code).toBeEnabled();
+  await page.mouse.move(1, 1);
+  await code.hover();
+  await expect(page.getByRole('tooltip')).toHaveText('Inline code (Ctrl+E)');
   await page.keyboard.press('Tab');
   await expect(input(page).locator('.list-nested-item')).toHaveCount(1);
   await expect(editor).toMatchOutline([
@@ -204,7 +207,10 @@ for (const mac of [false, true]) {
     await selectInlineRange(page, 'note1', 1, 4);
     const code = toolbar(page).getByRole('button', { name: 'Inline code' });
     await expect(code).toHaveAttribute('aria-keyshortcuts', `${mac ? 'Meta' : 'Control'}+E`);
-    await expect(code.locator('[title]')).toHaveAttribute('title', `Inline code (${mac ? '⌘' : 'Ctrl'}+E)`);
+    await expect(code).toBeEnabled();
+    await page.mouse.move(1, 1);
+    await code.hover();
+    await expect(page.getByRole('tooltip')).toHaveText(`Inline code (${mac ? '⌘' : 'Ctrl'}+E)`);
     for (const modifiers of [
       { metaKey: !mac, ctrlKey: mac },
       { metaKey: mac, ctrlKey: !mac, shiftKey: true },

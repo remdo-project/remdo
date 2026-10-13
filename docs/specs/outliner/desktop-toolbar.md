@@ -52,3 +52,8 @@ between enabled controls, Home and End reach the first and last enabled controls
 Enter and Space activate a control, and Tab leaves the toolbar. Controls expose
 their action names and applicable platform shortcuts, matching the
 [keyboard reference](./keyboard-reference.md#platform).
+
+Enabled controls show the action name and platform shortcut in a tooltip after
+200 ms on the first hover. Moving directly between controls shows hints
+immediately after the first hint appears; keyboard focus shows them immediately.
+The hint closes on activation or `Escape` without receiving focus.

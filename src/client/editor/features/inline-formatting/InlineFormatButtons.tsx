@@ -1,5 +1,6 @@
 import { Button } from 'react-aria-components';
 import { IconBold, IconCode, IconItalic, IconUnderline } from '@tabler/icons-react';
+import { ActionTooltip } from '#client/ui/ActionTooltip';
 import { INLINE_FORMATS } from './selection';
 import type { FormatStates, InlineFormat } from './selection';
 
@@ -22,21 +23,22 @@ export function InlineFormatButtons({ states, mac, className, onFormatStart, onF
     const shortcut = `${mac ? '⌘' : 'Ctrl'}+${key}`;
     // React Aria Button filters aria-keyshortcuts out of its DOM props.
     return (
-      <Button
-        key={format}
-        ref={button => { button?.setAttribute('aria-keyshortcuts', `${mac ? 'Meta' : 'Control'}+${key}`); }}
-        className={className}
-        aria-label={label}
-        aria-pressed={states?.[format] === 'some' ? 'mixed' : states?.[format] === 'all'}
-        isDisabled={states === null}
-        preventFocusOnPress
-        onPressStart={onFormatStart}
-        onPress={() => onFormat(format)}
-      >
-        <span title={`${label} (${shortcut})`}>
-          <Icon size={18} aria-hidden="true" />
-        </span>
-      </Button>
+      <ActionTooltip key={format} label={`${label} (${shortcut})`}>
+        <Button
+          ref={button => { button?.setAttribute('aria-keyshortcuts', `${mac ? 'Meta' : 'Control'}+${key}`); }}
+          className={className}
+          aria-label={label}
+          aria-pressed={states?.[format] === 'some' ? 'mixed' : states?.[format] === 'all'}
+          isDisabled={states === null}
+          preventFocusOnPress
+          onPressStart={onFormatStart}
+          onPress={() => onFormat(format)}
+        >
+          <span>
+            <Icon size={18} aria-hidden="true" />
+          </span>
+        </Button>
+      </ActionTooltip>
     );
   });
 }

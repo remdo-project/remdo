@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { FocusScope, useFocusManager } from 'react-aria';
 import { Button, Toolbar } from 'react-aria-components';
 import type { OpenDocument } from '#note-sdk';
+import { ActionTooltip } from '#client/ui/ActionTooltip';
 import { useCoarsePointer } from '#client/browser/useCoarsePointer';
 import { TOGGLE_INLINE_FORMAT_COMMAND } from '#client/editor/foundation/commands';
 import { hasNativeEditorSelection } from '#client/editor/foundation/editor-focus';
@@ -30,16 +31,18 @@ function ActionButton({ label, keys, disabled = false, onPress, children }: {
 }) {
   const hint = keys.replace('Meta', '⌘').replace('Control', 'Ctrl').replace('ArrowUp', '↑').replace('ArrowDown', '↓');
   return (
-    <Button
-      ref={button => { button?.setAttribute('aria-keyshortcuts', keys); }}
-      className="desktop-editing-toolbar__button"
-      aria-label={label}
-      isDisabled={disabled}
-      preventFocusOnPress
-      onPress={onPress}
-    >
-      <span title={`${label} (${hint})`}>{children}</span>
-    </Button>
+    <ActionTooltip label={`${label} (${hint})`}>
+      <Button
+        ref={button => { button?.setAttribute('aria-keyshortcuts', keys); }}
+        className="desktop-editing-toolbar__button"
+        aria-label={label}
+        isDisabled={disabled}
+        preventFocusOnPress
+        onPress={onPress}
+      >
+        <span>{children}</span>
+      </Button>
+    </ActionTooltip>
   );
 }
 

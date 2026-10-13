@@ -154,6 +154,25 @@ test('uses document undo and redo and reflects their availability', async ({ pag
   await expect(input(page)).toBeFocused();
 });
 
+test('keeps selected text and editor focus while showing and activating a tooltip', async ({ page, editor }) => {
+  await editor.load('flat');
+  await selectInlineRange(page, 'note1', 0, 5);
+  const bold = toolbar(page).getByRole('button', { name: 'Bold', exact: true });
+  const hint = page.getByRole('tooltip');
+  await expect(bold).toBeEnabled();
+  await page.mouse.move(1, 1);
+  await bold.hover();
+  await expect(hint).toHaveText(/Bold \((?:Ctrl|⌘)\+B\)/u);
+  await expect(bold).toHaveAttribute('aria-describedby', (await hint.getAttribute('id'))!);
+  await expect(input(page)).toBeFocused();
+  expect(await page.evaluate(() => document.getSelection()!.toString())).toBe('note1');
+  await bold.click();
+  await expect(hint).toHaveCount(0);
+  await expect(noteRow(page, 'note1').locator('.text-bold')).toHaveText('note1');
+  await expect(input(page)).toBeFocused();
+  expect(await page.evaluate(() => document.getSelection()!.toString())).toBe('note1');
+});
+
 test('supports keyboard navigation and formatting activation without losing the selected text', async ({ page, editor }) => {
   await editor.load('flat');
   await selectInlineRange(page, 'note1', 0, 5);
@@ -163,7 +182,9 @@ test('supports keyboard navigation and formatting activation without losing the 
   await bold.focus();
   await page.keyboard.press('ArrowRight');
   await expect(italic).toBeFocused();
+  await expect(page.getByRole('tooltip')).toHaveText(/Italic \((?:Ctrl|⌘)\+I\)/u);
   await page.keyboard.press('Space');
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
   await expect(noteRow(page, 'note1').locator('.text-italic')).toHaveText('note1');
   await expect(input(page)).toBeFocused();
   await expect.poll(() => page.evaluate(() => document.getSelection()!.toString())).toBe('note1');
