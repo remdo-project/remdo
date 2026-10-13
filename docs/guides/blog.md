@@ -28,7 +28,6 @@ Write the post here. Use **bold text**, lists, and [links](https://example.com).
 ```
 
 Write `date` unquoted. Add `author` to credit someone other than the RemDo team.
-Start body sections at `##`; the title supplies the main heading.
 
 The `image` is a square cover shown beside the post in the index. Use a file
 under `public/site-assets/blog/`, such as one of the covers already there, or
