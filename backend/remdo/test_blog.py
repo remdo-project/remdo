@@ -88,7 +88,12 @@ class BlogTests(SimpleTestCase):
         self.assertContains(response, "October 7, 2026</time> | 1 min read")
         self.assertContains(response, "<p>Lede.</p>", html=True)
         self.assertContains(response, "<h2>Section</h2>", html=True)
-        self.assertContains(response, 'href="/blog/"', count=2)
+        self.assertContains(
+            response,
+            '<a class="landing-blog-link" href="/blog/"><span aria-hidden="true">←</span> All posts</a>',
+            count=2,
+            html=True,
+        )
         self.assertContains(
             response, '<a class="landing-blog-next-title" href="/blog/second/">Title of second</a>'
         )

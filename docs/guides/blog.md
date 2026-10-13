@@ -35,8 +35,8 @@ under `public/site-assets/blog/`, such as one of the covers already there, or
 add a square WebP of at least 720 pixels. The path is not checked, so confirm
 the cover appears in the index.
 
-An invalid post fails the blog index and every post page, so check both after
-editing.
+An invalid post [fails the whole blog](../specs/site/blog.md#posts), so check
+the index and a post page after editing.
 
 ## Images and video
 

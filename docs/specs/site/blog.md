@@ -1,9 +1,8 @@
 # Blog
 
 The **blog** is RemDo's public, dated posts at `/blog/`, authored as repository
-Markdown. It is a [public page](../../architecture.md#public-pages) surface: readable without
-sign-in, rendered without the editor runtime, and trusted like a page source.
-Posts have no web-level editing; a post is published when its file is deployed.
+Markdown and served as a [public page](../../architecture.md#public-pages) surface. A post is
+published when its file is deployed.
 
 ## Posts
 
@@ -21,14 +20,14 @@ Front matter supplies:
 - **image:** A site path to the post's decorative index image.
 - **author:** Optional; defaults to **RemDo team**.
 
-A missing or invalid field, or a post file whose name is not a slug, is an
-authoring error, as for any public page.
+A missing or invalid field, or a post file whose name is not a slug, fails the
+index and every post page.
 The body starts at `##` sections.
 
 ## Index
 
 `/blog/` lists every post, newest date first and same-date posts by ascending
-slug. With no posts it shows only its heading.
+slug. With no posts it lists none.
 
 Each entry shows the post's image, date, topic, title, and description, and
 opens the post through its **Read post** link. On narrow viewports the image

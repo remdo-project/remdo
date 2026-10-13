@@ -6,8 +6,6 @@ topic: Perspectives
 image: /site-assets/blog/perspectives.webp
 ---
 
-<!-- markdownlint-disable relative-links -->
-
 A message to answer. A detail to check. An idea that arrives halfway through
 something else. Small things add up. Writing them down gives you a place to
 start.

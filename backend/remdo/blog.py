@@ -54,18 +54,9 @@ def load_posts():
                 "use lowercase letters and digits, optionally separated by single hyphens"
             )
         metadata, body = read_page(path, POST_FIELDS)
-        posts.append(
-            Post(
-                slug=path.stem,
-                title=metadata["title"],
-                description=metadata["description"],
-                date=metadata["date"],
-                topic=metadata["topic"],
-                image=metadata["image"],
-                author=metadata.get("author") or DEFAULT_AUTHOR,
-                body=body,
-            )
-        )
+        fields = {key: metadata.get(key) for key in POST_FIELDS}
+        fields["author"] = fields["author"] or DEFAULT_AUTHOR
+        posts.append(Post(slug=path.stem, body=body, **fields))
     return sorted(posts, key=lambda post: (-post.date.toordinal(), post.slug))
 
 
