@@ -20,13 +20,20 @@ const publish = (filename, value) => {
 };
 
 if (!serving) {
-  if (process.env.REMDO_DEV_FIXTURE_FAIL === name) process.exit(7);
   publish(`${name}.launcher.json`, { group: process.pid });
-  // Match pnpm's launcher/server topology: the launcher can exit before its server.
-  const child = spawn(process.execPath, [fixture, '--serve', name], {
-    stdio: 'inherit', env: { ...process.env, REMDO_DEV_FIXTURE_GROUP: String(process.pid) },
-  });
-  child.on('exit', (code, signal) => process.exit(signal ? 1 : code));
+  if (process.env.REMDO_DEV_FIXTURE_FAIL === name) {
+    // Fail once the other services listen, so cleanup has listeners to release.
+    const siblings = ['api', 'collab', 'mcp', 'web'].filter(role => role !== name);
+    setInterval(() => {
+      if (siblings.every(role => fs.existsSync(path.join(directory, `${role}.json`)))) process.exit(7);
+    }, 20);
+  } else {
+    // Match pnpm's launcher/server topology: the launcher can exit before its server.
+    const child = spawn(process.execPath, [fixture, '--serve', name], {
+      stdio: 'inherit', env: { ...process.env, REMDO_DEV_FIXTURE_GROUP: String(process.pid) },
+    });
+    child.on('exit', (code, signal) => process.exit(signal ? 1 : code));
+  }
 } else {
   const portKey = { api: 'API_SERVER_PORT', collab: 'COLLAB_SERVER_PORT', mcp: 'MCP_SERVER_PORT', web: 'PORT' }[name];
   const server = http.createServer((request, response) => {

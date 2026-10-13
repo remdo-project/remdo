@@ -4,7 +4,7 @@ import type { ChildProcess } from 'node:child_process';
 import process from 'node:process';
 import { setTimeout as wait } from 'node:timers/promises';
 import { config } from '#config';
-import { DJANGO_REQUEST_TIMEOUT_MS } from '#platform/net/django-request';
+import { COLLABORATION_SHUTDOWN_DEADLINE_MS } from '#platform/net/django-request';
 import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
 import { terminateProcessGroup } from '../lib/managed-process';
 import { isPortOpen } from '../lib/net';
@@ -21,8 +21,7 @@ const started: Array<{ service: Service; child: ChildProcess }> = [];
 let stopping = false;
 
 function gracePeriod({ name }: Service): number {
-  // The collaboration server allows an in-flight request, its final save, and cleanup.
-  return name === 'collab' ? 2 * DJANGO_REQUEST_TIMEOUT_MS + 10_000 : 10_000;
+  return name === 'collab' ? COLLABORATION_SHUTDOWN_DEADLINE_MS + 5000 : 10_000;
 }
 
 async function waitUntil(check: () => boolean | Promise<boolean>, timeout: number): Promise<boolean> {
@@ -47,6 +46,14 @@ function processExists(pid: number): boolean {
 function groupExists(child: ChildProcess): boolean {
   if (!child.pid) return false;
   return processExists(process.platform === 'win32' ? child.pid : -child.pid);
+}
+
+function signalProcess(pid: number, signal: NodeJS.Signals): void {
+  try {
+    process.kill(pid, signal);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+  }
 }
 
 function listenerPids(port: number): number[] {
@@ -78,16 +85,14 @@ async function recoverPorts(): Promise<void> {
     for (const pid of pids) {
       console.info(`dev: stopping ${name} listener PID ${pid} on port ${service.port}`);
       signalled.add(pid);
-      try { process.kill(pid, 'SIGTERM'); } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
-      }
+      signalProcess(pid, 'SIGTERM');
     }
     if (pids.length === 0) continue;
     if (!await waitUntil(() => pids.every(pid => !processExists(pid)), gracePeriod(service))) {
       // Recheck socket ownership before escalation rather than trusting an old PID.
       for (const pid of listenerPids(service.port)) {
         console.error(`dev: ${name} listener PID ${pid} exceeded its shutdown deadline; sending SIGKILL`);
-        process.kill(pid, 'SIGKILL');
+        signalProcess(pid, 'SIGKILL');
       }
     }
     if (!await waitUntil(() => listenerPids(service.port).length === 0, 5000)) {

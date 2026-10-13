@@ -164,11 +164,8 @@ it('cleans up siblings when a service fails during startup', async () => {
   const run = launch({ ...context.env, REMDO_DEV_FIXTURE_FAIL: 'web' });
   expect((await run.exit)[0], run.stderr()).toBe(7);
   for (const role of ['api', 'collab', 'mcp']) {
-    const filename = path.join(context.directory, `${role}.json`);
-    if (fs.existsSync(filename)) {
-      const value = JSON.parse(fs.readFileSync(filename, 'utf8')) as Listener;
-      expect(await isPortOpen('127.0.0.1', value.port)).toBe(false);
-    }
+    const value = JSON.parse(fs.readFileSync(path.join(context.directory, `${role}.json`), 'utf8')) as Listener;
+    expect(await isPortOpen('127.0.0.1', value.port)).toBe(false);
   }
 }, 30_000);
 
