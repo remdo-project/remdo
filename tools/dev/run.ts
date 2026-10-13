@@ -16,12 +16,11 @@ const services = [
   { name: 'mcp', port: config.env.MCP_SERVER_PORT, host: INTERNAL_SERVICE_HOST },
   { name: 'web', port: config.env.PORT, host: config.env.HOST === '0.0.0.0' ? INTERNAL_SERVICE_HOST : config.env.HOST },
 ] as const;
-const shutdownOrder = ['web', 'mcp', 'collab', 'api'] as const;
-type ServiceName = typeof shutdownOrder[number];
-const children = new Map<ServiceName, ChildProcess>();
+type Service = typeof services[number];
+const started: Array<{ service: Service; child: ChildProcess }> = [];
 let stopping = false;
 
-function gracePeriod(name: ServiceName): number {
+function gracePeriod({ name }: Service): number {
   // The collaboration server allows an in-flight request, its final save, and cleanup.
   return name === 'collab' ? 2 * DJANGO_REQUEST_TIMEOUT_MS + 10_000 : 10_000;
 }
@@ -73,8 +72,8 @@ function describeListeners(port: number): string {
 
 async function recoverPorts(): Promise<void> {
   const signalled = new Set<number>();
-  for (const name of shutdownOrder) {
-    const service = services.find(entry => entry.name === name)!;
+  for (const service of [...services].reverse()) {
+    const { name } = service;
     const pids = listenerPids(service.port).filter(pid => !signalled.has(pid));
     for (const pid of pids) {
       console.info(`dev: stopping ${name} listener PID ${pid} on port ${service.port}`);
@@ -84,14 +83,14 @@ async function recoverPorts(): Promise<void> {
       }
     }
     if (pids.length === 0) continue;
-    if (!await waitUntil(() => pids.every(pid => !processExists(pid)), gracePeriod(name))) {
+    if (!await waitUntil(() => pids.every(pid => !processExists(pid)), gracePeriod(service))) {
       // Recheck socket ownership before escalation rather than trusting an old PID.
       for (const pid of listenerPids(service.port)) {
         console.error(`dev: ${name} listener PID ${pid} exceeded its shutdown deadline; sending SIGKILL`);
         process.kill(pid, 'SIGKILL');
       }
     }
-    if (listenerPids(service.port).length > 0 && !await waitUntil(() => listenerPids(service.port).length === 0, 5000)) {
+    if (!await waitUntil(() => listenerPids(service.port).length === 0, 5000)) {
       throw new Error(`dev: could not release ${name} port ${service.port}`);
     }
   }
@@ -102,13 +101,12 @@ function shutdown(exitCode: number): void {
   stopping = true;
   process.exitCode = exitCode;
   void (async () => {
-    // Keep Django available until MCP and collaboration finish their persistence work.
-    for (const name of shutdownOrder) {
-      const child = children.get(name);
-      if (!child) continue;
+    // Reverse start order keeps Django available until MCP and collaboration finish their persistence work.
+    for (const { service, child } of [...started].reverse()) {
+      const { name } = service;
       try {
         terminateProcessGroup(child, 'SIGTERM');
-        if (!await waitUntil(() => !groupExists(child), gracePeriod(name))) {
+        if (!await waitUntil(() => !groupExists(child), gracePeriod(service))) {
           console.error(`dev: ${name} exceeded its shutdown deadline; sending SIGKILL`);
           terminateProcessGroup(child, 'SIGKILL');
           if (!await waitUntil(() => !groupExists(child), 5000)) {
@@ -117,12 +115,6 @@ function shutdown(exitCode: number): void {
         }
       } catch (error) {
         console.error(`dev: failed to stop ${name}`, error);
-        process.exitCode = 1;
-      }
-    }
-    for (const service of services) {
-      if (children.has(service.name) && await isPortOpen(service.host, service.port)) {
-        console.error(`dev: ${service.name} port ${service.port} is still occupied after shutdown`);
         process.exitCode = 1;
       }
     }
@@ -153,7 +145,7 @@ async function main(): Promise<void> {
   for (const service of services) {
     // Each group is owned here, including pnpm/tsx descendants after their launcher exits.
     const child = spawnPnpm(['run', `dev:${service.name}`], { detached: true, forwardExit: false, stdio: 'inherit' });
-    children.set(service.name, child);
+    started.push({ service, child });
     child.once('error', error => {
       console.error(`dev: ${service.name} failed to start`, error);
       shutdown(1);

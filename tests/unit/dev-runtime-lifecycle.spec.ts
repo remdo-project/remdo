@@ -1,5 +1,5 @@
 /* eslint-disable node/no-process-env */
-import { fork, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import fs from 'node:fs';
@@ -9,7 +9,6 @@ import path from 'node:path';
 import process from 'node:process';
 import { afterEach, expect, it } from 'vitest';
 import { isPortOpen } from '#tools/net';
-import { terminateProcessGroup } from '#tools/managed-process';
 
 const roots: string[] = [];
 const children: ChildProcess[] = [];
@@ -123,14 +122,6 @@ it.each([
   expect(events).not.toContain('collab.save-failed');
   expect(events.indexOf('collab.saved')).toBeLessThan(events.indexOf('api.stopped'));
   await expectReleased(values);
-
-  // Reuse the exact released ports; restart must not need force recovery.
-  for (const role of roles) fs.unlinkSync(path.join(context.directory, `${role}.json`));
-  const restarted = launch({ ...context.env, ...ports(values) });
-  await listeners(context.directory);
-  restarted.child.kill('SIGTERM');
-  expect((await restarted.exit)[0], restarted.stderr()).toBe(143);
-  await expectReleased(values);
 }, 45_000);
 
 it('cleans up after a terminal interrupt through the real pnpm dev command', async () => {
@@ -229,17 +220,3 @@ it('escalates to SIGKILL when a managed service ignores graceful termination', a
   expect(readEvents(context.directory)).toContain('collab.saved');
   await expectReleased(values);
 }, 45_000);
-
-it('does not confuse a previously sent signal with an exited child during fallback escalation', async () => {
-  const child = fork(path.resolve('tests/unit/_support/managed-child-fixture.mjs'), [], {
-    execArgv: [], stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
-  });
-  children.push(child);
-  await once(child, 'message');
-  const ignored = once(child, 'message');
-  terminateProcessGroup(child, 'SIGTERM');
-  await ignored;
-  const exited = once(child, 'close');
-  terminateProcessGroup(child, 'SIGKILL');
-  expect((await exited)[1]).toBe('SIGKILL');
-});

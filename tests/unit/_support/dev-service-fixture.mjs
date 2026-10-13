@@ -32,7 +32,6 @@ if (!serving) {
   const server = http.createServer((request, response) => {
     if (request.url === '/crash') process.exit(7);
     if (request.url === '/exit') process.exit(0);
-    if (request.url === '/save') record('api.saved');
     if (request.url === '/save' && process.env.REMDO_DEV_FIXTURE_SAVE_DELAY) {
       setTimeout(() => response.end('ok'), Number(process.env.REMDO_DEV_FIXTURE_SAVE_DELAY));
     } else response.end('ok');
@@ -42,7 +41,6 @@ if (!serving) {
       pid: process.pid, port: server.address().port,
       group: Number(process.env.REMDO_DEV_FIXTURE_GROUP ?? process.pid),
     });
-    record(`${name}.ready`);
   });
   let stopping = false;
   process.on('SIGTERM', async () => {
