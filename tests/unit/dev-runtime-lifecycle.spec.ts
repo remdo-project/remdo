@@ -186,10 +186,12 @@ it('refuses an occupied service address without killing its owner or launching s
   }
 }, 30_000);
 
-it('force recovery preserves Django until the previous collaboration listener has saved', async () => {
+it('force recovery saves collaboration before stopping Django and kills a listener that ignores SIGTERM', async () => {
   const context = setup();
   for (const role of roles) {
-    const child = spawn(process.execPath, [fixture, '--serve', role], { env: context.env, detached: true, stdio: 'ignore' });
+    const child = spawn(process.execPath, [fixture, '--serve', role], {
+      env: { ...context.env, REMDO_DEV_FIXTURE_STUBBORN: 'mcp' }, detached: true, stdio: 'ignore',
+    });
     children.push(child);
   }
   const old = await listeners(context.directory);
@@ -197,6 +199,7 @@ it('force recovery preserves Django until the previous collaboration listener ha
   fs.mkdirSync(nextDirectory);
   const run = launch({ ...context.env, ...ports(old), REMDO_DEV_FIXTURE_DIR: nextDirectory }, ['--force']);
   const current = await listeners(nextDirectory);
+  expect(run.stderr()).toMatch(/mcp listener PID \d+ exceeded its shutdown deadline; sending SIGKILL/u);
   const events = readEvents(context.directory);
   expect(events).toContain('collab.saved');
   expect(events.indexOf('collab.saved')).toBeLessThan(events.indexOf('api.stopped'));
