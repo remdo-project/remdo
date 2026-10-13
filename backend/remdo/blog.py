@@ -18,9 +18,14 @@ DEFAULT_AUTHOR = "RemDo team"
 WORDS_PER_MINUTE = 200
 
 
+# Browsers read a backslash as a slash and drop tabs and newlines, so a path such as
+# `/\host` or `/<tab>/host` would name another origin.
+SITE_PATH = re.compile(r"/[^/\\\s][^\\\s]*")
+
+
 def is_site_path(value):
     # An absolute path keeps readers' requests on this origin.
-    return is_text(value) and value.startswith("/") and not value.startswith("//")
+    return is_text(value) and bool(SITE_PATH.fullmatch(value))
 
 
 POST_FIELDS = {

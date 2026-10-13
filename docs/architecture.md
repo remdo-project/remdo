@@ -67,8 +67,8 @@ The comparison does not monitor subsequent deployments.
 
 ### Public Pages
 
-[Public pages](guides/public-pages.md) render repository Markdown through a shared
-Django template without sign-in or editor JavaScript. Their canonical URLs use
+[Public pages](guides/public-pages.md) render repository Markdown through Django
+templates without sign-in or editor JavaScript. Their canonical URLs use
 the [configured public origin](specs/runtime/configuration.md#network-addressing). Page sources, including inline HTML, are trusted like
 Django templates.
 

@@ -167,6 +167,8 @@ class BlogTests(SimpleTestCase):
             ("image", "https://example.test/cover.webp"),
             ("image", "//example.test/cover.webp"),
             ("image", "cover.webp"),
+            ("image", r"'/\evil.example/cover.webp'"),
+            ("image", '"/\\t/evil.example/cover.webp"'),
             ("author", "''"),
         ):
             with self.subTest(field=field, value=value):
