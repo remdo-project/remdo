@@ -1,7 +1,7 @@
 import process from 'node:process';
 import { config } from '#config';
 import { resolveApiServerOrigin } from '#platform/net/origins';
-import { DJANGO_REQUEST_TIMEOUT_MS } from '#platform/net/django-request';
+import { COLLABORATION_SHUTDOWN_DEADLINE_MS } from '#platform/net/django-request';
 import { startServerErrorReporting } from '#platform/server-error-reporting';
 import { createCollaborationServer } from './server';
 
@@ -17,11 +17,10 @@ let stopping = false;
 async function stop() {
   if (stopping) return;
   stopping = true;
-  // One in-flight request can hold the save mutex before the final save starts.
   const deadline = setTimeout(() => {
     console.error('collaboration.shutdown-timeout');
     process.exit(1);
-  }, 2 * DJANGO_REQUEST_TIMEOUT_MS + 5000);
+  }, COLLABORATION_SHUTDOWN_DEADLINE_MS);
   try {
     await collaboration.stop();
     clearTimeout(deadline);
