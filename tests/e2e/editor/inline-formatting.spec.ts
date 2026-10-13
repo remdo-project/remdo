@@ -10,7 +10,9 @@ import { createEditorDocumentPath } from './_support/routes';
 // The headless shell keeps each tab focused; full Chromium exposes native tab focus.
 test.use({ channel: 'chromium', permissions: ['local-network-access'] });
 
-const toolbar = (page: Page) => page.getByRole('toolbar', { name: 'Text formatting' });
+const editingToolbar = (page: Page) => page.getByRole('toolbar', { name: 'Document editing' });
+const toolbar = (page: Page) => editingToolbar(page).getByRole('group', { name: 'Formatting' });
+const codeButton = (page: Page) => toolbar(page).getByRole('button', { name: 'Inline code' });
 const input = (page: Page) => editorLocator(page).locator('.editor-input');
 const selectedText = (page: Page) => page.evaluate(() => document.getSelection()!.toString());
 const wrappedText = 'Select a phrase to format it, keep the selection for repeated actions, and try '
@@ -29,18 +31,6 @@ const nativeRange = (page: Page) => page.evaluate(() => {
   return { text: selection.toString(), collapsed: selection.isCollapsed,
     backward: anchor.compareBoundaryPoints(Range.START_TO_START, focus) > 0 };
 });
-
-async function nativeSelectionLayout(page: Page) {
-  return input(page).evaluate(element => {
-    const { left, right, top, bottom } = element.getBoundingClientRect();
-    return {
-      bounds: { left, right, top, bottom },
-      lines: Array.from(document.getSelection()!.getRangeAt(0).getClientRects())
-        .filter(rect => rect.width > 0 && rect.height > 0)
-        .map(({ left, right, top, bottom }) => ({ left, right, top, bottom })),
-    };
-  });
-}
 
 async function label(page: Page, text: string) {
   await page.evaluate(async text => {
@@ -187,7 +177,10 @@ test('keeps formatting shortcuts in the editor and leaves Alt+F10 unclaimed', as
   }
   const code = toolbar(page).getByRole('button', { name: 'Inline code' });
   await expect(code).toHaveAttribute('aria-keyshortcuts', 'Control+E');
-  await expect(code.locator('[title]')).toHaveAttribute('title', 'Inline code (Ctrl+E)');
+  await expect(code).toBeEnabled();
+  await page.mouse.move(1, 1);
+  await code.hover();
+  await expect(page.getByRole('tooltip')).toHaveText('Inline code (Ctrl+E)');
   await page.keyboard.press('Tab');
   await expect(input(page).locator('.list-nested-item')).toHaveCount(1);
   await expect(editor).toMatchOutline([
@@ -214,7 +207,10 @@ for (const mac of [false, true]) {
     await selectInlineRange(page, 'note1', 1, 4);
     const code = toolbar(page).getByRole('button', { name: 'Inline code' });
     await expect(code).toHaveAttribute('aria-keyshortcuts', `${mac ? 'Meta' : 'Control'}+E`);
-    await expect(code.locator('[title]')).toHaveAttribute('title', `Inline code (${mac ? '⌘' : 'Ctrl'}+E)`);
+    await expect(code).toBeEnabled();
+    await page.mouse.move(1, 1);
+    await code.hover();
+    await expect(page.getByRole('tooltip')).toHaveText(`Inline code (${mac ? '⌘' : 'Ctrl'}+E)`);
     for (const modifiers of [
       { metaKey: !mac, ctrlKey: mac },
       { metaKey: mac, ctrlKey: !mac, shiftKey: true },
@@ -255,7 +251,7 @@ test('formats full body text and editable location-header text while preserving 
   await expect(input(page)).toBeFocused();
   await expect.poll(() => selectedText(page)).toBe('first line\nsecond line');
   await page.keyboard.press('Escape');
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await expect.poll(() => selectedText(page)).toBe('');
   await page.keyboard.press('Escape');
   await page.keyboard.type(' !');
@@ -279,18 +275,18 @@ test('formats full body text and editable location-header text while preserving 
 test('rejects one-note and multi-note structural selections, content-to-body crossings and carets', async ({ page, editor }) => {
   await editor.load('flat');
   await setCaretAtText(page, 'note1', 2);
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await page.keyboard.press('ControlOrMeta+e');
   await expect(input(page).locator('.text-code')).toHaveCount(0);
   await page.keyboard.press('ControlOrMeta+a');
   await expect(toolbar(page)).toBeVisible();
   await page.keyboard.press('ControlOrMeta+a');
   await expect(input(page)).toHaveClass(/editor-input--structural/u);
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await page.keyboard.press('ControlOrMeta+e');
   await expect(input(page).locator('.text-code')).toHaveCount(0);
   await page.keyboard.press('ControlOrMeta+a');
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await page.keyboard.press('ControlOrMeta+e');
   await expect(input(page).locator('.text-code')).toHaveCount(0);
   await page.keyboard.press('Escape');
@@ -304,7 +300,7 @@ test('rejects one-note and multi-note structural selections, content-to-body cro
   await page.mouse.click(box.x + 10, box.y + box.height / 2);
   await page.keyboard.up('Shift');
   await expect(input(page)).toHaveClass(/editor-input--structural/u);
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await page.keyboard.press('ControlOrMeta+e');
   await expect(input(page).locator('.text-code')).toHaveCount(0);
   await page.keyboard.press('Escape');
@@ -314,7 +310,7 @@ test('rejects one-note and multi-note structural selections, content-to-body cro
   await expect(noteRow(page, 'note3x').locator('.text-code')).toHaveCount(0);
 });
 
-test('hides for read-only headings, outside selection and read-only editing', async ({ page, editor }) => {
+test('disables formatting for read-only headings, outside selection and read-only editing', async ({ page, editor }) => {
   await editor.load('flat');
   await selectInlineRange(page, 'note1', 0, 5);
   await expect(toolbar(page)).toBeVisible();
@@ -323,17 +319,17 @@ test('hides for read-only headings, outside selection and read-only editing', as
     document.getSelection()!.setBaseAndExtent(text, 0, text, text.textContent!.length);
     document.dispatchEvent(new Event('selectionchange'));
   });
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await selectInlineRange(page, 'note1', 0, 5);
   await expect(toolbar(page)).toBeVisible();
   await page.evaluate(() => globalThis.__remdoTestBridges!.list()[0]!.editor.setEditable(false));
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await page.keyboard.press('ControlOrMeta+e');
   await expect(input(page).locator('.text-code')).toHaveCount(0);
   await page.evaluate(() => globalThis.__remdoTestBridges!.list()[0]!.editor.setEditable(true));
   await homeZoomBreadcrumb(page).click();
   await page.getByRole('heading', { name: 'Home', exact: true }).dblclick();
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(editingToolbar(page)).toHaveCount(0);
 });
 
 test('waits for primary drag settlement and completed button clicks, and cancels an abandoned press', async ({ page, editor }) => {
@@ -344,7 +340,7 @@ test('waits for primary drag settlement and completed button clicks, and cancels
   await page.mouse.move(box.x + 2, box.y + box.height / 2);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2, { steps: 8 });
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(editingToolbar(page)).toBeVisible();
   await page.mouse.up();
   await expect(toolbar(page)).toBeVisible();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -363,9 +359,9 @@ test('waits for primary drag settlement and completed button clicks, and cancels
   await page.mouse.down();
   await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2, { steps: 8 });
   await expect.poll(() => selectedText(page)).not.toBe('');
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(editingToolbar(page)).toBeVisible();
   await page.mouse.up({ button: 'right' });
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(editingToolbar(page)).toBeVisible();
   await page.mouse.up();
   await expect(toolbar(page)).toBeVisible();
   const bold = toolbar(page).getByRole('button', { name: 'Bold', exact: true });
@@ -395,7 +391,7 @@ test('recovers a settled selection after window focus leaves during a primary pr
   await other.bringToFront();
   await other.mouse.click(10, 10);
   await expect.poll(() => page.evaluate(() => document.hasFocus())).toBe(false);
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await page.bringToFront();
   await page.keyboard.press('ControlOrMeta+a');
   await expect(toolbar(page)).toBeVisible();
@@ -404,12 +400,12 @@ test('recovers a settled selection after window focus leaves during a primary pr
   await other.close();
 });
 
-test('suppresses the row during composition and while note, link and date popups own interaction', async ({ page, editor }) => {
+test('disables formatting during composition and while note, link and date popups own interaction', async ({ page, editor }) => {
   await editor.load('flat');
   await selectInlineRange(page, 'note1', 0, 5);
   await expect(toolbar(page)).toBeVisible();
   await input(page).dispatchEvent('compositionstart', { data: '' });
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await page.keyboard.press('ControlOrMeta+e');
   await expect(input(page).locator('.text-code')).toHaveCount(0);
   await input(page).dispatchEvent('compositionend', { data: '' });
@@ -419,7 +415,7 @@ test('suppresses the row during composition and while note, link and date popups
   await page.keyboard.press('Shift');
   await page.keyboard.press('Shift');
   await expect(page.getByRole('menu')).toBeVisible();
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await page.keyboard.press('ControlOrMeta+e');
   await expect(page.getByRole('menu')).toBeVisible();
   await expect(input(page).locator('.text-code')).toHaveCount(0);
@@ -428,54 +424,15 @@ test('suppresses the row during composition and while note, link and date popups
   await page.keyboard.type(' @note');
   await expect(editorLocator(page).locator('[data-note-link-picker]')).toBeVisible();
   await page.keyboard.press('ControlOrMeta+e');
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await expect(input(page).locator('.text-code')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await page.keyboard.type(' !');
   await expect(datePickerPanel(page)).toBeVisible();
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await page.keyboard.press('ControlOrMeta+e');
   await expect(datePickerPanel(page)).toBeVisible();
   await expect(input(page).locator('.text-code')).toHaveCount(0);
-});
-
-test('anchors wrapped and reversed ranges to one line, clamps on resize, flips below clipping and hides offscreen', async ({ page, editor }) => {
-  await editor.load('flat');
-  const text = 'wrapped selected words '.repeat(20);
-  await label(page, text);
-  const row = noteRow(page, text);
-  await row.evaluate(element => { (element as HTMLElement).style.maxWidth = '280px'; });
-  await selectRegion(page, row, 0, 120);
-  await expect(toolbar(page)).toBeVisible();
-  const before = (await toolbar(page).boundingBox())!;
-  expect(before.width).toBeLessThan(160);
-  await selectRegion(page, row, 120, 0);
-  await expect.poll(async () => Math.round((await toolbar(page).boundingBox())!.x)).toBe(Math.round(before.x));
-  await expect.poll(async () => Math.round((await toolbar(page).boundingBox())!.y)).toBe(Math.round(before.y));
-  await page.setViewportSize({ width: 390, height: 600 });
-  await expect(toolbar(page)).toBeVisible();
-  await expect.poll(async () => {
-    const rect = (await toolbar(page).boundingBox())!;
-    return rect.x >= 0 && rect.x + rect.width <= 390;
-  }).toBe(true);
-  await input(page).evaluate(element => {
-    Object.assign((element as HTMLElement).style, { maxHeight: '100px', minHeight: '100px', overflow: 'auto' });
-  });
-  await selectRegion(page, row, 46, 60);
-  await input(page).evaluate(element => {
-    const range = document.getSelection()!.getRangeAt(0);
-    (element as HTMLElement).scrollTop += range.getClientRects()[0]!.top - element.getBoundingClientRect().top - 3;
-  });
-  await expect(toolbar(page)).toBeVisible();
-  await expect.poll(async () => {
-    const rect = (await toolbar(page).boundingBox())!;
-    const selectionBottom = await page.evaluate(() => document.getSelection()!.getRangeAt(0).getClientRects()[0]!.bottom);
-    return rect.y > selectionBottom;
-  }).toBe(true);
-  await input(page).evaluate(element => { (element as HTMLElement).scrollTop = 800; });
-  await expect(toolbar(page)).toHaveCount(0);
-  await input(page).evaluate(element => { (element as HTMLElement).scrollTop = 0; });
-  await expect(toolbar(page)).toBeVisible();
 });
 
 test('cancels a changed pressed target and keeps editor interaction safe after remote target removal', async ({ page, editor, newWorkerContext }) => {
@@ -512,76 +469,13 @@ test('cancels a changed pressed target and keeps editor interaction safe after r
   await peer.keyboard.press('ControlOrMeta+a');
   await peer.keyboard.press('ControlOrMeta+a');
   await peer.keyboard.press('Backspace');
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(codeButton(page)).toBeDisabled();
   await page.mouse.up();
   await expect(input(page)).toBeFocused();
   await page.keyboard.type('x');
   await expect(input(page)).toContainText('x');
   await expect(input(page).locator('.text-bold, .text-code')).toHaveCount(0);
   await peerContext.close();
-});
-
-test('clears every native selected line when a wrapped range flips below a clipping editor', async ({ page, editor }) => {
-  await editor.load('flat');
-  await label(page, wrappedText);
-  const row = noteRow(page, wrappedText);
-  await input(page).evaluate(element => {
-    Object.assign((element as HTMLElement).style, {
-      width: '360px', height: '180px', overflow: 'auto', paddingTop: '0px', paddingBottom: '0px',
-    });
-  });
-  await selectRegion(page, row, 0, 180);
-  await expect(toolbar(page)).toBeVisible();
-  await expect.poll(async () => {
-    const box = (await toolbar(page).boundingBox())!;
-    const { bounds, lines } = await nativeSelectionLayout(page);
-    return box.y > Math.max(...lines.map(line => line.bottom))
-      && box.y + box.height <= bounds.bottom
-      && box.x >= bounds.left && box.x + box.width <= bounds.right
-      && lines.every(line => box.x + box.width <= line.left || box.x >= line.right
-        || box.y + box.height <= line.top || box.y >= line.bottom);
-  }).toBe(true);
-  const forward = (await toolbar(page).boundingBox())!;
-  await selectRegion(page, row, 180, 0);
-  await expect.poll(async () => {
-    const box = (await toolbar(page).boundingBox())!;
-    return [Math.round(box.x), Math.round(box.y)];
-  }).toEqual([Math.round(forward.x), Math.round(forward.y)]);
-});
-
-test('formats directly without room around a wrapped selection and keeps editor focus on resize', async ({ page, editor }) => {
-  await editor.load('flat');
-  await label(page, wrappedText);
-  const row = noteRow(page, wrappedText);
-  await input(page).evaluate(element => {
-    Object.assign((element as HTMLElement).style, {
-      width: '360px', minHeight: '70px', maxHeight: '70px', height: '70px', overflow: 'auto',
-      paddingTop: '0px', paddingBottom: '0px',
-    });
-    element.scrollTop = 0;
-  });
-  await selectRegion(page, row, 0, 180);
-  const hiddenRow = page.getByRole('toolbar', { name: 'Text formatting', includeHidden: true });
-  await expect(hiddenRow).toHaveCSS('visibility', 'hidden');
-  await expect(input(page)).toBeFocused();
-  const { bounds, lines } = await nativeSelectionLayout(page);
-  const height = await hiddenRow.evaluate(element => element.getBoundingClientRect().height);
-  expect(Math.min(...lines.map(line => line.top)) - bounds.top).toBeLessThan(height);
-  expect(bounds.bottom - Math.min(bounds.bottom, Math.max(...lines.map(line => line.bottom)))).toBeLessThan(height);
-  for (const on of [true, false]) {
-    await page.keyboard.press('ControlOrMeta+e');
-    if (on) await expect(row.locator('.text-code')).toHaveText(wrappedText.slice(0, 180));
-    else await expect(row.locator('.text-code')).toHaveCount(0);
-    await expect(hiddenRow).toHaveCSS('visibility', 'hidden');
-    await expect(input(page)).toBeFocused();
-    await expect.poll(() => nativeRange(page)).toEqual({ text: wrappedText.slice(0, 180), collapsed: false, backward: false });
-  }
-  await input(page).evaluate(element => {
-    Object.assign((element as HTMLElement).style, { minHeight: '320px', maxHeight: '320px', height: '320px' });
-  });
-  await expect(toolbar(page)).toBeVisible();
-  await expect(input(page)).toBeFocused();
-  await expect.poll(() => selectedText(page)).toBe(wrappedText.slice(0, 180));
 });
 
 test('toggles a mixed backward code range uniformly, retains native highlight and direction, and isolates undo', async ({ page, editor }) => {
@@ -614,7 +508,7 @@ test('toggles a mixed backward code range uniformly, retains native highlight an
   const search = page.getByRole('combobox', { name: 'Search document' });
   await search.click();
   await expect(search).toBeFocused();
-  await expect(toolbar(page)).toHaveCount(0);
+  await expect(editingToolbar(page)).toBeHidden();
   await page.keyboard.press('ControlOrMeta+e');
   await expect(search).toBeFocused();
   await expect(row.locator('.text-code')).toHaveText(wrappedText.slice(0, 45));
@@ -626,7 +520,7 @@ test.describe('coarse touch host', () => {
     await editor.load('flat');
     await selectInlineRange(page, 'note2', 0, 5);
     await expect(page.getByRole('toolbar', { name: 'Note actions' })).toBeVisible();
-    await expect(toolbar(page)).toHaveCount(0);
+    await expect(editingToolbar(page)).toHaveCount(0);
     await expect.poll(() => selectedText(page)).toBe('note2');
     await page.keyboard.press('ControlOrMeta+e');
     await expect(noteRow(page, 'note2').locator('.text-code')).toHaveText('note2');
@@ -638,6 +532,6 @@ test.describe('coarse touch host', () => {
     await expect(noteRow(page, 'note2').locator('.text-code')).toHaveText('note2');
     await page.getByRole('button', { name: 'Indent', exact: true }).click();
     await expect(input(page).locator('.list-nested-item')).toHaveCount(1);
-    await expect(toolbar(page)).toHaveCount(0);
+    await expect(editingToolbar(page)).toHaveCount(0);
   });
 });

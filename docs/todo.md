@@ -305,6 +305,12 @@ until accepted in their behavioral owners. Defer a command palette and action
 menus on every breadcrumb until improving the existing surfaces leaves a
 concrete unmet need.
 
+- **Toolbar presentation preference.** Offer a mutually exclusive choice
+  between the default [desktop toolbar](specs/outliner/desktop-toolbar.md) and the
+  [floating formatting toolbar](specs/outliner/inline-formatting.md#floating-presence-and-placement).
+  Reassess the retained floating presentation in that follow-up; formatting
+  commands and keyboard shortcuts remain independent of the chosen surface.
+
 - **Zoomed-note location header.** Complete the rich editable header and its
   applicable note, children, and view actions, preserving the
   [selection boundary](specs/outliner/location-header.md#structural-boundary). Validate keyboard access,

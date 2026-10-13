@@ -13,11 +13,12 @@ import type { SetNoteCheckedPayload } from '#client/editor/foundation/commands';
 import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';
 import { getPreviousContentSibling, isChildrenWrapper, isContentItem } from '#client/editor/outline/list-structure';
 import { $resolveNoteIdFromDOMNode } from '#client/editor/outline/note-context';
-import { $resolveNoteForSelectionPoint } from '#client/editor/outline/selection/body-region';
+import { $getSelectionBody, $resolveNoteForSelectionPoint } from '#client/editor/outline/selection/body-region';
 import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
 import { requireContentItemFromNode, resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { getParentContentItem, getWrapperForContent } from '#client/editor/outline/selection/tree';
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
+import { $resolveViewRoot } from '#client/editor/outline/view-root';
 
 // A body-wrapper renders as `.note-body-wrapper`, never a checklist `<li>`, so it
 // is naturally excluded here — no body-specific guard needed.
@@ -142,7 +143,7 @@ const $resolveToggleTargets = (
   }
   const contentItem = $resolveNoteForSelectionPoint(selection.focus.getNode()) ??
     $resolveNoteForSelectionPoint(selection.anchor.getNode());
-  if (!contentItem) {
+  if (!contentItem || (!$getSelectionBody(selection) && $resolveViewRoot(editor)?.is(contentItem))) {
     return [];
   }
   return [contentItem];

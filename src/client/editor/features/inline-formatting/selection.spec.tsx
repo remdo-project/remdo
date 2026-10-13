@@ -7,9 +7,29 @@ import { getBodyWrapper } from '#client/editor/outline/list-structure';
 import { getWrapperForContent } from '#client/editor/outline/selection/tree';
 import { $createDateNode } from '#client/editor/features/date/date-node';
 import { setPopupActive } from '#client/editor/triggers/active-popup';
+import { TOGGLE_INLINE_FORMAT_COMMAND } from '#client/editor/foundation/commands';
 import { $readInlineFormatTarget } from './selection';
 
 describe('inline formatting target', () => {
+  it('formats selected text through the keymap without the floating presentation', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectNoteTextRange(remdo, 'note1', 0, 4);
+    await pressKey(remdo, { key: 'e', ctrl: true });
+    expect(remdo.validate(() => $findNoteById('note1')!.getAllTextNodes().map(node => ({ text: node.getTextContent(), code: node.hasFormat('code') }))))
+      .toEqual([{ text: 'note', code: true }, { text: '1', code: false }]);
+    await pressKey(remdo, { key: 'e', ctrl: true });
+    expect(remdo.validate(() => $findNoteById('note1')!.getAllTextNodes().map(node => ({ text: node.getTextContent(), code: node.hasFormat('code') }))))
+      .toEqual([{ text: 'note1', code: false }]);
+  });
+
+  it('cancels a format press when its selected target changed', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    await selectNoteTextRange(remdo, 'note1', 0, 4);
+    const fingerprint = remdo.validate(() => $readInlineFormatTarget(remdo.editor)!.fingerprint);
+    await selectNoteTextRange(remdo, 'note2', 0, 4);
+    await remdo.dispatchCommand(TOGGLE_INLINE_FORMAT_COMMAND, { format: 'code', fingerprint }, { expect: 'noop' });
+    expect(remdo.validate(() => ['note1', 'note2'].map(id => $findNoteById(id)!.getAllTextNodes().some(node => node.hasFormat('code')))))
+      .toEqual([false, false]);
+  });
+
   it('distinguishes whole-label text from a one-leaf structural selection', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteTextRange(remdo, 'note1', 0, 5);
     expect(remdo.validate(() => $readInlineFormatTarget(remdo.editor)?.states))

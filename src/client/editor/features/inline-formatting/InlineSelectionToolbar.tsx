@@ -1,15 +1,7 @@
 import type { RefObject } from 'react';
-import { Button, Toolbar } from 'react-aria-components';
-import { IconBold, IconCode, IconItalic, IconUnderline } from '@tabler/icons-react';
-import { INLINE_FORMATS } from './selection';
+import { Toolbar } from 'react-aria-components';
 import type { FormatStates, InlineFormat } from './selection';
-
-const META = {
-  bold: { label: 'Bold', key: 'B', Icon: IconBold },
-  italic: { label: 'Italic', key: 'I', Icon: IconItalic },
-  underline: { label: 'Underline', key: 'U', Icon: IconUnderline },
-  code: { label: 'Inline code', key: 'E', Icon: IconCode },
-} as const;
+import { InlineFormatButtons } from './InlineFormatButtons';
 
 interface InlineSelectionToolbarProps {
   toolbarRef: RefObject<HTMLDivElement | null>;
@@ -27,27 +19,13 @@ export function InlineSelectionToolbar({ toolbarRef, states, mac, onFormatStart,
       className="inline-selection-toolbar"
       onMouseDownCapture={event => event.preventDefault()}
     >
-      {INLINE_FORMATS.map(format => {
-        const { label, key, Icon } = META[format];
-        const shortcut = `${mac ? '⌘' : 'Ctrl'}+${key}`;
-        // React Aria Button's DOM prop filter omits aria-keyshortcuts.
-        return (
-          <Button
-            key={format}
-            ref={button => { button?.setAttribute('aria-keyshortcuts', `${mac ? 'Meta' : 'Control'}+${key}`); }}
-            className="inline-selection-toolbar__button"
-            aria-label={label}
-            aria-pressed={states[format] === 'some' ? 'mixed' : states[format] === 'all'}
-            preventFocusOnPress
-            onPressStart={onFormatStart}
-            onPress={() => onFormat(format)}
-          >
-            <span title={`${label} (${shortcut})`}>
-              <Icon size={18} aria-hidden="true" />
-            </span>
-          </Button>
-        );
-      })}
+      <InlineFormatButtons
+        className="inline-selection-toolbar__button"
+        states={states}
+        mac={mac}
+        onFormatStart={onFormatStart}
+        onFormat={onFormat}
+      />
     </Toolbar>
   );
 }

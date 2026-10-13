@@ -5,6 +5,11 @@ export const REORDER_NOTES_DOWN_COMMAND = createCommand<undefined>('remdo:reorde
 export const INDENT_NOTES_COMMAND = createCommand<undefined>('remdo:indent-notes');
 export const OUTDENT_NOTES_COMMAND = createCommand<undefined>('remdo:outdent-notes');
 export const DELETE_SELECTED_NOTES_COMMAND = createCommand<undefined>('remdo:delete-selected-notes');
+export interface ToggleInlineFormatPayload {
+  format: 'bold' | 'italic' | 'underline' | 'code';
+  fingerprint?: string;
+}
+export const TOGGLE_INLINE_FORMAT_COMMAND = createCommand<ToggleInlineFormatPayload>('remdo:toggle-inline-format');
 type NoteCheckedState = 'checked' | 'unchecked' | 'toggle';
 export interface SetNoteCheckedPayload {
   state: NoteCheckedState;
