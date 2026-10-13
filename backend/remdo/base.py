@@ -198,3 +198,4 @@ SPECTACULAR_SETTINGS = {
 }
 
 PUBLIC_PAGES_DIR = Path(__file__).resolve().parents[2] / "content" / "pages"
+BLOG_DIR = Path(__file__).resolve().parents[2] / "content" / "blog"

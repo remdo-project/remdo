@@ -7,6 +7,8 @@ export type PersistenceMessage =
   | { type: 'persisted'; id: number }
   | { type: 'persist-failed'; id: number };
 
+export const PERSIST_TIMEOUT_MS = 15_000;
+
 const TYPES = new Set(['persist', 'persisted', 'persist-failed']);
 
 export function encodePersistenceMessage(message: PersistenceMessage): string {

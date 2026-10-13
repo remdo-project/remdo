@@ -1,7 +1,6 @@
 import type { HocuspocusProvider } from '@hocuspocus/provider';
-import { decodePersistenceMessage, encodePersistenceMessage } from '#platform/net/persistence-barrier';
+import { decodePersistenceMessage, encodePersistenceMessage, PERSIST_TIMEOUT_MS } from '#platform/net/persistence-barrier';
 
-const PERSIST_TIMEOUT_MS = 15_000;
 let nextRequestId = 0;
 
 /**

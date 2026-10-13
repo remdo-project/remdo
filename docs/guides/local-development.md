@@ -74,7 +74,9 @@ User is a regular user. Sign in with `admin@example.test` / `admin-password-1234
 or `user@example.test` / `user-password-1234`. Restarting preserves accounts and
 documents. The app opens allauth's sign-in page at `/accounts/login/`. After
 logout, choose **Sign in** to open that page again. Use `/admin/` to manage
-accounts and Home to create or open documents.
+accounts and Home to create or open documents. Shutdown waits for the services
+to stop and keeps Django available for
+[collaboration's final saves](../architecture.md#collab-hub).
 
 With the default `HOST`, use Vite's Local URL. With `HOST=0.0.0.0`, use the
 machine hostname or explicit `PUBLIC_HOST` from the [development origin](../specs/runtime/configuration.md#network-addressing), not one

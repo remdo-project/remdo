@@ -42,6 +42,7 @@ const nodeTests = [
   'tests/unit/agent-instructions-gate.spec.ts',
   'tests/unit/collab-auth.spec.ts',
   'tests/unit/dev-runtime-launchers.spec.ts',
+  'tests/unit/dev-runtime-lifecycle.spec.ts',
   'tests/unit/docker-entrypoint-lifecycle.spec.ts',
   'tests/unit/e2e-auth-context.spec.ts',
   'tests/unit/managed-process.spec.ts',

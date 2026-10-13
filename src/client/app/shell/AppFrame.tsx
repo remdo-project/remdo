@@ -81,7 +81,9 @@ function AppFrameContent() {
   }, [signedIn]);
   const headerLinks = connectionUnavailable ? null : (
     <>
-      <a href="/about/">About</a>
+      {/* Hidden with the Blog link in site_header.html, which tracks restoring both. */}
+      {/* <a href="/blog/">Blog</a> */}
+      <a className="site-about" href="/about/">About</a>
       {signedIn && <Link to="/sign-out">Logout</Link>}
       {signedOut && <a href={createSignInPath(location.search)}>Sign in</a>}
       <DevToolbarLinksSeam />
