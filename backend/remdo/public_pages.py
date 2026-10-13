@@ -9,12 +9,20 @@ from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_safe
 
+SLUG_PATTERN = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 
-@never_cache
-@require_safe
-def public_page(request, slug):
+
+def is_text(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
+def read_page(path, fields):
+    """Return the front matter and Markdown body of a repository page.
+
+    `fields` maps each front-matter key to a predicate its value must satisfy.
+    """
     try:
-        source = (settings.PUBLIC_PAGES_DIR / f"{slug}.md").read_text(encoding="utf-8")
+        source = path.read_text(encoding="utf-8")
     except OSError as error:
         if error.errno not in (errno.ENOENT, errno.ENAMETOOLONG):
             raise
@@ -26,14 +34,22 @@ def public_page(request, slug):
             raise ValueError("Expected YAML front matter between --- lines")
         end = lines.index("---", 1)
         metadata = yaml.safe_load("\n".join(lines[1:end]))
-        if not isinstance(metadata, dict) or any(
-            not isinstance(metadata.get(key), str) or not metadata[key].strip()
-            for key in ("title", "description")
-        ):
-            raise ValueError("title and description must be non-empty strings")
+        if not isinstance(metadata, dict):
+            raise ValueError("Front matter must be a mapping")
+        for key, is_valid in fields.items():
+            if not is_valid(metadata.get(key)):
+                raise ValueError(f"{key} is missing or invalid")
     except (ValueError, yaml.YAMLError) as error:
-        raise ImproperlyConfigured(f"Invalid public page {slug}.md: {error}") from error
+        raise ImproperlyConfigured(f"Invalid public page {path.name}: {error}") from error
+    return metadata, "\n".join(lines[end + 1 :])
 
+
+@never_cache
+@require_safe
+def public_page(request, slug):
+    metadata, body = read_page(
+        settings.PUBLIC_PAGES_DIR / f"{slug}.md", {"title": is_text, "description": is_text}
+    )
     return render(
         request,
         "pages/page.html",
@@ -42,6 +58,6 @@ def public_page(request, slug):
             "description": metadata["description"],
             "canonical": f"{settings.APP_ORIGIN}/{slug}/",
             # Page sources are trusted, reviewed repository content, like templates.
-            "body": markdown.markdown("\n".join(lines[end + 1 :])),
+            "body": markdown.markdown(body),
         },
     )

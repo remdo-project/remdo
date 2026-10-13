@@ -11,7 +11,16 @@
             <img src="/site-assets/github.svg" alt="" width="20" height="20"><span>remdo-project/remdo</span>
           </a>
         {% endif %}
-        <a href="/about/"{% if request.path == '/about/' %} aria-current="page"{% endif %}>About</a>
+        {% comment %}
+          TODO: Once the final posts replace the sample posts, restore this
+          Blog link, the one in AppFrame.tsx, the commented .site-about rule in
+          chrome.css, and the Blog and narrow-screen About expectations in the
+          header, routing, and account-pages E2E specs, accounts.tests, and
+          BlogTests. Probe: un-fixme the header E2E spec's blog and narrow-screen
+          tests and un-skip the BlogTests header test, then run them.
+          <a href="/blog/"{% if request.path|slice:":6" == "/blog/" %} aria-current="page"{% endif %}>Blog</a>
+        {% endcomment %}
+        <a class="site-about" href="/about/"{% if request.path == '/about/' %} aria-current="page"{% endif %}>About</a>
         {% if user.is_authenticated %}
           {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
           <a href="/sign-out/">Logout</a>

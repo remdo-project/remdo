@@ -5,7 +5,7 @@ test('header controls are reachable by keyboard on a narrow screen', async ({ pa
   await page.goto('/');
   await expect(page.getByRole('combobox', { name: 'Search documents' })).toBeFocused();
 
-  const controls = page.getByRole('banner').locator('a, button');
+  const controls = page.getByRole('banner').locator('a, button').filter({ visible: true });
   // Losing the implicit banner role would empty the loop and pass vacuously.
   await expect(controls.first()).toBeVisible();
 
@@ -34,6 +34,25 @@ test('keeps the wordmark and footer links where the public pages put them', asyn
   expect(pub.wordmark).toEqual(app.wordmark);
   expect(app.footerStart).not.toBeNull();
   expect(pub.footerStart).toEqual(app.footerStart);
+});
+
+test.fixme('omits About from the header on a narrow screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  for (const path of ['/', '/about/']) {
+    await page.goto(path);
+    const navigation = page.getByRole('navigation', { name: 'Primary' });
+    await expect(navigation.getByRole('link', { name: 'Logout', exact: true })).toBeVisible();
+    await expect(navigation.getByRole('link', { name: 'About', exact: true })).toBeHidden();
+  }
+});
+
+test.fixme('opens the blog from the header and marks it current', async ({ page }) => {
+  await page.goto('/about/');
+  const navigation = page.getByRole('navigation', { name: 'Primary' });
+  await navigation.getByRole('link', { name: 'Blog', exact: true }).click();
+  await expect(page).toHaveURL(/\/blog\/$/u);
+  await expect(page.getByRole('heading', { level: 1, name: 'Blog', exact: true })).toBeVisible();
+  await expect(navigation.getByRole('link', { name: 'Blog', exact: true })).toHaveAttribute('aria-current', 'page');
 });
 
 unauthenticatedTest('opens About from the native sign-in header', async ({ page }) => {
