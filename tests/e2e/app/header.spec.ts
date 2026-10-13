@@ -5,7 +5,7 @@ test('header controls are reachable by keyboard on a narrow screen', async ({ pa
   await page.goto('/');
   await expect(page.getByRole('combobox', { name: 'Search documents' })).toBeFocused();
 
-  const controls = page.getByRole('banner').locator('a, button').filter({ visible: true });
+  const controls = page.getByRole('banner').locator('a, button');
   // Losing the implicit banner role would empty the loop and pass vacuously.
   await expect(controls.first()).toBeVisible();
 

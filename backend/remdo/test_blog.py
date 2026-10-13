@@ -157,6 +157,7 @@ class BlogTests(SimpleTestCase):
         self.assertContains(self.client.get("/privacy/"), '<a href="/blog/">Blog</a>', html=True)
 
     def test_invalid_posts_are_authoring_errors(self):
+        self.write_post("good")
         for field, value in (
             ("title", "''"),
             ("date", "'2026-10-07'"),
@@ -170,10 +171,19 @@ class BlogTests(SimpleTestCase):
         ):
             with self.subTest(field=field, value=value):
                 self.write_post("broken", **{field: value})
-                with self.assertRaisesMessage(ImproperlyConfigured, "broken.md"):
-                    self.client.get("/blog/")
+                for url in ("/blog/", "/blog/good/"):
+                    with self.assertRaisesMessage(ImproperlyConfigured, "blog/broken.md"):
+                        self.client.get(url)
         (self.posts / "broken.md").write_text("---\ntitle: Missing everything else\n---\n")
-        with self.assertRaisesMessage(ImproperlyConfigured, "description is missing or invalid"):
+        for url in ("/blog/", "/blog/good/"):
+            with self.assertRaisesMessage(
+                ImproperlyConfigured, "description is missing or invalid"
+            ):
+                self.client.get(url)
+
+    def test_an_unreadable_post_file_fails_the_blog_instead_of_hiding_as_missing(self):
+        (self.posts / "dangling.md").symlink_to(self.posts / "gone.md")
+        with self.assertRaises(FileNotFoundError):
             self.client.get("/blog/")
 
     def test_a_file_name_that_is_not_a_slug_is_an_authoring_error(self):

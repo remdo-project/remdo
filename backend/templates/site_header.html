@@ -15,7 +15,9 @@
           TODO: Once the final posts replace the sample posts, restore this
           Blog link, the one in AppFrame.tsx, the commented .site-about rule in
           chrome.css, and the Blog and narrow-screen About expectations in the
-          header, routing, and account-pages E2E specs, accounts.tests, and
+          header, routing, and account-pages E2E specs (including the header
+          spec's keyboard test, which then needs
+          .filter({ visible: true }) on its controls), accounts.tests, and
           BlogTests. Probe: un-fixme the header E2E spec's blog and narrow-screen
           tests and un-skip the BlogTests header test, then run them.
           <a href="/blog/"{% if request.path|slice:":6" == "/blog/" %} aria-current="page"{% endif %}>Blog</a>
