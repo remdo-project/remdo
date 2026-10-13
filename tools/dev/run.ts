@@ -6,6 +6,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 import { config } from '#config';
 import { COLLABORATION_SHUTDOWN_DEADLINE_MS } from '#platform/net/django-request';
 import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
+import { PERSIST_TIMEOUT_MS } from '#platform/net/persistence-barrier';
 import { terminateProcessGroup } from '../lib/managed-process';
 import { isPortOpen } from '../lib/net';
 import { spawnPnpm } from '../lib/process';
@@ -21,7 +22,10 @@ const started: Array<{ service: Service; child: ChildProcess }> = [];
 let stopping = false;
 
 function gracePeriod({ name }: Service): number {
-  return name === 'collab' ? COLLABORATION_SHUTDOWN_DEADLINE_MS + 5000 : 10_000;
+  if (name === 'collab') return COLLABORATION_SHUTDOWN_DEADLINE_MS + 5000;
+  // A mutation in flight at shutdown can wait out its persistence acknowledgement.
+  if (name === 'mcp') return PERSIST_TIMEOUT_MS + 5000;
+  return 10_000;
 }
 
 async function waitUntil(check: () => boolean | Promise<boolean>, timeout: number): Promise<boolean> {

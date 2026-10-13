@@ -190,7 +190,7 @@ it('force recovery saves collaboration before stopping Django and kills a listen
   const context = setup();
   for (const role of roles) {
     const child = spawn(process.execPath, [fixture, '--serve', role], {
-      env: { ...context.env, REMDO_DEV_FIXTURE_STUBBORN: 'mcp' }, detached: true, stdio: 'ignore',
+      env: { ...context.env, REMDO_DEV_FIXTURE_STUBBORN: 'web' }, detached: true, stdio: 'ignore',
     });
     children.push(child);
   }
@@ -199,7 +199,7 @@ it('force recovery saves collaboration before stopping Django and kills a listen
   fs.mkdirSync(nextDirectory);
   const run = launch({ ...context.env, ...ports(old), REMDO_DEV_FIXTURE_DIR: nextDirectory }, ['--force']);
   const current = await listeners(nextDirectory);
-  expect(run.stderr()).toMatch(/mcp listener PID \d+ exceeded its shutdown deadline; sending SIGKILL/u);
+  expect(run.stderr()).toMatch(/web listener PID \d+ exceeded its shutdown deadline; sending SIGKILL/u);
   const events = readEvents(context.directory);
   expect(events).toContain('collab.saved');
   expect(events.indexOf('collab.saved')).toBeLessThan(events.indexOf('api.stopped'));
@@ -210,13 +210,13 @@ it('force recovery saves collaboration before stopping Django and kills a listen
 
 it('escalates to SIGKILL when a managed service ignores graceful termination', async () => {
   const context = setup();
-  const run = launch({ ...context.env, REMDO_DEV_FIXTURE_STUBBORN: 'mcp' });
+  const run = launch({ ...context.env, REMDO_DEV_FIXTURE_STUBBORN: 'web' });
   const values = await listeners(context.directory);
   run.child.kill('SIGTERM');
-  await expect.poll(() => readEvents(context.directory)).toContain('mcp.signal');
+  await expect.poll(() => readEvents(context.directory)).toContain('web.signal');
   expect(await isPortOpen('127.0.0.1', values.api.port)).toBe(true);
   expect((await run.exit)[0], run.stderr()).toBe(143);
-  expect(run.stderr()).toContain('mcp exceeded its shutdown deadline; sending SIGKILL');
+  expect(run.stderr()).toContain('web exceeded its shutdown deadline; sending SIGKILL');
   expect(readEvents(context.directory)).toContain('collab.saved');
   await expectReleased(values);
 }, 45_000);
