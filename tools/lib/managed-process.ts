@@ -19,10 +19,6 @@ export function prepareManagedProcessLog(logPath: string): void {
 }
 
 export function terminateProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
-  if (child.killed) {
-    return;
-  }
-
   if (child.pid && process.platform !== 'win32') {
     try {
       process.kill(-child.pid, signal);
