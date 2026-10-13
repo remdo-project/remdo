@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block styles %}
+  {{ block.super }}
+  {% include "site_styles.html" %}
+{% endblock %}
+{% block extra_head %}
+  <meta name="description" content="{% block description %}{% endblock %}">
+  <link rel="canonical" href="{{ canonical }}">
+{% endblock %}
+{% block body_class %}remdo-landing landing-blog{% endblock %}
+{% block body %}
+{% include "site_header.html" with repository=True %}
+<main class="landing-blog-column">
+  {% block blog_content %}{% endblock %}
+</main>
+{% include "site_footer.html" %}
+{% endblock %}

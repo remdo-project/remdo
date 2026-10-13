@@ -45,7 +45,9 @@ the colors of the page's surface. The SPA and server-rendered pages share
 theme values and styles; account pages load their presentation assets without
 the editor runtime.
 
-The header links to About and to the current session action. Pages other than
+The header links to [Blog](specs/site/blog.md), About, and the current session action, marking
+Blog current on the blog index and every post; on narrow viewports it omits
+About. Pages other than
 the app page link Admin for staff, then “Logout” when Django recognizes a
 session and “Sign in” otherwise. On the app page, the app renders the session
 action once it knows its session state: “Logout” with a session and “Sign in”
@@ -65,8 +67,8 @@ The comparison does not monitor subsequent deployments.
 
 ### Public Pages
 
-[Public pages](guides/public-pages.md) render repository Markdown through a shared
-Django template without sign-in or editor JavaScript. Their canonical URLs use
+[Public pages](guides/public-pages.md) render repository Markdown through Django
+templates without sign-in or editor JavaScript. Their canonical URLs use
 the [configured public origin](specs/runtime/configuration.md#network-addressing). Page sources, including inline HTML, are trusted like
 Django templates.
 

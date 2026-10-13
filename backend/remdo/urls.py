@@ -31,8 +31,9 @@ from documents import internal, views
 from drf_spectacular.views import SpectacularAPIView
 
 from .app_page import app_page, home_page, keep_me_posted
+from .blog import blog_index, blog_post
 from .domain_verification import openai_apps_challenge
-from .public_pages import public_page
+from .public_pages import SLUG_PATTERN, public_page
 
 admin.site.login = secure_admin_login(require_safe(admin.site.login))
 
@@ -80,7 +81,9 @@ urlpatterns = [
     path("internal/collaboration/documents/<str:document_id>/authorize", internal.authorize),
     path("internal/collaboration/documents/<str:document_id>/content", internal.content),
     path("api/schema", SpectacularAPIView.as_view()),
-    re_path(r"^(?P<slug>(?:docs/)?[a-z0-9]+(?:-[a-z0-9]+)*)/$", public_page, name="public_page"),
+    path("blog/", blog_index, name="blog_index"),
+    re_path(rf"^blog/(?P<slug>{SLUG_PATTERN})/$", blog_post, name="blog_post"),
+    re_path(rf"^(?P<slug>(?:docs/)?{SLUG_PATTERN})/$", public_page, name="public_page"),
 ]
 if apps.is_installed("allauth.socialaccount.providers.google"):
     urlpatterns += [
