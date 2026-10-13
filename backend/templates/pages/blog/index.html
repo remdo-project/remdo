@@ -1,0 +1,25 @@
+{% extends "pages/blog/base.html" %}
+{% block head_title %}Blog · RemDo{% endblock %}
+{% block description %}What we’re building, and what we’re learning along the way.{% endblock %}
+{% block blog_content %}
+<header class="landing-blog-intro">
+  <h1>Blog</h1>
+  <p>What we’re building, and what we’re learning along the way.</p>
+</header>
+<ul class="landing-blog-posts">
+  {% for post in posts %}
+  <li class="landing-blog-entry">
+    <img class="landing-blog-image" src="{{ post.image }}" alt="" width="224" height="224">
+    <div class="landing-blog-summary">
+      <p class="landing-blog-details">
+        <time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:"F j, Y" }}</time>
+        <span>{{ post.topic }}</span>
+      </p>
+      <h2><a href="/blog/{{ post.slug }}/">{{ post.title }}</a></h2>
+      <p class="landing-blog-description">{{ post.description }}</p>
+      <a class="landing-blog-link" href="/blog/{{ post.slug }}/" aria-label="Read post: {{ post.title }}">Read post <span aria-hidden="true">→</span></a>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

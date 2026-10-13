@@ -1,0 +1,26 @@
+{% extends "pages/blog/base.html" %}
+{% block head_title %}{{ post.title }} · RemDo{% endblock %}
+{% block description %}{{ post.description }}{% endblock %}
+{% block blog_content %}
+<article class="landing-blog-article">
+  <header class="landing-blog-article-heading">
+    <a class="landing-blog-link" href="/blog/"><span aria-hidden="true">←</span> All posts</a>
+    <h1>{{ post.title }}</h1>
+    <p class="landing-blog-author">{{ post.author }}</p>
+    <p class="landing-blog-details">
+      <time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:"F j, Y" }}</time> | {{ reading_minutes }} min read
+    </p>
+  </header>
+  <div class="landing-blog-body">{{ body|safe }}</div>
+  <footer class="landing-blog-article-footer">
+    <a class="landing-blog-link" href="/blog/"><span aria-hidden="true">←</span> All posts</a>
+    {% if next_post %}
+    <nav class="landing-blog-next" aria-label="Next post">
+      <p class="landing-blog-details">Next post</p>
+      <a class="landing-blog-next-title" href="/blog/{{ next_post.slug }}/">{{ next_post.title }}</a>
+      <a class="landing-blog-link" href="/blog/{{ next_post.slug }}/" aria-label="Read post: {{ next_post.title }}">Read post <span aria-hidden="true">→</span></a>
+    </nav>
+    {% endif %}
+  </footer>
+</article>
+{% endblock %}
