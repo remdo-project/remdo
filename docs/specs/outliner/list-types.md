@@ -43,7 +43,7 @@ list targets the clicked note while that note is outside any
 [structural selection](./selection.md#selection-states). A structural selection
 — including a marker click on a note inside it — targets its
 [selected note range](./selection.md#note-ranges). Other surfaces — the [note
-menu](./menu.md) and the [mobile action toolbar](./mobile-toolbar.md) — supply
+menu](./menu.md), [desktop editing toolbar](./desktop-toolbar.md), and [mobile action toolbar](./mobile-toolbar.md) — supply
 their own targets, as their contracts define.
 
 ### Keyboard command

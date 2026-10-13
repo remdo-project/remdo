@@ -1,6 +1,8 @@
 # Inline formatting
 
-The selection toolbar and Inline code shortcut format eligible selected text.
+The [desktop toolbar](./desktop-toolbar.md) and floating selection toolbar expose
+the same inline formatting operations. The Inline code shortcut is available
+independently of either presentation.
 
 ## Eligible selection
 
@@ -9,7 +11,7 @@ Formatting is unavailable during composition or while an [editor popup](./popups
 
 ## Formatting
 
-The compact row offers Bold, Italic, Underline, and Inline code, in that order.
+Formatting controls offer Bold, Italic, Underline, and Inline code, in that order.
 Buttons expose all, some, or none coverage and their platform shortcuts.
 
 In the editor, `Cmd+E` on macOS or `Ctrl+E` elsewhere toggles Inline code for the
@@ -22,10 +24,12 @@ Pointer activation applies only on a completed press to the current eligible
 range. A changed or invalidated pressed target cancels the action and refreshes
 the row; dragging onto or away from a button applies nothing.
 
-Row activation and the Inline code shortcut preserve editor focus, selection,
+Control activation and the Inline code shortcut preserve editor focus, selection,
 native highlight, and direction. Each is an independent undo step.
 
-## Presence and placement
+## Floating presence and placement
+
+The floating row is absent while the [desktop toolbar](./desktop-toolbar.md#presence-and-layout) is present.
 
 The row appears automatically after an eligible selection settles, without
 moving focus. It hides during selection dragging or when focus leaves the
