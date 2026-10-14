@@ -56,6 +56,9 @@ on its [signed-out screen](specs/access/access-control.md#authenticated-app-acce
 remembered session state hides the header links. “Logout” opens the
 [sign-out confirmation](specs/access/access-control.md#logout).
 
+The signed-in app header places the [Shared with you](specs/outliner/home.md#shared-documents) bell between
+About and the session action.
+
 The footer links the [privacy policy](../content/pages/privacy.md), the
 [terms of use](../content/pages/terms.md), and the source repository. The app footer
 also identifies the loaded frontend with “Build #revision” in readable secondary

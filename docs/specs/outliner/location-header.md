@@ -23,6 +23,17 @@ Editable content and heading semantics remain separately exposed to assistive te
 
 A document view's header has a [quick action menu](./menu.md) button. Home actions follow [Home](./home.md#document-actions).
 
+The document toolbar adds an icon-only **Share** control after [search](./search.md), status,
+and the [keyboard reference](./keyboard-reference.md) when present. It opens the document's [sharing surface](../access/access-control.md#document-sharing)
+at every zoom level. Closing restores focus to its invoking control, or the
+current location heading when the control is gone.
+
+The Share icon uses outlined connections for private documents and filled,
+accented connections when other people have access. Its tooltip and accessible
+name distinguish **Private**, **Shared by you** with a count of the owner and
+direct grantees, and **Shared with you** with editing access. The location heading
+carries no sharing badge.
+
 ## Document rename
 
 Rename follows [Document Access](../access/access-control.md#document-access) and changes only the document name.

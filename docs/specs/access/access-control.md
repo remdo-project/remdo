@@ -129,16 +129,22 @@ users are denied before document content loads.
 
 ### Document sharing
 
-An owner manages one document's access from that document's [quick action menu](../outliner/menu.md)
-or from the [**Shared** marker](../outliner/home.md#signed-in-behavior) on its Home row.
-The surface names the document it acts on and presents current recipients
-before the controls that change them. Each change applies on its own; the
-surface has no combined submission and closes without discarding applied
-changes.
+The sharing surface names the document it acts on. Owners see current recipients
+before the controls that change them; other users with document access see
+their own access summary. Each change applies on its own, without a separate
+save step; closing preserves applied changes.
 
-Granting takes an email address and reports a rejected address against the
-address it was given. A grant appears among the recipients once the source
-accepts it, without reopening the surface.
+The owner's recipient list includes **You · Owner** and labels direct grantees
+**Can edit**. The grant form uses **Add access**, states that the recipient needs
+an account on this server and no email is sent, and reports success or rejection
+against the submitted address. A repeated grant reports that the address already
+has access. Grants follow [user data operations](../outliner/user-data.md#operations) and update the open recipient list
+on success. Pending submission locks the email and action; failure retains the
+draft.
+
+**Copy link** copies the document-root URL, including when opened from a zoomed
+view, and states that copying does not change access. Clipboard failure or
+unavailability offers a selectable URL instead of reporting a successful copy.
 
 ### Document deletion
 
