@@ -2,6 +2,7 @@ import { expectCollaborationDenied } from '../_support/documents';
 import { expect, test, withPageGuards } from '#e2e/fixtures';
 import { createAuthenticatedContext } from '../_support/auth-context';
 import { ensureReady, waitForSynced } from '../editor/_support/bridge';
+import { openNoteMenu } from '../editor/_support/menu';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 
 test('owner shares the starter with a local account; recipient edits and unrelated account is denied', async ({ page, browser, contextOptions }, testInfo) => {
@@ -21,6 +22,34 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     await editor.click();
     await page.keyboard.type('Owner content');
     await waitForSynced(page);
+    const shareButton = page.getByRole('button', { name: /^Share document —/u });
+    await expect(shareButton).toHaveAccessibleName('Share document — Private · Only you have access');
+    await expect.poll(() => shareButton.locator('svg path').first().evaluate(node => getComputedStyle(node).fill)).toBe('none');
+    await expect(page.locator('.location-header')).toHaveText('New Document');
+
+    // The toolbar acts on the whole document even when a note is zoomed.
+    const noteMenu = await openNoteMenu(page, 'Owner content');
+    await noteMenu.item('zoom').click();
+    await expect(page).toHaveURL(new RegExp(`/n/${document.id}_[A-Za-z0-9]+$`, 'u'));
+    await expect(page.locator('.location-header')).toHaveCount(0);
+    await expect(shareButton).toHaveText('');
+    await shareButton.click();
+    const toolbarDialog = page.getByRole('dialog', { name: 'Share “New Document”', exact: true });
+    await expect(toolbarDialog.getByText('Only you have access.', { exact: true })).toBeVisible();
+    // Clipboard access can fail on a host preview; its fallback must be usable.
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: async () => { throw new Error('Clipboard unavailable'); } },
+      });
+    });
+    await toolbarDialog.getByRole('button', { name: 'Copy link', exact: true }).click();
+    const link = toolbarDialog.getByRole('textbox', { name: 'Document link', exact: true });
+    await expect(link).toHaveValue(new URL(`/n/${document.id}`, page.url()).href);
+    await expect(link).toBeFocused();
+    await toolbarDialog.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(shareButton).toBeFocused();
+
     await page.goto('/');
     const row = page.getByRole('group', { name: 'Current Server', exact: true })
       .locator(`[data-home-document-ref="${document.id}"]`).locator('..');
@@ -29,10 +58,11 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     await row.getByRole('button', { name: /^Actions for/u }).click();
     await page.getByRole('menuitem', { name: 'Share…' }).click();
     const shareDialog = page.getByRole('dialog', { name: /Share/u });
-    await shareDialog.getByLabel(/Invite by email/u).fill(recipient.email);
-    await shareDialog.getByRole('button', { name: 'Invite', exact: true }).click();
+    await shareDialog.getByLabel(/Add a person by email/u).fill(recipient.email);
+    await shareDialog.getByRole('button', { name: 'Add access', exact: true }).click();
     // The grant appears without reopening the dialog.
     await expect(shareDialog.getByText(recipient.email, { exact: true })).toBeVisible();
+    await expect(shareDialog.getByRole('status')).toHaveText(`Added ${recipient.email}. They can edit this document. No email was sent.`);
     await shareDialog.getByRole('button', { name: 'Done', exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(row.locator('[data-home-document-ref]')).toHaveAccessibleDescription('Shared by you');
@@ -42,15 +72,36 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     await shareDialog.getByRole('button', { name: 'Done', exact: true }).click();
     await expect(sharedMarker).toBeFocused();
 
+    await page.goto(`/n/${document.id}`);
+    await ensureReady(page);
+    await expect(shareButton).toHaveAccessibleName('Share document — Shared by you · 2 people have access');
+    await expect.poll(() => shareButton.locator('svg path').first().evaluate(node => getComputedStyle(node).fill)).not.toBe('none');
+    await expect(page.locator('.location-header')).toHaveText('New Document');
+
     const peer = await peerContext.newPage();
     await withPageGuards(peer, async () => {
       await peer.goto('/');
       const sharedRow = peer.getByRole('group', { name: 'Current Server', exact: true })
         .locator(`[data-home-document-ref="${document.id}"]`);
       await expect(sharedRow).toHaveAccessibleDescription('Shared with you');
-      await sharedRow.click();
+      await peer.getByRole('button', { name: 'Shared with you', exact: true }).click();
+      const sharedDocuments = peer.getByRole('dialog', { name: 'Shared with you', exact: true });
+      const receivedLink = sharedDocuments.getByRole('link', { name: /New Document/u });
+      await expect(receivedLink).toHaveAttribute('href', `/n/${document.id}`);
+      await expect(sharedDocuments.getByRole('link')).toHaveCount(1);
+      await receivedLink.click();
+      await expect(sharedDocuments).toHaveCount(0);
       const peerEditor = peer.locator('.editor-input');
       await ensureReady(peer);
+      const peerShareButton = peer.getByRole('button', { name: 'View document access — Shared with you · You can edit', exact: true });
+      await expect.poll(() => peerShareButton.locator('svg path').first().evaluate(node => getComputedStyle(node).fill)).not.toBe('none');
+      await expect(peer.locator('.location-header')).toHaveText('New Document');
+      await peerShareButton.click();
+      const ownAccess = peer.getByRole('dialog', { name: 'Share “New Document”', exact: true });
+      await expect(ownAccess.getByText('Your access', { exact: true })).toBeVisible();
+      await expect(ownAccess.getByRole('textbox', { name: 'Add a person by email', exact: true })).toHaveCount(0);
+      await expect(ownAccess.getByText(recipient.email, { exact: true })).toHaveCount(0);
+      await ownAccess.getByRole('button', { name: 'Done', exact: true }).click();
       await expect(peerEditor).toContainText('Owner content');
       await expect(peerEditor).toBeEditable();
       await peerEditor.click();
@@ -58,6 +109,7 @@ test('owner shares the starter with a local account; recipient edits and unrelat
       await peer.keyboard.type(' and recipient content');
       await waitForSynced(peer);
       await page.goto(`/n/${document.id}`);
+      await expect(shareButton).toHaveAccessibleName('Share document — Shared by you · 2 people have access');
       await expect(editor).toContainText('Owner content and recipient content');
       await peer.reload();
       await ensureReady(peer);

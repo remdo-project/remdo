@@ -48,14 +48,14 @@ const baseProps = (): HomeViewProps => ({
       id: 'local',
       label: 'Local',
       documents: [
-        { id: 'doc-a', label: 'Project Roadmap' },
-        { id: 'doc-b', label: 'Ideas' },
+        { id: 'docA', label: 'Project Roadmap' },
+        { id: 'docB', label: 'Ideas' },
       ],
     },
     {
       id: 'server',
       label: 'team-server.dev',
-      documents: [{ id: 'doc-c', label: 'Team notes' }],
+      documents: [{ id: 'docC', label: 'Team notes' }],
     },
   ],
   onSelectDocument: vi.fn(),
@@ -80,9 +80,9 @@ describe('home view', () => {
 
   it('starts at the first document with available actions', () => {
     const props = baseProps();
-    props.resolveDocument = (docId) => docId === 'doc-a'
+    props.resolveDocument = (docId) => docId === 'docA'
       ? null
-      : documentNote({ id: docId, title: docId, canRename: docId === 'doc-c' });
+      : documentNote({ id: docId, title: docId, canRename: docId === 'docC' });
     renderHome(props);
 
     expect(screen.getByRole('button', { name: 'Actions for Team notes' }).closest('li'))
@@ -97,7 +97,7 @@ describe('home view', () => {
     props.resolveDocument = (docId) => documentNote({
       id: docId,
       title: docId,
-      canRename: docId !== 'doc-b' || ideasAvailable,
+      canRename: docId !== 'docB' || ideasAvailable,
     });
     const view = renderHome(props);
     const roadmap = screen.getByRole('button', { name: 'Actions for Project Roadmap' });
@@ -134,7 +134,7 @@ describe('home view', () => {
 
     fireEvent.click(screen.getByText('Ideas'));
 
-    expect(props.onSelectDocument).toHaveBeenCalledWith('doc-b');
+    expect(props.onSelectDocument).toHaveBeenCalledWith('docB');
   });
 
   it('omits a group that has no documents', () => {
@@ -151,8 +151,8 @@ describe('home view', () => {
     props.resolveDocument = (docId) => documentNote({
       id: docId,
       title: docId,
-      canShareWith: docId !== 'doc-c',
-      recipients: docId === 'doc-b' ? 2 : 0,
+      canShareWith: docId !== 'docC',
+      recipients: docId === 'docB' ? 2 : 0,
     });
     renderHome(props);
 
@@ -173,8 +173,8 @@ describe('home view', () => {
     props.resolveDocument = (docId) => documentNote({
       id: docId,
       title: docId,
-      canShareWith: docId !== 'doc-c',
-      recipients: docId === 'doc-b' ? 1 : 0,
+      canShareWith: docId !== 'docC',
+      recipients: docId === 'docB' ? 1 : 0,
     });
     renderHome(props);
 
@@ -182,7 +182,7 @@ describe('home view', () => {
     expect(screen.queryByRole('button', { name: /manage sharing for Project Roadmap/u })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Shared by you, manage sharing for Ideas' }));
 
-    const dialog = await screen.findByRole('dialog', { name: 'Share “doc-b”' });
+    const dialog = await screen.findByRole('dialog', { name: 'Share “docB”' });
     expect(within(dialog).getByText('recipient-0@example.test')).toBeInTheDocument();
   });
 
@@ -287,7 +287,7 @@ describe('home view', () => {
 
   it('offers sharing only for a document the user can share', async () => {
     const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canShareWith: docId === 'doc-b' });
+    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canShareWith: docId === 'docB' });
     renderHome(props);
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
@@ -316,7 +316,7 @@ describe('home view', () => {
     // notification does, so the dialog closes while the row still exists.
     const remove = vi.fn().mockImplementation(async () => {
       setTimeout(() => {
-        props.sources = [{ id: 'local', label: 'Local', documents: [{ id: 'doc-a', label: 'Project Roadmap' }] }];
+        props.sources = [{ id: 'local', label: 'Local', documents: [{ id: 'docA', label: 'Project Roadmap' }] }];
         view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
       });
     });
@@ -368,9 +368,9 @@ describe('home view', () => {
         id: 'local',
         label: 'Local',
         documents: [
-          { id: 'doc-a', label: 'Project Roadmap' },
-          { id: 'doc-b', label: 'Ideas' },
-          { id: 'doc-c', label: 'Roadmap ideas' },
+          { id: 'docA', label: 'Project Roadmap' },
+          { id: 'docB', label: 'Ideas' },
+          { id: 'docC', label: 'Roadmap ideas' },
           { id: 'doc-d', label: longName },
         ],
       }];
@@ -443,7 +443,7 @@ describe('home view', () => {
       typeQuery('ideas');
       fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
       fireEvent.keyDown(searchField(), { key: 'Enter' });
-      expect(props.onSelectDocument).toHaveBeenCalledExactlyOnceWith('doc-c');
+      expect(props.onSelectDocument).toHaveBeenCalledExactlyOnceWith('docC');
     });
 
     it('ignores Enter during input-method composition', () => {
@@ -457,7 +457,7 @@ describe('home view', () => {
 
       fireEvent.compositionEnd(searchField());
       fireEvent.keyDown(searchField(), { key: 'Enter' });
-      expect(props.onSelectDocument).toHaveBeenCalledExactlyOnceWith('doc-b');
+      expect(props.onSelectDocument).toHaveBeenCalledExactlyOnceWith('docB');
     });
 
     it('clears the query on Escape and keeps focus in the field', () => {
@@ -477,7 +477,7 @@ describe('home view', () => {
       const view = renderHome(props);
       typeQuery('ideas');
 
-      props.sources = [{ id: 'local', label: 'Local', documents: [{ id: 'doc-b', label: 'Ideas' }] }];
+      props.sources = [{ id: 'local', label: 'Local', documents: [{ id: 'docB', label: 'Ideas' }] }];
       view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
       expect(searchField()).toHaveValue('ideas');
       expect(listedNames()).toEqual(['Ideas']);

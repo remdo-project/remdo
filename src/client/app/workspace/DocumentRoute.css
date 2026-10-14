@@ -96,6 +96,52 @@
   color: var(--mantine-color-dark-2);
 }
 
+.document-share-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--chrome-muted);
+  cursor: pointer;
+}
+
+.document-share-button[data-hovered] {
+  background: var(--chrome-hover);
+  color: var(--chrome-text);
+}
+
+.document-share-button[data-shared='true'] {
+  color: var(--remdo-accent);
+}
+
+.document-share-button[data-focus-visible] {
+  outline: 2px solid var(--remdo-accent);
+  outline-offset: 2px;
+}
+
+.document-share-link {
+  padding: var(--mantine-spacing-sm);
+  border: 1px solid var(--chrome-line);
+  border-radius: 4px;
+  background: var(--chrome-hover);
+}
+
+.document-share-url {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.document-share-tooltip {
+  max-width: min(20rem, calc(100vw - 2rem));
+  overflow-wrap: anywhere;
+}
+
 /* One menu button shows at a time: the document header's or the note strip's,
    whichever the pointer or caret last moved to. The strip's fold toggle keeps
    following its own rule. */
