@@ -142,6 +142,33 @@
   overflow-wrap: anywhere;
 }
 
+.document-share-email-feedback {
+  display: block;
+  min-height: 1.25rem;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--mantine-color-red-2);
+}
+
+.remdo-dialog .document-share-email .mantine-Input-input {
+  padding-inline-end: var(--input-right-section-size);
+}
+
+.remdo-dialog .document-share-email .mantine-Input-input[data-format-valid] {
+  border-color: var(--mantine-color-green-4);
+}
+
+.remdo-dialog .mantine-Button-root.document-share-add:not(:disabled, [data-disabled]) {
+  border-color: transparent;
+  background: var(--button-bg);
+  color: var(--button-color);
+}
+
+.remdo-dialog .mantine-Button-root.document-share-add:not(:disabled, [data-disabled]):hover {
+  background: var(--button-hover);
+}
+
 /* One menu button shows at a time: the document header's or the note strip's,
    whichever the pointer or caret last moved to. The strip's fold toggle keeps
    following its own rule. */

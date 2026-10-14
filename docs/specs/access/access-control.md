@@ -132,15 +132,22 @@ users are denied before document content loads.
 The sharing surface names the document it acts on. Owners see current recipients
 before the controls that change them; other users with document access see
 their own access summary. Each change applies on its own, without a separate
-save step; closing preserves applied changes.
+save step. **Close** dismisses the surface, keeping access already added and
+discarding an address that was not added. Closing while a grant is pending does
+not cancel it; reopening shows the current recipient list.
 
 The owner's recipient list includes **You · Owner** and labels direct grantees
-**Can edit**. The grant form uses **Add access**, states that the recipient needs
-an account on this server and no email is sent, and reports success or rejection
-against the submitted address. A repeated grant reports that the address already
-has access. Grants follow [user data operations](../outliner/user-data.md#operations) and update the open recipient list
-on success. Pending submission locks the email and action; failure retains the
-draft.
+**Can edit**. The grant form gives **Add access** consistent primary emphasis and
+identifies a typed, unsubmitted address as not yet added. It states that the
+recipient needs an account on this server and no email is sent, and reports
+success or rejection against the submitted address. A repeated grant reports
+that the address already has access. Grants follow [user data operations](../outliner/user-data.md#operations) and
+update the open recipient list on success. Pending submission locks the email
+and action; failure retains the draft.
+
+The email field shows a green border and a checkmark as a well-formed address is
+typed, requiring a dotted domain except for `localhost`. Format errors appear on
+blur or submission and clear when corrected. Source errors take precedence.
 
 **Copy link** copies the document-root URL, including when opened from a zoomed
 view, and states that copying does not change access. Clipboard failure or

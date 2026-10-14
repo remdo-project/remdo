@@ -35,7 +35,9 @@ function renderDialog({
 }
 
 const invite = (email: string) => {
-  fireEvent.change(screen.getByLabelText(/Add a person by email/u), { target: { value: email } });
+  const field = screen.getByLabelText(/Add a person by email/u);
+  fireEvent.change(field, { target: { value: email } });
+  fireEvent.blur(field);
   fireEvent.click(screen.getByRole('button', { name: 'Add access' }));
 };
 
@@ -48,6 +50,72 @@ describe('document share dialog', () => {
   it('states that only the owner has access before any grant', () => {
     renderDialog();
     expect(screen.getByText('Only you have access.')).toBeInTheDocument();
+  });
+
+  it('updates accessible format feedback while typing and keeps it when focus changes', () => {
+    const shareDocument = vi.fn();
+    renderDialog({ shareDocument });
+    const field = screen.getByRole('textbox', { name: 'Add a person by email' });
+    fireEvent.change(field, { target: { value: 'bob@example.test' } });
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+    fireEvent.blur(field);
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+    expect(field).not.toHaveAttribute('aria-invalid', 'true');
+    fireEvent.focus(field);
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+    fireEvent.change(field, { target: { value: 'bob@' } });
+    expect(screen.queryByText('Valid email format')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(shareDocument).not.toHaveBeenCalled();
+  });
+
+  it('explains a malformed address after blur and clears the error as soon as it is corrected', () => {
+    const shareDocument = vi.fn();
+    renderDialog({ shareDocument });
+    const field = screen.getByRole('textbox', { name: 'Add a person by email' });
+    fireEvent.change(field, { target: { value: 'not-an-email' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    fireEvent.blur(field);
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid email address.');
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
+    expect(field).toHaveAccessibleDescription(/Enter a valid email address/u);
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    fireEvent.focus(field);
+    fireEvent.change(field, { target: { value: 'bob@example.test' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(field).not.toHaveAttribute('aria-invalid', 'true');
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+    expect(shareDocument).not.toHaveBeenCalled();
+  });
+
+  it('waits for a dotted domain before confirming the format, except for localhost', () => {
+    renderDialog();
+    const field = screen.getByRole('textbox', { name: 'Add a person by email' });
+    fireEvent.change(field, { target: { value: 'sample@example' } });
+    expect(screen.queryByText('Valid email format')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    fireEvent.blur(field);
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid email address.');
+    fireEvent.change(field, { target: { value: 'sample@example.test' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+    fireEvent.change(field, { target: { value: 'sample@localhost' } });
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+  });
+
+  it('leaves an empty field quiet until submission and focuses its inline required error', () => {
+    const shareDocument = vi.fn();
+    renderDialog({ shareDocument });
+    const field = screen.getByRole('textbox', { name: 'Add a person by email' });
+    fireEvent.blur(field);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText('Valid email format')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Add access' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter an email address.');
+    expect(field).toHaveFocus();
+    fireEvent.change(field, { target: { value: 'b' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(shareDocument).not.toHaveBeenCalled();
   });
 
   it('shows a granted recipient without reopening the dialog', async () => {
@@ -122,6 +190,8 @@ describe('document share dialog', () => {
     invite(email);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.queryByText('Valid email format')).toBeNull();
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
     expect(screen.getByLabelText(/Add a person by email/u)).toHaveValue(email);
     expect(screen.getByText('Bob')).toBeInTheDocument();
     expect(screen.getByText('bob@example.test')).toBeInTheDocument();
@@ -136,6 +206,7 @@ describe('document share dialog', () => {
     invite('bob@example.test');
 
     await waitFor(() => expect(screen.getByLabelText(/Add a person by email/u)).toBeDisabled());
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
     settle({ documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' });
     await waitFor(() => expect(screen.getByLabelText(/Add a person by email/u)).toBeEnabled());
   });
@@ -150,6 +221,7 @@ describe('document share dialog', () => {
     invite('bob@example.test');
 
     await waitFor(() => expect(screen.getByLabelText(/Add a person by email/u)).toHaveValue(''));
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
   });
 
   it('describes copying a locator without granting access', () => {
@@ -185,6 +257,7 @@ describe('document share dialog', () => {
     expect(screen.getByText(/Only its owner can add people/u)).toBeInTheDocument();
     expect(screen.queryByText('other@example.test')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Add access' })).toBeNull();
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeEnabled();
   });
 
@@ -213,9 +286,14 @@ describe('document share dialog', () => {
     expect(screen.queryByRole('button', { name: 'Copied' })).toBeNull();
   });
 
-  it('closes without a combined submission', () => {
-    const { onClose } = renderDialog();
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+  it('closes without granting access to an unsubmitted address', () => {
+    const shareDocument = vi.fn();
+    const { onClose } = renderDialog({ shareDocument });
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
+    fireEvent.change(screen.getByLabelText(/Add a person by email/u), { target: { value: 'bob@example.test' } });
+    expect(screen.getByText('Not added yet. Select Add access.')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Close'));
+    expect(shareDocument).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

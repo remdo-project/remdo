@@ -35,6 +35,56 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     await expect(shareButton).toHaveText('');
     await shareButton.click();
     const toolbarDialog = page.getByRole('dialog', { name: 'Share “New Document”', exact: true });
+    const emailField = toolbarDialog.getByRole('textbox', { name: 'Add a person by email', exact: true });
+    const addAccess = toolbarDialog.getByRole('button', { name: 'Add access', exact: true });
+    const addAccessBackground = () => addAccess.evaluate(node => getComputedStyle(node).backgroundColor);
+    const initialBackground = await addAccessBackground();
+    const closeBackground = await toolbarDialog.getByRole('button', { name: 'Close', exact: true })
+      .filter({ hasText: /^Close$/u }).evaluate(node => getComputedStyle(node).backgroundColor);
+    expect(initialBackground).not.toBe(closeBackground);
+    await expect(toolbarDialog.getByText('Not added yet. Select Add access.')).toHaveCount(0);
+    await emailField.fill('sample@example');
+    await expect(toolbarDialog.getByRole('alert')).toHaveCount(0);
+    await expect(toolbarDialog.locator('.document-share-email svg')).toHaveCount(0);
+    await emailField.press('Tab');
+    await expect(toolbarDialog.getByRole('alert')).toHaveText('Enter a valid email address.');
+    await expect(emailField).toHaveAttribute('aria-invalid', 'true');
+    const invalidBorder = await emailField.evaluate(node => getComputedStyle(node).borderColor);
+    await emailField.fill(recipient.email);
+    await expect(toolbarDialog.getByRole('alert')).toHaveCount(0);
+    await expect(emailField).toHaveAccessibleDescription(/Valid email format/u);
+    const checkmark = toolbarDialog.locator('.document-share-email svg');
+    await expect(checkmark).toBeVisible();
+    const validColor = await checkmark.evaluate(node => getComputedStyle(node).stroke);
+    await expect(emailField).toHaveCSS('border-color', validColor);
+    expect(validColor).not.toBe(invalidBorder);
+    await expect(emailField).toHaveCSS('border-top-width', '1px');
+    await expect(emailField).toHaveCSS('outline-style', 'none');
+    const buttonPosition = await addAccess.boundingBox();
+    await emailField.press('Tab');
+    await expect(emailField).toHaveAccessibleDescription(/Valid email format/u);
+    await expect(emailField).toHaveCSS('border-color', validColor);
+    expect((await addAccess.boundingBox())!.y).toBe(buttonPosition!.y);
+    await emailField.focus();
+    await expect(emailField).toHaveCSS('border-color', validColor);
+    await expect(emailField).toHaveCSS('border-top-width', '1px');
+    await expect(emailField).toHaveCSS('outline-style', 'none');
+    await emailField.fill('not-an-email');
+    await addAccess.click();
+    await expect(toolbarDialog.getByRole('alert')).toHaveText('Enter a valid email address.');
+    await expect(emailField).toBeFocused();
+    await expect(toolbarDialog).toBeVisible();
+    await emailField.hover();
+    await expect.poll(addAccessBackground).toBe(initialBackground);
+    await emailField.fill(recipient.email);
+    await expect(toolbarDialog.getByRole('alert')).toHaveCount(0);
+    await expect(toolbarDialog.getByText('Not added yet. Select Add access.')).toBeVisible();
+    await expect.poll(addAccessBackground).toBe(initialBackground);
+    await toolbarDialog.getByRole('button', { name: 'Close', exact: true }).filter({ hasText: /^Close$/u }).click();
+    await expect(shareButton).toBeFocused();
+    await shareButton.click();
+    await expect(emailField).toHaveValue('');
+    await expect(toolbarDialog.getByText('Not added yet. Select Add access.')).toHaveCount(0);
     await expect(toolbarDialog.getByText('Only you have access.', { exact: true })).toBeVisible();
     // Clipboard access can fail on a host preview; its fallback must be usable.
     await page.evaluate(() => {
@@ -47,7 +97,7 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     const link = toolbarDialog.getByRole('textbox', { name: 'Document link', exact: true });
     await expect(link).toHaveValue(new URL(`/n/${document.id}`, page.url()).href);
     await expect(link).toBeFocused();
-    await toolbarDialog.getByRole('button', { name: 'Done', exact: true }).click();
+    await toolbarDialog.getByRole('button', { name: 'Close', exact: true }).filter({ hasText: /^Close$/u }).click();
     await expect(shareButton).toBeFocused();
 
     await page.goto('/');
@@ -59,17 +109,17 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     await page.getByRole('menuitem', { name: 'Share…' }).click();
     const shareDialog = page.getByRole('dialog', { name: /Share/u });
     await shareDialog.getByLabel(/Add a person by email/u).fill(recipient.email);
-    await shareDialog.getByRole('button', { name: 'Add access', exact: true }).click();
+    await shareDialog.getByRole('textbox', { name: 'Add a person by email', exact: true }).press('Enter');
     // The grant appears without reopening the dialog.
     await expect(shareDialog.getByText(recipient.email, { exact: true })).toBeVisible();
     await expect(shareDialog.getByRole('status')).toHaveText(`Added ${recipient.email}. They can edit this document. No email was sent.`);
-    await shareDialog.getByRole('button', { name: 'Done', exact: true }).click();
+    await shareDialog.getByRole('button', { name: 'Close', exact: true }).filter({ hasText: /^Close$/u }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(row.locator('[data-home-document-ref]')).toHaveAccessibleDescription('Shared by you');
     const sharedMarker = row.getByRole('button', { name: /^Shared by you/u });
     await sharedMarker.click();
     await expect(shareDialog.getByText(recipient.email, { exact: true })).toBeVisible();
-    await shareDialog.getByRole('button', { name: 'Done', exact: true }).click();
+    await shareDialog.getByRole('button', { name: 'Close', exact: true }).filter({ hasText: /^Close$/u }).click();
     await expect(sharedMarker).toBeFocused();
 
     await page.goto(`/n/${document.id}`);
@@ -101,7 +151,7 @@ test('owner shares the starter with a local account; recipient edits and unrelat
       await expect(ownAccess.getByText('Your access', { exact: true })).toBeVisible();
       await expect(ownAccess.getByRole('textbox', { name: 'Add a person by email', exact: true })).toHaveCount(0);
       await expect(ownAccess.getByText(recipient.email, { exact: true })).toHaveCount(0);
-      await ownAccess.getByRole('button', { name: 'Done', exact: true }).click();
+      await ownAccess.getByRole('button', { name: 'Close', exact: true }).filter({ hasText: /^Close$/u }).click();
       await expect(peerEditor).toContainText('Owner content');
       await expect(peerEditor).toBeEditable();
       await peerEditor.click();

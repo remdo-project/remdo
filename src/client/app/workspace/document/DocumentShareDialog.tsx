@@ -1,4 +1,4 @@
-import { Avatar, Button, Group, Stack, Text, TextInput } from '@mantine/core';
+import { Avatar, Button, Group, Stack, Text, TextInput, VisuallyHidden } from '@mantine/core';
 import { IconCheck, IconLink, IconLock } from '@tabler/icons-react';
 import { useState } from 'react';
 import { createDocumentPath } from '#document-routes';
@@ -28,11 +28,18 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
   const [openingName] = useState(() => note.getText());
   const [openingOwner] = useState(() => note.canShareWith());
   const [email, setEmail] = useState('');
+  const [emailFormat, setEmailFormat] = useState<'idle' | 'valid' | 'invalid'>('idle');
   const [state, setState] = useState<ShareState>({ status: 'idle' });
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const pending = state.status === 'pending';
   const owner = sharing?.owner ?? openingOwner;
   const recipients = sharing?.recipients ?? [];
+  const validEmailFormat = emailFormat === 'valid' && state.status === 'idle';
+  const emailError = state.status === 'error'
+    ? state.message
+    : emailFormat === 'invalid'
+      ? (email.trim() ? 'Enter a valid email address.' : 'Enter an email address.')
+      : null;
   const link = new URL(createDocumentPath(note.getId()), window.location.origin).href;
 
   const submit = async () => {
@@ -43,6 +50,7 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
     try {
       const access = await note.shareWith(recipient);
       setEmail('');
+      setEmailFormat('idle');
       setState({
         status: 'success',
         message: alreadyShared
@@ -104,16 +112,43 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
             <Stack gap="xs">
               <TextInput
                 autoFocus
-                description="Needs an account on this RemDo server. Can edit and rename; cannot invite others. No email is sent."
+                className="document-share-email"
+                data-format-valid={validEmailFormat || undefined}
+                description={(
+                  <>
+                    Needs an account on this RemDo server. Can edit and rename; cannot invite others. No email is sent.
+                    {validEmailFormat && <VisuallyHidden>Valid email format</VisuallyHidden>}
+                    <span className="document-share-email-feedback">
+                      {emailError && <span role="alert">{emailError}</span>}
+                    </span>
+                  </>
+                )}
                 disabled={pending}
-                error={state.status === 'error' ? <span role="alert">{state.message}</span> : undefined}
+                error={Boolean(emailError)}
                 label="Add a person by email"
-                onChange={(event) => { setEmail(event.currentTarget.value); setState({ status: 'idle' }); }}
+                onBlur={(event) => {
+                  setEmailFormat(event.currentTarget.value.trim() ? (event.currentTarget.validity.valid ? 'valid' : 'invalid') : 'idle');
+                }}
+                onChange={(event) => {
+                  const { value, validity } = event.currentTarget;
+                  setEmail(value);
+                  setEmailFormat(previous => validity.valid ? 'valid' : previous === 'invalid' && email.trim() && value.trim() ? 'invalid' : 'idle');
+                  setState({ status: 'idle' });
+                }}
+                onInvalid={(event) => {
+                  event.preventDefault();
+                  setEmailFormat('invalid');
+                  event.currentTarget.focus();
+                }}
+                pattern={String.raw`.+@(?:localhost|.+\..+)`}
                 required
+                rightSection={validEmailFormat ? <Icon color="var(--mantine-color-green-4)" icon={IconCheck} size={18} /> : null}
+                rightSectionPointerEvents="none"
                 type="email"
                 value={email}
               />
-              <Button loading={pending} style={{ alignSelf: 'flex-start' }} type="submit">Add access</Button>
+              <Button className="document-share-add" color="violet" loading={pending} style={{ alignSelf: 'flex-start' }} type="submit">Add access</Button>
+              {email.trim() && state.status === 'idle' && !emailError && <Text c="dimmed" size="sm">Not added yet. Select Add access.</Text>}
               {state.status === 'success' && <Text c="green" role="status" size="sm">{state.message}</Text>}
             </Stack>
           </form>
@@ -146,7 +181,7 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
         </Stack>
 
         <Group justify="flex-end">
-          <Button onClick={onClose} variant="default">Done</Button>
+          <Button onClick={onClose} variant="default">Close</Button>
         </Group>
       </Stack>
     </RemdoDialog>
