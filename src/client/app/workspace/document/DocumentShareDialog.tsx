@@ -50,6 +50,7 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
       : null;
   const link = new URL(createDocumentPath(note.getId()), window.location.origin).href;
   const suggestions = sharing?.suggestions ?? [];
+  const suggestionSearchText = new Map(suggestions.map((person) => [person.email, `${person.name || ''} ${person.email}`]));
 
   useLayoutEffect(() => {
     if (emailInputRef.current?.validity.valid) setEmailFormat('valid');
@@ -129,7 +130,7 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
                 allowsCustomValue
                 aria-label="Add a person by email"
                 autoFocus
-                defaultFilter={(text, query) => Boolean(query.trim()) && text.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())}
+                defaultFilter={(address, query) => Boolean(query.trim()) && (suggestionSearchText.get(address) ?? '').toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())}
                 inputValue={email}
                 isDisabled={pending}
                 onChange={(key) => {
@@ -182,7 +183,7 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
                         className="document-share-suggestion"
                         id={person.userId}
                         key={person.userId}
-                        textValue={`${person.name || ''} ${person.email}`}
+                        textValue={person.email}
                       >
                         <span className="document-share-suggestion-name">{person.name || person.email}</span>
                         {person.name && <span className="document-share-suggestion-email">{person.email}</span>}

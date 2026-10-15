@@ -45,6 +45,13 @@ test('suggests direct sharing contacts in both directions without granting acces
     await expect(list).toHaveCount(0);
     await expect(dialog.getByText('Only you have access.', { exact: true })).toBeVisible();
 
+    // Selecting the same option again must keep the email as the committed value.
+    await field.press('ArrowDown');
+    await list.getByRole('option', { name: `${outgoing.name}, ${outgoing.email}`, exact: true }).click();
+    await expect(field).toHaveValue(outgoing.email);
+    await expect(field).toHaveAccessibleDescription(/Valid email format/u);
+    await expect(dialog.getByText('Only you have access.', { exact: true })).toBeVisible();
+
     await field.fill('example');
     await expect(list).toBeVisible();
     await field.press('Escape');
