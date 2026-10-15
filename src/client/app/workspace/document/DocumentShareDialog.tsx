@@ -65,7 +65,6 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
   const submit = async () => {
     const recipient = email.trim();
     if (!recipient) return;
-    const alreadyShared = recipients.some((access) => access.getEmail().toLowerCase() === recipient.toLowerCase());
     setState({ status: 'pending' });
     try {
       const access = await note.shareWith(recipient);
@@ -74,9 +73,7 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
       setEmailFormat('idle');
       setState({
         status: 'success',
-        message: alreadyShared
-          ? `${access.getEmail()} already has access.`
-          : `Added ${access.getEmail()}. They can edit this document. No email was sent.`,
+        message: `${access.getEmail()} has access. They can edit this document. No email was sent.`,
       });
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : 'Could not add access.';

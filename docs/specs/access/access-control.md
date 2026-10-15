@@ -141,10 +141,10 @@ The owner's recipient list includes **You · Owner** and labels direct grantees
 **Can edit**. The grant form gives **Add access** consistent primary emphasis and
 identifies a typed, unsubmitted address as not yet added. It states that the
 recipient needs an account on this server and no email is sent, and reports
-success or rejection against the submitted address. A repeated grant reports
-that the address already has access. Grants follow [user data operations](../outliner/user-data.md#operations) and
-update the open recipient list on success. Pending submission locks the email
-and action; failure retains the draft.
+success or rejection against the submitted address. Success confirms that the
+address has access, including repeated grants. Grants follow
+[user data operations](../outliner/user-data.md#operations) and update the open recipient list on success.
+Pending submission locks the email and action; failure retains the draft.
 
 The email field shows a green border and a checkmark as a well-formed address is
 typed, requiring a dotted domain except for `localhost`. Format errors appear on

@@ -27,6 +27,12 @@ test('suggests direct sharing contacts in both directions without granting acces
 
     await page.goto(`/n/${target.id}`);
     await ensureReady(page);
+    const header = page.getByRole('banner');
+    const aboutBounds = await header.getByRole('link', { name: 'About', exact: true }).boundingBox();
+    const bellBounds = await header.getByRole('button', { name: 'Shared with you', exact: true }).boundingBox();
+    const logoutBounds = await header.getByRole('link', { name: 'Logout', exact: true }).boundingBox();
+    expect(aboutBounds!.x + aboutBounds!.width).toBeLessThanOrEqual(bellBounds!.x);
+    expect(bellBounds!.x + bellBounds!.width).toBeLessThanOrEqual(logoutBounds!.x);
     await page.getByRole('button', { name: /^Share document —/u }).click();
     const dialog = page.getByRole('dialog', { name: 'Share “Sharing suggestions”', exact: true });
     const field = dialog.getByRole('combobox', { name: 'Add a person by email', exact: true });

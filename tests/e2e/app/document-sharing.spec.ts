@@ -112,7 +112,7 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     await shareDialog.getByRole('combobox', { name: 'Add a person by email', exact: true }).press('Enter');
     // The grant appears without reopening the dialog.
     await expect(shareDialog.getByText(recipient.email, { exact: true })).toBeVisible();
-    await expect(shareDialog.getByRole('status')).toHaveText(`Added ${recipient.email}. They can edit this document. No email was sent.`);
+    await expect(shareDialog.getByRole('status')).toHaveText(`${recipient.email} has access. They can edit this document. No email was sent.`);
     await shareDialog.getByRole('button', { name: 'Close', exact: true }).filter({ hasText: /^Close$/u }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(row.locator('[data-home-document-ref]')).toHaveAccessibleDescription('Shared by you');

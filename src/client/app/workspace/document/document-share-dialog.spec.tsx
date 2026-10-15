@@ -238,15 +238,14 @@ describe('document share dialog', () => {
     expect(screen.getByText('You')).toBeInTheDocument();
     expect(screen.getByText('Owner')).toBeInTheDocument();
     invite('  bob@example.test  ');
-    expect(await screen.findByRole('status')).toHaveTextContent('Added bob@example.test. They can edit this document. No email was sent.');
+    expect(await screen.findByRole('status')).toHaveTextContent('bob@example.test has access. They can edit this document. No email was sent.');
   });
 
-  it('reports that a repeated grant already has access after the source accepts it', async () => {
+  it.each([true, false])('confirms an existing grant when the cached recipient is listed: %s', async (listed) => {
     const grant = { documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' };
-    renderDialog({ documents: [{ ...DOC, access: [grant] }], shareDocument: async () => grant });
-    expect(screen.getByText('Can edit')).toBeInTheDocument();
+    renderDialog({ documents: [{ ...DOC, access: listed ? [grant] : [] }], shareDocument: async () => grant });
     invite('BOB@example.test');
-    expect(await screen.findByRole('status')).toHaveTextContent('bob@example.test already has access.');
+    expect(await screen.findByRole('status')).toHaveTextContent('bob@example.test has access. They can edit this document. No email was sent.');
   });
 
   it('gives a collaborator only their access summary and a locator', () => {
