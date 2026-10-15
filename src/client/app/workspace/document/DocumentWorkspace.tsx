@@ -11,6 +11,9 @@ import {
 } from '#client/editor/view/EditorViewProvider';
 import Editor from '#client/editor/shell/Editor';
 import { KeyboardReference } from '#client/editor/shell/KeyboardReference';
+import { Button, Tooltip, TooltipTrigger } from 'react-aria-components';
+import { IconShare } from '@tabler/icons-react';
+import { Icon } from '#client/ui/Icon';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentMenu } from './DocumentMenu';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
@@ -45,6 +48,7 @@ export default function DocumentWorkspace({
 }) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const shareTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [menuTargetState, setMenuTargetState] = useState<{ docId: string; target: 'header' | 'note' }>({
     docId,
     target: 'header',
@@ -76,6 +80,14 @@ export default function DocumentWorkspace({
   };
   const documentLabel = formatNavigationLabel(source.documentLabel);
   const documentNote = userData.getDocuments().getById(docId);
+  const ownsDocument = documentNote?.canShareWith() === true;
+  const recipientCount = ownsDocument ? documentNote.getAccess().getChildren().length : 0;
+  const shared = !ownsDocument || recipientCount > 0;
+  const shareAction = ownsDocument ? 'Share document' : 'View document access';
+  const shareAccess = ownsDocument
+    ? (recipientCount === 0 ? 'Private · Only you have access' : `Shared by you · ${recipientCount + 1} people have access`)
+    : 'Shared with you · You can edit';
+  const shareLabel = `${shareAction} — ${shareAccess}`;
   const titleItem = zoomPath.at(-1) ?? null;
   const pageTitle = titleItem
     ? `${formatNavigationLabel(titleItem.label)} · ${documentLabel} · ${APP_TITLE}`
@@ -113,6 +125,22 @@ export default function DocumentWorkspace({
       <DocumentToolbar
         documentLabel={source.documentLabel}
         keyboardReference={<KeyboardReference onClose={focusEditorInput} />}
+        shareControl={documentNote && (
+          <TooltipTrigger>
+            <Button
+              aria-label={shareLabel}
+              className="document-share-button"
+              data-shared={shared}
+              onPress={() => openShare(documentNote, shareTriggerRef.current)}
+              ref={shareTriggerRef}
+            >
+              <Icon fill={shared ? 'currentColor' : 'none'} icon={IconShare} size={20} />
+            </Button>
+            <Tooltip className="remdo-tooltip document-share-tooltip" placement="bottom">
+              {shareLabel}
+            </Tooltip>
+          </TooltipTrigger>
+        )}
         onSelectHome={onSelectHome}
         onSelectNoteId={requestZoomNoteId}
         onStatusHostChange={setStatusHost}

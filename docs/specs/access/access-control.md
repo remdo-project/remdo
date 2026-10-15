@@ -119,6 +119,7 @@ identifies the grantee by email; a grant is created only when that email matches
 an account on the document's server. A direct grant gives that user
 full document access.
 Only the owner receives the document's recipient list.
+A recipient also receives the document owner's email and available display name.
 
 Users with full document access may [rename the document](../outliner/location-header.md#document-rename). The source authorizes
 each submission using the caller's current access; client metadata caches do not
@@ -130,16 +131,36 @@ users are denied before document content loads.
 
 ### Document sharing
 
-An owner manages one document's access from that document's [quick action menu](../outliner/menu.md)
-or from the [**Shared** marker](../outliner/home.md#signed-in-behavior) on its Home row.
-The surface names the document it acts on and presents current recipients
-before the controls that change them. Each change applies on its own; the
-surface has no combined submission and closes without discarding applied
-changes.
+The sharing surface names the document it acts on. Owners see current recipients
+before the controls that change them; other users with document access see
+their own access summary. Each change applies on its own, without a separate
+save step. **Close** dismisses the surface, keeping access already added and
+discarding an address that was not added. Closing while a grant is pending does
+not cancel it; reopening shows the current recipient list.
 
-Granting takes an email address and reports a rejected address against the
-address it was given. A grant appears among the recipients once the source
-accepts it, without reopening the surface.
+The owner's recipient list includes **You · Owner** and labels direct grantees
+**Can edit**. The grant form gives **Add access** consistent primary emphasis and
+identifies a typed, unsubmitted address as not yet added. It states that the
+recipient needs an account on this server and no email is sent, and reports
+success or rejection against the submitted address. Success confirms that the
+address has access, including repeated grants. Grants follow
+[user data operations](../outliner/user-data.md#operations) and update the open recipient list on success.
+Pending submission locks the email and action; failure retains the draft.
+
+The email field shows a green border and a checkmark as a well-formed address is
+typed, requiring a dotted domain except for `localhost`. Format errors appear on
+blur or submission and clear when corrected. Source errors take precedence.
+
+While typing a name or email, the grant form suggests people from current direct
+sharing relationships on this server: recipients of the caller's documents and
+owners of documents shared with the caller. Suggestions are deduplicated and
+exclude the caller and current recipients. Outgoing or mutual connections
+precede incoming-only connections, with each group ordered by display name or
+email. Choosing a suggestion fills the address; **Add access** applies the grant.
+
+**Copy link** copies the document-root URL, including when opened from a zoomed
+view, and states that copying does not change access. Clipboard failure or
+unavailability offers a selectable URL instead of reporting a successful copy.
 
 ### Document deletion
 
@@ -222,12 +243,10 @@ established collaboration connections keep their authorization until disconnect.
 
 ## Future
 
-- Consider grant revocation when extending sharing management.
 - Consider offering a readable export before document deletion.
 - Consider password changes when adding account self-service.
 - Add audit logging and rate limiting to future public-policy changes.
 - Define anonymous access and public documents.
-- Define bearer-link access and its revocation, regeneration, and invalid-link behavior.
 - Define a local-only no-login mode.
 
 ## References

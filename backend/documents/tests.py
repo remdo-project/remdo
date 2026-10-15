@@ -123,6 +123,9 @@ class DocumentFlowTests(TestCase):
 
     def test_only_owner_receives_recipient_details(self):
         document = Document.objects.create(owner=self.owner)
+        self.owner.first_name = "Alice"
+        self.owner.last_name = "Owner"
+        self.owner.save()
         third = User.objects.create_user("third@example.test")
         for recipient in (self.other, third):
             DocumentGrant.objects.create(document=document, user=recipient)
@@ -133,6 +136,7 @@ class DocumentFlowTests(TestCase):
             list(Document.objects.filter(owner=self.owner).values_list("id", flat=True)),
         )
         shared = next(item for item in listing if item["id"] == document.id)
+        self.assertIsNone(shared["sharedBy"])
         self.assertCountEqual(
             [grant["email"] for grant in shared["access"]], [self.other.email, third.email]
         )
@@ -147,6 +151,17 @@ class DocumentFlowTests(TestCase):
                     [Document.objects.get(owner=recipient).id, document.id],
                 )
                 self.assertTrue(all(item["access"] == [] for item in listing))
+                incoming = next(item for item in listing if item["id"] == document.id)
+                self.assertEqual(
+                    incoming["sharedBy"],
+                    {
+                        "userId": str(self.owner.pk),
+                        "email": self.owner.email,
+                        "name": "Alice Owner",
+                    },
+                )
+                own = next(item for item in listing if item["id"] != document.id)
+                self.assertIsNone(own["sharedBy"])
 
     def test_sharing_rejects_unknown_self_and_invalid_email(self):
         document = Document.objects.create(owner=self.owner)

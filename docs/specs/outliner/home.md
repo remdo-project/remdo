@@ -68,6 +68,14 @@ blur halo around the button.
 4. Above the list, Home offers [document search](./search.md#document-scope),
    omitted with the list.
 
+## Shared documents
+
+The **Shared with you** bell in the [signed-in app header](../../architecture.md#shared-presentation) opens a panel listing the
+current account's accessible documents owned by others. Each entry names the
+document and opens its document-root view. The panel reports an empty list only
+after loading, shows listing failures with Retry, and keeps available cached
+entries usable. It has no unread state or notification history.
+
 ## Document actions
 
 1. **New document** opens a naming dialog before creating a document in the

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { registerSW } from 'virtual:pwa-register';
 import { config } from '#config';
@@ -41,6 +41,7 @@ export default function AppFrame() {
 }
 
 function AppFrameContent() {
+  const [sharedDocumentsHost, setSharedDocumentsHost] = useState<HTMLElement | null>(null);
   const { data: configuration } = useQuery(apiConfiguration.query, apiConfiguration.client);
   const matches = useMatches();
   const location = useLocation();
@@ -83,6 +84,7 @@ function AppFrameContent() {
     <>
       <a href="/blog/">Blog</a>
       <a className="site-about" href="/about/">About</a>
+      {signedIn && <span className="shared-documents-host" ref={setSharedDocumentsHost} />}
       {signedIn && <Link to="/sign-out">Logout</Link>}
       {signedOut && <a href={createSignInPath(location.search)}>Sign in</a>}
       <DevToolbarLinksSeam />
@@ -101,7 +103,7 @@ function AppFrameContent() {
         onConfirm={logout.confirmLogout}
         opened={logout.confirmingLoss}
       />
-      {logout.signingOut ? <div role="status">Signing out…</div> : <Outlet />}
+      {logout.signingOut ? <div role="status">Signing out…</div> : <Outlet context={sharedDocumentsHost} />}
     </>
   );
 }

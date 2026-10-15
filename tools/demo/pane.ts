@@ -78,12 +78,13 @@ export class Pane {
     await this.afterStep();
     await this.click(this.page.getByRole('menuitem', { name: 'Share…' }));
     const dialog = this.page.getByRole('dialog');
-    await this.click(dialog.getByRole('textbox', { name: 'Invite by email' }));
+    await this.click(dialog.getByRole('combobox', { name: 'Add a person by email' }));
     await this.type(email);
-    await this.click(dialog.getByRole('button', { name: 'Invite' }));
+    await this.press('Tab');
+    await this.click(dialog.getByRole('button', { name: 'Add access' }));
     await dialog.getByText(email).first().waitFor();
     await this.pause('short');
-    await this.click(dialog.getByRole('button', { name: 'Done' }));
+    await this.click(dialog.getByRole('button', { name: 'Close', exact: true }).filter({ hasText: /^Close$/u }));
     await this.afterStep();
   }
 
