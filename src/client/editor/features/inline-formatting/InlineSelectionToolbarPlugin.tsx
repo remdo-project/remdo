@@ -1,10 +1,10 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $addUpdateTag, $onUpdate, COMMAND_PRIORITY_LOW, CONTROL_OR_META, HISTORY_PUSH_TAG, IS_APPLE, isExactShortcutMatch, KEY_DOWN_COMMAND, SET_TEXT_FORMAT_COMMAND } from 'lexical';
-import type { LexicalEditor } from 'lexical';
+import { IS_APPLE } from 'lexical';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useCoarsePointer } from '#client/browser/useCoarsePointer';
-import { stopHistoryCapture } from '#client/editor/runtime/history';
+import { TOGGLE_INLINE_FORMAT_COMMAND } from '#client/editor/foundation/commands';
+import { hasNativeEditorSelection } from '#client/editor/foundation/editor-focus';
 import { isAnyPopupActive, subscribeToActivePopup } from '#client/editor/triggers/active-popup';
 import { $readInlineFormatTarget } from './selection';
 import type { FormatStates, InlineFormat } from './selection';
@@ -19,34 +19,9 @@ interface ToolbarView {
   geometry: ToolbarGeometry;
 }
 
-function ownsNativeRange(root: HTMLElement): boolean {
-  const doc = root.ownerDocument;
-  const selection = doc.getSelection();
-  return doc.hasFocus() && root.contains(doc.activeElement) && root.contains(selection?.anchorNode ?? null)
-    && root.contains(selection?.focusNode ?? null);
-}
-
-export function InlineSelectionToolbarPlugin() {
-  const [editor] = useLexicalComposerContext();
+export function InlineSelectionToolbarPlugin({ enabled = true }: { enabled?: boolean }) {
   const coarse = useCoarsePointer();
-  useEffect(() => editor.registerCommand(KEY_DOWN_COMMAND, event => {
-    if (event.isComposing || !isExactShortcutMatch(event, 'e', CONTROL_OR_META)) return false;
-    const root = editor.getRootElement();
-    if (!root || !ownsNativeRange(root)) return false;
-    const target = $readInlineFormatTarget(editor);
-    if (!target) return false;
-    event.preventDefault();
-    $formatInlineSelection(editor, 'code', target.states);
-    return true;
-  }, COMMAND_PRIORITY_LOW), [editor]);
-  return coarse ? null : <FinePointerToolbar />;
-}
-
-function $formatInlineSelection(editor: LexicalEditor, format: InlineFormat, states: FormatStates) {
-  stopHistoryCapture(editor);
-  $addUpdateTag(HISTORY_PUSH_TAG);
-  editor.dispatchCommand(SET_TEXT_FORMAT_COMMAND, { [format]: states[format] !== 'all' });
-  $onUpdate(() => stopHistoryCapture(editor));
+  return enabled && !coarse ? <FinePointerToolbar /> : null;
 }
 
 function FinePointerToolbar() {
@@ -72,7 +47,7 @@ function FinePointerToolbar() {
       frame = 0;
       const root = editor.getRootElement();
       if (!root || pointerRef.current || composingRef.current
-        || !ownsNativeRange(root)) {
+        || !hasNativeEditorSelection(root)) {
         hide();
         return;
       }
@@ -194,11 +169,8 @@ function FinePointerToolbar() {
     const expected = activationRef.current;
     activationRef.current = null;
     const root = editor.getRootElement();
-    if (root && ownsNativeRange(root) && expected && !pointerRef.current && !composingRef.current) {
-      editor.update(() => {
-        const target = $readInlineFormatTarget(editor);
-        if (target?.fingerprint === expected) $formatInlineSelection(editor, formatType, target.states);
-      });
+    if (root && hasNativeEditorSelection(root) && expected && !pointerRef.current && !composingRef.current) {
+      editor.dispatchCommand(TOGGLE_INLINE_FORMAT_COMMAND, { format: formatType, fingerprint: expected });
     }
     scheduleRef.current();
   };

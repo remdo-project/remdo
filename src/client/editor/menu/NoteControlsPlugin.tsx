@@ -103,7 +103,26 @@ export function NoteControlsPlugin() {
       return element;
     };
 
+    const resizeObserver = new ResizeObserver(() => syncActiveControls());
+    const observedElements = new Set<HTMLElement>();
+    const observeLayout = (elements: HTMLElement[]) => {
+      const next = new Set(elements);
+      for (const element of observedElements) {
+        if (!next.has(element)) {
+          resizeObserver.unobserve(element);
+          observedElements.delete(element);
+        }
+      }
+      for (const element of next) {
+        if (!observedElements.has(element)) {
+          resizeObserver.observe(element);
+          observedElements.add(element);
+        }
+      }
+    };
+
     const clearControls = () => {
+      observeLayout([]);
       setControls(null);
     };
 
@@ -118,10 +137,12 @@ export function NoteControlsPlugin() {
         clearControls();
         return;
       }
+      const zoomRoot = root.querySelector<HTMLElement>('[data-zoom-root]');
+      observeLayout(zoomRoot ? [root, element, zoomRoot] : [root, element]);
       setControls({ ...layout, ...noteState });
     };
 
-    const syncActiveControls = () => {
+    function syncActiveControls() {
       const root = rootRef.current ?? editor.getRootElement();
       const anchor = root ? root.closest<HTMLElement>('.editor-container') : null;
       if (!root || !anchor) {
@@ -152,7 +173,7 @@ export function NoteControlsPlugin() {
         return;
       }
       syncControlsForElement(active, root, anchor);
-    };
+    }
     syncActiveControlsRef.current = syncActiveControls;
 
     const setInteractionSource = (source: InteractionSource): boolean => {
@@ -276,6 +297,7 @@ export function NoteControlsPlugin() {
       syncActiveControlsRef.current = null;
       unregisterRootListener();
       unregisterUpdate();
+      resizeObserver.disconnect();
       globalThis.removeEventListener('resize', handleResize);
       document.removeEventListener('pointermove', handlePointerMove);
       if (currentRoot) {

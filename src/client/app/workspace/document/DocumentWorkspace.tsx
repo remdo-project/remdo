@@ -54,6 +54,7 @@ export default function DocumentWorkspace({
     setMenuTargetState((current) => current.docId === docId && current.target === target ? current : { docId, target });
   };
   const [statusHost, setStatusHost] = useState<HTMLDivElement | null>(null);
+  const [editingToolbarHost, setEditingToolbarHost] = useState<HTMLDivElement | null>(null);
   const { requestZoomNoteId } = useEditorViewActions();
   const zoomPath = useZoomPath();
   const openDocumentView = useOpenDocument()?.view;
@@ -124,19 +125,26 @@ export default function DocumentWorkspace({
           onFocus={targetHeader}
           onPointerMove={targetHeader}
         >
-          {documentNote && (
-            <DocumentMenu
-              label={documentLabel}
-              note={documentNote}
-              onDelete={openDelete}
-              onRename={openRename}
-              onShare={openShare}
-              view={openDocumentView}
-            />
-          )}
-          <h1 className="location-header-title" ref={headingRef} tabIndex={-1}>
-            {formatNavigationLabel(source.documentLabel, Number.POSITIVE_INFINITY)}
-          </h1>
+          <div className="location-header-heading">
+            {documentNote && (
+              <DocumentMenu
+                label={documentLabel}
+                note={documentNote}
+                onDelete={openDelete}
+                onRename={openRename}
+                onShare={openShare}
+                view={openDocumentView}
+              />
+            )}
+            <h1 className="location-header-title" ref={headingRef} tabIndex={-1}>
+              {formatNavigationLabel(source.documentLabel, Number.POSITIVE_INFINITY)}
+            </h1>
+          </div>
+          <div
+            className="location-header-toolbar"
+            ref={setEditingToolbarHost}
+            style={{ visibility: search.searchModeActive ? 'hidden' : undefined }}
+          />
         </div>
       )}
       {importError?.docId === docId && (
@@ -161,6 +169,7 @@ export default function DocumentWorkspace({
           docId={docId}
           accountId={userId}
           statusPortalRoot={statusHost}
+          editingToolbarPortalRoot={editingToolbarHost}
           onSelectHome={onSelectHome}
           onPendingDocumentImportError={handleImportError}
         />

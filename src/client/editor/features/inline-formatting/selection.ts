@@ -1,11 +1,12 @@
 import { $getSelection, $isRangeSelection, $isTextNode } from 'lexical';
 import type { LexicalEditor, TextNode } from 'lexical';
+import type { ToggleInlineFormatPayload } from '#client/editor/foundation/commands';
 import { $getNoteBodyFromNode } from '#client/editor/outline/selection/body-region';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
 import { isAnyPopupActive } from '#client/editor/triggers/active-popup';
 
 export const INLINE_FORMATS = ['bold', 'italic', 'underline', 'code'] as const;
-export type InlineFormat = typeof INLINE_FORMATS[number];
+export type InlineFormat = ToggleInlineFormatPayload['format'];
 export type FormatState = 'all' | 'some' | 'none';
 export type FormatStates = Record<InlineFormat, FormatState>;
 

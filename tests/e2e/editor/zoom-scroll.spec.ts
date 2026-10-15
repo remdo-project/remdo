@@ -110,6 +110,7 @@ test('editing outside the zoom boundary does not change zoom or scroll state', a
   });
   expect(requiresScroll).toBe(true);
 
+  await note1.scrollIntoViewIfNeeded();
   const metrics = await getBulletMetrics(note1);
   await page.mouse.click(metrics.x, metrics.y);
   await expect(page).toHaveURL(createEditorDocumentPathRegExp(docId, 'note1'));

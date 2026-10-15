@@ -1,0 +1,86 @@
+.desktop-editing-toolbar {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  max-width: 100%;
+  padding-block: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  color: var(--mantine-color-dark-0);
+}
+
+.desktop-editing-toolbar-zoom-host {
+  position: absolute;
+  z-index: 1;
+  max-width: calc(100% - 2 * var(--remdo-body-inset));
+}
+
+.editor-root li.list-item[data-desktop-toolbar='beside'] {
+  box-sizing: border-box;
+  min-height: var(--desktop-toolbar-height);
+  width: calc(100% - var(--desktop-toolbar-width) - 1rem);
+}
+
+.editor-root li.list-item[data-desktop-toolbar='below'] {
+  margin-block-end: calc(var(--desktop-toolbar-height) + 0.5rem);
+}
+
+.desktop-editing-toolbar__group {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.desktop-editing-toolbar__divider {
+  flex: none;
+  width: 1px;
+  height: 1.125rem;
+  margin-inline: 0.5rem;
+  background: var(--chrome-line);
+}
+
+.desktop-editing-toolbar__button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.desktop-editing-toolbar__button > span {
+  display: flex;
+}
+
+.desktop-editing-toolbar__button[data-disabled] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.desktop-editing-toolbar__button[data-hovered],
+.desktop-editing-toolbar__button[data-pressed] {
+  background: var(--chrome-hover);
+}
+
+.desktop-editing-toolbar__button[aria-pressed='true'] {
+  color: var(--remdo-accent);
+  background: var(--chrome-hover);
+}
+
+.desktop-editing-toolbar__button[aria-pressed='mixed'] {
+  color: var(--remdo-accent);
+  box-shadow: inset 0 -2px var(--remdo-accent);
+}
+
+.desktop-editing-toolbar__button:focus-visible,
+.desktop-editing-toolbar__button[data-focus-visible] {
+  outline: 2px solid var(--remdo-accent);
+  outline-offset: -2px;
+}
