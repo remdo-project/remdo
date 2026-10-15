@@ -11,7 +11,7 @@ describe('document sharing suggestions', () => {
   const outgoing: UserDocument = {
     id: 'outgoing', title: 'Outgoing', shareable: true,
     access: [
-      { documentId: 'outgoing', granteeUserId: 'zoe', email: 'zoe@example.test', name: 'Zoe' },
+      { documentId: 'outgoing', granteeUserId: 'zoe', email: 'zoe@example.test', name: '' },
       { documentId: 'outgoing', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' },
       { documentId: 'outgoing', granteeUserId: 'existing', email: 'existing@example.test', name: 'Existing' },
     ],
@@ -22,11 +22,11 @@ describe('document sharing suggestions', () => {
   };
 
   it('combines direct relationships, ranks outgoing first, and excludes existing recipients', () => {
-    const mutual = { ...incoming, id: 'mutual', sharedBy: { userId: 'zoe', email: 'zoe@example.test', name: 'Zoe' } };
+    const mutual = { ...incoming, id: 'mutual', sharedBy: { userId: 'zoe', email: 'zoe@example.test', name: '' } };
     const data = createUserDataRootNote([target, incoming, mutual, outgoing, { ...outgoing, id: 'duplicate' }]);
     expect(data.getDocuments().getById('target')!.getSharingSuggestions()).toEqual([
       { userId: 'bob', email: 'bob@example.test', name: 'Bob' },
-      { userId: 'zoe', email: 'zoe@example.test', name: 'Zoe' },
+      { userId: 'zoe', email: 'zoe@example.test', name: '' },
       { userId: 'aaron', email: 'aaron@example.test', name: 'Aaron' },
     ]);
     expect(data.getDocuments().getById('incoming')!.getSharingSuggestions()).toEqual([]);
