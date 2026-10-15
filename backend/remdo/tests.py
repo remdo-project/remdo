@@ -382,7 +382,7 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
             result["statuses"],
             [200, 201, 204, 302, 304, 400, 401, 403, 404, 410, 429, 500, 503, 599],
         )
-        self.assertEqual(result["callback_status"], 401)
+        self.assertEqual(result["callback_statuses"], [401, 401, 401])
         events = [event for kind, event in ingest.items() if kind == "event"]
         responses = [event for event in events if event.get("message") == "HTTP error response"]
         status_route = "status/<int:code>/<str:document>"
@@ -399,6 +399,8 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
                 ("", 503, "error"),
                 ("^pages/(?P<slug>[a-z-]+)/$", 503, "error"),
                 ("accounts/google/login/callback/", 401, "warning"),
+                ("accounts/google/login/callback/", 401, "warning"),
+                ("accounts/google/login/callback/", 401, "warning"),
             ],
         )
         diagnostic = next(event for event in events if event.get("exception"))
@@ -406,6 +408,33 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         self.assertEqual(diagnostic["level"], "error")
         self.assertNotIn("http.status_code", diagnostic["tags"])
         by_route = {event["tags"]["http.route"]: event for event in responses}
+        callbacks = [
+            event
+            for event in responses
+            if event["tags"]["http.route"] == "accounts/google/login/callback/"
+        ]
+        for callback in callbacks:
+            self.assertEqual(callback["tags"]["auth.cause"], "state-lost")
+            self.assertEqual(
+                callback["fingerprint"],
+                ["http-response", "GET", "accounts/google/login/callback/", "401", "state-lost"],
+            )
+        self.assertCountEqual(
+            [
+                (
+                    event["tags"]["auth.state_present"],
+                    event["tags"]["auth.code_present"],
+                    event["tags"]["auth.session_cookie_present"],
+                    event["tags"].get("auth.provider_error"),
+                )
+                for event in callbacks
+            ],
+            [
+                ("true", "true", "false", None),
+                ("false", "false", "true", "other"),
+                ("false", "false", "false", None),
+            ],
+        )
         self.assertEqual(by_route[""]["request"]["url"], "https://remdo.example/")
         self.assertEqual(
             by_route["^pages/(?P<slug>[a-z-]+)/$"]["request"]["url"],

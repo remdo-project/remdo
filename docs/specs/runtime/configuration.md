@@ -193,6 +193,13 @@ unreported. A request already reported by Django exception handling produces no
 additional response event.
 Reports group by method, route pattern, and status and include a generated
 request identifier; unmatched paths and route parameter values are omitted.
+A callback report also names why the sign-in failed and groups by it: no
+pending sign-in, a provider error, a missing authorization code, or the class of
+the exception raised while completing it.
+It also records only whether the request carried state and authorization-code
+parameters and a session cookie, and whether its visitor was signed in; never
+their values. Provider errors use an allowlisted category, with other values
+reduced to a fixed category. These details do not affect grouping.
 Responses from external services and failures generated before a request reaches
 Django remain outside this reporting.
 **Deterministic.**

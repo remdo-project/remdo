@@ -25,7 +25,8 @@ Creating an account also creates one empty document titled **New Document**.
 Account and document creation succeed together. Later account updates and reads
 leave the document inventory unchanged.
 
-Google sign-in signs in to the account it is linked to. Otherwise it uses only
+Google sign-in requests account selection on every attempt. It signs in to the
+account it is linked to. Otherwise it uses only
 an email address Google reports as verified: it signs in to the account whose
 email matches, case-insensitively, and links Google to it; that account keeps
 its password. Without a match, it creates an account for that email without a
