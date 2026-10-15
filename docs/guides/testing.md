@@ -83,6 +83,9 @@ The wrapper starts PostgreSQL, supplies its connection, and removes its containe
 and volume when the command exits. It can also wrap `pnpm run test:collab` or
 `pnpm run test:e2e` for a PostgreSQL-specific integration check.
 
+[Mobile Device Investigation](mobile-devices.md) covers manual checks on cloud
+devices, which stay outside verification.
+
 CI runs all static checks configured in its workflows, and verifies the
 [database isolation](../specs/testing/test-harness.md#database-isolation) and
 deployment coverage the test harness owns.
