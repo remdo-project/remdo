@@ -53,8 +53,9 @@ class HttpErrorReportingMiddleware:
                     method,
                     route,
                     str(event_status),
-                    *details.values(),
                 ]
+                if cause := details.get("auth.cause"):
+                    event["fingerprint"].append(cause)
                 event["level"] = "error" if event_status >= 500 else "warning"
             return event
 

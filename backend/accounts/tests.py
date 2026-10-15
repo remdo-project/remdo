@@ -575,9 +575,9 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
         cases = [
             ("state-lost", {"code": "code"}, None),
             ("state-lost", {"code": "code", "state": "unknown"}, None),
-            ("no-code-or-error", {"error": "server_error"}, None),
-            ("no-code-or-error", {"error": "server_error", "code": "code"}, None),
-            ("no-code-or-error", {}, None),
+            ("provider-error", {"error": "server_error"}, None),
+            ("provider-error", {"error": "server_error", "code": "code"}, None),
+            ("missing-code", {}, None),
             ("OAuth2Error", {"code": "code"}, [Mock(status_code=400, content=b"private-body")]),
             ("OAuth2Error", {"code": "code"}, [token, Mock(ok=False)]),
         ]
@@ -588,7 +588,86 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
                 with patch("requests.Session.request", side_effect=responses):
                     response = self.client.get("/accounts/google/login/callback/", params)
                 self.assertEqual(response.status_code, 401)
-                self.assertEqual(response.wsgi_request.error_report_tags, {"auth.cause": cause})
+                self.assertEqual(response.wsgi_request.error_report_tags["auth.cause"], cause)
+
+    def test_callback_diagnostics_record_presence_without_parameter_or_cookie_values(self):
+        cases = [
+            ({}, False, ("false", "false", "false")),
+            (
+                {"state": "private-state", "code": "private-code"},
+                True,
+                ("true", "true", "true"),
+            ),
+            ({"state": "", "code": ""}, False, ("true", "true", "false")),
+        ]
+        for params, cookie, presence in cases:
+            with self.subTest(params=params, cookie=cookie):
+                self.client = Client(enforce_csrf_checks=True)
+                if cookie:
+                    self.client.cookies[settings.SESSION_COOKIE_NAME] = "private-session-cookie"
+
+                response = self.client.get("/accounts/google/login/callback/", params)
+
+                self.assertEqual(response.status_code, 401)
+                self.assertEqual(
+                    response.wsgi_request.error_report_tags,
+                    {
+                        "auth.cause": "state-lost",
+                        "auth.state_present": presence[0],
+                        "auth.code_present": presence[1],
+                        "auth.session_cookie_present": presence[2],
+                        "auth.signed_in": "false",
+                    },
+                )
+
+    def test_callback_diagnostics_record_a_signed_in_visitor(self):
+        self.google_login("alice@example.test")
+
+        response = self.client.get(
+            "/accounts/google/login/callback/", {"code": "code", "state": "consumed"}
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.wsgi_request.error_report_tags,
+            {
+                "auth.cause": "state-lost",
+                "auth.state_present": "true",
+                "auth.code_present": "true",
+                "auth.session_cookie_present": "true",
+                "auth.signed_in": "true",
+            },
+        )
+
+    def test_callback_provider_errors_are_allowlisted(self):
+        for provider_error, category in (
+            ("server_error", "server_error"),
+            ("admin_policy_enforced", "admin_policy_enforced"),
+            ("private-error-for-someone@example.test", "other"),
+            ("", "other"),
+        ):
+            with self.subTest(provider_error=provider_error):
+                response = self.client.get(
+                    "/accounts/google/login/callback/",
+                    {
+                        "state": self.start_google_login(),
+                        "error": provider_error,
+                        "error_description": "private-provider-description",
+                    },
+                )
+
+                self.assertEqual(response.status_code, 401)
+                self.assertEqual(
+                    response.wsgi_request.error_report_tags,
+                    {
+                        "auth.cause": "provider-error",
+                        "auth.state_present": "true",
+                        "auth.code_present": "false",
+                        "auth.session_cookie_present": "true",
+                        "auth.signed_in": "false",
+                        "auth.provider_error": category,
+                    },
+                )
 
 
 @override_settings(

@@ -10,6 +10,21 @@ from django.conf import settings
 from django.shortcuts import render
 from django.urls import reverse
 
+GOOGLE_AUTH_ERRORS = {
+    "access_denied",
+    "admin_policy_enforced",
+    "disallowed_useragent",
+    "invalid_client",
+    "invalid_request",
+    "invalid_scope",
+    "org_internal",
+    "redirect_uri_mismatch",
+    "server_error",
+    "temporarily_unavailable",
+    "unauthorized_client",
+    "unsupported_response_type",
+}
+
 
 def password_authenticated(request, user):
     records = get_authentication_records(request)
@@ -60,9 +75,24 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             cause = type(exception).__name__
         elif "state" not in (extra_context or {}):
             cause = "state-lost"
+        elif "error" in request.GET:
+            cause = "provider-error"
         else:
-            cause = "no-code-or-error"
-        request.error_report_tags = {"auth.cause": cause}
+            cause = "missing-code"
+        request.error_report_tags = {
+            "auth.cause": cause,
+            "auth.state_present": str("state" in request.GET).lower(),
+            "auth.code_present": str("code" in request.GET).lower(),
+            "auth.session_cookie_present": str(
+                settings.SESSION_COOKIE_NAME in request.COOKIES
+            ).lower(),
+            "auth.signed_in": str(request.user.is_authenticated).lower(),
+        }
+        if "error" in request.GET:
+            provider_error = request.GET["error"]
+            request.error_report_tags["auth.provider_error"] = (
+                provider_error if provider_error in GOOGLE_AUTH_ERRORS else "other"
+            )
         super().on_authentication_error(
             request, provider, error=error, exception=exception, extra_context=extra_context
         )
