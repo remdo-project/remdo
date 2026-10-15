@@ -200,6 +200,7 @@ class LoginPageTests(TestCase):
 
     def test_page_links_the_site_header_and_footer(self):
         response = self.client.get("/accounts/login/")
+        self.assertContains(response, '<a href="/blog/">Blog</a>', html=True)
         self.assertContains(response, '<a class="site-about" href="/about/">About</a>', html=True)
         self.assertContains(response, '<a href="/privacy/">Privacy</a>', html=True)
         self.assertContains(response, '<a href="/terms/">Terms</a>', html=True)

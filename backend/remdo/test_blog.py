@@ -1,6 +1,5 @@
 import tempfile
 from pathlib import Path
-from unittest import skip
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -23,7 +22,7 @@ class BlogTests(SimpleTestCase):
             "description": f"Excerpt of {slug}",
             "date": date,
             "topic": "Perspectives",
-            "image": "/site-assets/blog/perspectives.webp",
+            "image": "/site-assets/blog/language-learning-cover.webp",
             **fields,
         }
         lines = "\n".join(f"{key}: {value}" for key, value in front_matter.items())
@@ -50,7 +49,7 @@ class BlogTests(SimpleTestCase):
         response = self.client.get("/blog/")
         self.assertContains(
             response,
-            '<img class="landing-blog-image" src="/site-assets/blog/perspectives.webp"'
+            '<img class="landing-blog-image" src="/site-assets/blog/language-learning-cover.webp"'
             ' alt="" width="224" height="224">',
             html=True,
         )
@@ -145,7 +144,6 @@ class BlogTests(SimpleTestCase):
         self.assertEqual(self.client.post("/blog/").status_code, 405)
         self.assertEqual(self.client.post("/blog/real/").status_code, 405)
 
-    @skip("The Blog header link is hidden; see site_header.html")
     def test_header_marks_blog_current_on_the_index_and_every_post_only(self):
         self.write_post("real")
         for url in ("/blog/", "/blog/real/"):
