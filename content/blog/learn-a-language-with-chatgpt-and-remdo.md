@@ -3,8 +3,10 @@ title: Learn a language with ChatGPT and RemDo
 description: Practise a language with ChatGPT and keep recaps, tutor feedback and lesson notes together in a shared RemDo document.
 date: 2026-10-14
 topic: Case study
-image: /site-assets/blog/language-learning-cover.png
+image: /site-assets/blog/language-learning-cover.webp
 ---
+
+<!-- markdownlint-disable relative-links -->
 
 Practise a language with ChatGPT, then save a lesson recap in RemDo with one
 short request. The recap records your goals, what went well, what needs more
@@ -19,7 +21,7 @@ changing an order at a café.
 
 <figure>
   <video controls playsinline preload="none" width="2252" height="1754"
-    poster="https://share.remdo.com/blog/chatgpt-poster.png">
+    poster="/site-assets/blog/chatgpt-poster.webp">
     <source src="https://share.remdo.com/blog/chatgpt.mp4" type="video/mp4">
   </video>
   <figcaption>Italian practice in ChatGPT, starting from the previous recap in RemDo.</figcaption>
@@ -32,7 +34,7 @@ RemDo.” ChatGPT saves the recap in RemDo. You get useful phrases and correctio
 to review, plus a short task to practise before your next lesson.
 
 <figure>
-  <img src="https://share.remdo.com/blog/italian-lesson-recap.png"
+  <img src="/site-assets/blog/italian-lesson-recap.webp"
     width="2000" height="1548" loading="lazy" decoding="async"
     alt="An Italian lesson recap in RemDo with goals, corrections, useful
     phrases, practice tasks and a note for the tutor.">
@@ -46,7 +48,7 @@ where you needed help. They can add feedback directly and write notes after your
 lessons together.
 
 <figure>
-  <img src="https://share.remdo.com/blog/italian-tutor-notes.png"
+  <img src="/site-assets/blog/italian-tutor-notes.webp"
     width="2000" height="1370" loading="lazy" decoding="async"
     alt="A shared RemDo document with earlier Italian lessons collapsed and
     tutor notes expanded. A blue cursor shows the tutor editing the final
