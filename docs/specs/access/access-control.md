@@ -242,12 +242,10 @@ established collaboration connections keep their authorization until disconnect.
 
 ## Future
 
-- Consider grant revocation when extending sharing management.
 - Consider offering a readable export before document deletion.
 - Consider password changes when adding account self-service.
 - Add audit logging and rate limiting to future public-policy changes.
 - Define anonymous access and public documents.
-- Define bearer-link access and its revocation, regeneration, and invalid-link behavior.
 - Define a local-only no-login mode.
 
 ## References

@@ -330,9 +330,10 @@ concrete unmet need.
   a Retry that cannot succeed, and whether that surface replaces the stale
   listing. Server-side [expired-session cleanup](#operations) is separate.
 
-- **Link sharing.** Bearer-link issuance, resolution, regeneration, and
-  revocation are unbuilt. Define their behavior in [Access Scope](specs/access/access-control.md#access-scope) before implementing
-  them. Direct-grant revocation is also unbuilt.
+- **Link sharing.** Bearer-link issuance, resolution, regeneration, revocation,
+  and invalid-link behavior are unbuilt. Define their behavior in
+  [Access Scope](specs/access/access-control.md#access-scope) before implementing them. Direct-grant revocation is
+  also unbuilt; consider it when extending sharing management.
 
 - **Document deletion in open sessions.** [Document deletion](specs/access/access-control.md#document-deletion) ships from
   Home row menus and the document-root header menu, and the deleting session

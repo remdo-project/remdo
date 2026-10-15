@@ -86,12 +86,7 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
   const copyLink = async () => {
     setCopyState('pending');
     try {
-      const clipboard = (navigator as { clipboard?: Clipboard }).clipboard;
-      if (!clipboard) {
-        setCopyState('manual');
-        return;
-      }
-      await clipboard.writeText(link);
+      await navigator.clipboard.writeText(link);
       setCopyState('copied');
     } catch {
       setCopyState('manual');
