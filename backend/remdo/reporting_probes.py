@@ -116,10 +116,27 @@ def http_errors():
     # request or frontend build. Allauth's session and provider lookup use the DB.
     call_command("migrate", interactive=False, stdout=io.StringIO())
     with override_settings(FRONTEND_USE_SOURCE=True):
-        callback = client.get(
-            "/accounts/google/login/callback/?code=private-code&state=private-state", **options
+        callback_statuses = [
+            client.get(
+                "/accounts/google/login/callback/?code=private-code&state=private-state", **options
+            ).status_code
+        ]
+        client.cookies[settings.SESSION_COOKIE_NAME] = "private-session-cookie"
+        callback_statuses.append(
+            client.get(
+                "/accounts/google/login/callback/",
+                {
+                    "error": "private-provider-error",
+                    "error_description": "private-provider-description",
+                },
+                **options,
+            ).status_code
         )
-    return {"statuses": statuses, "callback_status": callback.status_code}
+        del client.cookies[settings.SESSION_COOKIE_NAME]
+        callback_statuses.append(
+            client.get("/accounts/google/login/callback/", **options).status_code
+        )
+    return {"statuses": statuses, "callback_statuses": callback_statuses}
 
 
 def disabled():

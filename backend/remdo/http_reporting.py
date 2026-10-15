@@ -45,8 +45,17 @@ class HttpErrorReportingMiddleware:
                 event_status = status or getattr(record, "status_code", 500)
                 if not reports(event_status, route):
                     return None
+                details = getattr(request, "error_report_tags", {})
+                event["tags"].update(details)
                 event["tags"]["http.status_code"] = event_status
-                event["fingerprint"] = ["http-response", method, route, str(event_status)]
+                event["fingerprint"] = [
+                    "http-response",
+                    method,
+                    route,
+                    str(event_status),
+                ]
+                if cause := details.get("auth.cause"):
+                    event["fingerprint"].append(cause)
                 event["level"] = "error" if event_status >= 500 else "warning"
             return event
 
