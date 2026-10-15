@@ -8,19 +8,26 @@ import { createTestAuthAccount } from '#tests-common/auth-account';
 test('places the shared-documents bell and keeps normal link spacing on sign-out', async ({ page }) => {
   await page.goto('/');
   const header = page.getByRole('banner');
-  const aboutBounds = await header.getByRole('link', { name: 'About', exact: true }).boundingBox();
-  const bellBounds = await header.getByRole('button', { name: 'Shared with you', exact: true }).boundingBox();
-  const logoutBounds = await header.getByRole('link', { name: 'Logout', exact: true }).boundingBox();
-  expect(aboutBounds!.x + aboutBounds!.width).toBeLessThanOrEqual(bellBounds!.x);
-  expect(bellBounds!.x + bellBounds!.width).toBeLessThanOrEqual(logoutBounds!.x);
-  const headerGap = bellBounds!.x - aboutBounds!.x - aboutBounds!.width;
+  await expect(header.getByRole('button', { name: 'Shared with you', exact: true })).toBeVisible();
+  // Lazy development links can move the header between separate measurements.
+  const [aboutBounds, bellBounds, logoutBounds] = await header.evaluate(element =>
+    ['.site-about', '.shared-documents-button', 'a[href="/sign-out"]'].map(selector => {
+      const { left, right } = element.querySelector(selector)!.getBoundingClientRect();
+      return { left, right };
+    }));
+  expect(aboutBounds!.right).toBeLessThanOrEqual(bellBounds!.left);
+  expect(bellBounds!.right).toBeLessThanOrEqual(logoutBounds!.left);
+  const headerGap = bellBounds!.left - aboutBounds!.right;
 
   await page.goto('/sign-out');
   await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
   await expect(header.getByRole('button', { name: 'Shared with you', exact: true })).toHaveCount(0);
-  const signOutAboutBounds = await header.getByRole('link', { name: 'About', exact: true }).boundingBox();
-  const signOutLogoutBounds = await header.getByRole('link', { name: 'Logout', exact: true }).boundingBox();
-  expect(signOutLogoutBounds!.x - signOutAboutBounds!.x - signOutAboutBounds!.width).toBeCloseTo(headerGap, 0);
+  const [signOutAboutBounds, signOutLogoutBounds] = await header.evaluate(element =>
+    ['.site-about', 'a[href="/sign-out"]'].map(selector => {
+      const { left, right } = element.querySelector(selector)!.getBoundingClientRect();
+      return { left, right };
+    }));
+  expect(signOutLogoutBounds!.left - signOutAboutBounds!.right).toBeCloseTo(headerGap, 0);
 });
 
 test('owner shares the starter with a local account; recipient edits and unrelated account is denied', async ({ page, browser, contextOptions }, testInfo) => {
