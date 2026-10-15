@@ -168,11 +168,9 @@ a.site-wordmark {
 }
 
 @media (max-width: 47.99em) {
-  /* Hidden with the Blog link, which site_header.html tracks restoring:
   .site-links .site-about {
     display: none;
   }
-  */
 
   .site-footer a,
   .site-footer-link {
