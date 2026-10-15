@@ -70,8 +70,23 @@ test('suggests direct sharing contacts in both directions without granting acces
     await expect(dialog.getByText('Only you have access.', { exact: true })).toBeVisible();
     const before = await page.request.get('/api/documents');
     expect((await before.json() as UserDocument[]).find((document) => document.id === target.id)!.access).toEqual([]);
+    let acceptRequest!: (continueRequest: () => Promise<void>) => void;
+    const grantRequest = new Promise<() => Promise<void>>(resolve => { acceptRequest = resolve; });
+    const sharePath = `**/api/documents/${target.id}/access`;
+    await page.route(sharePath, route => acceptRequest(() => route.continue()));
     await dialog.getByRole('button', { name: 'Add access', exact: true }).click();
-    await expect(dialog.getByRole('status')).toHaveText(`Added ${incoming.email}. They can edit this document. No email was sent.`);
+    const continueGrant = await grantRequest;
+    await expect(field).toBeDisabled();
+    await dialog.getByRole('button', { name: 'Close', exact: true }).filter({ hasText: /^Close$/u }).click();
+    await expect(dialog).toHaveCount(0);
+    await continueGrant();
+    await page.unroute(sharePath);
+
+    const shareButton = page.getByRole('button', { name: 'Share document — Shared by you · 2 people have access', exact: true });
+    await expect(shareButton).toBeVisible();
+    await expect.poll(() => shareButton.locator('svg path').first().evaluate(node => getComputedStyle(node).fill)).not.toBe('none');
+    await shareButton.click();
+    await expect(dialog.getByText(incoming.email, { exact: true })).toBeVisible();
     await field.fill('example');
     await expect(list.getByRole('option')).toHaveText([`${outgoing.name}${outgoing.email}`]);
 
