@@ -3,6 +3,8 @@ import { request as httpRequest } from 'node:http';
 import type { Socket } from 'node:net';
 
 export const DJANGO_REQUEST_TIMEOUT_MS = 10_000;
+// One in-flight request can hold the save mutex before the final save starts.
+export const COLLABORATION_SHUTDOWN_DEADLINE_MS = 2 * DJANGO_REQUEST_TIMEOUT_MS + 5000;
 
 const guardedSockets = new WeakSet<Socket>();
 

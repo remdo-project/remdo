@@ -426,8 +426,17 @@
    margin, so revealing it shifts nothing. */
 .location-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 0.5rem 1rem;
   padding: var(--mantine-spacing-xs) var(--remdo-body-inset) 0;
+}
+
+.location-header-heading {
+  display: flex;
+  align-items: center;
+  flex: 1 1 14rem;
+  min-width: 0;
 }
 
 .location-header-title {
@@ -436,6 +445,16 @@
   overflow-wrap: anywhere;
   color: var(--mantine-color-dark-0);
   font-size: var(--mantine-font-size-xl);
+}
+
+.location-header-toolbar {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.location-header-toolbar:empty {
+  display: none;
 }
 
 .home-search-empty {

@@ -29,6 +29,9 @@ import { NoteControlsPlugin } from '#client/editor/menu/NoteControlsPlugin';
 import { NoteMenuPlugin } from '#client/editor/menu/NoteMenuPlugin';
 import { MobileActionToolbarPlugin } from '#client/editor/mobile-toolbar/MobileActionToolbarPlugin';
 import { InlineSelectionToolbarPlugin } from '#client/editor/features/inline-formatting/InlineSelectionToolbarPlugin';
+import { InlineFormattingPlugin } from '#client/editor/features/inline-formatting/InlineFormattingPlugin';
+import { DesktopEditingToolbar } from './DesktopEditingToolbar';
+import { useCoarsePointer } from '#client/browser/useCoarsePointer';
 import { PendingDocumentImportPlugin } from '#client/editor/runtime/PendingDocumentImportPlugin';
 import { DocumentEditAnalyticsPlugin } from '#client/editor/runtime/DocumentEditAnalyticsPlugin';
 import { useLexicalOpenDocument } from '#client/editor/note-sdk-adapters';
@@ -40,6 +43,7 @@ interface EditorProps {
   accountId?: string;
   onSelectHome: () => void;
   statusPortalRoot: HTMLElement | null;
+  editingToolbarPortalRoot?: HTMLElement | null;
   onPendingDocumentImportError?: (error: Error) => void;
 }
 
@@ -47,6 +51,7 @@ export default function Editor({
   docId,
   accountId,
   statusPortalRoot,
+  editingToolbarPortalRoot,
   onPendingDocumentImportError,
   onSelectHome,
 }: EditorProps) {
@@ -58,6 +63,7 @@ export default function Editor({
           <EditorRuntime
             docId={docId}
             statusPortalRoot={statusPortalRoot}
+            editingToolbarPortalRoot={editingToolbarPortalRoot}
             onPendingDocumentImportError={onPendingDocumentImportError}
             onSelectHome={onSelectHome}
           />
@@ -70,10 +76,12 @@ export default function Editor({
 function EditorRuntime({
   docId,
   statusPortalRoot,
+  editingToolbarPortalRoot = null,
   onPendingDocumentImportError,
   onSelectHome,
 }: EditorProps) {
   const [editor] = useLexicalComposerContext();
+  const coarse = useCoarsePointer();
   const [schemaReady, setSchemaReady] = useState(false);
   const openDocument = useLexicalOpenDocument({ editor, docId, ready: schemaReady });
   const registerOpenDocument = useRegisterOpenDocument();
@@ -100,6 +108,7 @@ function EditorRuntime({
         </section>
       ) : (
         <>
+          {schemaReady && !coarse && <DesktopEditingToolbar openDocument={openDocument} portalRoot={editingToolbarPortalRoot} />}
           <RichTextPlugin
             contentEditable={
               <ContentEditable
@@ -119,6 +128,7 @@ function EditorRuntime({
               <DocumentEditAnalyticsPlugin />
               <ClipboardPlugin />
               <KeymapPlugin />
+              <InlineFormattingPlugin />
               <IndentationPlugin />
               <ReorderingPlugin />
               <NoteBodyPlugin />
@@ -131,7 +141,7 @@ function EditorRuntime({
               <NoteControlsPlugin />
               <NoteMenuPlugin openDocument={openDocument} />
               <MobileActionToolbarPlugin openDocument={openDocument} />
-              <InlineSelectionToolbarPlugin />
+              <InlineSelectionToolbarPlugin enabled={coarse} />
               <ZoomPlugin onSelectHome={onSelectHome} />
               <ZoomVisibilityPlugin />
               <CheckListPlugin />

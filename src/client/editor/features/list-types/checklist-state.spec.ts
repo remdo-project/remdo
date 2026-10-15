@@ -1,10 +1,11 @@
 import type { ListNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
-import { $getRoot } from 'lexical';
+import { $createTextNode, $getRoot } from 'lexical';
 import { expect, it } from 'vitest';
 
 import type { RemdoTestApi } from '#client/editor/dev';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
+import { $addNoteBody } from '#client/editor/features/note-body/note-body-ops';
 import { SET_NOTE_CHECKED_COMMAND } from '#client/editor/foundation/commands';
 import { isContentItem } from '#client/editor/outline/list-structure';
 import { getWrapperForContent } from '#client/editor/outline/selection/tree';
@@ -109,6 +110,20 @@ it('toggles checked state recursively for the caret note subtree', meta({ fixtur
     return [$getNoteChecked(note2), $getNoteChecked(note3), $getNoteChecked(note4)];
   });
   expect(afterUncheckedToggle).toEqual([true, true, undefined]);
+});
+
+it('excludes the location heading from selection toggling while its body still targets the owning note', meta({
+  fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' },
+}), async ({ remdo }) => {
+  await placeCaretAtNote(remdo, 'note2');
+  await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' }, { expect: 'noop' });
+  expect(checkedStates(remdo, 'note2', 'note3')).toEqual([undefined, undefined]);
+
+  await remdo.mutate(() => {
+    $addNoteBody($findNoteById('note2')!).append($createTextNode('details')).selectStart();
+  });
+  await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
+  expect(checkedStates(remdo, 'note2', 'note3')).toEqual([true, true]);
 });
 
 it('completes a partly checked subtree instead of clearing it', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {

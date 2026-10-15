@@ -1,11 +1,12 @@
+import { fork } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
-import { EventEmitter } from 'node:events';
+import { EventEmitter, once } from 'node:events';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { PassThrough } from 'node:stream';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { attachManagedProcess, prepareManagedProcessLog } from '#tools/managed-process';
+import { attachManagedProcess, prepareManagedProcessLog, terminateProcessGroup } from '#tools/managed-process';
 
 const tempDirs: string[] = [];
 
@@ -86,5 +87,22 @@ describe('managed process', () => {
 
     expect(events).toEqual(['exit', 'after-exit', 'close']);
     expect(fs.readFileSync(logPath, 'utf8')).toBe('trailing stderr\n');
+  });
+
+  it('does not confuse a previously sent signal with an exited child during fallback escalation', async () => {
+    const child = fork(path.resolve('tests/unit/_support/managed-child-fixture.mjs'), [], {
+      execArgv: [], stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+    });
+    try {
+      await once(child, 'message');
+      const ignored = once(child, 'message');
+      terminateProcessGroup(child, 'SIGTERM');
+      await ignored;
+      const exited = once(child, 'close');
+      terminateProcessGroup(child, 'SIGKILL');
+      expect((await exited)[1]).toBe('SIGKILL');
+    } finally {
+      child.kill('SIGKILL');
+    }
   });
 });

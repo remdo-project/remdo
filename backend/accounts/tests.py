@@ -434,6 +434,7 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
         self.assertEqual(start.status_code, 302)
         authorization = parse_qs(urlsplit(start["Location"]).query)
         self.assertEqual(set(authorization["scope"][0].split()), {"openid", "email", "profile"})
+        self.assertEqual(authorization["prompt"], ["select_account"])
         return authorization["state"][0]
 
     def google_login(self, email, email_verified=True, next_url="/n/exampleDoc"):
@@ -472,6 +473,19 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
         self.assertEqual(list(user.document_set.values_list("title", flat=True)), ["New Document"])
         self.assertEqual(SocialAccount.objects.get().user, user)
         self.assertFalse(SocialToken.objects.exists())
+
+    def test_google_sign_in_can_switch_accounts_after_sign_out(self):
+        self.google_login("alice@example.test")
+        self.assertEqual(self.session_email(), "alice@example.test")
+        signed_out = self.client.delete(
+            "/api/auth/browser/v1/auth/session",
+            HTTP_X_CSRFTOKEN=self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+        )
+        self.assertEqual(signed_out.status_code, 401)
+
+        self.google_login("bob@example.test")
+
+        self.assertEqual(self.session_email(), "bob@example.test")
 
     def test_matching_verified_email_signs_in_to_the_existing_account(self):
         user = User.objects.create_user("alice@example.test", "alice-password-1234")
@@ -551,6 +565,109 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
         )
         self.assertContains(response, 'href="/accounts/login/"')
         self.assertIsNone(self.session_email())
+
+    def test_failed_callback_is_reported_with_its_cause(self):
+        token = Mock(
+            status_code=200,
+            headers={"content-type": "application/json"},
+            json=lambda: {"access_token": "private-token"},
+        )
+        cases = [
+            ("state-lost", {"code": "code"}, None),
+            ("state-lost", {"code": "code", "state": "unknown"}, None),
+            ("provider-error", {"error": "server_error"}, None),
+            ("provider-error", {"error": "server_error", "code": "code"}, None),
+            ("missing-code", {}, None),
+            ("OAuth2Error", {"code": "code"}, [Mock(status_code=400, content=b"private-body")]),
+            ("OAuth2Error", {"code": "code"}, [token, Mock(ok=False)]),
+        ]
+        for cause, params, responses in cases:
+            with self.subTest(cause=cause, params=params, responses=responses):
+                if cause != "state-lost":
+                    params = {**params, "state": self.start_google_login()}
+                with patch("requests.Session.request", side_effect=responses):
+                    response = self.client.get("/accounts/google/login/callback/", params)
+                self.assertEqual(response.status_code, 401)
+                self.assertEqual(response.wsgi_request.error_report_tags["auth.cause"], cause)
+
+    def test_callback_diagnostics_record_presence_without_parameter_or_cookie_values(self):
+        cases = [
+            ({}, False, ("false", "false", "false")),
+            (
+                {"state": "private-state", "code": "private-code"},
+                True,
+                ("true", "true", "true"),
+            ),
+            ({"state": "", "code": ""}, False, ("true", "true", "false")),
+        ]
+        for params, cookie, presence in cases:
+            with self.subTest(params=params, cookie=cookie):
+                self.client = Client(enforce_csrf_checks=True)
+                if cookie:
+                    self.client.cookies[settings.SESSION_COOKIE_NAME] = "private-session-cookie"
+
+                response = self.client.get("/accounts/google/login/callback/", params)
+
+                self.assertEqual(response.status_code, 401)
+                self.assertEqual(
+                    response.wsgi_request.error_report_tags,
+                    {
+                        "auth.cause": "state-lost",
+                        "auth.state_present": presence[0],
+                        "auth.code_present": presence[1],
+                        "auth.session_cookie_present": presence[2],
+                        "auth.signed_in": "false",
+                    },
+                )
+
+    def test_callback_diagnostics_record_a_signed_in_visitor(self):
+        self.google_login("alice@example.test")
+
+        response = self.client.get(
+            "/accounts/google/login/callback/", {"code": "code", "state": "consumed"}
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.wsgi_request.error_report_tags,
+            {
+                "auth.cause": "state-lost",
+                "auth.state_present": "true",
+                "auth.code_present": "true",
+                "auth.session_cookie_present": "true",
+                "auth.signed_in": "true",
+            },
+        )
+
+    def test_callback_provider_errors_are_allowlisted(self):
+        for provider_error, category in (
+            ("server_error", "server_error"),
+            ("admin_policy_enforced", "admin_policy_enforced"),
+            ("private-error-for-someone@example.test", "other"),
+            ("", "other"),
+        ):
+            with self.subTest(provider_error=provider_error):
+                response = self.client.get(
+                    "/accounts/google/login/callback/",
+                    {
+                        "state": self.start_google_login(),
+                        "error": provider_error,
+                        "error_description": "private-provider-description",
+                    },
+                )
+
+                self.assertEqual(response.status_code, 401)
+                self.assertEqual(
+                    response.wsgi_request.error_report_tags,
+                    {
+                        "auth.cause": "provider-error",
+                        "auth.state_present": "true",
+                        "auth.code_present": "false",
+                        "auth.session_cookie_present": "true",
+                        "auth.signed_in": "false",
+                        "auth.provider_error": category,
+                    },
+                )
 
 
 @override_settings(

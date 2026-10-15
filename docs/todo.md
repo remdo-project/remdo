@@ -47,25 +47,19 @@ Code items assume no contract change:
 1. **Provider adapter.** The neutral provider-event vocabulary abstracts over
    a single provider. Narrow it only where the resulting bridge is clearer;
    preserve acknowledgement tracking and independent cache/network lifetimes.
-2. **Collaboration launcher asymmetry.** The development collaboration script
-   spawns a detached child rather than executing the server directly as the API
-   script does, which also routes its output to a log file instead of the
-   aggregated development output. Collapsing it removes the spawn helper and one
-   of four copies of the wait-for-port loop. Coordinate with
-   [Tooling](#tooling)'s launcher-complexity entry.
-3. **Single-source document residue.** Production supplies exactly one hard-coded
+2. **Single-source document residue.** Production supplies exactly one hard-coded
    document source, leaving statically false branches in the toolbar's label
    qualification, the source-local action split, and the workspace source
    lookup. Removing the dead branches is independent of the visible grouping in
    the Current Server decision below.
-4. **Duplicated server contract types.** The hand-written user-document and
+3. **Duplicated server contract types.** The hand-written user-document and
    document-access interfaces mirror serializers that the generated API schema
    already describes, following the precedent already used for the current-user
    payload. Aligning optionality removes a hand-maintained drift risk.
-5. **Test-only flexibility in product code.** The collection-source input
+4. **Test-only flexibility in product code.** The collection-source input
    normalization exists so tests can pass plain arrays; production always passes
    a live source.
-6. **Repeated internal-service constants and helpers.** The container port pair
+5. **Repeated internal-service constants and helpers.** The container port pair
    is hard-coded in three places after its configuration helper lost its
    Y-Sweet job; three credential-injecting WebSocket subclasses differ only by
    header; and an origin-printing script spawns a runtime to echo a value its
@@ -310,6 +304,12 @@ These proposals guide the next UX slices; unresolved choices remain proposals
 until accepted in their behavioral owners. Defer a command palette and action
 menus on every breadcrumb until improving the existing surfaces leaves a
 concrete unmet need.
+
+- **Toolbar presentation preference.** Offer a mutually exclusive choice
+  between the default [desktop toolbar](specs/outliner/desktop-toolbar.md) and the
+  [floating formatting toolbar](specs/outliner/inline-formatting.md#floating-presence-and-placement).
+  Reassess the retained floating presentation in that follow-up; formatting
+  commands and keyboard shortcuts remain independent of the chosen surface.
 
 - **Zoomed-note location header.** Complete the rich editable header and its
   applicable note, children, and view actions, preserving the

@@ -157,7 +157,7 @@ it perturbs the replay, evaluated from the anchor outward:
 
 ## Command compatibility
 
-[Inline formatting](./inline-formatting.md) owns the selection toolbar and Inline code shortcut.
+[Inline formatting](./inline-formatting.md) owns formatting controls and the Inline code shortcut.
 
 | Selection state | Allowed operations |
 | --------------- | ------------------ |
