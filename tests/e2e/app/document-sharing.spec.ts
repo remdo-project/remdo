@@ -5,6 +5,24 @@ import { ensureReady, waitForSynced } from '../editor/_support/bridge';
 import { openNoteMenu } from '../editor/_support/menu';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 
+test('places the shared-documents bell and keeps normal link spacing on sign-out', async ({ page }) => {
+  await page.goto('/');
+  const header = page.getByRole('banner');
+  const aboutBounds = await header.getByRole('link', { name: 'About', exact: true }).boundingBox();
+  const bellBounds = await header.getByRole('button', { name: 'Shared with you', exact: true }).boundingBox();
+  const logoutBounds = await header.getByRole('link', { name: 'Logout', exact: true }).boundingBox();
+  expect(aboutBounds!.x + aboutBounds!.width).toBeLessThanOrEqual(bellBounds!.x);
+  expect(bellBounds!.x + bellBounds!.width).toBeLessThanOrEqual(logoutBounds!.x);
+  const headerGap = bellBounds!.x - aboutBounds!.x - aboutBounds!.width;
+
+  await page.goto('/sign-out');
+  await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
+  await expect(header.getByRole('button', { name: 'Shared with you', exact: true })).toHaveCount(0);
+  const signOutAboutBounds = await header.getByRole('link', { name: 'About', exact: true }).boundingBox();
+  const signOutLogoutBounds = await header.getByRole('link', { name: 'Logout', exact: true }).boundingBox();
+  expect(signOutLogoutBounds!.x - signOutAboutBounds!.x - signOutAboutBounds!.width).toBeCloseTo(headerGap, 0);
+});
+
 test('owner shares the starter with a local account; recipient edits and unrelated account is denied', async ({ page, browser, contextOptions }, testInfo) => {
   test.slow();
   const recipient = createTestAuthAccount();

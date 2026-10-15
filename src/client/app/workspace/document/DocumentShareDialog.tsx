@@ -58,7 +58,7 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
 
   const changeEmail = (value: string) => {
     setEmail(value);
-    setEmailFormat(previous => previous === 'invalid' && email.trim() && value.trim() ? 'invalid' : 'idle');
+    setEmailFormat(previous => value === email ? previous : previous === 'invalid' && email.trim() && value.trim() ? 'invalid' : 'idle');
     setState({ status: 'idle' });
   };
 

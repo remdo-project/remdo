@@ -3,6 +3,10 @@
   align-items: center;
 }
 
+.shared-documents-host:empty {
+  display: none;
+}
+
 .shared-documents-button {
   display: inline-flex;
   align-items: center;
