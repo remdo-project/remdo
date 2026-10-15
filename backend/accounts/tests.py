@@ -434,6 +434,7 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
         self.assertEqual(start.status_code, 302)
         authorization = parse_qs(urlsplit(start["Location"]).query)
         self.assertEqual(set(authorization["scope"][0].split()), {"openid", "email", "profile"})
+        self.assertEqual(authorization["prompt"], ["select_account"])
         return authorization["state"][0]
 
     def google_login(self, email, email_verified=True, next_url="/n/exampleDoc"):
@@ -472,6 +473,19 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
         self.assertEqual(list(user.document_set.values_list("title", flat=True)), ["New Document"])
         self.assertEqual(SocialAccount.objects.get().user, user)
         self.assertFalse(SocialToken.objects.exists())
+
+    def test_google_sign_in_can_switch_accounts_after_sign_out(self):
+        self.google_login("alice@example.test")
+        self.assertEqual(self.session_email(), "alice@example.test")
+        signed_out = self.client.delete(
+            "/api/auth/browser/v1/auth/session",
+            HTTP_X_CSRFTOKEN=self.client.cookies[settings.CSRF_COOKIE_NAME].value,
+        )
+        self.assertEqual(signed_out.status_code, 401)
+
+        self.google_login("bob@example.test")
+
+        self.assertEqual(self.session_email(), "bob@example.test")
 
     def test_matching_verified_email_signs_in_to_the_existing_account(self):
         user = User.objects.create_user("alice@example.test", "alice-password-1234")
@@ -551,6 +565,30 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
         )
         self.assertContains(response, 'href="/accounts/login/"')
         self.assertIsNone(self.session_email())
+
+    def test_failed_callback_is_reported_with_its_cause(self):
+        token = Mock(
+            status_code=200,
+            headers={"content-type": "application/json"},
+            json=lambda: {"access_token": "private-token"},
+        )
+        cases = [
+            ("state-lost", {"code": "code"}, None),
+            ("state-lost", {"code": "code", "state": "unknown"}, None),
+            ("no-code-or-error", {"error": "server_error"}, None),
+            ("no-code-or-error", {"error": "server_error", "code": "code"}, None),
+            ("no-code-or-error", {}, None),
+            ("OAuth2Error", {"code": "code"}, [Mock(status_code=400, content=b"private-body")]),
+            ("OAuth2Error", {"code": "code"}, [token, Mock(ok=False)]),
+        ]
+        for cause, params, responses in cases:
+            with self.subTest(cause=cause, params=params, responses=responses):
+                if cause != "state-lost":
+                    params = {**params, "state": self.start_google_login()}
+                with patch("requests.Session.request", side_effect=responses):
+                    response = self.client.get("/accounts/google/login/callback/", params)
+                self.assertEqual(response.status_code, 401)
+                self.assertEqual(response.wsgi_request.error_report_tags, {"auth.cause": cause})
 
 
 @override_settings(

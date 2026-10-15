@@ -51,6 +51,22 @@ def verified_email(sociallogin):
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
+    # The HTTP error reporter attaches this to the callback's failure report, which
+    # otherwise cannot tell a stale browser tab from a failing Google exchange.
+    def on_authentication_error(
+        self, request, provider, error=None, exception=None, extra_context=None
+    ):
+        if exception is not None:
+            cause = type(exception).__name__
+        elif "state" not in (extra_context or {}):
+            cause = "state-lost"
+        else:
+            cause = "no-code-or-error"
+        request.error_report_tags = {"auth.cause": cause}
+        super().on_authentication_error(
+            request, provider, error=error, exception=exception, extra_context=extra_context
+        )
+
     # Account emails are assigned by operators or verified by the provider or an
     # emailed code, so a verified match identifies the owner. allauth's own email
     # authentication would instead disable the password of accounts without a

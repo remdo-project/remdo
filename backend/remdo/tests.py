@@ -406,6 +406,12 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         self.assertEqual(diagnostic["level"], "error")
         self.assertNotIn("http.status_code", diagnostic["tags"])
         by_route = {event["tags"]["http.route"]: event for event in responses}
+        callback = by_route["accounts/google/login/callback/"]
+        self.assertEqual(callback["tags"]["auth.cause"], "state-lost")
+        self.assertEqual(
+            callback["fingerprint"],
+            ["http-response", "GET", "accounts/google/login/callback/", "401", "state-lost"],
+        )
         self.assertEqual(by_route[""]["request"]["url"], "https://remdo.example/")
         self.assertEqual(
             by_route["^pages/(?P<slug>[a-z-]+)/$"]["request"]["url"],

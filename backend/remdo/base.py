@@ -148,6 +148,7 @@ if GOOGLE_CLIENT_ID:
         "google": {
             "APPS": [{"client_id": GOOGLE_CLIENT_ID, "secret": GOOGLE_CLIENT_SECRET}],
             "SCOPE": ["openid", "email", "profile"],
+            "AUTH_PARAMS": {"prompt": "select_account"},
         }
     }
 EMAIL_SIGNUP_ENABLED = False
