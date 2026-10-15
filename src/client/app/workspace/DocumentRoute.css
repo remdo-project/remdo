@@ -159,6 +159,47 @@
   border-color: var(--mantine-color-green-4);
 }
 
+.document-share-suggestions {
+  width: var(--trigger-width);
+  max-width: calc(100vw - 2rem);
+  max-height: min(18rem, 60vh);
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: 3px;
+  background: var(--mantine-color-dark-6);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+}
+
+.document-share-suggestions-list {
+  outline: none;
+}
+
+.document-share-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 3px;
+  color: var(--mantine-color-dark-0);
+  outline: none;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.document-share-suggestion[data-focused] {
+  background: var(--mantine-color-dark-4);
+}
+
+.document-share-suggestion-name {
+  font-weight: 500;
+}
+
+.document-share-suggestion-email {
+  font-size: 0.875rem;
+  color: var(--mantine-color-dark-2);
+}
+
 .remdo-dialog .mantine-Button-root.document-share-add:not(:disabled, [data-disabled]) {
   border-color: transparent;
   background: var(--button-bg);

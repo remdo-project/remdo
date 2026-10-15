@@ -118,6 +118,7 @@ identifies the grantee by email; a grant is created only when that email matches
 an account on the document's server. A direct grant gives that user
 full document access.
 Only the owner receives the document's recipient list.
+A recipient also receives the document owner's email and available display name.
 
 Users with full document access may [rename the document](../outliner/location-header.md#document-rename). The source authorizes
 each submission using the caller's current access; client metadata caches do not
@@ -148,6 +149,13 @@ and action; failure retains the draft.
 The email field shows a green border and a checkmark as a well-formed address is
 typed, requiring a dotted domain except for `localhost`. Format errors appear on
 blur or submission and clear when corrected. Source errors take precedence.
+
+While typing a name or email, the grant form suggests people from current direct
+sharing relationships on this server: recipients of the caller's documents and
+owners of documents shared with the caller. Suggestions are deduplicated and
+exclude the caller and current recipients. Outgoing or mutual connections
+precede incoming-only connections, with each group ordered by display name or
+email. Choosing a suggestion fills the address; **Add access** applies the grant.
 
 **Copy link** copies the document-root URL, including when opened from a zoomed
 view, and states that copying does not change access. Clipboard failure or

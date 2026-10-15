@@ -4,3 +4,9 @@ export interface DocumentAccessView {
   granteeUserId: string;
   name: string | null;
 }
+
+export interface DocumentContactView {
+  userId: string;
+  email: string;
+  name: string | null;
+}

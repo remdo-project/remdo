@@ -55,7 +55,7 @@ describe('document share dialog', () => {
   it('updates accessible format feedback while typing and keeps it when focus changes', () => {
     const shareDocument = vi.fn();
     renderDialog({ shareDocument });
-    const field = screen.getByRole('textbox', { name: 'Add a person by email' });
+    const field = screen.getByRole('combobox', { name: 'Add a person by email' });
     fireEvent.change(field, { target: { value: 'bob@example.test' } });
     expect(field).toHaveAccessibleDescription(/Valid email format/u);
     fireEvent.blur(field);
@@ -72,7 +72,7 @@ describe('document share dialog', () => {
   it('explains a malformed address after blur and clears the error as soon as it is corrected', () => {
     const shareDocument = vi.fn();
     renderDialog({ shareDocument });
-    const field = screen.getByRole('textbox', { name: 'Add a person by email' });
+    const field = screen.getByRole('combobox', { name: 'Add a person by email' });
     fireEvent.change(field, { target: { value: 'not-an-email' } });
     expect(screen.queryByRole('alert')).toBeNull();
     fireEvent.blur(field);
@@ -90,7 +90,7 @@ describe('document share dialog', () => {
 
   it('waits for a dotted domain before confirming the format, except for localhost', () => {
     renderDialog();
-    const field = screen.getByRole('textbox', { name: 'Add a person by email' });
+    const field = screen.getByRole('combobox', { name: 'Add a person by email' });
     fireEvent.change(field, { target: { value: 'sample@example' } });
     expect(screen.queryByText('Valid email format')).toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
@@ -106,7 +106,7 @@ describe('document share dialog', () => {
   it('leaves an empty field quiet until submission and focuses its inline required error', () => {
     const shareDocument = vi.fn();
     renderDialog({ shareDocument });
-    const field = screen.getByRole('textbox', { name: 'Add a person by email' });
+    const field = screen.getByRole('combobox', { name: 'Add a person by email' });
     fireEvent.blur(field);
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByText('Valid email format')).toBeNull();

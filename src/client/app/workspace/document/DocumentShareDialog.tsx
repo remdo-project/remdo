@@ -1,6 +1,7 @@
-import { Avatar, Button, Group, Stack, Text, TextInput, VisuallyHidden } from '@mantine/core';
+import { Avatar, Button, Group, InputBase, Stack, Text, TextInput, VisuallyHidden } from '@mantine/core';
 import { IconCheck, IconLink, IconLock } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { ComboBox, Input, ListBox, ListBoxItem, Popover } from 'react-aria-components';
 import { createDocumentPath } from '#document-routes';
 import { NoteUnavailableError } from '#note-sdk';
 import type { DocumentNote } from '#note-sdk';
@@ -15,7 +16,12 @@ type CopyState = 'idle' | 'pending' | 'copied' | 'manual';
 
 function readSharing(note: DocumentNote) {
   try {
-    return { name: note.getText(), owner: note.canShareWith(), recipients: note.getAccess().getChildren() };
+    return {
+      name: note.getText(),
+      owner: note.canShareWith(),
+      recipients: note.getAccess().getChildren(),
+      suggestions: note.getSharingSuggestions(),
+    };
   } catch (error) {
     if (!(error instanceof NoteUnavailableError)) throw error;
     return null;
@@ -28,6 +34,8 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
   const [openingName] = useState(() => note.getText());
   const [openingOwner] = useState(() => note.canShareWith());
   const [email, setEmail] = useState('');
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
   const [emailFormat, setEmailFormat] = useState<'idle' | 'valid' | 'invalid'>('idle');
   const [state, setState] = useState<ShareState>({ status: 'idle' });
   const [copyState, setCopyState] = useState<CopyState>('idle');
@@ -41,6 +49,17 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
       ? (email.trim() ? 'Enter a valid email address.' : 'Enter an email address.')
       : null;
   const link = new URL(createDocumentPath(note.getId()), window.location.origin).href;
+  const suggestions = sharing?.suggestions ?? [];
+
+  useLayoutEffect(() => {
+    if (emailInputRef.current?.validity.valid) setEmailFormat('valid');
+  }, [email]);
+
+  const changeEmail = (value: string) => {
+    setEmail(value);
+    setEmailFormat(previous => previous === 'invalid' && email.trim() && value.trim() ? 'invalid' : 'idle');
+    setState({ status: 'idle' });
+  };
 
   const submit = async () => {
     const recipient = email.trim();
@@ -50,6 +69,7 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
     try {
       const access = await note.shareWith(recipient);
       setEmail('');
+      setSelectedContactId(null);
       setEmailFormat('idle');
       setState({
         status: 'success',
@@ -110,43 +130,72 @@ export function DocumentShareDialog({ note, onClose }: { note: DocumentNote; onC
         {owner && (
           <form aria-busy={pending} onSubmit={(event) => { event.preventDefault(); void submit(); }}>
             <Stack gap="xs">
-              <TextInput
+              <ComboBox
+                allowsCustomValue
+                aria-label="Add a person by email"
                 autoFocus
-                className="document-share-email"
-                data-format-valid={validEmailFormat || undefined}
-                description={(
-                  <>
-                    Needs an account on this RemDo server. Can edit and rename; cannot invite others. No email is sent.
-                    {validEmailFormat && <VisuallyHidden>Valid email format</VisuallyHidden>}
-                    <span className="document-share-email-feedback">
-                      {emailError && <span role="alert">{emailError}</span>}
-                    </span>
-                  </>
-                )}
-                disabled={pending}
-                error={Boolean(emailError)}
-                label="Add a person by email"
-                onBlur={(event) => {
-                  setEmailFormat(event.currentTarget.value.trim() ? (event.currentTarget.validity.valid ? 'valid' : 'invalid') : 'idle');
+                defaultFilter={(text, query) => Boolean(query.trim()) && text.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())}
+                inputValue={email}
+                isDisabled={pending}
+                onChange={(key) => {
+                  const person = suggestions.find((contact) => contact.userId === key);
+                  setSelectedContactId(person?.userId ?? null);
+                  if (person) changeEmail(person.email);
                 }}
-                onChange={(event) => {
-                  const { value, validity } = event.currentTarget;
-                  setEmail(value);
-                  setEmailFormat(previous => validity.valid ? 'valid' : previous === 'invalid' && email.trim() && value.trim() ? 'invalid' : 'idle');
-                  setState({ status: 'idle' });
+                onInputChange={(value) => {
+                  setSelectedContactId(null);
+                  changeEmail(value);
                 }}
-                onInvalid={(event) => {
-                  event.preventDefault();
-                  setEmailFormat('invalid');
-                  event.currentTarget.focus();
-                }}
-                pattern={String.raw`.+@(?:localhost|.+\..+)`}
-                required
-                rightSection={validEmailFormat ? <Icon color="var(--mantine-color-green-4)" icon={IconCheck} size={18} /> : null}
-                rightSectionPointerEvents="none"
-                type="email"
-                value={email}
-              />
+                value={selectedContactId}
+              >
+                <InputBase
+                  className="document-share-email"
+                  component={Input}
+                  data-format-valid={validEmailFormat || undefined}
+                  description={(
+                    <>
+                      Needs an account on this RemDo server. Can edit and rename; cannot invite others. No email is sent.
+                      {validEmailFormat && <VisuallyHidden>Valid email format</VisuallyHidden>}
+                      <span className="document-share-email-feedback">
+                        {emailError && <span role="alert">{emailError}</span>}
+                      </span>
+                    </>
+                  )}
+                  disabled={pending}
+                  error={Boolean(emailError)}
+                  label="Add a person by email"
+                  onBlur={(event) => {
+                    setEmailFormat(event.currentTarget.value.trim() ? (event.currentTarget.validity.valid ? 'valid' : 'invalid') : 'idle');
+                  }}
+                  onInvalid={(event) => {
+                    event.preventDefault();
+                    setEmailFormat('invalid');
+                    event.currentTarget.focus();
+                  }}
+                  pattern={String.raw`.+@(?:localhost|.+\..+)`}
+                  ref={emailInputRef}
+                  required
+                  rightSection={validEmailFormat ? <Icon color="var(--mantine-color-green-4)" icon={IconCheck} size={18} /> : null}
+                  rightSectionPointerEvents="none"
+                  type="email"
+                />
+                <Popover className="document-share-suggestions" offset={4} placement="bottom start">
+                  <ListBox aria-label="People from sharing" className="document-share-suggestions-list">
+                    {suggestions.map((person) => (
+                      <ListBoxItem
+                        aria-label={person.name ? `${person.name}, ${person.email}` : person.email}
+                        className="document-share-suggestion"
+                        id={person.userId}
+                        key={person.userId}
+                        textValue={`${person.name || ''} ${person.email}`}
+                      >
+                        <span className="document-share-suggestion-name">{person.name || person.email}</span>
+                        {person.name && <span className="document-share-suggestion-email">{person.email}</span>}
+                      </ListBoxItem>
+                    ))}
+                  </ListBox>
+                </Popover>
+              </ComboBox>
               <Button className="document-share-add" color="violet" loading={pending} style={{ alignSelf: 'flex-start' }} type="submit">Add access</Button>
               {email.trim() && state.status === 'idle' && !emailError && <Text c="dimmed" size="sm">Not added yet. Select Add access.</Text>}
               {state.status === 'success' && <Text c="green" role="status" size="sm">{state.message}</Text>}

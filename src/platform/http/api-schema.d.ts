@@ -120,10 +120,17 @@ export interface components {
             readonly shareable: boolean;
             readonly deletable: boolean;
             readonly access: components["schemas"]["DocumentAccess"][];
+            readonly sharedBy: components["schemas"]["DocumentContact"] | null;
         };
         DocumentAccess: {
             readonly documentId: string;
             readonly granteeUserId: string;
+            /** Format: email */
+            readonly email: string;
+            readonly name: string;
+        };
+        DocumentContact: {
+            readonly userId: string;
             /** Format: email */
             readonly email: string;
             readonly name: string;

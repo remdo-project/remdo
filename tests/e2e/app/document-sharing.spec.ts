@@ -35,7 +35,7 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     await expect(shareButton).toHaveText('');
     await shareButton.click();
     const toolbarDialog = page.getByRole('dialog', { name: 'Share “New Document”', exact: true });
-    const emailField = toolbarDialog.getByRole('textbox', { name: 'Add a person by email', exact: true });
+    const emailField = toolbarDialog.getByRole('combobox', { name: 'Add a person by email', exact: true });
     const addAccess = toolbarDialog.getByRole('button', { name: 'Add access', exact: true });
     const addAccessBackground = () => addAccess.evaluate(node => getComputedStyle(node).backgroundColor);
     const initialBackground = await addAccessBackground();
@@ -109,7 +109,7 @@ test('owner shares the starter with a local account; recipient edits and unrelat
     await page.getByRole('menuitem', { name: 'Share…' }).click();
     const shareDialog = page.getByRole('dialog', { name: /Share/u });
     await shareDialog.getByLabel(/Add a person by email/u).fill(recipient.email);
-    await shareDialog.getByRole('textbox', { name: 'Add a person by email', exact: true }).press('Enter');
+    await shareDialog.getByRole('combobox', { name: 'Add a person by email', exact: true }).press('Enter');
     // The grant appears without reopening the dialog.
     await expect(shareDialog.getByText(recipient.email, { exact: true })).toBeVisible();
     await expect(shareDialog.getByRole('status')).toHaveText(`Added ${recipient.email}. They can edit this document. No email was sent.`);
@@ -149,7 +149,7 @@ test('owner shares the starter with a local account; recipient edits and unrelat
       await peerShareButton.click();
       const ownAccess = peer.getByRole('dialog', { name: 'Share “New Document”', exact: true });
       await expect(ownAccess.getByText('Your access', { exact: true })).toBeVisible();
-      await expect(ownAccess.getByRole('textbox', { name: 'Add a person by email', exact: true })).toHaveCount(0);
+      await expect(ownAccess.getByRole('combobox', { name: 'Add a person by email', exact: true })).toHaveCount(0);
       await expect(ownAccess.getByText(recipient.email, { exact: true })).toHaveCount(0);
       await ownAccess.getByRole('button', { name: 'Close', exact: true }).filter({ hasText: /^Close$/u }).click();
       await expect(peerEditor).toContainText('Owner content');

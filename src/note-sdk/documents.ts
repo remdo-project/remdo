@@ -1,4 +1,5 @@
 import type { AddressableNote, CollectionNote } from './notes';
+import type { DocumentContactView } from '#domain/documents/access';
 
 export interface UserDataNote extends AddressableNote<'user-data'> {
   /** Returns document lists grouped by current and linked source servers. */
@@ -26,6 +27,8 @@ export interface DocumentSourceNote extends AddressableNote<'document-source'> {
 export interface DocumentNote extends AddressableNote<'document'> {
   /** Returns direct access grants for this document. */
   getAccess: () => CollectionNote<DocumentAccessNote>;
+  /** Returns eligible contacts from current sharing relationships on this source. */
+  getSharingSuggestions: () => readonly DocumentContactView[];
   /** Returns whether this document can grant direct local-user access. */
   canShareWith: () => boolean;
   /** Grants document access to a user email. */

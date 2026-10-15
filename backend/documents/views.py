@@ -41,7 +41,11 @@ class DocumentListCreateView(generics.ListCreateAPIView):
     serializer_class = DocumentSerializer
 
     def get_queryset(self):
-        return Document.objects.accessible_to(self.request.user).prefetch_related("grants__user")
+        return (
+            Document.objects.accessible_to(self.request.user)
+            .select_related("owner")
+            .prefetch_related("grants__user")
+        )
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)

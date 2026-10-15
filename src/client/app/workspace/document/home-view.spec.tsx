@@ -20,6 +20,7 @@ const documentNote = (
 ): DocumentNote => ({
   getId: () => id,
   getText: () => title,
+  getSharingSuggestions: () => [],
   getAccess: () => ({
     getChildren: () => Array.from({ length: recipients }, (_, index) => ({
       getEmail: () => `recipient-${index}@example.test`,
