@@ -43,7 +43,7 @@ import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selecti
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { getNoteBodyText } from '#client/editor/outline/selection/body-region';
 import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { getNestedList, isWithinBoundary, noteHasChildren, removeNoteSubtree } from '#client/editor/outline/selection/tree';
+import { getNestedList, getParentContentItem, isWithinBoundary, noteHasChildren, removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { forEachContentItemInOutline } from '#client/editor/outline/list-traversal';
 import { $getChildNoteIds, $getDocumentPlaceholder, $requireContentItemNoteId, $requireRootContentList } from '#client/editor/outline/schema';
 import { $resolveViewRoot, subscribeViewRoot } from '#client/editor/outline/view-root';
@@ -60,6 +60,7 @@ interface UseLexicalOpenDocumentOptions extends LexicalOpenDocumentSource {
 }
 
 interface AddressedNoteValues {
+  parentId: NoteId | null;
   folded: boolean;
   text: string;
   body: string | null;
@@ -102,6 +103,7 @@ function addressedNoteValuesEqual(
   return left === right
     || (left !== null
       && right !== null
+      && left.parentId === right.parentId
       && left.folded === right.folded
       && left.checked === right.checked
       && left.childListType === right.childListType
@@ -167,6 +169,11 @@ export function createLexicalOpenDocumentRuntime({
     return list ? $getChildNoteIds(list) : [];
   };
 
+  const $getParentNoteId = (note: ListItemNode): NoteId | null => {
+    const parent = getParentContentItem(note);
+    return parent ? $requireContentItemNoteId(parent) : null;
+  };
+
   // Reading a whole document addresses every note, so each lookup must not walk the outline.
   let noteKeyIndex: { state: EditorState; keys: Map<NoteId, NodeKey> } | null = null;
   const $findIndexedNote = (state: EditorState, noteId: NoteId): ListItemNode | null => {
@@ -183,41 +190,37 @@ export function createLexicalOpenDocumentRuntime({
     return $isListItemNode(note) ? note : null;
   };
 
-  const readAddressedNote = (noteId: NoteId): AddressedNoteValues | null => {
+  const readAddressedNote = <T>(noteId: NoteId, read: (note: ListItemNode | null) => T): T => {
     if (!started || disposed || !sourceReady) {
-      return null;
+      return read(null);
     }
     const state = editor.getEditorState();
-    return state.read(() => {
-      const note = $findIndexedNote(state, noteId);
-      if (!note) return null;
-      return {
+    return state.read(() => read($findIndexedNote(state, noteId)), { editor });
+  };
+
+  const readNoteObservation = (noteId: NoteId): AddressedNoteValues | null | undefined => {
+    try {
+      return readAddressedNote(noteId, (note) => note === null ? null : {
+        parentId: $getParentNoteId(note),
         folded: $isNoteFolded(note),
         text: getNoteOwnText(note),
         body: getNoteBodyText(note),
         checked: $getNoteChecked(note) === true,
         childListType: $getNestedListType(note),
         childIds: $getNestedChildNoteIds(note),
-      };
-    }, { editor });
-  };
-
-  const readNoteObservation = (noteId: NoteId): AddressedNoteValues | null | undefined => {
-    try {
-      return readAddressedNote(noteId);
+      });
     } catch {
       // Invalidate the observation; consumers reread to receive the original error.
       return undefined;
     }
   };
 
-  const requireAddressedNote = (noteId: NoteId): AddressedNoteValues => {
-    const note = readAddressedNote(noteId);
+  const requireAddressedNote = <T>(noteId: NoteId, read: (note: ListItemNode) => T): T => readAddressedNote(noteId, (note) => {
     if (!note) {
       throw new NoteUnavailableError(noteId);
     }
-    return note;
-  };
+    return read(note);
+  });
 
   const readCanToggleFold = () => {
     if (!started || disposed || !sourceReady) return false;
@@ -444,19 +447,41 @@ export function createLexicalOpenDocumentRuntime({
     addressedNotes.clear();
   };
 
-  const createNoteRef = (noteId: NoteId): OpenDocumentNote => {
+  const rootNote: OpenDocumentParentNote = Object.freeze({
+    getChildren: () => {
+      if (!started || disposed || !sourceReady) {
+        throw new NoteUnavailableError(docId);
+      }
+      return editor.getEditorState()
+        .read(() => $getChildNoteIds($requireRootContentList()), { editor })
+        .map(createNoteRef);
+    },
+    getChildListType: () => {
+      if (!started || disposed || !sourceReady) {
+        throw new NoteUnavailableError(docId);
+      }
+      return editor.getEditorState().read(() => $requireRootContentList().getListType(), { editor });
+    },
+    appendChildren: (notes: readonly NewNote[]) => appendChildren(null, notes),
+  });
+
+  function createNoteRef(noteId: NoteId): OpenDocumentNote {
     const handle: OpenDocumentNote = {
       getId: () => noteId,
-      getChildren: () => requireAddressedNote(noteId).childIds.map(createNoteRef),
+      getParent: () => {
+        const parentId = requireAddressedNote(noteId, $getParentNoteId);
+        return parentId === null ? rootNote : createNoteRef(parentId);
+      },
+      getChildren: () => requireAddressedNote(noteId, $getNestedChildNoteIds).map(createNoteRef),
       appendChildren: (notes) => appendChildren(noteId, notes),
-      getText: () => requireAddressedNote(noteId).text,
-      getBody: () => requireAddressedNote(noteId).body,
-      getFolded: () => requireAddressedNote(noteId).folded,
-      getChecked: () => requireAddressedNote(noteId).checked,
-      getChildListType: () => requireAddressedNote(noteId).childListType,
-      canToggleFold: () => (readAddressedNote(noteId)?.childIds.length ?? 0) > 0,
-      canToggleChecked: () => readAddressedNote(noteId) !== null,
-      canSetChildListType: () => (readAddressedNote(noteId)?.childListType ?? null) !== null,
+      getText: () => requireAddressedNote(noteId, getNoteOwnText),
+      getBody: () => requireAddressedNote(noteId, getNoteBodyText),
+      getFolded: () => requireAddressedNote(noteId, $isNoteFolded),
+      getChecked: () => requireAddressedNote(noteId, (note) => $getNoteChecked(note) === true),
+      getChildListType: () => requireAddressedNote(noteId, $getNestedListType),
+      canToggleFold: () => readAddressedNote(noteId, (note) => note !== null && noteHasChildren(note)),
+      canToggleChecked: () => readAddressedNote(noteId, (note) => note !== null),
+      canSetChildListType: () => readAddressedNote(noteId, (note) => note !== null && $getNestedListType(note) !== null),
       toggleFold: () => updateAddressedNote(noteId, (note) => {
         if (!noteHasChildren(note)) {
           throw new IneligibleOperationError('Only a note with children can fold.');
@@ -472,7 +497,7 @@ export function createLexicalOpenDocumentRuntime({
         childList.setListType(listType);
       }),
       zoom: () => {
-        if (started && !disposed && sourceReady && readAddressedNote(noteId)) {
+        if (readAddressedNote(noteId, (note) => note !== null)) {
           editor.dispatchCommand(ZOOM_TO_NOTE_COMMAND, { noteId });
         }
       },
@@ -501,25 +526,7 @@ export function createLexicalOpenDocumentRuntime({
       },
     };
     return Object.freeze(handle);
-  };
-
-  const rootNote: OpenDocumentParentNote = Object.freeze({
-    getChildren: () => {
-      if (!started || disposed || !sourceReady) {
-        throw new NoteUnavailableError(docId);
-      }
-      return editor.getEditorState()
-        .read(() => $getChildNoteIds($requireRootContentList()), { editor })
-        .map(createNoteRef);
-    },
-    getChildListType: () => {
-      if (!started || disposed || !sourceReady) {
-        throw new NoteUnavailableError(docId);
-      }
-      return editor.getEditorState().read(() => $requireRootContentList().getListType(), { editor });
-    },
-    appendChildren: (notes: readonly NewNote[]) => appendChildren(null, notes),
-  });
+  }
 
   const openDocument: OpenDocument = {
     documentId: docId,

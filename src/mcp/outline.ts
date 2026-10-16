@@ -1,5 +1,4 @@
-import { NoteUnavailableError } from '#note-sdk';
-import type { NoteId, NoteListType, OpenDocumentNote, OpenDocumentParentNote } from '#note-sdk';
+import type { NoteId, NoteListType, OpenDocumentNote } from '#note-sdk';
 
 const escapeLabel = (text: string) => text.replaceAll(/[\\[\]]/g, String.raw`\$&`);
 
@@ -8,28 +7,6 @@ interface Level {
   next: number;
   listType: NoteListType;
   indent: string;
-}
-
-/** Finds a note below `root` and the type of the list that contains it. */
-export function findNoteList(
-  root: OpenDocumentParentNote,
-  noteId: NoteId,
-): { note: OpenDocumentNote; listType: NoteListType } {
-  const levels: Array<Omit<Level, 'indent'>> = [{ notes: root.getChildren(), next: 0, listType: root.getChildListType() ?? 'bullet' }];
-  while (levels.length > 0) {
-    const level = levels.at(-1)!;
-    const note = level.notes[level.next++];
-    if (!note) {
-      levels.pop();
-    }
-    else if (note.getId() === noteId) {
-      return { note, listType: level.listType };
-    }
-    else {
-      levels.push({ notes: note.getChildren(), next: 0, listType: note.getChildListType() ?? 'bullet' });
-    }
-  }
-  throw new NoteUnavailableError(noteId);
 }
 
 /**

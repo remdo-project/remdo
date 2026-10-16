@@ -270,15 +270,6 @@ Remaining:
 
 ### SDK
 
-- **Addressed-note reads — next agreed slice.** Add `getParent()` to
-  [open document](specs/outliner/open-document.md) note references, following the [note model's parentage](specs/outliner/note-model.md#notes), so MCP
-  can obtain containing-list context without reconstructing the document tree.
-  Make value getters compute the requested value without deriving unrelated
-  fields. Retain Lexical/Yjs for this slice; broader locator, source, and
-  representation changes remain separate decisions. Preserve read freshness,
-  unavailable-note behavior, and root-versus-note parent semantics in the owner
-  and consumer coverage.
-
 - **Simplify SDK consumer types.** Review consumers beyond the mobile toolbar
   for narrowing driven only by test setup and duplicate local types. Prefer
   existing public types at meaningful boundaries; retain narrower contracts

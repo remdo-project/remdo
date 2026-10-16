@@ -79,6 +79,8 @@ export interface OpenDocumentParentNote {
 export interface OpenDocumentNote extends OpenDocumentParentNote {
   /** Stable ID used to re-resolve the note in the current document revision. */
   readonly getId: () => NoteId;
+  /** The current parent note, or the document root for a top-level note. */
+  readonly getParent: () => OpenDocumentParentNote;
   /** Returns the current content text. */
   readonly getText: () => string;
   /** Returns the body's plain text, or null when the note has none. */
@@ -96,7 +98,7 @@ export interface OpenDocumentNote extends OpenDocumentParentNote {
   /** Converts only this note's child list; rejects for a leaf. */
   readonly setChildListType: (listType: NoteListType) => Promise<void>;
   readonly zoom: () => void;
-  /** Notifies when this note's exposed values, children, eligibility, or readability may have changed. */
+  /** Notifies when this note's exposed values, parent identity, children, eligibility, or readability may have changed. */
   readonly subscribe: (listener: () => void) => () => void;
 }
 
