@@ -45,7 +45,7 @@ RUN BUILD_REVISION="${BUILD_REVISION}" NODE_ENV=production ./tools/env.sh --prod
 ############################
 # Python dependencies      #
 ############################
-FROM python:3.14-alpine AS backend
+FROM python:3.15-alpine AS backend
 COPY --from=ghcr.io/astral-sh/uv:0.12.15 /uv /bin/uv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
@@ -54,7 +54,7 @@ RUN uv sync --locked --no-dev --no-install-project
 ############################
 # Production runtime       #
 ############################
-FROM python:3.14-alpine AS runner
+FROM python:3.15-alpine AS runner
 ENV DATA_DIR=/data DJANGO_SETTINGS_MODULE=remdo.settings
 # Django settings require the hub port, and `docker exec` commands skip the
 # entrypoint that derives it; entrypoint-env.sh still pins it for services.
