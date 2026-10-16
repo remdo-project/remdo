@@ -62,24 +62,6 @@ ships.
   `textbox` role masks an inner heading from assistive tech). Close with the
   location-header work.
 
-## Note-first SDK follow-ups
-
-The projection-backed app-resource implementation is retired. Its historical
-design is available in Git; [SDK consumer work](todo.md#sdk) owns future app-resource decisions
-against the [document registry](architecture.md#document-registry).
-
-- Persisted user-data handles and document-specific resource kinds remain a
-  separate SDK slice. Remaining work:
-  1. Settle long-term `DocumentNote` semantics for non-current documents:
-     loading model, whether `getChildren()` can hydrate, and which operations are
-     allowed before document content is loaded.
-  2. Clarify the cross-document query/loading boundary, including
-     whether cross-document link search should load trees directly or use a
-     separate index/search layer.
-  3. Update the durable docs once the cross-document query contract stabilizes:
-     `docs/specs/outliner/note-model.md`, `docs/architecture.md`,
-     and `docs/specs/outliner/links.md`.
-
 ## Frosted-glass material follow-ups
 
 - The frosted-glass mobile toolbar uses a translucent `color-mix` fill that

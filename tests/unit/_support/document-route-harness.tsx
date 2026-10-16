@@ -76,13 +76,15 @@ function MockEditor({
   const available = documentAvailability[docId] ?? true;
   const openDocument = React.useMemo<OpenDocument>(() => {
     const noOp = () => {};
+    const root: OpenDocument['root'] = { getChildren: () => [], getChildListType: () => 'bullet', appendChildren: () => Promise.resolve([]) };
     return {
       documentId: docId,
       search: mockDocumentSearch(docId),
       subscribeCapabilities: () => noOp,
-      root: { getChildren: () => [], getChildListType: () => 'bullet', appendChildren: () => Promise.resolve([]) },
+      root,
       noteRef: (noteId) => ({
         getId: () => noteId,
+        getParent: () => root,
         getChildren: () => [],
         appendChildren: () => Promise.resolve([]),
         getText: () => '',

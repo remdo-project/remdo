@@ -27,10 +27,49 @@ reachability, failure reporting, and cache isolation together. Preserve the
 [multi-origin direction](principles.md#multi-origin-direction) without
 committing to the previous OAuth topology.
 
+Evaluate representing a connected server as a [note kind](specs/outliner/note-model.md#note-kinds) whose children expose
+its documents. Coordinate that interaction model with [cross-source discovery](#cross-source-discovery).
+
 The withdrawn Node backend, source adapters, projections, linking
 implementation, and specification remain available in Git history as reference.
 Their future redesign does not require maintaining an operational legacy
 implementation.
+
+### Cross-source discovery
+
+- **Cross-document search.** Extend [discovery](principles.md#interaction-and-discovery) beyond one active document,
+  including documents on connected servers. Settle query coverage, freshness,
+  access changes, and unavailable sources before choosing direct document
+  loading or a derived search index. Coordinate the UI, [note-link picker](specs/outliner/links.md#future), and
+  [MCP](#claude-mcp-save-a-conversation-to-remdo) through shared SDK operations.
+- **Unopened documents.** Settle non-current `DocumentNote` loading, whether
+  children reads may hydrate content, and which operations are available before
+  loading. Reassess persisted user-data handles and document-specific kinds
+  against the [document registry](architecture.md#document-registry) and [offline inventory](architecture.md#future). The retired
+  projection-backed implementation remains historical evidence. Once decided,
+  align the [note model](specs/outliner/note-model.md), architecture, and links owners.
+- **External sources.** Test the [adapter direction](principles.md#multi-origin-direction) against calendar entries and
+  email: find, address, link, and use their context while their content remains
+  in its original source. Use concrete examples to settle identity, navigation,
+  availability, and kind-specific capabilities before generalizing the SDK;
+  connecting a source need not convert its content into an editable RemDo
+  document.
+
+### Note representation and history
+
+Assess whether the current [Lexical representation](specs/editor/lexical-outline.md) can support efficient note
+access and discovery, or whether a note-owned representation or another editor
+would be simpler overall. Compare measured
+[read, search, and headless loading costs](#performance), including the need to hydrate a
+Lexical editor server-side, against the costs of preserving rich text, stable
+identity, collaboration, offline merging, and undo. Keep these alternatives open
+while delivering bounded SDK improvements.
+
+Clarify the desired history and interoperability workflows: undo, recoverable
+versions, readable Git diffs, and editing through other tools. Compare Markdown
+as an authoritative format with readable exports from collaborative state;
+establish round-trip and merge behavior before choosing. Coordinate recoverable
+versions with [backup and recovery](#operations).
 
 ### Post-Hocuspocus simplification proposals
 
@@ -136,12 +175,19 @@ Decisions requiring a contract owner's judgement:
   harness. Use the evidence to select bounded optimizations rather than
   presupposing an index, worker, or library.
 
+  Include [addressed-note resolution](../src/client/editor/outline/note-traversal.ts), index maintenance after edits, and
+  value/subtree reads as separate workloads. The shared-locator follow-up
+  remains tracked at that implementation; distinguish loaded lookup from cold
+  document acquisition.
+
 - **Server capacity under load.** Measure a production image under a burst of
   concurrent [MCP](specs/integrations/mcp.md) saves alongside simulated editors:
   peak memory per process, CPU, and save latency across document sizes. Use the
   results to size the hosted instance and to decide whether to reduce
   whole-document saves, cache open documents in the headless host, split the
   collaboration hub, or run the MCP server as a separate service.
+  Measure cold reads and Yjs/Lexical hydration separately from note resolution
+  and output serialization, to inform the [representation decision](#note-representation-and-history).
 
 ### Operations
 
@@ -178,12 +224,16 @@ Decisions requiring a contract owner's judgement:
 Goal: a Claude web custom connector that saves a conversation outline into a
 RemDo document, minimal but useful for real work.
 
+Reconcile document operations that call the API directly with the
+[SDK's resource access model](#sdk), preserving host-owned acquisition and
+durable completion.
+
 - Let the [MCP server](specs/integrations/mcp.md) set a note's content text
   and delete a note, which first need [open document](specs/outliner/open-document.md)
   operations addressing a note. Appending cannot add a body, although reading
   returns bodies.
-- Expose search once server-side search spans a user's documents; searching a
-  single document adds little over reading it whole.
+- Expose [cross-document search](#cross-source-discovery) once server-side search spans a user's documents;
+  searching a single document adds little over reading it whole.
 - **Oversized upload regression coverage.** Django closing the connection before
   reading an over-limit body used to crash the MCP process. The fix in
   `src/platform/net/django-request.ts` was confirmed only against gunicorn;
@@ -258,7 +308,7 @@ Remaining:
   resource-read changes with the [offline document-inventory follow-up](architecture.md#future), and
   non-current-document access and
   cross-document query/loading with the
-  [legacy Note-first SDK follow-ups](legacy-backlog.md#note-first-sdk-follow-ups).
+  [cross-source discovery work](#cross-source-discovery).
 
   Success is a simple SDK surface for note access, observation, queries, and
   operations without adapter-specific semantic logic in consumers. Keep

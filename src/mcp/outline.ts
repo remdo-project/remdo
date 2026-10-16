@@ -1,5 +1,4 @@
-import { NoteUnavailableError } from '#note-sdk';
-import type { NoteId, NoteListType, OpenDocumentNote, OpenDocumentParentNote } from '#note-sdk';
+import type { NoteId, NoteListType, OpenDocumentNote } from '#note-sdk';
 
 const escapeLabel = (text: string) => text.replaceAll(/[\\[\]]/g, String.raw`\$&`);
 
@@ -10,41 +9,19 @@ interface Level {
   indent: string;
 }
 
-/** Finds a note below `root` and the type of the list that contains it. */
-export function findNoteList(
-  root: OpenDocumentParentNote,
-  noteId: NoteId,
-): { note: OpenDocumentNote; listType: NoteListType } {
-  const levels: Array<Omit<Level, 'indent'>> = [{ notes: root.getChildren(), next: 0, listType: root.getChildListType() ?? 'bullet' }];
-  while (levels.length > 0) {
-    const level = levels.at(-1)!;
-    const note = level.notes[level.next++];
-    if (!note) {
-      levels.pop();
-    }
-    else if (note.getId() === noteId) {
-      return { note, listType: level.listType };
-    }
-    else {
-      levels.push({ notes: note.getChildren(), next: 0, listType: note.getChildListType() ?? 'bullet' });
-    }
-  }
-  throw new NoteUnavailableError(noteId);
-}
-
 /**
  * Renders `notes` and their descendants as a nested Markdown list whose labels
  * link to each note, leaving a note unlinked when `noteUrl` returns null. The
- * listed notes are level 1 and sit in a list of type `listType`; a note on the
- * last of `depth` levels reports how many children it hides.
+ * listed notes are level 1, siblings in the list of their shared parent; a note
+ * on the last of `depth` levels reports how many children it hides.
  */
 export function renderOutline(
   notes: readonly OpenDocumentNote[],
   noteUrl: (noteId: NoteId) => string | null,
-  { depth = Infinity, listType: notesListType }: { depth?: number; listType?: NoteListType | null } = {},
+  { depth = Infinity }: { depth?: number } = {},
 ): string {
   const lines: string[] = [];
-  const levels: Level[] = [{ notes, next: 0, listType: notesListType ?? 'bullet', indent: '' }];
+  const levels: Level[] = [{ notes, next: 0, listType: notes[0]?.getParent().getChildListType() ?? 'bullet', indent: '' }];
   while (levels.length > 0) {
     const level = levels.at(-1)!;
     const note = level.notes[level.next++];

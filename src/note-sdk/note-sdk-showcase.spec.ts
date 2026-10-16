@@ -90,11 +90,11 @@ describe('note SDK showcase', () => {
       });
     });
 
-    it('changes the list owned by an addressed parent', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
-      const parent = remdo.openDocument.noteRef('note1');
+    it('reads the containing list through a retained parent reference', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
+      const parent = remdo.openDocument.noteRef('note2').getParent();
       expect(parent.getChildListType()).toBe('number');
 
-      await parent.setChildListType('check');
+      await remdo.openDocument.noteRef('note1').setChildListType('check');
 
       expect(parent.getChildListType()).toBe('check');
     });
