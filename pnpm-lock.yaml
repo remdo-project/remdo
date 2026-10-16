@@ -214,10 +214,10 @@ catalogs:
       version: 0.51.0
     '@mantine/core':
       specifier: ^9.6.2
-      version: 9.6.2
+      version: 9.7.2
     '@mantine/hooks':
       specifier: ^9.6.2
-      version: 9.6.2
+      version: 9.7.2
     '@modelcontextprotocol/sdk':
       specifier: ^1.30.1
       version: 1.30.1
@@ -467,10 +467,10 @@ importers:
         version: 0.51.0(patch_hash=5b663e2cc3efb8fde3cdcd5b6e0a3aac720e512a36727a440b39dff762d2cb60)(typescript@6.0.3)(yjs@13.6.33)
       '@mantine/core':
         specifier: 'catalog:'
-        version: 9.6.2(@mantine/hooks@9.6.2(react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 9.7.2(@mantine/hooks@9.7.2(react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@mantine/hooks':
         specifier: 'catalog:'
-        version: 9.6.2(react@19.3.0)
+        version: 9.7.2(react@19.3.0)
       '@modelcontextprotocol/sdk':
         specifier: 'catalog:'
         version: 1.30.1(supports-color@10.2.2)(zod@4.6.5)
@@ -2016,15 +2016,15 @@ packages:
   '@lifeomic/attempt@3.1.0':
     resolution: {integrity: sha512-QZqem4QuAnAyzfz+Gj5/+SLxqwCAw2qmt7732ZXodr6VDWGeYLG6w1i/vYLa55JQM9wRuBKLmXmiZ2P0LtE5rw==}
 
-  '@mantine/core@9.6.2':
-    resolution: {integrity: sha512-6W7xA3FRlGMclVDCY5U6rqhgzc+x+7G3nR9rntcjtF/Slnkp79Em8yjAB01F0wBSnrBUMK1TqKENf5o5WHiPOA==}
+  '@mantine/core@9.7.2':
+    resolution: {integrity: sha512-+cggJDD0PO057SwZU/dKlWPjp0LaAn1nEM9W1m/Ia4Cjb/Hy9DjZ4I7R7xirp/eZ6xnV7OqeGmPFSJ8zeGa5kQ==}
     peerDependencies:
-      '@mantine/hooks': 9.6.2
+      '@mantine/hooks': 9.7.2
       react: ^19.2.0
       react-dom: ^19.2.0
 
-  '@mantine/hooks@9.6.2':
-    resolution: {integrity: sha512-SfNY0FvYi8vMytZbioQVx5JyX0dmLUQEmbgbQQXqe4iOto0QZ896XwhgMQ6g/FCWkvc9JHeHp7iPu4msqQFIEw==}
+  '@mantine/hooks@9.7.2':
+    resolution: {integrity: sha512-11emsRp/Mg+vfaKVyoMwiMdCHmO/15XOL6JG9fACkclVZnLPBVvRIaDdRBudsR3ALGZ5iTzrArPJDjjoeO6X4w==}
     peerDependencies:
       react: ^19.2.0
 
@@ -8009,10 +8009,10 @@ snapshots:
 
   '@lifeomic/attempt@3.1.0': {}
 
-  '@mantine/core@9.6.2(@mantine/hooks@9.6.2(react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@mantine/core@9.7.2(@mantine/hooks@9.7.2(react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@floating-ui/react': 0.27.20(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@mantine/hooks': 9.6.2(react@19.3.0)
+      '@mantine/hooks': 9.7.2(react@19.3.0)
       clsx: 2.1.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
@@ -8022,7 +8022,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@mantine/hooks@9.6.2(react@19.3.0)':
+  '@mantine/hooks@9.7.2(react@19.3.0)':
     dependencies:
       react: 19.3.0
 
