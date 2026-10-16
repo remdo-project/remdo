@@ -234,11 +234,11 @@ catalogs:
       specifier: ^3.48.0
       version: 3.48.0
     '@tanstack/query-core':
-      specifier: 5.103.2
-      version: 5.103.2
+      specifier: 5.104.3
+      version: 5.104.3
     '@tanstack/react-query':
-      specifier: 5.103.2
-      version: 5.103.2
+      specifier: 5.104.3
+      version: 5.104.3
     '@testing-library/jest-dom':
       specifier: ^7.0.1
       version: 7.0.1
@@ -485,10 +485,10 @@ importers:
         version: 3.48.0(react@19.3.0)
       '@tanstack/query-core':
         specifier: 'catalog:'
-        version: 5.103.2
+        version: 5.104.3
       '@tanstack/react-query':
         specifier: 'catalog:'
-        version: 5.103.2(react@19.3.0)
+        version: 5.104.3(react@19.3.0)
       esbuild:
         specifier: '>=0.28.1'
         version: 0.28.2
@@ -2532,11 +2532,11 @@ packages:
   '@tabler/icons@3.48.0':
     resolution: {integrity: sha512-lQk06gVHNVBnJp0UOgtth54mcZBJM7rdYKsAxKOProj1bbSAx+/xiuOWfHlyvgdL3M+Y+I0HINrjHa3ygp8eXQ==}
 
-  '@tanstack/query-core@5.103.2':
-    resolution: {integrity: sha512-I8DkFXls5jXLqtm8+QpOhEmG07hIblhSZFzafg9wHsMSEvMzULy9hK17wU1T/ahfhMbtITJhbxutwwCoihkR7A==}
+  '@tanstack/query-core@5.104.3':
+    resolution: {integrity: sha512-DZY9TuJAOgU3UyHUhXb4CcTYEHNZszlwkPg4VViIwTxOKzLprPUU+rbaPZQd3srqkGOtpaDdKpW972UV/LKlcg==}
 
-  '@tanstack/react-query@5.103.2':
-    resolution: {integrity: sha512-B+fWiYZBc+0uUD5zDZAeLw9dKj7XEsdnuu6zRZ+no6LNKpeE3P3bJ+N6HINjcIlWR6fW3vUoTneEaGa2V6ehqw==}
+  '@tanstack/react-query@5.104.3':
+    resolution: {integrity: sha512-5Ts1ImwJKqoJgPkLxl9WrPQy1JEoEmti3MaaODCfBamHUGFk57IFrc+AIksPq+BAm10EsroX56qm398Z42LG7w==}
     peerDependencies:
       react: ^18 || ^19
 
@@ -8401,11 +8401,11 @@ snapshots:
 
   '@tabler/icons@3.48.0': {}
 
-  '@tanstack/query-core@5.103.2': {}
+  '@tanstack/query-core@5.104.3': {}
 
-  '@tanstack/react-query@5.103.2(react@19.3.0)':
+  '@tanstack/react-query@5.104.3(react@19.3.0)':
     dependencies:
-      '@tanstack/query-core': 5.103.2
+      '@tanstack/query-core': 5.104.3
       react: 19.3.0
 
   '@testing-library/dom@10.4.2':
