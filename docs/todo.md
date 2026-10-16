@@ -106,7 +106,7 @@ Decisions requiring a contract owner's judgement:
 ### Documentation
 
 - **Remaining agent-flow specification alignment.** Reassess [`remdo-verify-change`](specs/agents/skills/remdo-verify-change.md)
-  and [`remdo-deps-refresh`](specs/agents/skills/remdo-deps-refresh.md) under the structured-algorithm guidance.
+  under the structured-algorithm guidance.
   Align each specification as a whole contract with one clear behavioral account
   while preserving accepted behavior and material edge paths; avoid mechanical
   notation-only conversions.
