@@ -17,7 +17,7 @@ title: A place for the small things
 description: A few thoughts on writing small tasks down.
 date: 2026-10-07
 topic: Perspectives
-image: /site-assets/blog/perspectives.webp
+image: /site-assets/blog/language-learning-cover.webp
 ---
 
 An opening paragraph, shown larger as the lede.

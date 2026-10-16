@@ -8,11 +8,13 @@ export default function DocumentToolbar({
   onSelectNoteId,
   onStatusHostChange,
   keyboardReference,
+  shareControl,
   path,
   searchControl,
 }: {
   documentLabel: string;
   keyboardReference?: ReactNode;
+  shareControl?: ReactNode;
   onSelectHome: () => void;
   onSelectNoteId: (noteId: string | null) => void;
   onStatusHostChange: (host: HTMLDivElement | null) => void;
@@ -33,6 +35,7 @@ export default function DocumentToolbar({
         {searchControl}
         <div className="document-header-status" ref={onStatusHostChange} />
         {keyboardReference}
+        {shareControl}
       </div>
     </header>
   );

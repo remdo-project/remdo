@@ -330,14 +330,10 @@ concrete unmet need.
   a Retry that cannot succeed, and whether that surface replaces the stale
   listing. Server-side [expired-session cleanup](#operations) is separate.
 
-- **Link sharing.** The [share surface](specs/access/access-control.md#document-sharing) renders a disabled General
-  access section: no endpoint issues, resolves, regenerates, or revokes a
-  bearer link, and no client state stands in for one. Define the behavior in
-  [Access Scope](specs/access/access-control.md#access-scope), which currently
-  excludes links carrying bearer credentials, before implementing it; the
-  contract's [future](specs/access/access-control.md#future) records the same gap.
-  Grant revocation is unbuilt, so the surface lists recipients without removing
-  them.
+- **Link sharing.** Bearer-link issuance, resolution, regeneration, revocation,
+  and invalid-link behavior are unbuilt. Define their behavior in
+  [Access Scope](specs/access/access-control.md#access-scope) before implementing them. Direct-grant revocation is
+  also unbuilt; consider it when extending sharing management.
 
 - **Document deletion in open sessions.** [Document deletion](specs/access/access-control.md#document-deletion) ships from
   Home row menus and the document-root header menu, and the deleting session

@@ -1,4 +1,4 @@
-import type { DocumentAccessView } from './access';
+import type { DocumentAccessView, DocumentContactView } from './access';
 
 /** Mirrors DOCUMENT_TITLE_MAX_LENGTH in backend/documents/models.py. */
 export const DOCUMENT_TITLE_MAX_LENGTH = 500;
@@ -8,5 +8,6 @@ export interface UserDocument {
   deletable?: boolean;
   id: string;
   shareable?: boolean;
+  sharedBy?: DocumentContactView | null;
   title: string;
 }

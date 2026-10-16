@@ -96,6 +96,120 @@
   color: var(--mantine-color-dark-2);
 }
 
+.document-share-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--chrome-muted);
+  cursor: pointer;
+}
+
+.document-share-button[data-hovered] {
+  background: var(--chrome-hover);
+  color: var(--chrome-text);
+}
+
+.document-share-button[data-shared='true'] {
+  color: var(--remdo-accent);
+}
+
+.document-share-button[data-focus-visible] {
+  outline: 2px solid var(--remdo-accent);
+  outline-offset: 2px;
+}
+
+.document-share-link {
+  padding: var(--mantine-spacing-sm);
+  border: 1px solid var(--chrome-line);
+  border-radius: 4px;
+  background: var(--chrome-hover);
+}
+
+.document-share-url {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.document-share-tooltip {
+  max-width: min(20rem, calc(100vw - 2rem));
+  overflow-wrap: anywhere;
+}
+
+.document-share-email-feedback {
+  display: block;
+  min-height: 1.25rem;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--mantine-color-red-2);
+}
+
+.remdo-dialog .document-share-email .mantine-Input-input {
+  padding-inline-end: var(--input-right-section-size);
+}
+
+.remdo-dialog .document-share-email .mantine-Input-input[data-format-valid] {
+  border-color: var(--mantine-color-green-4);
+}
+
+.document-share-suggestions {
+  width: var(--trigger-width);
+  max-width: calc(100vw - 2rem);
+  max-height: min(18rem, 60vh);
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: 3px;
+  background: var(--mantine-color-dark-6);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+}
+
+.document-share-suggestions-list {
+  outline: none;
+}
+
+.document-share-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 3px;
+  color: var(--mantine-color-dark-0);
+  outline: none;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.document-share-suggestion[data-focused] {
+  background: var(--mantine-color-dark-4);
+}
+
+.document-share-suggestion-name {
+  font-weight: 500;
+}
+
+.document-share-suggestion-email {
+  font-size: 0.875rem;
+  color: var(--mantine-color-dark-2);
+}
+
+.remdo-dialog .mantine-Button-root.document-share-add:not(:disabled, [data-disabled]) {
+  border-color: transparent;
+  background: var(--button-bg);
+  color: var(--button-color);
+}
+
+.remdo-dialog .mantine-Button-root.document-share-add:not(:disabled, [data-disabled]):hover {
+  background: var(--button-hover);
+}
+
 /* One menu button shows at a time: the document header's or the note strip's,
    whichever the pointer or caret last moved to. The strip's fold toggle keeps
    following its own rule. */

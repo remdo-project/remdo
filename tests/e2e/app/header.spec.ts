@@ -5,7 +5,7 @@ test('header controls are reachable by keyboard on a narrow screen', async ({ pa
   await page.goto('/');
   await expect(page.getByRole('combobox', { name: 'Search documents' })).toBeFocused();
 
-  const controls = page.getByRole('banner').locator('a, button');
+  const controls = page.getByRole('banner').locator('a, button').filter({ visible: true });
   // Losing the implicit banner role would empty the loop and pass vacuously.
   await expect(controls.first()).toBeVisible();
 
@@ -36,7 +36,7 @@ test('keeps the wordmark and footer links where the public pages put them', asyn
   expect(pub.footerStart).toEqual(app.footerStart);
 });
 
-test.fixme('omits About from the header on a narrow screen', async ({ page }) => {
+test('omits About from the header on a narrow screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   for (const path of ['/', '/about/']) {
     await page.goto(path);
@@ -46,7 +46,7 @@ test.fixme('omits About from the header on a narrow screen', async ({ page }) =>
   }
 });
 
-test.fixme('opens the blog from the header and marks it current', async ({ page }) => {
+test('opens the blog from the header and marks it current', async ({ page }) => {
   await page.goto('/about/');
   const navigation = page.getByRole('navigation', { name: 'Primary' });
   await navigation.getByRole('link', { name: 'Blog', exact: true }).click();
@@ -62,7 +62,7 @@ unauthenticatedTest('opens About from the native sign-in header', async ({ page 
   await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'About', exact: true }).click();
   await expect(page).toHaveURL(/\/about\/$/u);
   await expect(page.getByRole('article')).toBeVisible();
-  await expect(navigation.getByRole('link')).toHaveText(['About', 'Sign in']);
+  await expect(navigation.getByRole('link')).toHaveText(['Blog', 'About', 'Sign in']);
   await expect(navigation.getByRole('link', { name: 'About', exact: true })).toHaveAttribute('aria-current', 'page');
   await navigation.getByRole('link', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
@@ -71,7 +71,7 @@ unauthenticatedTest('opens About from the native sign-in header', async ({ page 
 test('public pages link to Home through the brand and retain staff navigation', async ({ page }) => {
   await page.goto('/about/');
   const navigation = page.getByRole('navigation', { name: 'Primary' });
-  await expect(navigation.getByRole('link')).toHaveText(['About', 'Admin', 'Logout']);
+  await expect(navigation.getByRole('link')).toHaveText(['Blog', 'About', 'Admin', 'Logout']);
   // Entering from a Django page cold-loads the SPA and its session.
   await page.getByRole('link', { name: 'RemDo home', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible({ timeout: 15_000 });

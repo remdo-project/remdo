@@ -13,7 +13,7 @@ async function sharedSignIn(page: Page) {
   const main = page.getByRole('main');
   return {
     title: await page.getByRole('heading', { level: 1 }).innerText(),
-    links: await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: /^(About|Sign in)$/u }).allInnerTexts(),
+    links: await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: /^(Blog|About|Sign in)$/u }).filter({ visible: true }).allInnerTexts(),
     titleStyle: await main.getByRole('heading', { level: 1 }).evaluate((element) => {
       const style = getComputedStyle(element);
       return [style.fontFamily, style.fontSize, style.fontWeight, style.lineHeight, style.letterSpacing];
@@ -82,7 +82,7 @@ for (const width of [1280, 390]) {
     await expect(page.getByRole('button', { name: 'Alice private document', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => localStorage.getItem('remdo-pending-sign-out'))).toBeNull();
     await page.goto('/about/');
-    await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link')).toHaveText(['About', 'Logout']);
+    await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link').filter({ visible: true })).toHaveText(width < 768 ? ['Blog', 'Logout'] : ['Blog', 'About', 'Logout']);
   });
 }
 

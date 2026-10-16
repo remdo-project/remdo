@@ -1,4 +1,4 @@
-import type { DocumentAccessView } from '#domain/documents/access';
+import type { DocumentAccessView, DocumentContactView } from '#domain/documents/access';
 import type { UserDocument } from '#domain/documents/user-data';
 import type {
   DocumentAccessNote,
@@ -110,6 +110,27 @@ function createDocumentAccessHandle(document: UserDocument): CollectionNote<Docu
 
 const unsubscribeNothing = () => {};
 
+function sharingSuggestions(document: UserDocument, documents: readonly UserDocument[]): DocumentContactView[] {
+  if (!document.shareable) return [];
+  const existing = new Set((document.access ?? []).map((access) => access.granteeUserId));
+  const contacts = new Map<string, { contact: DocumentContactView; outgoing: boolean }>();
+  for (const candidate of documents) {
+    if (candidate.shareable) {
+      for (const access of candidate.access ?? []) {
+        const contact = { userId: access.granteeUserId, email: access.email, name: access.name };
+        if (!existing.has(contact.userId)) contacts.set(contact.userId, { contact, outgoing: true });
+      }
+    } else if (candidate.sharedBy && !existing.has(candidate.sharedBy.userId) && !contacts.has(candidate.sharedBy.userId)) {
+      contacts.set(candidate.sharedBy.userId, { contact: candidate.sharedBy, outgoing: false });
+    }
+  }
+  return [...contacts.values()].sort((a, b) => (
+    Number(b.outgoing) - Number(a.outgoing)
+    || (a.contact.name || a.contact.email).localeCompare(b.contact.name || b.contact.email)
+    || a.contact.email.localeCompare(b.contact.email)
+  )).map(({ contact }) => contact);
+}
+
 function createDocumentHandle(
   noteId: NoteId,
   documents: CollectionSource<UserDocument>,
@@ -155,6 +176,7 @@ function createDocumentHandle(
     getKind: kind,
     getText: () => read().title,
     getAccess: () => createDocumentAccessHandle(read()),
+    getSharingSuggestions: () => sharingSuggestions(read(), documents.getChildren()),
     getChildren: () => [],
     canShareWith: () => documents.getById(noteId)?.shareable === true,
     shareWith,

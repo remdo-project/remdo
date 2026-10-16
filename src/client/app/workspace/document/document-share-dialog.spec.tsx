@@ -1,12 +1,19 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createUserDataRootNote } from '#note-sdk';
 import type { UserDocument } from '#note-sdk';
 import type { DocumentAccessView } from '#domain/documents/access';
 import { TestMantineProvider, createObservableDocumentList } from '#tests';
 import { DocumentShareDialog } from './DocumentShareDialog';
 
-const DOC: UserDocument = { id: 'doc-a', title: 'Project Roadmap', shareable: true, access: [] };
+const DOC: UserDocument = { id: 'docA', title: 'Project Roadmap', shareable: true, access: [] };
+const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+
+afterEach(() => {
+  if (originalClipboard) Object.defineProperty(navigator, 'clipboard', originalClipboard);
+  else Reflect.deleteProperty(navigator, 'clipboard');
+  window.history.replaceState(null, '', '/');
+});
 
 function renderDialog({
   documents = [DOC],
@@ -18,7 +25,7 @@ function renderDialog({
   onClose?: () => void;
 } = {}) {
   const { source, replace: replaceListing } = createObservableDocumentList(documents);
-  const note = createUserDataRootNote(source, { shareDocument }).getDocuments().getById('doc-a')!;
+  const note = createUserDataRootNote(source, { shareDocument }).getDocuments().getById('docA')!;
   const view = render(
     <TestMantineProvider>
       <DocumentShareDialog note={note} onClose={onClose} />
@@ -28,8 +35,10 @@ function renderDialog({
 }
 
 const invite = (email: string) => {
-  fireEvent.change(screen.getByLabelText(/Invite by email/u), { target: { value: email } });
-  fireEvent.click(screen.getByRole('button', { name: 'Invite' }));
+  const field = screen.getByLabelText(/Add a person by email/u);
+  fireEvent.change(field, { target: { value: email } });
+  fireEvent.blur(field);
+  fireEvent.click(screen.getByRole('button', { name: 'Add access' }));
 };
 
 describe('document share dialog', () => {
@@ -43,9 +52,75 @@ describe('document share dialog', () => {
     expect(screen.getByText('Only you have access.')).toBeInTheDocument();
   });
 
+  it('updates accessible format feedback while typing and keeps it when focus changes', () => {
+    const shareDocument = vi.fn();
+    renderDialog({ shareDocument });
+    const field = screen.getByRole('combobox', { name: 'Add a person by email' });
+    fireEvent.change(field, { target: { value: 'bob@example.test' } });
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+    fireEvent.blur(field);
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+    expect(field).not.toHaveAttribute('aria-invalid', 'true');
+    fireEvent.focus(field);
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+    fireEvent.change(field, { target: { value: 'bob@' } });
+    expect(screen.queryByText('Valid email format')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(shareDocument).not.toHaveBeenCalled();
+  });
+
+  it('explains a malformed address after blur and clears the error as soon as it is corrected', () => {
+    const shareDocument = vi.fn();
+    renderDialog({ shareDocument });
+    const field = screen.getByRole('combobox', { name: 'Add a person by email' });
+    fireEvent.change(field, { target: { value: 'not-an-email' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    fireEvent.blur(field);
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid email address.');
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
+    expect(field).toHaveAccessibleDescription(/Enter a valid email address/u);
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    fireEvent.focus(field);
+    fireEvent.change(field, { target: { value: 'bob@example.test' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(field).not.toHaveAttribute('aria-invalid', 'true');
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+    expect(shareDocument).not.toHaveBeenCalled();
+  });
+
+  it('waits for a dotted domain before confirming the format, except for localhost', () => {
+    renderDialog();
+    const field = screen.getByRole('combobox', { name: 'Add a person by email' });
+    fireEvent.change(field, { target: { value: 'sample@example' } });
+    expect(screen.queryByText('Valid email format')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    fireEvent.blur(field);
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid email address.');
+    fireEvent.change(field, { target: { value: 'sample@example.test' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+    fireEvent.change(field, { target: { value: 'sample@localhost' } });
+    expect(field).toHaveAccessibleDescription(/Valid email format/u);
+  });
+
+  it('leaves an empty field quiet until submission and focuses its inline required error', () => {
+    const shareDocument = vi.fn();
+    renderDialog({ shareDocument });
+    const field = screen.getByRole('combobox', { name: 'Add a person by email' });
+    fireEvent.blur(field);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText('Valid email format')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Add access' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter an email address.');
+    expect(field).toHaveFocus();
+    fireEvent.change(field, { target: { value: 'b' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(shareDocument).not.toHaveBeenCalled();
+  });
+
   it('shows a granted recipient without reopening the dialog', async () => {
     const access: DocumentAccessView = {
-      documentId: 'doc-a', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
+      documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
     };
     const { replaceListing } = renderDialog({
       shareDocument: async () => {
@@ -66,7 +141,7 @@ describe('document share dialog', () => {
     act(() => replaceListing([{
       ...DOC,
       title: 'Quarterly plan',
-      access: [{ documentId: 'doc-a', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' }],
+      access: [{ documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' }],
     }]));
 
     expect(screen.getByRole('dialog', { name: /Quarterly plan/u })).toBeInTheDocument();
@@ -82,7 +157,7 @@ describe('document share dialog', () => {
         return source.subscribe!(listener);
       },
     };
-    const note = createUserDataRootNote(lateSource).getDocuments().getById('doc-a')!;
+    const note = createUserDataRootNote(lateSource).getDocuments().getById('docA')!;
 
     render(<TestMantineProvider><DocumentShareDialog note={note} onClose={vi.fn()} /></TestMantineProvider>);
 
@@ -100,7 +175,7 @@ describe('document share dialog', () => {
     expect(screen.queryByText('Only you have access.')).toBeNull();
     invite('bob@example.test');
     expect(await screen.findByRole('alert')).toHaveTextContent('This document is no longer available.');
-    expect(shareDocument).toHaveBeenCalledWith('doc-a', 'bob@example.test');
+    expect(shareDocument).toHaveBeenCalledWith('docA', 'bob@example.test');
   });
 
   it.each([
@@ -108,14 +183,16 @@ describe('document share dialog', () => {
     ['owner@example.test', 'You already own this document.'],
   ])('reports a rejected invite to %s while retaining the address and recipients', async (email, message) => {
     renderDialog({
-      documents: [{ ...DOC, access: [{ documentId: 'doc-a', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' }] }],
+      documents: [{ ...DOC, access: [{ documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' }] }],
       shareDocument: () => Promise.reject(new Error(message)),
     });
 
     invite(email);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
-    expect(screen.getByLabelText(/Invite by email/u)).toHaveValue(email);
+    expect(screen.queryByText('Valid email format')).toBeNull();
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
+    expect(screen.getByLabelText(/Add a person by email/u)).toHaveValue(email);
     expect(screen.getByText('Bob')).toBeInTheDocument();
     expect(screen.getByText('bob@example.test')).toBeInTheDocument();
   });
@@ -128,32 +205,94 @@ describe('document share dialog', () => {
 
     invite('bob@example.test');
 
-    await waitFor(() => expect(screen.getByLabelText(/Invite by email/u)).toBeDisabled());
-    settle({ documentId: 'doc-a', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' });
-    await waitFor(() => expect(screen.getByLabelText(/Invite by email/u)).toBeEnabled());
+    await waitFor(() => expect(screen.getByLabelText(/Add a person by email/u)).toBeDisabled());
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
+    settle({ documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' });
+    await waitFor(() => expect(screen.getByLabelText(/Add a person by email/u)).toBeEnabled());
   });
 
   it('clears the invited address once the grant is accepted', async () => {
     renderDialog({
       shareDocument: async () => ({
-        documentId: 'doc-a', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
+        documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
       }),
     });
 
     invite('bob@example.test');
 
-    await waitFor(() => expect(screen.getByLabelText(/Invite by email/u)).toHaveValue(''));
+    await waitFor(() => expect(screen.getByLabelText(/Add a person by email/u)).toHaveValue(''));
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
   });
 
-  it('offers no link sharing and says so', () => {
+  it('describes copying a locator without granting access', () => {
     renderDialog();
-    expect(screen.getByLabelText('Anyone with the link')).toBeDisabled();
-    expect(screen.getByText('Link sharing is not available yet.')).toBeInTheDocument();
+    expect(screen.getByText('Only people with access')).toBeInTheDocument();
+    expect(screen.getByText(/Copying this link does not change access/u)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy link' })).toBeEnabled();
   });
 
-  it('closes without a combined submission', () => {
-    const { onClose } = renderDialog();
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+  it('shows the owner and editing access and confirms the exact granted address', async () => {
+    renderDialog({
+      shareDocument: async () => ({ documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' }),
+    });
+    expect(screen.getByText('You')).toBeInTheDocument();
+    expect(screen.getByText('Owner')).toBeInTheDocument();
+    invite('  bob@example.test  ');
+    expect(await screen.findByRole('status')).toHaveTextContent('bob@example.test has access. They can edit this document. No email was sent.');
+  });
+
+  it.each([true, false])('confirms an existing grant when the cached recipient is listed: %s', async (listed) => {
+    const grant = { documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' };
+    renderDialog({ documents: [{ ...DOC, access: listed ? [grant] : [] }], shareDocument: async () => grant });
+    invite('BOB@example.test');
+    expect(await screen.findByRole('status')).toHaveTextContent('bob@example.test has access. They can edit this document. No email was sent.');
+  });
+
+  it('gives a collaborator only their access summary and a locator', () => {
+    renderDialog({
+      documents: [{ ...DOC, shareable: false, access: [{ documentId: 'docA', granteeUserId: 'other', email: 'other@example.test', name: 'Other' }] }],
+    });
+    expect(screen.getByText('Your access')).toBeInTheDocument();
+    expect(screen.getByText(/Only its owner can add people/u)).toBeInTheDocument();
+    expect(screen.queryByText('other@example.test')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add access' })).toBeNull();
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Copy link' })).toBeEnabled();
+  });
+
+  it('copies the document-root link rather than the current zoom, query, or fragment', async () => {
+    window.history.replaceState(null, '', '/n/docA_zoomNote?debug=1#caret');
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    const shareDocument = vi.fn();
+    renderDialog({ shareDocument });
+    fireEvent.click(screen.getByRole('button', { name: 'Copy link' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Link copied. Access has not changed.');
+    expect(writeText).toHaveBeenCalledExactlyOnceWith(`${window.location.origin}/n/docA`);
+    expect(shareDocument).not.toHaveBeenCalled();
+  });
+
+  it.each(['unavailable', 'rejected'])('offers a selectable link when clipboard copying is %s', async (kind) => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: kind === 'unavailable' ? undefined : { writeText: vi.fn().mockRejectedValue(new Error('Clipboard denied')) },
+    });
+    renderDialog();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy link' }));
+    const field = await screen.findByRole('textbox', { name: 'Document link' });
+    expect(field).toHaveValue(`${window.location.origin}/n/docA`);
+    expect(field).toHaveFocus();
+    expect(screen.queryByRole('button', { name: 'Copied' })).toBeNull();
+  });
+
+  it('closes without granting access to an unsubmitted address', () => {
+    const shareDocument = vi.fn();
+    const { onClose } = renderDialog({ shareDocument });
+    expect(screen.queryByText('Not added yet. Select Add access.')).toBeNull();
+    fireEvent.change(screen.getByLabelText(/Add a person by email/u), { target: { value: 'bob@example.test' } });
+    expect(screen.getByText('Not added yet. Select Add access.')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Close'));
+    expect(shareDocument).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

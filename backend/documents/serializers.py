@@ -33,10 +33,23 @@ class ShareDocumentErrorSerializer(serializers.Serializer):
     email = serializers.ListField(child=serializers.CharField(), required=False)
 
 
+class DocumentContactSerializer(serializers.Serializer):
+    userId = serializers.CharField(source="pk", read_only=True)
+    email = serializers.EmailField(read_only=True)
+    name = serializers.CharField(source="get_full_name", read_only=True)
+
+
 class DocumentSerializer(serializers.ModelSerializer):
     shareable = serializers.SerializerMethodField()
     deletable = serializers.SerializerMethodField()
     access = serializers.SerializerMethodField()
+    sharedBy = serializers.SerializerMethodField(method_name="get_shared_by", allow_null=True)
+
+    @extend_schema_field(DocumentContactSerializer(allow_null=True))
+    def get_shared_by(self, document):
+        if document.owner_id == self.context["request"].user.pk:
+            return None
+        return DocumentContactSerializer(document.owner).data
 
     @extend_schema_field(DocumentAccessSerializer(many=True))
     def get_access(self, document):
@@ -52,7 +65,7 @@ class DocumentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Document
-        fields = ["id", "title", "shareable", "deletable", "access"]
+        fields = ["id", "title", "shareable", "deletable", "access", "sharedBy"]
         read_only_fields = ["id"]
         extra_kwargs = {"title": {"default": "", "trim_whitespace": False}}
 
