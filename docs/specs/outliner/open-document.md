@@ -22,9 +22,9 @@ neither requires the note to exist nor creates it. Value reads resolve the
 current committed note; an unavailable note or source produces an identifiable
 unavailable-note error, distinct from unexpected read failures.
 
-`getParent()` returns a reference to the current parent, using the open
-document's root reference for top-level notes. Reparenting the note does not
-retarget that reference.
+A parent read returns a reference to the editor note's current parent, or the
+document root for a top-level note. Reparenting the note does not retarget a
+returned reference.
 
 Informative: A retained reference stays useful across edits and deletion/undo.
 Its values are fresh when read; previously returned values do not update

@@ -28,8 +28,7 @@ reachability, failure reporting, and cache isolation together. Preserve the
 committing to the previous OAuth topology.
 
 Evaluate representing a connected server as a [note kind](specs/outliner/note-model.md#note-kinds) whose children expose
-its documents. Coordinate that interaction model with [cross-source discovery](#cross-source-discovery),
-while keeping source identity, authority, and capabilities explicit.
+its documents. Coordinate that interaction model with [cross-source discovery](#cross-source-discovery).
 
 The withdrawn Node backend, source adapters, projections, linking
 implementation, and specification remain available in Git history as reference.
@@ -225,10 +224,9 @@ Decisions requiring a contract owner's judgement:
 Goal: a Claude web custom connector that saves a conversation outline into a
 RemDo document, minimal but useful for real work.
 
-Develop capabilities through the [SDK consumer boundary](#sdk) so MCP remains a thin
-transport and presentation layer as functionality grows. Reconcile document
-operations that call the API directly with the SDK's resource access model,
-preserving host-owned acquisition and durable completion.
+Reconcile document operations that call the API directly with the
+[SDK's resource access model](#sdk), preserving host-owned acquisition and
+durable completion.
 
 - Let the [MCP server](specs/integrations/mcp.md) set a note's content text
   and delete a note, which first need [open document](specs/outliner/open-document.md)

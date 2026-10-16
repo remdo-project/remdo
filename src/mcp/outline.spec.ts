@@ -28,10 +28,7 @@ it('renders list types, checked state, bodies, and note links as nested Markdown
 });
 
 it('renders a note read on its own with the marker of its containing list', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
-  const read = (noteId: string) => {
-    const note = remdo.openDocument.noteRef(noteId);
-    return renderOutline([note], url, { listType: note.getParent().getChildListType() });
-  };
+  const read = (noteId: string) => renderOutline([remdo.openDocument.noteRef(noteId)], url);
 
   expect(read('note2')).toBe('1. [note2](https://remdo.example/n/doc_note2)');
   await remdo.openDocument.noteRef('note1').setChildListType('check');
@@ -41,15 +38,12 @@ it('renders a note read on its own with the marker of its containing list', meta
 });
 
 it('renders top-level notes with the marker of the document root list', meta({ fixture: 'tree-ordered-root' }), ({ remdo }) => {
-  const { root } = remdo.openDocument;
-
-  expect(renderOutline(root.getChildren(), url, { listType: root.getChildListType() })).toBe([
+  expect(renderOutline(remdo.openDocument.root.getChildren(), url)).toBe([
     '1. [note1](https://remdo.example/n/doc_note1)',
     '1. [note2](https://remdo.example/n/doc_note2)',
     '   - [note3](https://remdo.example/n/doc_note3)',
   ].join('\n'));
-  const note = remdo.openDocument.noteRef('note2');
-  expect(renderOutline([note], url, { listType: note.getParent().getChildListType() })).toBe([
+  expect(renderOutline([remdo.openDocument.noteRef('note2')], url)).toBe([
     '1. [note2](https://remdo.example/n/doc_note2)',
     '   - [note3](https://remdo.example/n/doc_note3)',
   ].join('\n'));
@@ -81,6 +75,7 @@ it('renders outlines nested deeper than the call stack', () => {
     const nested = children;
     children = [{
       getId: () => `n${level}`,
+      getParent: () => ({ getChildListType: () => null }),
       getText: () => `n${level}`,
       getChecked: () => false,
       getBody: () => null,
