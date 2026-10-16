@@ -4,7 +4,7 @@ ARG BUILD_REVISION=${RENDER_GIT_COMMIT}
 ###############################
 # Builder: compile SPA assets #
 ###############################
-FROM node:24.21-alpine AS builder
+FROM node:24.22-alpine AS builder
 
 WORKDIR /app
 
