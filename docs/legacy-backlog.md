@@ -149,7 +149,7 @@ Follow-ups to the spec in [docs/specs/outliner/body.md](specs/outliner/body.md):
 - Parked escalations awaiting Piotr (five): [note-kind capabilities](specs/outliner/note-model.md#note-kinds)
   sentence (carries the selection link; reject / apply-with-link-relocation);
   [result-row context](specs/outliner/search.md#result-row-context) split; [selection mode-switch](specs/outliner/selection.md#selection-states) split;
-  [dependency patches](specs/agents/skills/remdo-deps-refresh.md#dependency-patches) stage split (#5 of conv3); [search disambiguation](specs/outliner/search.md#behavior)
+  [dependency patches](../CONTRIBUTING.md#dependency-patches) stage split (#5 of conv3); [search disambiguation](specs/outliner/search.md#behavior)
   parenthetical split.
 
 ## Skill architecture follow-ups

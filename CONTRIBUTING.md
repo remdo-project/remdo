@@ -41,6 +41,10 @@ RemDo's supported runtimes are declared by their executable owners:
 - **Python:** [`pyproject.toml`](pyproject.toml) `requires-python`; [`.python-version`](.python-version) selects the
   development interpreter.
 
+Node.js upgrades select an LTS release with an available matching container image.
+Runtime and tooling updates keep their development, CI, and container
+declarations consistent.
+
 Code uses runtime APIs available throughout its declared range directly.
 Compatibility code addresses differences within a supported range; it does not
 extend support beyond the declared runtimes.
@@ -72,6 +76,30 @@ running the relevant suite. The code-local marker is the sole tracking record;
 the same work does not also appear in [`docs/todo.md`](docs/todo.md) or another
 documentation list. Its proximity to the code exposes it when the workaround is
 removed.
+
+## Dependency Updates
+
+Use [Mend-hosted Renovate](https://docs.renovatebot.com/mend-hosted/overview/) with [renovate.json5](renovate.json5) for dependency updates.
+Keep [Dependabot alerts](https://docs.github.com/en/code-security/concepts/supply-chain-security/about-dependabot-alerts) enabled, with Renovate as the sole automated update
+PR producer.
+
+Dependency changes preserve workspace catalogs, applicable trust and
+build-approval policy, package-manager integrity, and locked runtime and project
+dependencies.
+
+Dependency-specific workarounds and updater approval rules follow the
+[tracked-comment policy](#code-comments). Remove an affected existing approval rule only when the
+selected update proves its deferral obsolete.
+
+### Dependency patches
+
+The [dependency-patch registry](pnpm-workspace.yaml) inventories exact-version patches for upstream runtime
+defects. Each patch records its rationale and a focused regression that fails
+without the correction.
+
+For an affected dependency update, retain the patch, regenerate it for the new
+exact version, or remove it when its focused regression passes without it. New
+dependency patches require developer approval.
 
 ## UI Libraries
 

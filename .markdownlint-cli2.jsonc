@@ -26,7 +26,6 @@
     // Kept in sync by tests/unit/skills/embedded.spec.ts (fails if a symlink is
     // missing here).
     ".claude/skills/remdo-converge-change",
-    ".claude/skills/remdo-deps-refresh",
     ".claude/skills/remdo-merge-main",
     ".claude/skills/remdo-prepare-change",
     ".claude/skills/remdo-verify-change",

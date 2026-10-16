@@ -1,6 +1,0 @@
-interface:
-  display_name: "RemDo Deps Refresh"
-  short_description: "Dependency refresh participant for RemDo changes"
-  default_prompt: "Use $remdo-deps-refresh as a participant with the call required by its contract."
-policy:
-  allow_implicit_invocation: true
