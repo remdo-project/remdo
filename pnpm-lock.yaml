@@ -220,7 +220,7 @@ catalogs:
       version: 9.6.2
     '@modelcontextprotocol/sdk':
       specifier: ^1.30.1
-      version: 1.30.1
+      version: 1.32.1
     '@playwright/test':
       specifier: ^1.63.0
       version: 1.63.0
@@ -473,7 +473,7 @@ importers:
         version: 9.6.2(react@19.3.0)
       '@modelcontextprotocol/sdk':
         specifier: 'catalog:'
-        version: 1.30.1(supports-color@10.2.2)(zod@4.6.5)
+        version: 1.32.1(supports-color@10.2.2)(zod@4.6.5)
       '@sentry/browser':
         specifier: 'catalog:'
         version: 11.0.0
@@ -2034,8 +2034,8 @@ packages:
   '@mdn/browser-compat-data@6.1.5':
     resolution: {integrity: sha512-PzdZZzRhcXvKB0begee28n5lvwAcinGKYuLZOVxHAZm+n7y01ddEGfdS1ZXRuVcV+ndG6mSEAE8vgudom5UjYg==}
 
-  '@modelcontextprotocol/sdk@1.30.1':
-    resolution: {integrity: sha512-H2HxLvC3HDNybePJaLdSrU1hhUK5iQw+WvV1b01myFyI7sdVGe1u/IPTE5D9fGCiJDVtgMV/lmFkQXLmQyIFYA==}
+  '@modelcontextprotocol/sdk@1.32.1':
+    resolution: {integrity: sha512-2DdE+SJDtzLEEWzY1ZjY7Q+VcPhcV1KisD3zI4u0XZyktsjHum1mwbMI+JaulUBi2OZk+KJAi2uPXzxichPkdw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -8030,7 +8030,7 @@ snapshots:
 
   '@mdn/browser-compat-data@6.1.5': {}
 
-  '@modelcontextprotocol/sdk@1.30.1(supports-color@10.2.2)(zod@4.6.5)':
+  '@modelcontextprotocol/sdk@1.32.1(supports-color@10.2.2)(zod@4.6.5)':
     dependencies:
       '@hono/node-server': 2.1.1(hono@4.13.9)
       ajv: 8.20.0
