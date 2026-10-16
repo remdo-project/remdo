@@ -76,9 +76,9 @@ catalog:
   '@antfu/eslint-config': 9.5.1
   '@ast-grep/cli': ^0.45.3
   '@eslint-react/eslint-plugin': ^5.20.8
-  '@hocuspocus/extension-database': 4.7.0
-  '@hocuspocus/provider': 4.7.0
-  '@hocuspocus/server': 4.7.0
+  '@hocuspocus/extension-database': 4.7.1
+  '@hocuspocus/provider': 4.7.1
+  '@hocuspocus/server': 4.7.1
   '@internationalized/date': ^3.12.4
   '@lexical/clipboard': ^0.51.0
   '@lexical/eslint-plugin': ^0.51.0
