@@ -36,7 +36,7 @@ RUN attempt=1 \
   done
 
 RUN for entry in collaboration-server/main.ts:collaboration.mjs mcp/main.ts:mcp.mjs; do \
-    pnpm exec esbuild "src/${entry%%:*}" --bundle --platform=node --target=node24 --format=esm --banner:js="import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" --outfile="${entry#*:}" || exit 1; \
+    pnpm exec esbuild "src/${entry%%:*}" --bundle --platform=node --target=node24 --format=esm --banner:js="const require = process.getBuiltinModule('module').createRequire(import.meta.url);" --outfile="${entry#*:}" || exit 1; \
   done
 
 ARG BUILD_REVISION
