@@ -1,4 +1,4 @@
-// merge-main.sh owns deterministic fetch, merge, and saved-work operations for
+// merge-main.sh owns deterministic fetch and merge operations for
 // remdo-merge-main. Semantic conflict resolution and verification stay with the
 // executing agent.
 import fs from 'node:fs';
@@ -91,285 +91,59 @@ describe('merge-main.sh', () => {
     ).toHaveLength(3);
   });
 
-  it('refuses dirty work before fetching unless preserve mode is explicit', () => {
-    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
-    const previousTarget = git(work, 'rev-parse', 'origin/main').stdout;
-    advanceOrigin(origin);
-    writeFile(work, 'a.md', 'dirty\n');
+  it.each(['staged', 'unstaged', 'untracked'])(
+    'refuses %s work before fetching and leaves it unchanged',
+    (state) => {
+      const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+      const previousTarget = git(work, 'rev-parse', 'origin/main').stdout;
+      const previousHead = git(work, 'rev-parse', 'HEAD').stdout;
+      advanceOrigin(origin);
+      const file = state === 'untracked' ? 'untracked.md' : 'a.md';
+      writeFile(work, file, 'dirty\n');
+      if (state === 'staged') {
+        expect(git(work, 'add', file).status).toBe(0);
+      }
+      const previousStatus = git(work, 'status', '--porcelain=v1').stdout;
+      const previousIndex = git(work, 'diff', '--cached').stdout;
 
-    const result = run(work, 'start');
+      const result = run(work, 'start');
 
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('working tree is dirty');
-    expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(previousTarget);
-    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('dirty\n');
-  });
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain('working tree is dirty');
+      expect(git(work, 'rev-parse', 'origin/main').stdout).toBe(previousTarget);
+      expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(previousHead);
+      expect(git(work, 'status', '--porcelain=v1').stdout).toBe(previousStatus);
+      expect(git(work, 'diff', '--cached').stdout).toBe(previousIndex);
+      expect(fs.readFileSync(path.join(work, file), 'utf8')).toBe('dirty\n');
+      expect(git(work, 'stash', 'list').stdout).toBe('');
+    },
+  );
 
-  it('does not stash dirty work when the branch is already up to date', () => {
-    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
-    writeFile(work, 'a.md', 'dirty\n');
-
-    const result = run(work, 'start', '--preserve');
-
-    expect(result.status).toBe(0);
-    expect(value(result.stdout, 'STATE')).toBe('up-to-date');
-    expect(value(result.stdout, 'PRESERVED')).toBe('no');
-    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('dirty\n');
-    expect(git(work, 'stash', 'list').stdout).toBe('');
-  });
-
-  it('restores staged, unstaged, and untracked work after a fast-forward', () => {
-    const { work, origin } = makeScratchWithOrigin({
-      'staged.md': 'base staged\n',
-      'unstaged.md': 'base unstaged\n',
-    });
-    advanceOrigin(origin);
-    writeFile(work, 'staged.md', 'saved staged\n');
-    expect(git(work, 'add', 'staged.md').status).toBe(0);
-    writeFile(work, 'unstaged.md', 'saved unstaged\n');
-    writeFile(work, 'untracked.md', 'saved untracked\n');
-
-    const result = run(work, 'start', '--preserve');
-
-    expect(result.status).toBe(0);
-    expect(result.stdout.startsWith('STATE=')).toBe(true);
-    expect(value(result.stdout, 'STATE')).toBe('fast-forwarded');
-    expect(value(result.stdout, 'PRESERVED')).toBe('yes');
-    expect(value(result.stdout, 'STASH')).toBeUndefined();
-    expect(git(work, 'diff', '--cached', '--name-only').stdout).toBe(
-      'staged.md\n',
-    );
-    expect(git(work, 'diff', '--name-only').stdout).toBe('unstaged.md\n');
-    expect(fs.readFileSync(path.join(work, 'untracked.md'), 'utf8')).toBe(
-      'saved untracked\n',
-    );
-    expect(git(work, 'stash', 'list').stdout).toBe('');
-  });
-
-  it('reports a recoverable partial stash when unsupported paths remain', () => {
-    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
-    advanceOrigin(origin);
-    writeFile(work, 'a.md', 'saved tracked work\n');
-    const nested = path.join(work, 'nested');
-    fs.mkdirSync(nested);
-    expect(
-      git(nested, 'init', '--quiet', '--initial-branch=main').status,
-    ).toBe(0);
-    writeFile(nested, 'nested.md', 'nested work\n');
-
-    const result = run(work, 'start', '--preserve');
-
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('local work was partially saved');
-    expect(result.stderr).toMatch(/recover stash [0-9a-f]+ before continuing/);
-    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('base\n');
-    expect(fs.readFileSync(path.join(nested, 'nested.md'), 'utf8')).toBe(
-      'nested work\n',
-    );
-    expect(git(work, 'stash', 'list').stdout).not.toBe('');
-  });
-
-  it('does not adopt an older stash when no local work can be saved', () => {
-    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
-    advanceOrigin(origin);
-    writeFile(work, 'a.md', 'older saved work\n');
-    expect(
-      git(work, 'stash', 'push', '--quiet', '--message', 'older').status,
-    ).toBe(0);
-    const olderStash = git(work, 'rev-parse', 'stash@{0}').stdout.trim();
-    const nested = path.join(work, 'nested');
-    fs.mkdirSync(nested);
-    expect(
-      git(nested, 'init', '--quiet', '--initial-branch=main').status,
-    ).toBe(0);
-    writeFile(nested, 'nested.md', 'nested work\n');
-
-    const result = run(work, 'start', '--preserve');
-
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('working tree was unchanged');
-    expect(result.stderr).not.toContain(olderStash);
-    expect(git(work, 'stash', 'list', '--format=%H').stdout).toContain(
-      olderStash,
-    );
-    expect(fs.readFileSync(path.join(nested, 'nested.md'), 'utf8')).toBe(
-      'nested work\n',
-    );
-  });
-
-  it('reports a retained stash when stash cleanup returns failure', () => {
-    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
-    advanceOrigin(origin);
-    writeFile(work, 'a.md', 'saved work\n');
-    const bin = makeDir('skills-stash-failure-wrapper-');
-    const gitWrapper = path.join(bin, 'git');
-    writeFile(
-      bin,
-      'git',
-      [
-        '#!/usr/bin/env sh',
-        'if [ "$1" = stash ] && [ "$2" = push ]; then',
-        '  PATH=${PATH#*:}',
-        '  export PATH',
-        '  git "$@"',
-        '  exit 91',
-        'fi',
-        'PATH=${PATH#*:}',
-        'export PATH',
-        'exec git "$@"',
-        '',
-      ].join('\n'),
-    );
-    fs.chmodSync(gitWrapper, 0o755);
-
-    const result = runScript(script, work, ['start', '--preserve'], bin);
-    const stash = git(work, 'rev-parse', 'stash@{0}').stdout.trim();
-
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain(
-      `local work was saved but stash failed; recover stash ${stash}`,
-    );
-    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('base\n');
-  });
-
-  it('reports the retained stash when restored work cannot be dropped', () => {
-    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
-    advanceOrigin(origin);
-    writeFile(work, 'a.md', 'saved work\n');
-    const bin = makeDir('skills-stash-drop-failure-wrapper-');
-    const gitWrapper = path.join(bin, 'git');
-    writeFile(
-      bin,
-      'git',
-      [
-        '#!/usr/bin/env sh',
-        'if [ "$1" = stash ] && [ "$2" = drop ]; then',
-        '  exit 92',
-        'fi',
-        'PATH=${PATH#*:}',
-        'export PATH',
-        'exec git "$@"',
-        '',
-      ].join('\n'),
-    );
-    fs.chmodSync(gitWrapper, 0o755);
-
-    const result = runScript(script, work, ['start', '--preserve'], bin);
-    const stash = git(work, 'rev-parse', 'stash@{0}').stdout.trim();
-
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain(`retained stash ${stash}`);
-    expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(
-      git(origin, 'rev-parse', 'main').stdout,
-    );
-    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe(
-      'saved work\n',
-    );
-  });
-
-  it('keeps saved work until a merge commit is verified', () => {
-    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
-    writeFile(work, 'local.md', '# local\n');
-    commitAll(work, 'local');
-    advanceOrigin(origin);
-    writeFile(work, 'dirty.md', 'saved work\n');
-
-    const started = run(work, 'start', '--preserve');
-    const stash = value(started.stdout, 'STASH')!;
-
-    expect(value(started.stdout, 'STATE')).toBe('merge-ready');
-    expect(fs.existsSync(path.join(work, 'dirty.md'))).toBe(false);
-    expect(git(work, 'stash', 'list', '--format=%H').stdout.trim()).toBe(stash);
-
-    expect(
-      value(run(work, 'continue', value(started.stdout, 'TARGET')!).stdout, 'STATE'),
-    ).toBe('merged');
-    const restored = run(work, 'restore', stash);
-    expect(value(restored.stdout, 'STATE')).toBe('restored');
-    expect(fs.readFileSync(path.join(work, 'dirty.md'), 'utf8')).toBe(
-      'saved work\n',
-    );
-    expect(git(work, 'stash', 'list').stdout).toBe('');
-  });
-
-  it('allows preserve mode to enter ordinary merge conflict resolution', () => {
+  it('leaves merge conflicts for resolution before continuation', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
     writeFile(work, 'a.md', 'local\n');
     commitAll(work, 'local');
     pushChange(origin, { 'a.md': 'upstream\n' });
-    writeFile(work, 'dirty.md', 'saved work\n');
 
-    const started = run(work, 'start', '--preserve');
+    const started = run(work, 'start');
     const target = value(started.stdout, 'TARGET')!;
-    const stash = value(started.stdout, 'STASH')!;
 
+    expect(started.status, started.stderr).toBe(0);
     expect(value(started.stdout, 'STATE')).toBe('conflicted');
     expect(started.stdout.startsWith('STATE=')).toBe(true);
-    expect(fs.existsSync(path.join(work, 'dirty.md'))).toBe(false);
+    expect(git(work, 'diff', '--name-only', '--diff-filter=U').stdout).toBe('a.md\n');
+    const unresolved = run(work, 'continue', target);
+    expect(unresolved.status).not.toBe(0);
+    expect(unresolved.stderr).toContain('merge conflicts remain unresolved');
+
     writeFile(work, 'a.md', 'resolved\n');
     expect(git(work, 'add', 'a.md').status).toBe(0);
-
     const continued = run(work, 'continue', target);
+
+    expect(continued.status, continued.stderr).toBe(0);
     expect(continued.stdout.startsWith('STATE=')).toBe(true);
     expect(value(continued.stdout, 'STATE')).toBe('merged');
-    expect(value(run(work, 'restore', stash).stdout, 'STATE')).toBe('restored');
-    expect(fs.readFileSync(path.join(work, 'dirty.md'), 'utf8')).toBe(
-      'saved work\n',
-    );
-  });
-
-  it('retains the stash until a restoration conflict is resolved', () => {
-    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
-    pushChange(origin, { 'a.md': 'upstream\n' });
-    writeFile(work, 'a.md', 'saved work\n');
-
-    const started = run(work, 'start', '--preserve');
-    const stash = value(started.stdout, 'STASH')!;
-
-    expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
-    expect(started.stdout.startsWith('STATE=')).toBe(true);
-    expect(git(work, 'diff', '--name-only', '--diff-filter=U').stdout).toBe(
-      'a.md\n',
-    );
-    expect(git(work, 'stash', 'list', '--format=%H').stdout.trim()).toBe(stash);
-
-    writeFile(work, 'a.md', 'resolved saved work\n');
-    expect(git(work, 'add', 'a.md').status).toBe(0);
-    expect(git(work, 'reset', '--quiet', 'HEAD', '--', 'a.md').status).toBe(0);
-    const completed = run(work, 'complete-restore', stash, '--resolved');
-
-    expect(value(completed.stdout, 'STATE')).toBe('restored');
-    expect(git(work, 'stash', 'list').stdout).toBe('');
-    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe(
-      'resolved saved work\n',
-    );
-  });
-
-  it('requires explicit resolution before dropping an unapplied untracked file', () => {
-    const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
-    pushChange(origin, { 'untracked.md': 'upstream file\n' });
-    writeFile(work, 'untracked.md', 'saved untracked\n');
-
-    const started = run(work, 'start', '--preserve');
-    const stash = value(started.stdout, 'STASH')!;
-
-    expect(value(started.stdout, 'STATE')).toBe('restore-conflicted');
-    expect(git(work, 'diff', '--name-only', '--diff-filter=U').stdout).toBe('');
-    expect(fs.readFileSync(path.join(work, 'untracked.md'), 'utf8')).toBe(
-      'upstream file\n',
-    );
-    const unsafe = run(work, 'complete-restore', stash);
-    expect(unsafe.status).not.toBe(0);
-    expect(git(work, 'stash', 'list', '--format=%H').stdout.trim()).toBe(stash);
-
-    writeFile(work, 'untracked.md', 'resolved saved untracked\n');
-    const completed = run(work, 'complete-restore', stash, '--resolved');
-
-    expect(value(completed.stdout, 'STATE')).toBe('restored');
-    expect(git(work, 'stash', 'list').stdout).toBe('');
-    expect(fs.readFileSync(path.join(work, 'untracked.md'), 'utf8')).toBe(
-      'resolved saved untracked\n',
-    );
+    expect(git(work, 'show', 'HEAD:a.md').stdout).toBe('resolved\n');
   });
 
   it('fetches remote main even when the configured fetch map excludes it', () => {
@@ -551,10 +325,10 @@ describe('merge-main.sh', () => {
     );
   });
 
-  it('accepts an identical saved-work commit from an earlier failed run', () => {
+  it('reports failed integration without advancing the branch', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     advanceOrigin(origin);
-    writeFile(work, 'a.md', 'saved work\n');
+    const previousHead = git(work, 'rev-parse', 'HEAD').stdout;
     const bin = makeDir('skills-merge-failure-wrapper-');
     const gitWrapper = path.join(bin, 'git');
     writeFile(
@@ -563,6 +337,7 @@ describe('merge-main.sh', () => {
       [
         '#!/usr/bin/env sh',
         'if [ "$1" = merge ]; then exit 91; fi',
+        // eslint-disable-next-line no-template-curly-in-string -- Expanded by the shell.
         'PATH=${PATH#*:}',
         'export PATH',
         'exec git "$@"',
@@ -570,45 +345,20 @@ describe('merge-main.sh', () => {
       ].join('\n'),
     );
     fs.chmodSync(gitWrapper, 0o755);
-    const fixedDate = '2026-01-01T00:00:00Z';
-    const dates = {
-      GIT_AUTHOR_DATE: fixedDate,
-      GIT_COMMITTER_DATE: fixedDate,
-    };
 
-    const failed = runScript(
-      script,
-      work,
-      ['start', '--preserve'],
-      bin,
-      dates,
-    );
-    const firstStash = git(work, 'rev-parse', 'stash@{0}').stdout.trim();
-    expect(failed.status).not.toBe(0);
-    expect(git(work, 'stash', 'apply', '--index', firstStash).status).toBe(0);
+    const result = runScript(script, work, ['start'], bin);
 
-    const retried = runScript(
-      script,
-      work,
-      ['start', '--preserve'],
-      bin,
-      dates,
-    );
-
-    expect(retried.status).not.toBe(0);
-    expect(retried.stderr).toContain('integration failed');
-    expect(retried.stderr).not.toContain('local work was not saved');
-    expect(git(work, 'rev-parse', 'stash@{0}').stdout.trim()).toBe(
-      firstStash,
-    );
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('integration failed');
+    expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(previousHead);
+    expect(git(work, 'status', '--porcelain=v1').stdout).toBe('');
   });
 
-  it('reports saved work when integration leaves an unexpected operation', () => {
+  it('reports an unexpected operation left by integration', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
     writeFile(work, 'local.md', '# local\n');
     commitAll(work, 'local');
     advanceOrigin(origin);
-    writeFile(work, 'dirty.md', 'saved work\n');
     const bin = makeDir('skills-foreign-merge-wrapper-');
     const gitWrapper = path.join(bin, 'git');
     writeFile(
@@ -616,6 +366,7 @@ describe('merge-main.sh', () => {
       'git',
       [
         '#!/usr/bin/env sh',
+        // eslint-disable-next-line no-template-curly-in-string -- Expanded by the shell.
         'PATH=${PATH#*:}',
         'export PATH',
         'if [ "$1" = merge ]; then',
@@ -628,11 +379,13 @@ describe('merge-main.sh', () => {
     );
     fs.chmodSync(gitWrapper, 0o755);
 
-    const result = runScript(script, work, ['start', '--preserve'], bin);
-    const stash = git(work, 'rev-parse', 'stash@{0}').stdout.trim();
+    const result = runScript(script, work, ['start'], bin);
 
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain(`saved work remains in stash ${stash}`);
+    expect(result.stderr).toContain('an unexpected Git operation remains');
+    expect(git(work, 'rev-parse', 'MERGE_HEAD').stdout).toBe(
+      git(work, 'rev-parse', 'HEAD').stdout,
+    );
   });
 
   it('uses conditional Git configuration from the real repository', () => {

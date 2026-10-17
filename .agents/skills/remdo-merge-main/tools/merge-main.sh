@@ -1,10 +1,8 @@
 #!/usr/bin/env sh
 # Deterministic Git operations for remdo-merge-main.
 # Usage:
-#   merge-main.sh start [--preserve]
+#   merge-main.sh start
 #   merge-main.sh continue <target>
-#   merge-main.sh restore <stash-commit>
-#   merge-main.sh complete-restore <stash-commit> --resolved
 set -eu
 
 fail() {
@@ -58,44 +56,12 @@ read_untracked_paths() {
   fi
 }
 
-find_stash() {
-  if ! stash_entries=$(git stash list --format='%gd %H'); then
-    fail "saved work could not be inspected"
-  fi
-  stash_selector=$(
-    printf '%s\n' "$stash_entries" \
-      | awk -v oid="$1" '$2 == oid { print $1; exit }'
-  )
-  [ -n "$stash_selector" ] \
-    || fail "saved work is no longer present in the stash"
-}
-
-restore_saved_work() {
-  restore_oid=$1
-  find_stash "$restore_oid"
-  if git stash apply --quiet --index "$restore_oid" 1>&2; then
-    git stash drop --quiet "$stash_selector" \
-      || fail "restored work could not be removed; retained stash $restore_oid"
-    restore_state=restored
-  else
-    restore_state=restore-conflicted
-  fi
-}
-
 emit_run_state() {
   printf 'STATE=%s\n' "$1"
   printf 'BRANCH=%s\n' "$run_branch"
   printf 'TARGET=%s\n' "$run_target"
   printf 'INCOMING=%s\n' "$run_incoming"
   printf 'FORM=%s\n' "$run_form"
-  if [ "$run_preserved" = yes ]; then
-    printf 'PRESERVED=yes\n'
-    if [ -n "$run_stash" ]; then
-      printf 'STASH=%s\n' "$run_stash"
-    fi
-  else
-    printf 'PRESERVED=no\n'
-  fi
 }
 
 merge_with_neutral_options() {
@@ -118,19 +84,8 @@ merge_with_neutral_options() {
 }
 
 start_run() {
-  preserve=no
-  case "${1-}" in
-    "")
-      ;;
-    --preserve)
-      preserve=yes
-      ;;
-    *)
-      fail "usage: merge-main.sh start [--preserve]"
-      ;;
-  esac
-  [ "$#" -le 1 ] \
-    || fail "usage: merge-main.sh start [--preserve]"
+  [ "$#" -eq 0 ] \
+    || fail "usage: merge-main.sh start"
 
   run_branch=$(current_branch)
   run_start_head=$(git rev-parse --verify HEAD)
@@ -140,10 +95,8 @@ start_run() {
   [ -z "$unmerged_paths" ] \
     || fail "working tree has unresolved paths"
   read_working_status
-  initial_status=$working_status
-  if [ -n "$initial_status" ] && [ "$preserve" = no ]; then
-    fail "working tree is dirty; use explicit preserve mode or clean it first"
-  fi
+  [ -z "$working_status" ] \
+    || fail "working tree is dirty; clean it before merging"
 
   git fetch --quiet --no-tags origin \
     '+refs/heads/main:refs/remotes/origin/main' \
@@ -155,8 +108,6 @@ start_run() {
   git merge-base "$run_start_head" "$run_target" >/dev/null 2>&1 \
     || fail "HEAD and origin/main have unrelated histories"
   run_incoming=$(git rev-list --count "$run_start_head..$run_target")
-  run_stash=
-  run_preserved=no
 
   if is_ancestor "$run_target" "$run_start_head"; then
     run_form=up-to-date
@@ -169,25 +120,6 @@ start_run() {
     run_form=merge-commit
   fi
 
-  if [ -n "$initial_status" ]; then
-    if git stash push --quiet --include-untracked --message remdo-merge-main; then
-      stash_status=0
-    else
-      stash_status=$?
-    fi
-    read_working_status
-    [ "$working_status" != "$initial_status" ] \
-      || fail "local work could not be saved; working tree was unchanged"
-    run_stash=$(git rev-parse --verify --quiet 'stash@{0}^{commit}' || true)
-    [ -n "$run_stash" ] \
-      || fail "local work changed but its stash could not be identified"
-    run_preserved=yes
-    [ "$stash_status" -eq 0 ] \
-      || fail "local work was saved but stash failed; recover stash $run_stash before continuing"
-    [ -z "$working_status" ] \
-      || fail "local work was partially saved; recover stash $run_stash before continuing"
-  fi
-
   case "$run_form" in
     fast-forward)
       merge_with_neutral_options \
@@ -196,14 +128,6 @@ start_run() {
       if is_ancestor "$run_target" HEAD \
         && is_ancestor "$run_start_head" HEAD \
         && ! operation_in_progress; then
-        if [ -n "$run_stash" ]; then
-          restore_saved_work "$run_stash"
-          if [ "$restore_state" = restore-conflicted ]; then
-            emit_run_state restore-conflicted
-            return
-          fi
-          run_stash=
-        fi
         emit_run_state fast-forwarded
         return
       fi
@@ -226,13 +150,7 @@ start_run() {
   esac
 
   if operation_in_progress; then
-    if [ -n "$run_stash" ]; then
-      fail "an unexpected Git operation remains; saved work remains in stash $run_stash"
-    fi
     fail "an unexpected Git operation remains after integration"
-  fi
-  if [ -n "$run_stash" ]; then
-    fail "integration failed; saved work remains in stash $run_stash"
   fi
   fail "integration failed"
 }
@@ -267,41 +185,6 @@ continue_run() {
   printf 'TARGET=%s\n' "$expected_target"
 }
 
-restore_run() {
-  [ "$#" -eq 1 ] \
-    || fail "usage: merge-main.sh restore <stash-commit>"
-  operation_in_progress \
-    && fail "another Git operation is already in progress"
-  read_unmerged_paths
-  [ -z "$unmerged_paths" ] \
-    || fail "restoration conflicts are already present"
-  restore_oid=$(git rev-parse --verify --quiet "$1^{commit}" || true)
-  [ -n "$restore_oid" ] \
-    || fail "saved work is not a commit"
-  restore_saved_work "$restore_oid"
-  printf 'STATE=%s\n' "$restore_state"
-  if [ "$restore_state" = restore-conflicted ]; then
-    printf 'STASH=%s\n' "$restore_oid"
-  fi
-}
-
-complete_restore() {
-  [ "$#" -eq 2 ] && [ "$2" = --resolved ] \
-    || fail "usage: merge-main.sh complete-restore <stash-commit> --resolved"
-  operation_in_progress \
-    && fail "another Git operation is already in progress"
-  read_unmerged_paths
-  [ -z "$unmerged_paths" ] \
-    || fail "restoration conflicts remain unresolved"
-  restore_oid=$(git rev-parse --verify --quiet "$1^{commit}" || true)
-  [ -n "$restore_oid" ] \
-    || fail "saved work is not a commit"
-  find_stash "$restore_oid"
-  git stash drop --quiet "$stash_selector" \
-    || fail "restored work could not be removed from the stash"
-  printf 'STATE=restored\n'
-}
-
 git rev-parse --git-dir >/dev/null 2>&1 \
   || fail "not a git repository"
 
@@ -315,12 +198,6 @@ case "$command" in
     ;;
   continue)
     continue_run "$@"
-    ;;
-  restore)
-    restore_run "$@"
-    ;;
-  complete-restore)
-    complete_restore "$@"
     ;;
   *)
     fail "unknown command: $command"
