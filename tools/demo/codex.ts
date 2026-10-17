@@ -69,12 +69,14 @@ export function resultText(call: ToolCall): string {
   return call.result!.content.filter(({ type }) => type === 'text').map(({ text }) => text).join('\n');
 }
 
+const DOCUMENT_ACCESS_DENIED = 'NOT_FOUND: The document is not available. Check list_documents for the documents the user can access.';
+
 export function requireDocumentRead(calls: ToolCall[], documentId: string, outcome: 'success' | 'access-denied' = 'success'): ToolCall {
   const reads = calls.filter(({ tool, arguments: args }) => tool === 'read_document' && args.target === documentId);
   if (reads.length === 0) throw new Error(`No read_document call addressed ${documentId}.`);
   if (outcome === 'success') {
     requireSuccessfulTools(reads);
-  } else if (reads.some((call) => !failedTool(call) || call.result === null || !resultText(call).includes('Document access denied.'))) {
+  } else if (reads.some((call) => !failedTool(call) || call.result === null || resultText(call) !== DOCUMENT_ACCESS_DENIED)) {
     throw new Error(`Reading ${documentId} did not return a RemDo document access denial.`);
   }
   return reads.at(-1)!;

@@ -14,6 +14,7 @@ const call = {
   result: { content: [{ type: 'text', text: 'Plan\n  Scope (1 child hidden)' }] },
   error: null, status: 'completed',
 };
+const documentAccessDenied = 'NOT_FOUND: The document is not available. Check list_documents for the documents the user can access.';
 
 it('waits for the completed call and preserves its actual arguments and result', () => {
   expect(completedTool({ type: 'item.started', item: { ...call, status: 'in_progress', result: null } })).toBeUndefined();
@@ -75,8 +76,8 @@ it('requires a successful read of the requested owned document ID', () => {
 });
 
 it.each([
-  { status: 'failed', result: { content: [{ type: 'text', text: 'Failed to connect to collaboration server: Document access denied.' }] } },
-  { status: 'completed', result: { is_error: true, content: [{ type: 'text', text: 'Failed to connect to collaboration server: Document access denied.' }] } },
+  { status: 'failed', result: { content: [{ type: 'text', text: documentAccessDenied }] } },
+  { status: 'completed', result: { is_error: true, content: [{ type: 'text', text: documentAccessDenied }] } },
 ])('accepts an actual RemDo access error for the requested private document ID', ({ status, result }) => {
   const read = {
     ...call, arguments: { target: 'privateDoc' }, status, result,
@@ -93,12 +94,12 @@ it.each([{ calls: [] }, { calls: [{ ...call, arguments: { target: 'otherDoc' } }
 
 it.each([
   { calls: [{ ...call, arguments: { target: 'privateDoc' } }] },
-  { calls: [{ ...call, arguments: { target: 'privateDoc' }, result: { content: [{ type: 'text', text: 'Document access denied.' }] } }] },
+  { calls: [{ ...call, arguments: { target: 'privateDoc' }, result: { content: [{ type: 'text', text: documentAccessDenied }] } }] },
   { calls: [{ ...call, arguments: { target: 'privateDoc' }, status: 'failed', result: null, error: { message: 'Connection timed out.' } }] },
   { calls: [{ ...call, arguments: { target: 'privateDoc' }, result: { is_error: true, content: [{ type: 'text', text: 'Connection timed out.' }] } }] },
   { calls: [
     { ...call, arguments: { target: 'privateDoc' } },
-    { ...call, arguments: { target: 'privateDoc' }, result: { is_error: true, content: [{ type: 'text', text: 'Document access denied.' }] } },
+    { ...call, arguments: { target: 'privateDoc' }, result: { is_error: true, content: [{ type: 'text', text: documentAccessDenied }] } },
   ] },
 ])('rejects a successful private read or an unrelated failure, including before a denied retry', ({ calls }) => {
   expect(() => requireDocumentRead(calls, 'privateDoc', 'access-denied')).toThrow('did not return a RemDo document access denial');
