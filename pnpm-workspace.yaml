@@ -14,9 +14,6 @@ strictDepBuilds: true
 
 engineStrict: true
 
-# TODO(deps): complete the hosted Renovate cutover after configuration review.
-# Probe: inspect the first real hosted update's catalogs, integrity, frozen install, and passing CI.
-# Use ordinary manual dependency updates until that succeeds.
 updateNotifier: false
 
 overrides:
