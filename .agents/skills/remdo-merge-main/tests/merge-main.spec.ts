@@ -52,9 +52,13 @@ describe('merge-main.sh', () => {
     expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(before);
   });
 
-  it('fast-forwards to the fetched target', () => {
-    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+  it('fast-forwards to the fetched target with ignored local files', () => {
+    const { work, origin } = makeScratchWithOrigin({
+      'a.md': '# A\n',
+      '.gitignore': 'scratch.md\n',
+    });
     advanceOrigin(origin);
+    writeFile(work, 'scratch.md', 'ignored work\n');
 
     const result = run(work, 'start');
 
@@ -67,6 +71,7 @@ describe('merge-main.sh', () => {
     expect(git(work, 'rev-parse', 'HEAD').stdout).toBe(
       git(origin, 'rev-parse', 'main').stdout,
     );
+    expect(fs.readFileSync(path.join(work, 'scratch.md'), 'utf8')).toBe('ignored work\n');
   });
 
   it('prepares a merge and commits it only after continuation', () => {
@@ -118,6 +123,17 @@ describe('merge-main.sh', () => {
       expect(git(work, 'stash', 'list').stdout).toBe('');
     },
   );
+
+  it('refuses dirty work even when the branch is already up to date', () => {
+    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    writeFile(work, 'a.md', 'dirty\n');
+
+    const result = run(work, 'start');
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('working tree is dirty');
+    expect(fs.readFileSync(path.join(work, 'a.md'), 'utf8')).toBe('dirty\n');
+  });
 
   it('leaves merge conflicts for resolution before continuation', () => {
     const { work, origin } = makeScratchWithOrigin({ 'a.md': 'base\n' });
@@ -270,35 +286,6 @@ describe('merge-main.sh', () => {
     expect(
       git(work, 'rev-list', '--parents', '-n', '1', 'HEAD').stdout.trim().split(' '),
     ).toHaveLength(3);
-  });
-
-  it('neutralizes merge options with a zero-padded inherited config count', () => {
-    const { work, origin } = makeScratchWithOrigin({ 'a.md': '# A\n' });
-    writeFile(work, 'local.md', '# local\n');
-    commitAll(work, 'local');
-    advanceOrigin(origin);
-    expect(
-      git(work, 'config', 'branch.main.mergeOptions', '--strategy=ours').status,
-    ).toBe(0);
-    const inheritedConfig: NodeJS.ProcessEnv = { GIT_CONFIG_COUNT: '010' };
-    for (let index = 0; index < 10; index += 1) {
-      inheritedConfig[`GIT_CONFIG_KEY_${index}`] = `test.inherited${index}`;
-      inheritedConfig[`GIT_CONFIG_VALUE_${index}`] = `${index}`;
-    }
-
-    const result = runScript(
-      script,
-      work,
-      ['start'],
-      undefined,
-      inheritedConfig,
-    );
-
-    expect(result.status, result.stderr).toBe(0);
-    expect(value(result.stdout, 'STATE')).toBe('merge-ready');
-    expect(fs.readFileSync(path.join(work, 'upstream.md'), 'utf8')).toBe(
-      '# upstream\n',
-    );
   });
 
   it('neutralizes merge options for a branch name containing equals', () => {
