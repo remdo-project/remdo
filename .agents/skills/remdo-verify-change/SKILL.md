@@ -82,12 +82,14 @@ their provider transport and native session persistence when launching it:
   `approval_policy="never"`, `notify=[]`, `model="<model>"`,
   `model_reasoning_effort="<effort>"`, and the review briefing as
   `developer_instructions`; then pass `review --uncommitted` or
-  `review --base <BASE>`.
+  `review --base <BASE>` with `--output-last-message` set to the absolute
+  `<output_dir>/codex.report.txt` path inside this run's new evidence directory.
 - `claude`: generate and retain a fresh UUID as `SESSION_ID`, then run
   `/usr/bin/env CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1 claude -p --model
   <model> --effort <effort> --permission-mode auto --session-id
   <SESSION_ID> --setting-sources user,project --settings
-  '{"disableAllHooks":true}'`. Start its prompt with `/code-review
+  '{"disableAllHooks":true,"viewMode":"default"}' --output-format json`.
+  Start its prompt with `/code-review
   <effort>`, followed by every resolved changed path as a quoted argument
   for `uncommitted`, or the exact `<BASE>..<HEAD>` range for a commit
   range, then append the review briefing.
@@ -106,8 +108,9 @@ path strings and append each with JSON string quoting; do not parse the
 resolver's display-oriented `FILES` lines.
 
 Pass executable arguments as literal strings in the runner plan; no shell
-evaluates them. The runner retains combined output and exit status for each
-invocation. Retain available session IDs for diagnostics or report recovery.
+evaluates them. The runner retains separate stdout and stderr files and exit
+status for each invocation. Retain available session IDs for diagnostics or
+report recovery.
 
 Reviewer runtime is unspecified. Wait for the runner's completion
 notification; do not inspect live histories, request agent status, or interpret
@@ -121,11 +124,20 @@ it.
 
 After the runner finishes, classify each review under the authoritative specification's
 [`Reviews`](../../../docs/specs/agents/skills/remdo-verify-change.md#reviews)
-contract. For a successful command, retain a usable consolidated final report
-from its saved output as review evidence. Consult native session histories only
+contract. For a successful command, collect its consolidated final report:
+
+- `codex`: read `codex.report.txt` from this run's evidence directory.
+- `claude`: parse the complete `stdout_file` as JSON. Use its nonempty string
+  `result` only when `type` is `result`, `subtype` is `success`, and `is_error`
+  is `false`. Preserve the envelope's session ID and metadata as evidence;
+  an error envelope is failure evidence, not a findings report.
+- `grok`: read the final report from `stdout_file`.
+
+Keep both output streams for diagnostics. Missing, empty, or malformed report
+artifacts do not establish completion. Consult native session histories only
 to troubleshoot a concrete problem or recover a missing final report; progress
 or diagnostics alone do not satisfy completion. For an unsuccessful invocation,
-retain its exit status or launch or cleanup error and available combined output
+retain its exit status or launch or cleanup error and available output streams
 as failure evidence. Judge complete scope inspection from the final report.
 Classify a missing executable, including shell exit status `127` with
 command-not-found evidence, as `unavailable`.
