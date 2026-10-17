@@ -22,6 +22,10 @@ neither requires the note to exist nor creates it. Value reads resolve the
 current committed note; an unavailable note or source produces an identifiable
 unavailable-note error, distinct from unexpected read failures.
 
+A parent read returns a reference to the editor note's current parent, or the
+document root for a top-level note. Reparenting the note does not retarget a
+returned reference.
+
 Informative: A retained reference stays useful across edits and deletion/undo.
 Its values are fresh when read; previously returned values do not update
 themselves.
@@ -32,7 +36,8 @@ source returns false; unexpected read failures propagate. A capability result
 neither establishes target existence or source readiness nor guarantees that a
 later operation takes effect.
 
-Observation is scoped to an addressed editor note, including its children, or
+Observation is scoped to an addressed editor note, including its parent identity
+and children, or
 action capabilities and signals that the relevant state should be reread. Addressed
 references and current action capabilities are readable without subscribing.
 Each subscription is

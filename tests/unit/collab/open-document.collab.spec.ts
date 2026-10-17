@@ -1,10 +1,33 @@
 import { waitFor } from '@testing-library/react';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { meta } from '#tests';
+import { meta, placeCaretAtNote } from '#tests';
 import { createLexicalOpenDocumentRuntime } from '#client/editor/note-sdk-adapters/lexical-open-document';
 import { createCollabPeer } from './_support/remdo-peers';
 
 describe('open document collaboration', () => {
+  it('observes a remote parent change without retargeting a retained parent reference', meta({
+    collabDocId: 'sdkRemoteParent',
+    fixture: 'tree-list-types',
+  }), async ({ remdo }) => {
+    await remdo.waitForSynced();
+    const peer = await createCollabPeer(remdo);
+    await peer.waitForSynced();
+    const note = remdo.openDocument.noteRef('note2');
+    const previousParent = note.getParent();
+    const listener = vi.fn();
+    onTestFinished(note.subscribe(listener));
+
+    await placeCaretAtNote(peer, 'note2');
+    peer.openDocument.selection.moveDown();
+
+    await waitFor(() => {
+      expect(note.getParent().getChildren().map((child) => child.getId())).toEqual(['note2', 'note4']);
+      expect(listener).toHaveBeenCalled();
+    });
+    expect(note.getParent().getChildListType()).toBe('check');
+    expect(previousParent.getChildren()).toEqual([]);
+  });
+
   it('observes a remote note edit and includes it in the next search', meta({
     collabDocId: 'sdkRemoteEdit',
     fixture: 'tree',
