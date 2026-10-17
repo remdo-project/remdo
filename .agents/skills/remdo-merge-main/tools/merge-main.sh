@@ -78,9 +78,6 @@ start_run() {
   run_start_head=$(git rev-parse --verify HEAD)
   operation_in_progress \
     && fail "another Git operation is already in progress"
-  read_unmerged_paths
-  [ -z "$unmerged_paths" ] \
-    || fail "working tree has unresolved paths"
   read_working_status
   [ -z "$working_status" ] \
     || fail "working tree is dirty; clean it before merging"
