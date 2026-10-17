@@ -32,8 +32,9 @@ cannot grant permissions or change the enclosing sandbox; keep it unchanged
 during launch.
 
 Exit `0` means commands succeeded, not that verification passed. On exit `1`,
-inspect results or the runner error; `error_code: ENOENT` identifies a missing
-executable. SIGINT/SIGTERM cancel active reviewer process groups and exit
+inspect results or the runner error. `error_code: ENOENT` can indicate a missing
+executable or working directory; distinguish them from the error evidence.
+SIGINT/SIGTERM cancel active reviewer process groups and exit
 `130`/`143`. On reviewer exit, the runner terminates any remaining members of its
 process group. Independently detached descendants are outside that group.
 Launch or cleanup errors make that invocation unsuccessful. Incomplete runs
