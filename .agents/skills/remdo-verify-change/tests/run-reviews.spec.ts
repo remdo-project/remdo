@@ -314,20 +314,20 @@ describe('review runner', () => {
     expect(parse(fs.readFileSync(path.join(dir, 'output/results.yaml'), 'utf8')).interrupted).toBe('SIGINT');
   }, 15000);
 
-  it('terminates an unresponsive reviewer after the cancellation grace period', async () => {
+  it.each([['SIGINT', 130], ['SIGTERM', 143]] as const)('terminates an unresponsive reviewer after the %s cancellation grace period', async (signal, exitCode) => {
     const dir = makeDir('review-runner-');
     const marker = path.join(dir, 'ready');
     const ready = waitForFile(marker);
     const child = start(planFile(dir, [{
       source: 'unresponsive', executable: process.execPath,
-      args: ['-e', `process.on('SIGTERM', () => {}); require('node:fs').writeFileSync(${JSON.stringify(marker)}, ''); setInterval(() => {}, 1000);`],
+      args: ['-e', `process.on('${signal}', () => {}); require('node:fs').writeFileSync(${JSON.stringify(marker)}, ''); setInterval(() => {}, 1000);`],
     }]));
     const closed = once(child, 'close');
     await ready;
-    child.kill('SIGTERM');
-    expect(await closed).toEqual([143, null]);
+    child.kill(signal);
+    expect(await closed).toEqual([exitCode, null]);
     expect(parse(fs.readFileSync(path.join(dir, 'output/results.yaml'), 'utf8'))).toMatchObject({
-      interrupted: 'SIGTERM', reviews: [{ source: 'unresponsive', exit_code: null, signal: 'SIGKILL' }],
+      interrupted: signal, reviews: [{ source: 'unresponsive', exit_code: null, signal: 'SIGKILL' }],
     });
   }, 15000);
 });
