@@ -224,9 +224,32 @@ Decisions requiring a contract owner's judgement:
 Goal: a Claude web custom connector that saves a conversation outline into a
 RemDo document, minimal but useful for real work.
 
-Reconcile document operations that call the API directly with the
-[SDK's resource access model](#sdk), preserving host-owned acquisition and
-durable completion.
+- **Progress during pending app reviews.** The developer reported on 2026-10-16
+  that RemDo submissions to Claude.ai (2026-09-28) and ChatGPT (2026-10-12) are
+  awaiting review, with no
+  known completion date. Protect both queue positions and reviewer workflows
+  while continuing independently useful SDK development, compatible fixes,
+  tests, and research. Split new SDK capabilities from their MCP exposure;
+  postpone only the parts that could disturb a pending review and keep them in
+  the relevant follow-up. Uncertainty about those parts does not pause
+  independent work.
+
+  While a review is pending, preserve its submitted MCP endpoint and
+  authentication, tool names/schemas/descriptions/annotations, result/error
+  behavior, and listing/package/review materials. Before changing a submitted
+  artifact or deploying a change that could affect review, establish the
+  submitted baseline and check current provider requirements; defer the
+  affected part when its impact remains uncertain.
+  [Production deploys from `main` after CI](guides/production-deployment.md#deploy-on-render), so assess review impact before
+  merging affected changes. Do not withdraw or resubmit a pending application.
+  Revisit each platform's constraint when its review finishes or the developer
+  changes this direction.
+- **MCP migration verification.** Before replacing the public MCP
+  implementation, extend the [compatibility checks](#temporary-mcp-compatibility-guards) through the
+  production gateway and the new Python-to-Node boundary, including reconnect
+  and failed-write/durability outcomes. Obtain saved submission-time tool
+  definitions and detailed OAuth configuration for both platforms where
+  available. Assistant tool-selection cases remain live client checks.
 
 - Let the [MCP server](specs/integrations/mcp.md) set a note's content text
   and delete a note, which first need [open document](specs/outliner/open-document.md)
@@ -238,6 +261,51 @@ durable completion.
   reading an over-limit body used to crash the MCP process. The fix in
   `src/platform/net/django-request.ts` was confirmed only against gunicorn;
   fakes and the Docker E2E path did not reproduce the crash deterministically.
+
+#### Temporary MCP compatibility guards
+
+Under the [pending-review constraint](#claude-mcp-save-a-conversation-to-remdo), run the package and endpoint checks before
+changing the MCP implementation:
+
+```sh
+pnpm run test:unit plugins/openai/package.spec.ts
+pnpm run test:collab tests/unit/collab/mcp-contract.collab.spec.ts tests/unit/collab/mcp.collab.spec.ts
+```
+
+The [package baseline](../plugins/openai/submitted-package-baseline.json) freezes the verified OpenAI 0.1.1 payload by file name and
+content hash, including the shared icon. Tests build temporary copies and
+compare their extracted contents; they neither retain nor require the submitted
+ZIP, and ZIP compression and member order do not affect the comparison.
+
+The [runtime reference](../tests/fixtures/mcp/compatibility.json) records complete `initialize` and `tools/list` results
+from its identified repository revision. It is not an exported submission-time
+scan. HTTP assertions normalize only the fixture origin and preserve extension
+fields that client SDK parsing could omit. The [workflow checks](../tests/unit/collab/mcp.collab.spec.ts) normalize generated
+note IDs while preserving document identity and result text. The
+[collaboration harness](specs/testing/test-harness.md#collaboration-tests) starts the current implementation. MCP assertions use
+HTTP and can remain when its launcher changes to Python; account, persisted-state,
+and concurrent-peer fixtures still use Django and Yjs.
+
+Expected baselines are reviewed data, independent of the implementation being
+tested. A failure requires assessing the public change under the pending-review
+constraint; regenerating expectations does not establish compatibility. The
+[live client walkthrough](specs/integrations/openai-plugin.md#review-walkthrough) separately checks assistant tool selection.
+
+These cross-file guards are marked `Temporary compatibility freeze` at their
+assertions. Review and migration completion trigger reassessment, not automatic
+removal; an accepted interface change must still respect every pending review.
+
+- **Submitted package.** When OpenAI 0.1.1 is no longer the protected submission
+  and its replacement is accepted, retire or replace the [package hash assertion](../plugins/openai/package.spec.ts)
+  and [baseline](../plugins/openai/submitted-package-baseline.json) together. Keep general package-builder coverage.
+- **MCP interface.** After the pending reviews and backend migration, reassess
+  the exact descriptor snapshot, error wording and stateless-transport
+  assertions in the [HTTP checks](../tests/unit/collab/mcp-contract.collab.spec.ts). Retire obsolete literal comparisons and their
+  [runtime reference](../tests/fixtures/mcp/compatibility.json) together, or update expectations for an accepted interface
+  change; keep semantic protocol, authorization, access and persistence coverage.
+- **Cleanup.** Remove retired assertions' imports, fixture-only setup and local
+  markers, and remove this section when no temporary guards remain. Keep
+  semantic regression coverage; preserve provenance in Git history.
 
 ### Landing redesign
 
@@ -267,6 +335,26 @@ Remaining:
   including deleting notes once that is exposed.
 
 ### SDK
+
+- **Parent and document references — after compatibility.** Clarify real
+  editor/document note references under the [note model](specs/outliner/note-model.md), replacing the temporary
+  `OpenDocumentParentNote` exposed by [PR #822](https://github.com/remdo-project/remdo/pull/822). Distinguish identity,
+  host-owned asynchronous acquisition, and locally available values; resolve how
+  the [opened document root](specs/outliner/open-document.md) and [user-data document note](specs/outliner/user-data.md) share document identity while
+  preserving their availability and lifetime guarantees. Align contracts,
+  implementation, and [consumer showcases](../src/note-sdk/note-sdk-showcase.spec.ts), including retained-parent identity
+  across reparenting.
+
+- **Backend note ownership — after API clarification.** Move non-editor note
+  processing, including user data and its MCP handling, to Django/Python. Keep
+  TypeScript for the browser SDK and backend Node for processing that currently
+  depends on Lexical/Yjs. A coherent note API does not require a shared
+  TypeScript backend implementation. Before changing the public MCP
+  implementation, define and test the Python-to-Node editor operation boundary,
+  preserving caller authorization, errors, limits, and [durable completion](architecture.md#hydration-vs-sync).
+  Extend the compatibility checks for that boundary and assess deployment
+  separately under the pending-review constraint. Keep [representation research](#note-representation-and-history)
+  separate; this sequence does not require reducing the existing [offline scope](architecture.md#offline-application-behavior).
 
 - **Simplify SDK consumer types.** Review consumers beyond the mobile toolbar
   for narrowing driven only by test setup and duplicate local types. Prefer

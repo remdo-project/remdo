@@ -1,8 +1,10 @@
 import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { copyFileSync, cpSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
+import submittedPackage from './submitted-package-baseline.json';
 
 const repoRoot = resolve('.');
 const fixtures: string[] = [];
@@ -13,7 +15,7 @@ afterEach(() => {
   }
 });
 
-function fixture() {
+function fixture({ preserveManifest = false } = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'remdo-openai-plugin-'));
   fixtures.push(directory);
   const root = join(directory, 'plugins/openai');
@@ -24,9 +26,11 @@ function fixture() {
   copyFileSync(join(repoRoot, 'public/icon-192.png'), icon);
   const manifestPath = join(root, 'plugin.json');
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  manifest.version = '2.3.4';
-  writeFileSync(manifestPath, `${JSON.stringify(manifest)}\n`);
-  return { root, script, icon, output: join(directory, 'data/plugins/openai/remdo-openai-2.3.4.zip') };
+  if (!preserveManifest) {
+    manifest.version = '2.3.4';
+    writeFileSync(manifestPath, `${JSON.stringify(manifest)}\n`);
+  }
+  return { root, script, icon, output: join(directory, `data/plugins/openai/remdo-openai-${manifest.version}.zip`) };
 }
 
 function runPython(...args: string[]) {
@@ -35,6 +39,21 @@ function runPython(...args: string[]) {
     encoding: 'utf8',
   });
 }
+
+// Temporary compatibility freeze: this entire test pins the submitted OpenAI package.
+// Retirement: docs/todo.md#temporary-mcp-compatibility-guards.
+it('preserves the submitted OpenAI package contents', () => {
+  const { root, script, output } = fixture({ preserveManifest: true });
+  runPython(script);
+
+  const extracted = join(root, 'extracted');
+  runPython('-m', 'zipfile', '-e', output, extracted);
+  const members = Object.fromEntries(readdirSync(extracted, { recursive: true, encoding: 'utf8' })
+    .filter(path => statSync(join(extracted, path)).isFile())
+    .map(path => [path, createHash('sha256').update(readFileSync(join(extracted, path))).digest('hex')]));
+
+  expect(members).toEqual(submittedPackage.membersSha256);
+});
 
 it('packages only the upload files at the ZIP root and rebuilds identical bytes', () => {
   const { root, script, output } = fixture();

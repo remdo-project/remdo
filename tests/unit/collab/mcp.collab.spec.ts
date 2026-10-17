@@ -7,12 +7,14 @@ import WebSocket from 'ws';
 import * as Y from 'yjs';
 import { config } from '#config';
 import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '#collaboration/runtime';
-import { TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
+import { createTestAuthAccount, TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
+import { provisionDjangoUser } from '#tools/django-user';
 import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveMcpServerOrigin } from '#platform/net/origins';
 import { ensureCollabTestUser } from './_support/auth';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 const execute = promisify(execFile);
+const fetchHttp = globalThis.fetch.bind(globalThis);
 const endpoint = new URL('/mcp', resolveMcpServerOrigin());
 
 async function delegatedToken(email: string = TEST_AUTH_ACCOUNT.email): Promise<string> {
@@ -38,8 +40,24 @@ async function call(client: Client, name: string, args: Record<string, unknown> 
 
 const noteUrl = (address: string) => new URL(`/n/${address}`, config.env.APP_ORIGIN).href;
 
+async function read(client: Client, target: string, depth?: number): Promise<string> {
+  const result = await client.callTool({ name: 'read_document', arguments: { target, ...(depth === undefined ? {} : { depth }) } });
+  expect(result.isError).toBeFalsy();
+  return (result.content as Array<{ text: string }>)[0]!.text;
+}
+
+// Preserve distinct identities while replacing random note IDs in each read.
+function stableNoteIds(outline: string): string {
+  const ids = new Map<string, string>();
+  return outline.replaceAll(/(\/n\/[A-Za-z0-9]+_)[A-Za-z0-9]+/g, (address: string, prefix: string) => {
+    const id = ids.get(address) ?? `NOTE${ids.size + 1}`;
+    ids.set(address, id);
+    return `${prefix}${id}`;
+  });
+}
+
 async function storedText(documentId: string): Promise<string> {
-  const response = await fetch(new URL(`/internal/collaboration/documents/${documentId}/content`, resolveApiServerOrigin()), {
+  const response = await fetchHttp(new URL(`/internal/collaboration/documents/${documentId}/content`, resolveApiServerOrigin()), {
     headers: { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET, Host: new URL(config.env.APP_ORIGIN).host },
   });
   const state = new Uint8Array(await response.arrayBuffer());
@@ -74,47 +92,81 @@ async function joinWithCursor(documentId: string, token: string): Promise<void> 
   provider.awareness.setLocalState({ name: 'Peer', color: '#228be6', focusing: true, anchorPos: position, focusPos: position, awarenessData: {} });
 }
 
-describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
+describe('mcp server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('challenges a request without a delegated access token', async () => {
-    const response = await fetch(endpoint, { method: 'POST' });
+    const response = await fetchHttp(endpoint, { method: 'POST' });
     expect(response.status).toBe(401);
     expect(response.headers.get('WWW-Authenticate'))
       .toContain(`resource_metadata="${  new URL('/.well-known/oauth-protected-resource/mcp', config.env.APP_ORIGIN).href}`);
   });
 
+  it('lists an empty inventory and then the exact documents without changing them', async () => {
+    const account = createTestAuthAccount('mcp-contract-inventory');
+    await provisionDjangoUser(account);
+    const token = await delegatedToken(account.email);
+    const headers = { Authorization: `Bearer ${token}`, Host: new URL(config.env.APP_ORIGIN).host };
+    const documentsUrl = new URL('/api/documents', resolveApiServerOrigin());
+    const initial = await fetchHttp(documentsUrl, { headers });
+    expect(initial.status).toBe(200);
+    for (const { id } of await initial.json() as Array<{ id: string }>) {
+      const removed = await fetchHttp(new URL(`/api/documents/${id}`, documentsUrl), { method: 'DELETE', headers });
+      expect(removed.status).toBe(204);
+    }
+    const client = await connect(token);
+    expect(await call(client, 'list_documents')).toEqual({ isError: false, value: [] });
+    expect(await (await fetchHttp(documentsUrl, { headers })).json()).toEqual([]);
+
+    const { documentId } = (await call(client, 'create_document', { title: 'Inventory' })).value as { documentId: string };
+    const second = (await call(client, 'create_document', { title: 'Second' })).value as { documentId: string };
+    await call(client, 'append_children', { parent: documentId, notes: [{ text: 'Keep this content' }] });
+    const before = await storedText(documentId);
+    const expected = {
+      isError: false,
+      value: [
+        { documentId, title: 'Inventory', url: noteUrl(documentId) },
+        { documentId: second.documentId, title: 'Second', url: noteUrl(second.documentId) },
+      ],
+    };
+    expect(await call(client, 'list_documents')).toEqual(expected);
+    expect(await call(client, 'list_documents')).toEqual(expected);
+    expect(await storedText(documentId)).toBe(before);
+    expect(await storedText(second.documentId)).toBe('');
+  });
+
   it('creates a document, appends an outline, and has it stored when the tool returns', async () => {
     const client = await connect(await delegatedToken());
-    const { tools } = await client.listTools();
-    expect(tools.map(({ name }) => name).sort()).toEqual([
-      'append_children',
-      'create_document',
-      'list_documents',
-      'read_document',
-      'rename_document',
-      'set_child_list_type',
-    ]);
-
-    const created = (await call(client, 'create_document', { title: 'Conversation' })).value as { documentId: string };
+    const created = await call(client, 'create_document', { title: 'Conversation' });
+    const { documentId } = created.value as { documentId: string };
+    expect(created).toEqual({ isError: false, value: { documentId, title: 'Conversation', url: noteUrl(documentId) } });
     const appended = await call(client, 'append_children', {
-      parent: created.documentId,
-      notes: [{ text: 'Summary', children: [{ text: 'Decision' }] }],
+      parent: documentId,
+      notes: [{ text: 'Plan', children: [{ text: 'Scope' }, { text: 'Schedule' }] }],
     });
     expect(appended).toMatchObject({ isError: false });
-    const [summary] = appended.value as Array<{ noteAddress: string }>;
-    expect(summary!.noteAddress.startsWith(`${created.documentId}_`)).toBe(true);
+    const [plan] = appended.value as Array<{ noteAddress: string }>;
+    expect(appended.value).toEqual([{ noteAddress: plan!.noteAddress, url: noteUrl(plan!.noteAddress) }]);
+    expect(plan!.noteAddress.startsWith(`${documentId}_`)).toBe(true);
 
-    const stored = await storedText(created.documentId);
-    expect(stored).toContain('Summary');
-    expect(stored).toContain('Decision');
+    const stored = await storedText(documentId);
+    expect(stored).toContain('Plan');
+    expect(stored).toContain('Scope');
+    expect(stored).toContain('Schedule');
 
-    const read = await client.callTool({ name: 'read_document', arguments: { target: created.documentId } });
-    const [outline] = read.content as Array<{ text: string }>;
-    expect(outline!.text.startsWith(`Document: ${noteUrl(created.documentId)}\n\n- [Summary](${noteUrl(summary!.noteAddress)})`))
-      .toBe(true);
-    expect(outline!.text).toMatch(/\n {2}- \[Decision\]\(/);
+    const outline = await read(client, documentId);
+    expect(outline).toContain(`[Plan](${noteUrl(plan!.noteAddress)})`);
+    const url = (index: number) => noteUrl(`${documentId}_NOTE${index}`);
+    expect(stableNoteIds(outline)).toBe(
+      `Document: ${noteUrl(documentId)}\n\n- [Plan](${url(1)})\n`
+      + `  - [Scope](${url(2)})\n  - [Schedule](${url(3)})`,
+    );
+    const scopeAddress = /\[Scope\]\([^)]*\/([^/)]+)\)/.exec(outline)![1]!;
+    const scheduleAddress = /\[Schedule\]\([^)]*\/([^/)]+)\)/.exec(outline)![1]!;
+    expect(await read(client, scopeAddress)).toBe(`Document: ${noteUrl(documentId)}\n\n- [Scope](${noteUrl(scopeAddress)})`);
+    expect(await read(client, scheduleAddress)).toBe(`Document: ${noteUrl(documentId)}\n\n- [Schedule](${noteUrl(scheduleAddress)})`);
+    expect(await storedText(documentId)).toBe(stored);
 
     const listed = (await call(client, 'list_documents')).value as Array<{ documentId: string }>;
-    expect(listed.map(({ documentId }) => documentId)).toContain(created.documentId);
+    expect(listed).toContainEqual({ documentId, title: 'Conversation', url: noteUrl(documentId) });
   });
 
   it('appends again to a document that already has notes', async () => {
@@ -157,33 +209,44 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       notes: [{ text: 'Other' }, { text: 'Topic', children: [{ text: 'Detail', children: [{ text: 'Fine print' }] }] }],
     });
     const [, topic] = appended.value as Array<{ noteAddress: string }>;
-    const read = async (args: Record<string, unknown>) => {
-      const response = await client.callTool({ name: 'read_document', arguments: args });
-      return (response.content as Array<{ text: string }>)[0]!.text.split('\n\n')[1];
-    };
+    const stored = await storedText(documentId);
+    const url = (index: number) => noteUrl(`${documentId}_NOTE${index}`);
 
-    expect(await read({ target: topic!.noteAddress })).toMatch(
-      /^- \[Topic\]\([^)]+\)\n {2}- \[Detail\]\([^)]+\)\n {4}- \[Fine print\]\([^)]+\)$/,
+    expect(stableNoteIds(await read(client, topic!.noteAddress))).toBe(
+      `Document: ${noteUrl(documentId)}\n\n- [Topic](${url(1)})\n  - [Detail](${url(2)})\n    - [Fine print](${url(3)})`,
     );
-    expect(await read({ target: topic!.noteAddress, depth: 2 })).toMatch(
-      /^- \[Topic\]\([^)]+\)\n {2}- \[Detail\]\([^)]+\) \*\(1 child not shown\)\*$/,
+    expect(stableNoteIds(await read(client, topic!.noteAddress, 2))).toBe(
+      `Document: ${noteUrl(documentId)}\n\n- [Topic](${url(1)})\n  - [Detail](${url(2)}) *(1 child not shown)*`,
     );
-    expect(await read({ target: documentId, depth: 1 })).toMatch(
-      /^- \[Other\]\([^)]+\)\n- \[Topic\]\([^)]+\) \*\(1 child not shown\)\*$/,
+    expect(stableNoteIds(await read(client, documentId, 1))).toBe(
+      `Document: ${noteUrl(documentId)}\n\n- [Other](${url(1)})\n- [Topic](${url(2)}) *(1 child not shown)*`,
     );
     const missingNote = await client.callTool({ name: 'read_document', arguments: { target: `${documentId}_nosuchnote` } });
     expect(missingNote.isError).toBe(true);
+    expect(await storedText(documentId)).toBe(stored);
   });
 
-  it('renames a document', async () => {
+  it('renames only the addressed document and preserves its ID, URL, and content', async () => {
     const client = await connect(await delegatedToken());
+    const duplicate = (await call(client, 'create_document', { title: 'Draft' })).value as { documentId: string };
     const { documentId } = (await call(client, 'create_document', { title: 'Draft' })).value as { documentId: string };
+    const existingFinal = (await call(client, 'create_document', { title: 'Final' })).value as { documentId: string };
+    await call(client, 'append_children', { parent: documentId, notes: [{ text: 'Keep' }] });
+    const stored = await storedText(documentId);
 
     const renamed = await call(client, 'rename_document', { documentId, title: 'Final' });
-    expect(renamed.value).toEqual({ documentId, title: 'Final', url: noteUrl(documentId) });
+    expect(renamed).toEqual({ isError: false, value: { documentId, title: 'Final', url: noteUrl(documentId) } });
 
-    const listed = (await call(client, 'list_documents')).value as Array<{ documentId: string; title: string }>;
-    expect(listed.find((document) => document.documentId === documentId)?.title).toBe('Final');
+    const ids = new Set([duplicate.documentId, documentId, existingFinal.documentId]);
+    const listed = (await call(client, 'list_documents')).value as Array<{ documentId: string }>;
+    expect(listed.filter((document) => ids.has(document.documentId))).toEqual([
+      { documentId: duplicate.documentId, title: 'Draft', url: noteUrl(duplicate.documentId) },
+      { documentId, title: 'Final', url: noteUrl(documentId) },
+      { documentId: existingFinal.documentId, title: 'Final', url: noteUrl(existingFinal.documentId) },
+    ]);
+    expect(await storedText(documentId)).toBe(stored);
+    expect(await storedText(duplicate.documentId)).toBe('');
+    expect(await storedText(existingFinal.documentId)).toBe('');
   });
 
   it('converts the list holding a note\'s children and refuses a note without children', async () => {
@@ -191,33 +254,53 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const { documentId } = (await call(client, 'create_document', { title: 'Checklist' })).value as { documentId: string };
     const appended = await call(client, 'append_children', {
       parent: documentId,
-      notes: [{ text: 'Trip', children: [{ text: 'Passport' }] }, { text: 'Visa' }],
+      notes: [
+        { text: 'Trip', children: [{ text: 'Passport', children: [{ text: 'Renewal' }] }, { text: 'Tickets' }] },
+        { text: 'Other', children: [{ text: 'Unchanged' }] },
+        { text: 'Visa' },
+      ],
     });
-    const [trip, visa] = appended.value as Array<{ noteAddress: string }>;
+    const [trip, , visa] = appended.value as Array<{ noteAddress: string }>;
 
     const converted = await call(client, 'set_child_list_type', { noteAddress: trip!.noteAddress, listType: 'check' });
-    expect(converted).toMatchObject({ isError: false, value: { noteAddress: trip!.noteAddress, listType: 'check' } });
+    expect(converted).toEqual({
+      isError: false,
+      value: { noteAddress: trip!.noteAddress, listType: 'check', url: noteUrl(trip!.noteAddress) },
+    });
 
-    const read = await client.callTool({ name: 'read_document', arguments: { target: documentId } });
-    const text = (read.content as Array<{ text: string }>)[0]!.text;
-    expect(text).toMatch(/\n {2}- \[ \] \[Passport\]\(/);
+    const text = await read(client, documentId);
+    const url = (index: number) => noteUrl(`${documentId}_NOTE${index}`);
+    expect(stableNoteIds(text)).toBe(
+      `Document: ${noteUrl(documentId)}\n\n- [Trip](${url(1)})\n`
+      + `  - [ ] [Passport](${url(2)})\n    - [Renewal](${url(3)})\n  - [ ] [Tickets](${url(4)})\n`
+      + `- [Other](${url(5)})\n  - [Unchanged](${url(6)})\n- [Visa](${url(7)})`,
+    );
 
-    const passportAddress = /\[Passport\]\([^)]*\/([^/)]+)\)/.exec(text)![1];
-    const isolated = await client.callTool({ name: 'read_document', arguments: { target: passportAddress } });
-    expect((isolated.content as Array<{ text: string }>)[0]!.text).toMatch(/\n\n- \[ \] \[Passport\]\(/);
+    const passportAddress = /\[Passport\]\([^)]*\/([^/)]+)\)/.exec(text)![1]!;
+    expect(stableNoteIds(await read(client, passportAddress))).toBe(
+      `Document: ${noteUrl(documentId)}\n\n- [ ] [Passport](${url(1)})\n  - [Renewal](${url(2)})`,
+    );
 
+    const stored = await storedText(documentId);
     const refused = await call(client, 'set_child_list_type', { noteAddress: visa!.noteAddress, listType: 'number' });
     expect(refused).toEqual({ isError: true, value: 'INVALID_ARGUMENT: Only a note with children has a child list.' });
+    expect(await storedText(documentId)).toBe(stored);
   });
 
-  it('reports a missing document and one the user cannot open identically', async () => {
+  it('reports missing and unshared documents identically without exposing or changing the private document', async () => {
     const owner = await connect(await delegatedToken('mcp-owner@example.test'));
     const { documentId: privateId } = (await call(owner, 'create_document', { title: 'Private' })).value as { documentId: string };
+    const appended = await call(owner, 'append_children', {
+      parent: privateId, notes: [{ text: 'Private note', children: [{ text: 'Private child' }] }],
+    });
+    const [privateNote] = appended.value as Array<{ noteAddress: string }>;
+    const before = await storedText(privateId);
+    const original = await read(owner, privateId);
     const other = await connect(await delegatedToken());
-    const outcomes = async (documentId: string) => [
+    const outcomes = async (documentId: string, noteAddress = `${documentId}_note`) => [
       await call(other, 'read_document', { target: documentId }),
       await call(other, 'append_children', { parent: documentId, notes: [{ text: 'Lost' }] }),
-      await call(other, 'set_child_list_type', { noteAddress: `${documentId}_note`, listType: 'check' }),
+      await call(other, 'set_child_list_type', { noteAddress, listType: 'check' }),
       await call(other, 'rename_document', { documentId, title: 'Lost' }),
     ];
 
@@ -227,7 +310,13 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     }));
 
     expect(await outcomes('missingdoc')).toEqual(notFound);
-    expect(await outcomes(privateId)).toEqual(notFound);
+    expect(await outcomes(privateId, privateNote!.noteAddress)).toEqual(notFound);
+    expect(await storedText(privateId)).toBe(before);
+    expect(await read(owner, privateId)).toBe(original);
+    const listed = (await call(other, 'list_documents')).value as Array<{ documentId: string }>;
+    expect(listed.map(({ documentId }) => documentId)).not.toContain(privateId);
+    const ownerDocuments = (await call(owner, 'list_documents')).value as Array<{ documentId: string }>;
+    expect(ownerDocuments).toContainEqual({ documentId: privateId, title: 'Private', url: noteUrl(privateId) });
   });
 
   it('refuses a missing note in a new document without calling the write unconfirmed', async () => {
@@ -242,14 +331,5 @@ describe('mCP server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       isError: true,
       value: 'NOT_FOUND: Note "missingnote" is not available. Read the document for its current notes.',
     });
-  });
-
-  it("refuses to write to another user's document", async () => {
-    const owner = await connect(await delegatedToken('mcp-owner@example.test'));
-    const { documentId } = (await call(owner, 'create_document', { title: 'Private' })).value as { documentId: string };
-    const other = await connect(await delegatedToken());
-    const appended = await call(other, 'append_children', { parent: documentId, notes: [{ text: 'Intrusion' }] });
-    expect(appended.isError).toBe(true);
-    expect(await storedText(documentId)).not.toContain('Intrusion');
   });
 });

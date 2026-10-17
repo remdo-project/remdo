@@ -1,0 +1,14 @@
+{
+  "version": "0.1.1",
+  "verifiedRepositoryCommit": "5f83455f8e105d974e4a6abde8e8ddb33dfbc013",
+  "submittedArchive": {
+    "filename": "remdo-0.1.1.zip",
+    "sha256": "5eafeba8de7a9a845598a258e51e3fb3cc0f7df94f83c5e33e28e47f187bdfb7"
+  },
+  "membersSha256": {
+    "LICENSE": "e17c3c7335b81888ba187a14fc9de3bdec4dc660fbc8542b482eb94633bb9535",
+    "assets/icon.png": "0f038a5c3bb853a53c72c50877088534c6ce5d544de1180e57e140ab02461c0e",
+    "mcp.json": "8dcd92578acba690a2d5822a36508bed8ca93b7103bf253a44b37e0ca74c4a42",
+    "plugin.json": "332b68fc8cb9da59554b5f8d4c3188a5c7f05ff05c310542943b186cf5254b76"
+  }
+}
