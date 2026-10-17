@@ -194,10 +194,7 @@ describe('mcp server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('reads a new document without storing or linking its generated note', async () => {
     const client = await connect(await delegatedToken());
     const { documentId } = (await call(client, 'create_document', { title: 'Untouched' })).value as { documentId: string };
-    const read = await client.callTool({ name: 'read_document', arguments: { target: documentId } });
-    expect(read.isError).toBeFalsy();
-    const [outline] = read.content as Array<{ text: string }>;
-    expect(outline!.text).toBe(`Document: ${noteUrl(documentId)}\n\n- `);
+    expect(await read(client, documentId)).toBe(`Document: ${noteUrl(documentId)}\n\n- `);
     expect(await storedText(documentId)).toBe('');
   });
 
