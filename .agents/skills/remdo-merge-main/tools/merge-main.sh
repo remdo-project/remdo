@@ -65,22 +65,9 @@ emit_run_state() {
 }
 
 merge_with_neutral_options() {
-  inherited_config_count=${GIT_CONFIG_COUNT:-0}
-  case "$inherited_config_count" in
-    *[!0-9]*)
-      fail "inherited Git configuration count is invalid"
-      ;;
-  esac
-  while [ "${inherited_config_count#0}" != "$inherited_config_count" ]; do
-    inherited_config_count=${inherited_config_count#0}
-  done
-  [ -n "$inherited_config_count" ] || inherited_config_count=0
-  override_config_count=$((inherited_config_count + 1))
-  env \
-    "GIT_CONFIG_COUNT=$override_config_count" \
-    "GIT_CONFIG_KEY_$inherited_config_count=branch.$run_branch.mergeOptions" \
-    "GIT_CONFIG_VALUE_$inherited_config_count=" \
-    git merge "$@" 1>&2
+  REMDO_EMPTY_MERGE_OPTIONS= git \
+    --config-env="branch.$run_branch.mergeOptions=REMDO_EMPTY_MERGE_OPTIONS" \
+    merge "$@" 1>&2
 }
 
 start_run() {

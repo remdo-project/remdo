@@ -336,7 +336,7 @@ describe('merge-main.sh', () => {
       'git',
       [
         '#!/usr/bin/env sh',
-        'if [ "$1" = merge ]; then exit 91; fi',
+        'if [ "$1" = merge ] || [ "$2" = merge ]; then exit 91; fi',
         // eslint-disable-next-line no-template-curly-in-string -- Expanded by the shell.
         'PATH=${PATH#*:}',
         'export PATH',
@@ -369,7 +369,7 @@ describe('merge-main.sh', () => {
         // eslint-disable-next-line no-template-curly-in-string -- Expanded by the shell.
         'PATH=${PATH#*:}',
         'export PATH',
-        'if [ "$1" = merge ]; then',
+        'if [ "$1" = merge ] || [ "$2" = merge ]; then',
         '  git rev-parse HEAD > "$(git rev-parse --git-path MERGE_HEAD)"',
         '  exit 91',
         'fi',
