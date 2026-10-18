@@ -137,6 +137,13 @@ describe('home view', () => {
       .map((row) => row.querySelector('.home-doc-label')?.textContent);
     const menuTarget = () => document.querySelector('[data-menu-target] .home-doc-label')?.textContent;
     const listOf = () => document.getElementById(searchField().getAttribute('aria-controls')!)!;
+    const rowPitch = 60;
+    const layoutRows = (scrolled = 0) => document.querySelectorAll('[data-home-row]').forEach((row, index) => {
+      vi.spyOn(row, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, index * rowPitch - scrolled, 1000, 56));
+    });
+    const atRow = (index: number) => ({ clientX: 10, clientY: index * rowPitch + 10 });
+    const outsideRows = { clientX: 10, clientY: 900 };
+    afterEach(() => vi.restoreAllMocks());
 
     it('keeps one highlighted row with the menu button on it through pointer and search keys', () => {
       renderHome(searchProps());
@@ -264,16 +271,17 @@ describe('home view', () => {
     it('keeps the tint while a menu is open and clears it once the menu closes with the pointer elsewhere', async () => {
       renderHome(searchProps());
       const list = listOf();
-      fireEvent.pointerMove(rowOf('Ideas'));
+      layoutRows();
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
       fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
       await screen.findByRole('menu');
 
       fireEvent.pointerLeave(list);
-      fireEvent.pointerMove(screen.getByRole('menu'));
+      fireEvent.pointerMove(screen.getByRole('menu'), outsideRows);
       expect(highlighted()).toEqual(['Ideas']);
 
       const underlay = document.querySelector('[data-testid="underlay"]')!;
-      fireEvent.pointerDown(underlay);
+      fireEvent.pointerDown(underlay, outsideRows);
       fireEvent.pointerUp(underlay);
       fireEvent.click(underlay);
       await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
@@ -310,7 +318,8 @@ describe('home view', () => {
     it('chooses the row a pointer press lands on even without a prior move', () => {
       renderHome(searchProps());
 
-      fireEvent.pointerDown(rowOf('Ideas'));
+      layoutRows();
+      fireEvent.pointerDown(rowOf('Ideas'), atRow(1));
       fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
 
       expect(highlighted()).toEqual(['Ideas']);
@@ -319,9 +328,10 @@ describe('home view', () => {
 
     it('shows the row that receives focus without a key press after pointer input', () => {
       renderHome(searchProps());
-      fireEvent.pointerMove(rowOf('Ideas'));
+      layoutRows();
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
 
-      fireEvent.pointerDown(document.body);
+      fireEvent.pointerDown(document.body, atRow(1));
       fireEvent.focus(screen.getByRole('button', { name: 'Actions for Roadmap ideas' }));
 
       expect(highlighted()).toEqual(['Roadmap ideas']);
@@ -367,47 +377,66 @@ describe('home view', () => {
 
     it('follows a pointer that scrolling moved onto another row or off the rows, but not a keyboard choice or an open menu', async () => {
       renderHome(searchProps());
-      let underPointer: Element = rowOf('Roadmap ideas');
-      Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => underPointer });
+      layoutRows();
       const scrolled = () => act(async () => {
         fireEvent.scroll(document);
         await new Promise((resolve) => requestAnimationFrame(resolve));
       });
-      try {
-        fireEvent.pointerMove(rowOf('Ideas'));
-        await scrolled();
-        expect(highlighted()).toEqual(['Roadmap ideas']);
-        expect(menuTarget()).toBe('Roadmap ideas');
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
+      layoutRows(rowPitch);
+      await scrolled();
+      expect(highlighted()).toEqual(['Roadmap ideas']);
+      expect(menuTarget()).toBe('Roadmap ideas');
 
-        fireEvent.keyDown(document.body, { key: 'CapsLock' });
-        underPointer = rowOf('Project Roadmap');
-        await scrolled();
-        expect(highlighted()).toEqual(['Project Roadmap']);
+      fireEvent.keyDown(document.body, { key: 'CapsLock' });
+      layoutRows(-rowPitch);
+      await scrolled();
+      expect(highlighted()).toEqual(['Project Roadmap']);
 
-        underPointer = document.body;
-        await scrolled();
-        expect(highlighted()).toEqual([]);
-        expect(menuTarget()).toBe('Project Roadmap');
+      layoutRows(1000);
+      await scrolled();
+      expect(highlighted()).toEqual([]);
+      expect(menuTarget()).toBe('Project Roadmap');
 
-        fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
-        underPointer = rowOf('Ideas');
-        await scrolled();
-        expect(highlighted()).toEqual(['Project Roadmap']);
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+      layoutRows();
+      await scrolled();
+      expect(highlighted()).toEqual(['Project Roadmap']);
 
-        fireEvent.wheel(document.body);
-        await scrolled();
-        expect(highlighted()).toEqual(['Ideas']);
+      fireEvent.wheel(document.body);
+      await scrolled();
+      expect(highlighted()).toEqual(['Ideas']);
 
-        const otherRow = rowOf('Roadmap ideas');
-        fireEvent.pointerMove(rowOf('Ideas'));
-        fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
-        await screen.findByRole('menu');
-        underPointer = otherRow;
-        await scrolled();
-        expect(highlighted()).toEqual(['Ideas']);
-      } finally {
-        Reflect.deleteProperty(document, 'elementFromPoint');
-      }
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
+      fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      await screen.findByRole('menu');
+      layoutRows(rowPitch);
+      await scrolled();
+      expect(highlighted()).toEqual(['Ideas']);
+    });
+
+    it('chooses the row under the pointer when a menu closes over it', async () => {
+      renderHome(searchProps());
+      layoutRows();
+      const closeMenu = async (at: { clientX: number; clientY: number }) => {
+        const underlay = document.querySelector('[data-testid="underlay"]')!;
+        fireEvent.pointerDown(underlay, at);
+        fireEvent.pointerUp(underlay);
+        fireEvent.click(underlay);
+        await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+        fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      };
+
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
+      fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      await screen.findByRole('menu');
+      await closeMenu(atRow(1));
+      expect(highlighted()).toEqual(['Ideas']);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      await screen.findByRole('menu');
+      await closeMenu(atRow(2));
+      expect(highlighted()).toEqual(['Roadmap ideas']);
     });
 
     it('ignores touch movement and the focus a tap leaves behind', () => {

@@ -138,7 +138,6 @@ export function HomeView({
   const [active, setActive] = useState<{ id: string | null; input: ActiveInput | null }>({ id: null, input: null });
   const lastInputRef = useRef<LastInput>('keyboard');
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
-  const pointerRowRef = useRef<string | null>(null);
   const groups = sources.map((source) => {
     const documents = source.documents.getChildren();
     return { source, documents, visibleDocuments: filterHomeDocuments(documents, query) };
@@ -164,19 +163,34 @@ export function HomeView({
   const choose = (docId: string, input: ActiveInput) => setActive((current) => (
     current.id === docId && current.input === input ? current : { id: docId, input }
   ));
-  const rest = (only?: ActiveInput) => setActive((current) => (
-    current.input === null || (only && current.input !== only) ? current : { ...current, input: null }
+  const rest = () => setActive((current) => current.input === null ? current : { ...current, input: null });
+  const restPointer = () => setActive((current) => (
+    current.input === 'pointer' && !holdsActiveRow() ? { ...current, input: null } : current
   ));
+  const rowUnderPointer = () => {
+    const point = pointerRef.current;
+    if (!point) return null;
+    for (const row of homeRef.current?.querySelectorAll<HTMLElement>('[data-home-row]') ?? []) {
+      const { left, right, top, bottom } = row.getBoundingClientRect();
+      if (point.x >= left && point.x < right && point.y >= top && point.y < bottom) return row.dataset.homeRow ?? null;
+    }
+    return null;
+  };
   const activate = (docId: string, source: ActivationSource) => {
     const lastInput = source === 'focus' ? lastInputRef.current : source;
     if (lastInput === 'touch') return;
     let input: ActiveInput = lastInput;
-    if (source === 'focus' && lastInput === 'pointer' && pointerRowRef.current !== docId) {
-      if (docId === active.id) {
-        if (!holdsActiveRow()) rest('pointer');
-        return;
+    if (source === 'focus' && lastInput === 'pointer') {
+      const underPointer = rowUnderPointer();
+      if (underPointer !== docId) {
+        if (docId === active.id) {
+          if (holdsActiveRow()) return;
+          if (underPointer) choose(underPointer, 'pointer');
+          else restPointer();
+          return;
+        }
+        input = 'keyboard';
       }
-      input = 'keyboard';
     }
     if ((active.id === docId && active.input === input) || holdsActiveRow()) return;
     choose(docId, input);
@@ -184,13 +198,10 @@ export function HomeView({
 
   const trackPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'touch') return;
-    lastInputRef.current = 'pointer';
     const inList = event.target instanceof Node && event.currentTarget.contains(event.target);
-    pointerRef.current = inList ? { x: event.clientX, y: event.clientY } : null;
-    const docId = inList ? documentIdOf(event.target as Element) ?? null : null;
-    pointerRowRef.current = docId;
+    const docId = inList ? documentIdOf(event.target as Element) : undefined;
     if (docId) activate(docId, 'pointer');
-    else if (active.input === 'pointer' && !holdsActiveRow()) rest('pointer');
+    else restPointer();
   };
 
   useEffect(() => {
@@ -222,7 +233,7 @@ export function HomeView({
     if (matchIds.length === 0) return;
     const index = highlightId === null ? -1 : matchIds.indexOf(highlightId);
     if (index === -1 && delta === -1) return;
-    setActive({ id: matchIds[Math.max(0, Math.min(matchIds.length - 1, index + delta))]!, input: 'keyboard' });
+    choose(matchIds[Math.max(0, Math.min(matchIds.length - 1, index + delta))]!, 'keyboard');
   };
 
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -256,14 +267,30 @@ export function HomeView({
     const keyboard = (event: KeyboardEvent) => {
       if (!MODIFIER_KEYS.has(event.key)) lastInputRef.current = 'keyboard';
     };
-    const pointer = (event: PointerEvent) => { lastInputRef.current = event.pointerType === 'touch' ? 'touch' : 'pointer'; };
+    // The document sees pointer events the list does not: while a menu is open
+    // they target the body, outside the list's React tree.
+    const pointer = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') {
+        if (event.type === 'pointerdown') lastInputRef.current = 'touch';
+        return;
+      }
+      lastInputRef.current = 'pointer';
+      pointerRef.current = { x: event.clientX, y: event.clientY };
+    };
+    const pointerOut = (event: PointerEvent) => {
+      if (!event.relatedTarget) pointerRef.current = null;
+    };
     const wheel = () => { lastInputRef.current = 'pointer'; };
     document.addEventListener('keydown', keyboard, true);
     document.addEventListener('pointerdown', pointer, true);
+    document.addEventListener('pointermove', pointer, true);
+    document.addEventListener('pointerout', pointerOut, true);
     document.addEventListener('wheel', wheel, { capture: true, passive: true });
     return () => {
       document.removeEventListener('keydown', keyboard, true);
       document.removeEventListener('pointerdown', pointer, true);
+      document.removeEventListener('pointermove', pointer, true);
+      document.removeEventListener('pointerout', pointerOut, true);
       document.removeEventListener('wheel', wheel, { capture: true });
     };
   }, []);
@@ -276,10 +303,9 @@ export function HomeView({
       frame = 0;
       const point = pointerRef.current;
       if (!point || lastInputRef.current !== 'pointer' || hasOpenMenu(homeRef.current)) return;
-      const docId = documentIdOf(document.elementFromPoint(point.x, point.y)) ?? null;
-      pointerRowRef.current = docId;
+      const docId = rowUnderPointer();
       if (docId) choose(docId, 'pointer');
-      else rest('pointer');
+      else setActive((current) => current.input === 'pointer' ? { ...current, input: null } : current);
     };
     const onScroll = () => {
       if (frame === 0) frame = requestAnimationFrame(followPointer);
@@ -356,11 +382,7 @@ export function HomeView({
 
       <div
         id={listId}
-        onPointerLeave={() => {
-          pointerRef.current = null;
-          pointerRowRef.current = null;
-          if (!holdsActiveRow()) rest('pointer');
-        }}
+        onPointerLeave={restPointer}
         onPointerDown={trackPointer}
         onPointerMove={trackPointer}
       >

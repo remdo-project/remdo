@@ -116,6 +116,21 @@ test.describe('Home', () => {
     await expect(rows.nth(1).getByRole('button', { name: /^Actions for/u })).toHaveCSS('opacity', '1');
   });
 
+  test('keeps the tint when a menu closes with the pointer resting on its row', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const rows = homeView(page).getByRole('listitem');
+
+    await rows.nth(1).hover();
+    await rows.nth(1).getByRole('button', { name: /^Actions for/u }).click();
+    const box = (await rows.nth(1).boundingBox())!;
+    await page.mouse.click(box.x + box.width - 40, box.y + box.height / 2);
+
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect.poll(() => tintedRowCount(rows)).toBe(1);
+    await expect(rows.nth(1)).toHaveAttribute('data-highlighted', 'pointer');
+  });
+
   test('keeps the tint through a rename dialog and drops it when the dialog closes with the pointer elsewhere', async ({ page, editor }) => {
     await editor.load('basic');
     await homeZoomBreadcrumb(page).click();
