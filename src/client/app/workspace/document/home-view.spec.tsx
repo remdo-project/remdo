@@ -21,14 +21,14 @@ const documentNote = (
   getId: () => id,
   getText: () => title,
   getSharingSuggestions: () => [],
-  getAccess: () => ({
+  access: {
     getChildren: () => Array.from({ length: recipients }, (_, index) => ({
       getEmail: () => `recipient-${index}@example.test`,
       getId: () => `recipient-${index}`,
       getName: () => '',
       getText: () => `recipient-${index}@example.test`,
     })),
-  }),
+  },
   subscribe: () => vi.fn(),
   canRename: () => canRename,
   canShareWith: () => canShareWith,

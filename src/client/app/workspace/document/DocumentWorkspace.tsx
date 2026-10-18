@@ -1,5 +1,5 @@
 import { Alert } from '@mantine/core';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUserData, useUserDataRuntime } from '#client/app/user-data/user-data';
 import {
   useDocumentSearchModel,
@@ -61,9 +61,11 @@ export default function DocumentWorkspace({
   const [editingToolbarHost, setEditingToolbarHost] = useState<HTMLDivElement | null>(null);
   const { requestZoomNoteId } = useEditorViewActions();
   const zoomPath = useZoomPath();
-  const openDocumentView = useOpenDocument()?.view;
+  const openDocument = useOpenDocument();
+  const openDocumentView = openDocument?.view;
   const { documentDialog, openDelete, openRename, openShare } = useDocumentDialogs(headingRef, onSelectHome);
   const userData = useUserData();
+  const metadataNote = useMemo(() => userData.documentRef(docId), [userData, docId]);
   const { userId } = useUserDataRuntime();
   const documentSources = userData.getDocumentSources().getChildren();
   const source = resolveDocumentSource(docId, documentSources);
@@ -78,10 +80,12 @@ export default function DocumentWorkspace({
   const targetHeader = () => {
     if (!shellRef.current?.querySelector('[data-note-menu]')) setMenuTarget('header');
   };
-  const documentLabel = formatNavigationLabel(source.documentLabel);
-  const documentNote = userData.getDocuments().getById(docId);
+  const listedDocument = userData.getDocuments().getById(docId);
+  const documentNote = listedDocument ? (openDocument?.root ?? metadataNote) : null;
+  const documentTitle = documentNote?.getText() ?? source.documentLabel;
+  const documentLabel = formatNavigationLabel(documentTitle);
   const ownsDocument = documentNote?.canShareWith() === true;
-  const recipientCount = ownsDocument ? documentNote.getAccess().getChildren().length : 0;
+  const recipientCount = ownsDocument ? documentNote.access.getChildren().length : 0;
   const shared = !ownsDocument || recipientCount > 0;
   const shareAction = ownsDocument ? 'Share document' : 'View document access';
   const shareAccess = ownsDocument
@@ -123,7 +127,7 @@ export default function DocumentWorkspace({
       ref={shellRef}
     >
       <DocumentToolbar
-        documentLabel={source.documentLabel}
+        documentLabel={documentTitle}
         keyboardReference={<KeyboardReference onClose={focusEditorInput} />}
         shareControl={documentNote && (
           <TooltipTrigger>
@@ -165,7 +169,7 @@ export default function DocumentWorkspace({
               />
             )}
             <h1 className="location-header-title" ref={headingRef} tabIndex={-1}>
-              {formatNavigationLabel(source.documentLabel, Number.POSITIVE_INFINITY)}
+              {formatNavigationLabel(documentTitle, Number.POSITIVE_INFINITY)}
             </h1>
           </div>
           <div
@@ -195,6 +199,7 @@ export default function DocumentWorkspace({
         <Editor
           key={docId}
           docId={docId}
+          metadataNote={metadataNote}
           accountId={userId}
           statusPortalRoot={statusHost}
           editingToolbarPortalRoot={editingToolbarHost}

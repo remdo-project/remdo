@@ -10,10 +10,12 @@ import type {
   NoteId,
   NoteKind,
 } from './notes';
+import type { OpenDocumentNote } from './open-document';
 
 export function createNoteAs(noteId: NoteId, kind: () => NoteKind, self: () => Note): Note['as'] {
   function asNote(kindToMatch: 'user-data'): UserDataNote;
   function asNote(kindToMatch: 'document'): DocumentNote;
+  function asNote(kindToMatch: 'editor-note'): OpenDocumentNote;
   function asNote(kindToMatch: 'document-access'): DocumentAccessNote;
   function asNote(kindToMatch: 'document-source'): DocumentSourceNote;
   function asNote(kindToMatch: 'collection'): CollectionNote;

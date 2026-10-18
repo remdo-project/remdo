@@ -1,4 +1,5 @@
-import type { NoteId } from './notes';
+import type { AddressableNote, NoteId } from './notes';
+import type { DocumentNote } from './documents';
 
 /** Marker style owned by the list containing an editor note. */
 export type NoteListType = 'bullet' | 'number' | 'check';
@@ -60,27 +61,21 @@ export interface NewNote {
   readonly children?: readonly NewNote[];
 }
 
-/** A note that holds editor notes: the document root or an editor note. */
-export interface OpenDocumentParentNote {
-  /** References to the current direct children in order. */
-  readonly getChildren: () => readonly OpenDocumentNote[];
-  /** The list holding the children, or null when there are none. The document root always has children. */
-  readonly getChildListType: () => NoteListType | null;
-  /** Appends notes as the last children; resolves with their IDs in order. */
-  readonly appendChildren: (notes: readonly NewNote[]) => Promise<NoteId[]>;
-}
-
 /**
  * A live, stable-ID reference to one editor note in the open document.
  * Value reads throw NoteUnavailableError when the note or source is unavailable.
  * Capability reads return false in those states; unexpected read failures propagate.
  * Operations reject with IneligibleOperationError when they cannot apply.
  */
-export interface OpenDocumentNote extends OpenDocumentParentNote {
-  /** Stable ID used to re-resolve the note in the current document revision. */
-  readonly getId: () => NoteId;
-  /** The current parent note, or the document root for a top-level note. */
-  readonly getParent: () => OpenDocumentParentNote;
+export interface OpenDocumentNote extends AddressableNote<'editor-note'> {
+  /** The current editor parent, or the Content collection for a top-level note. */
+  readonly getParent: () => OpenDocumentNote | DocumentNote['content'];
+  /** References to the current direct children in order. */
+  readonly getChildren: () => readonly OpenDocumentNote[];
+  /** The list holding the children, or null when there are none. */
+  readonly getChildListType: () => NoteListType | null;
+  /** Appends notes as the last children; resolves with their IDs in order. */
+  readonly appendChildren: (notes: readonly NewNote[]) => Promise<NoteId[]>;
   /** Returns the current content text. */
   readonly getText: () => string;
   /** Returns the body's plain text, or null when the note has none. */
@@ -115,8 +110,8 @@ export interface OpenDocument {
 
   /** Searches current committed data; rejects when the source cannot be read. */
   readonly search: (options: DocumentSearchOptions) => Promise<DocumentSearchResults>;
-  /** The document root, whose children are the top-level editor notes. */
-  readonly root: OpenDocumentParentNote;
+  /** The document note, with metadata and top-level editor children available to this host. */
+  readonly root: DocumentNote;
   /** Returns a live reference without checking existence or creating a note. */
   readonly noteRef: (noteId: NoteId) => OpenDocumentNote;
   readonly view: {

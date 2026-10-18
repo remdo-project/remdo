@@ -229,7 +229,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       const { docId: documentId, noteId } = ref;
       const outline = await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, async (openDocument, isStored) => {
         return renderOutline(
-          noteId ? [openDocument.noteRef(noteId)] : openDocument.root.getChildren(),
+          noteId ? [openDocument.noteRef(noteId)] : openDocument.root.content.getChildren(),
           (id) => isStored(id) ? documentUrl(documentId, id) : null,
           { depth },
         );
@@ -255,7 +255,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       if (!ref) throw new ToolError('INVALID_ARGUMENT', 'The parent is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
       const noteIds = await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
-        (noteId ? openDocument.noteRef(noteId) : openDocument.root).appendChildren(notes), { signal }));
+        (noteId ? openDocument.noteRef(noteId) : openDocument.root.content).appendChildren(notes), { signal }));
       return noteIds.map((id) => ({ noteAddress: `${documentId}_${id}`, url: documentUrl(documentId, id) }));
     }));
 

@@ -7,10 +7,14 @@ import type { Mock } from 'vitest';
 import { TestMantineProvider, resetTestUserData } from '#tests';
 import type {
   OpenDocument,
+  OpenDocumentNote,
+  DocumentNote,
   NoteId,
   EditorNoteSnapshot,
   SearchResult,
 } from '#note-sdk';
+import { createDocumentNote } from '../../../src/note-sdk/create-document-note';
+import { createNoteAs } from '../../../src/note-sdk/handle-utils';
 import type { NotePathItem } from '#client/editor/view/workspace';
 import {
   useEditorViewActions,
@@ -58,6 +62,7 @@ function defaultResults(): SearchResult[] {
 
 interface MockEditorProps {
   docId: string;
+  metadataNote?: DocumentNote;
 }
 
 let mockEditorInstanceCounter = 0;
@@ -68,6 +73,7 @@ let zoomPaths: Record<string, Record<string, NotePathItem[]>> = {};
 
 function MockEditor({
   docId,
+  metadataNote,
 }: MockEditorProps) {
   const zoomNoteId = useZoomNoteId();
   const { setZoomPath } = useEditorViewActions();
@@ -76,31 +82,44 @@ function MockEditor({
   const available = documentAvailability[docId] ?? true;
   const openDocument = React.useMemo<OpenDocument>(() => {
     const noOp = () => {};
-    const root: OpenDocument['root'] = { getChildren: () => [], getChildListType: () => 'bullet', appendChildren: () => Promise.resolve([]) };
+    const root = createDocumentNote(docId, {
+      metadata: metadataNote,
+      content: {
+        getChildren: () => [],
+        getChildListType: () => 'bullet',
+        appendChildren: () => Promise.resolve([]),
+        subscribe: () => noOp,
+      },
+    });
     return {
       documentId: docId,
       search: mockDocumentSearch(docId),
       subscribeCapabilities: () => noOp,
       root,
-      noteRef: (noteId) => ({
-        getId: () => noteId,
-        getParent: () => root,
-        getChildren: () => [],
-        appendChildren: () => Promise.resolve([]),
-        getText: () => '',
-        getBody: () => null,
-        getFolded: () => false,
-        getChecked: () => false,
-        getChildListType: () => null,
-        canToggleFold: () => false,
-        canToggleChecked: () => true,
-        canSetChildListType: () => false,
-        toggleChecked: () => Promise.resolve(),
-        setChildListType: () => Promise.resolve(),
-        zoom: noOp,
-        toggleFold: () => Promise.resolve(),
-        subscribe: () => noOp,
-      }),
+      noteRef: (noteId) => {
+        const note: OpenDocumentNote = {
+          getId: () => noteId,
+          getKind: () => 'editor-note',
+          as: createNoteAs(noteId, () => 'editor-note', () => note),
+          getParent: () => root.content,
+          getChildren: () => [],
+          appendChildren: () => Promise.resolve([]),
+          getText: () => '',
+          getBody: () => null,
+          getFolded: () => false,
+          getChecked: () => false,
+          getChildListType: () => null,
+          canToggleFold: () => false,
+          canToggleChecked: () => true,
+          canSetChildListType: () => false,
+          toggleChecked: () => Promise.resolve(),
+          setChildListType: () => Promise.resolve(),
+          zoom: noOp,
+          toggleFold: () => Promise.resolve(),
+          subscribe: () => noOp,
+        };
+        return note;
+      },
       view: { zoomOut: noOp, foldToLevel: noOp },
       focus: { canToggleFold: () => false, toggleFold: noOp },
       selection: {
@@ -114,7 +133,7 @@ function MockEditor({
       },
       history: { canUndo: () => false, canRedo: () => false, undo: noOp, redo: noOp },
     };
-  }, [docId]);
+  }, [docId, metadataNote]);
 
   React.useEffect(() => {
     setZoomPath(zoomNoteId ? zoomPaths[docId]?.[zoomNoteId] ?? [] : []);

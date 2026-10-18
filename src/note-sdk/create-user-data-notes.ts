@@ -1,7 +1,6 @@
 import type { DocumentAccessView, DocumentContactView } from '#domain/documents/access';
 import type { UserDocument } from '#domain/documents/user-data';
 import type {
-  DocumentAccessNote,
   DocumentSourceNote,
   DocumentSourcesNote,
   DocumentNote,
@@ -11,6 +10,7 @@ import type {
 import type { CollectionNote, Note, NoteId } from './notes';
 import { createNoteAs } from './handle-utils';
 import { NoteUnavailableError } from './note-unavailable-error';
+import { createDocumentNote } from './create-document-note';
 
 const USER_DATA_ROOT_ID = 'user-data';
 const USER_DOCUMENT_SOURCES_ID = 'document-sources';
@@ -77,35 +77,18 @@ function resolveCollectionSource<Item extends { id: NoteId }>(
 function toDocumentAccessItem(access: DocumentAccessView): DocumentAccessItem {
   return {
     ...access,
-    id: access.granteeUserId,
+    id: `${access.documentId}/access/${encodeURIComponent(access.granteeUserId)}`,
   };
 }
 
-function createDocumentAccessNoteHandle(access: DocumentAccessItem): DocumentAccessNote {
-  const noteId = access.id;
-  const kind = () => 'document-access' as const;
-  const handle: DocumentAccessNote = {
-    getId: () => noteId,
-    getKind: kind,
+function documentAccessSource(access: DocumentAccessItem) {
+  return {
+    getId: () => access.id,
     getText: () => access.name || access.email,
-    getChildren: () => [],
     getEmail: () => access.email,
     getGranteeUserId: () => access.granteeUserId,
     getName: () => access.name,
-    as: createNoteAs(noteId, kind, () => handle),
   };
-
-  return handle;
-}
-
-function createDocumentAccessHandle(document: UserDocument): CollectionNote<DocumentAccessNote> {
-  const access = createArrayCollectionSource((document.access ?? []).map(toDocumentAccessItem));
-  return createCollectionHandle({
-    createItemNote: createDocumentAccessNoteHandle,
-    items: access,
-    noteId: `${document.id}/access`,
-    text: 'Access',
-  });
 }
 
 const unsubscribeNothing = () => {};
@@ -136,24 +119,32 @@ function createDocumentHandle(
   documents: CollectionSource<UserDocument>,
   actions: UserDataNoteActions,
 ): DocumentNote {
-  const kind = () => 'document' as const;
   const read = () => {
     const document = documents.getById(noteId);
     if (!document) throw new NoteUnavailableError(noteId);
     return document;
   };
+  const subscribe = (listener: () => void) => documents.subscribe?.(listener) ?? unsubscribeNothing;
+  const access = {
+    getChildren: () => (read().access ?? []).map(toDocumentAccessItem).map(documentAccessSource),
+    getById: (id: string) => {
+      const grant = (read().access ?? []).map(toDocumentAccessItem).find(item => item.id === id);
+      return grant ? documentAccessSource(grant) : null;
+    },
+  };
 
-  async function shareWith(email: string): Promise<DocumentAccessNote> {
+  async function shareWith(email: string) {
     if (!actions.shareDocument) {
       throw new Error('Document sharing is not available for this document.');
     }
     if (typeof email !== 'string') {
       throw new TypeError('document.shareWith(email) requires a user email.');
     }
-    return createDocumentAccessNoteHandle(toDocumentAccessItem(await actions.shareDocument(noteId, email)));
+    const granted = toDocumentAccessItem(await actions.shareDocument(noteId, email));
+    return { getId: () => granted.id };
   }
 
-  async function rename(title: string): Promise<DocumentNote> {
+  async function rename(title: string): Promise<void> {
     if (!actions.renameDocument) {
       throw new Error('Renaming is not available for this document.');
     }
@@ -161,7 +152,6 @@ function createDocumentHandle(
       throw new TypeError('document.rename(title) requires a document title.');
     }
     await actions.renameDocument(noteId, title);
-    return createDocumentHandle(noteId, documents, actions);
   }
 
   async function deleteDocument(): Promise<void> {
@@ -171,29 +161,26 @@ function createDocumentHandle(
     await actions.deleteDocument(noteId);
   }
 
-  const handle: DocumentNote = {
-    getId: () => noteId,
-    getKind: kind,
-    getText: () => read().title,
-    getAccess: () => createDocumentAccessHandle(read()),
-    getSharingSuggestions: () => sharingSuggestions(read(), documents.getChildren()),
-    getChildren: () => [],
-    canShareWith: () => documents.getById(noteId)?.shareable === true,
-    shareWith,
-    canRename: () => Boolean(actions.renameDocument) && documents.getById(noteId) !== null,
-    rename,
-    canDelete: () => documents.getById(noteId)?.deletable === true && Boolean(actions.deleteDocument),
-    delete: deleteDocument,
-    subscribe: (listener) => documents.subscribe?.(listener) ?? unsubscribeNothing,
-    as: createNoteAs(noteId, kind, () => handle),
-  };
-
-  return handle;
+  return createDocumentNote(noteId, {
+    metadata: {
+      getText: () => read().title,
+      access,
+      getSharingSuggestions: () => sharingSuggestions(read(), documents.getChildren()),
+      canShareWith: () => documents.getById(noteId)?.shareable === true,
+      shareWith,
+      canRename: () => Boolean(actions.renameDocument) && documents.getById(noteId) !== null,
+      rename,
+      canDelete: () => documents.getById(noteId)?.deletable === true && Boolean(actions.deleteDocument),
+      delete: deleteDocument,
+      subscribe,
+    },
+  });
 }
 
 function createUserDocumentsHandle(
   documents: CollectionSource<UserDocument>,
   actions: UserDataNoteActions,
+  parent: () => UserDataNote,
 ): UserDocumentsNote {
   const noteId = USER_DOCUMENTS_ID;
   const kind = () => 'collection' as const;
@@ -212,11 +199,13 @@ function createUserDocumentsHandle(
     getId: () => noteId,
     getKind: kind,
     getText: () => USER_DOCUMENTS_TITLE,
+    getParent: parent,
     getChildren: () => documents.getChildren().map((document) => createDocumentHandle(document.id, documents, actions)),
     getById: (documentId) => (
       documents.getById(documentId) ? createDocumentHandle(documentId, documents, actions) : null
     ),
     create,
+    subscribe: (listener) => documents.subscribe?.(listener) ?? unsubscribeNothing,
     as: createNoteAs(noteId, kind, () => handle),
   };
 
@@ -226,6 +215,7 @@ function createUserDocumentsHandle(
 function createDocumentSourceHandle(
   source: DocumentSource,
   actions: UserDataNoteActions,
+  parent: () => DocumentSourcesNote,
 ): DocumentSourceNote {
   const noteId = source.id;
   const kind = () => 'document-source' as const;
@@ -235,17 +225,20 @@ function createDocumentSourceHandle(
     items: source.documents,
     noteId: `${noteId}/documents`,
     text: USER_DOCUMENTS_TITLE,
+    parent: sourceRef,
   });
   const handle: DocumentSourceNote = {
     getId: () => noteId,
     getKind: kind,
     getText: () => source.label,
+    getParent: parent,
     getChildren: () => [documents],
     getBaseUrl: () => source.baseUrl,
     getDocuments: () => documents,
     getLocal: () => source.local,
     as: createNoteAs(noteId, kind, () => handle),
   };
+  function sourceRef() { return handle; }
 
   return handle;
 }
@@ -253,36 +246,43 @@ function createDocumentSourceHandle(
 function createDocumentSourcesHandle(
   sources: CollectionSource<DocumentSource>,
   actions: UserDataNoteActions,
+  parent: () => UserDataNote,
 ): DocumentSourcesNote {
-  return createCollectionHandle({
-    createItemNote: (source) => createDocumentSourceHandle(source, actions),
+  const handle: DocumentSourcesNote = createCollectionHandle({
+    createItemNote: (source) => createDocumentSourceHandle(source, actions, () => handle),
     items: sources,
     noteId: USER_DOCUMENT_SOURCES_ID,
     text: USER_DOCUMENT_SOURCES_TITLE,
+    parent,
   });
+  return handle;
 }
 
-function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends Note>({
+function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends Note, Parent extends Note | null>({
   createItemNote,
   items,
   noteId,
   text,
+  parent,
 }: {
   createItemNote: (item: Item) => ItemNote;
   items: CollectionSource<Item>;
   noteId: NoteId;
   text: string;
-}): CollectionNote<ItemNote> {
+  parent: () => Parent;
+}): CollectionNote<ItemNote> & { getParent: () => Parent } {
   const kind = () => 'collection' as const;
-  const handle: CollectionNote<ItemNote> = {
+  const handle: CollectionNote<ItemNote> & { getParent: () => Parent } = {
     getId: () => noteId,
     getKind: kind,
     getText: () => text,
+    getParent: parent,
     getChildren: () => items.getChildren().map((item) => createItemNote(item)),
     getById: (itemId) => {
       const item = items.getById(itemId);
       return item ? createItemNote(item) : null;
     },
+    subscribe: (listener) => items.subscribe?.(listener) ?? unsubscribeNothing,
     as: createNoteAs(noteId, kind, () => handle),
   };
 
@@ -296,7 +296,7 @@ export function createUserDataRootNote(
   const noteId = USER_DATA_ROOT_ID;
   const kind = () => 'user-data' as const;
   const userDocumentsSource = resolveCollectionSource(documents);
-  const userDocuments = createUserDocumentsHandle(userDocumentsSource, actions);
+  const userDocuments = createUserDocumentsHandle(userDocumentsSource, actions, userDataRef);
   const documentSources = createDocumentSourcesHandle(
     actions.documentSources ?? createArrayCollectionSource([{
       baseUrl: null,
@@ -306,17 +306,21 @@ export function createUserDataRootNote(
       local: true,
     }]),
     actions,
+    userDataRef,
   );
 
   const handle: UserDataNote = {
     getId: () => noteId,
     getKind: kind,
     getText: () => USER_DATA_TITLE,
+    getParent: () => null,
     getChildren: () => [documentSources, userDocuments],
     getDocumentSources: () => documentSources,
     getDocuments: () => userDocuments,
+    documentRef: (documentId) => createDocumentHandle(documentId, userDocumentsSource, actions),
     as: createNoteAs(noteId, kind, () => handle),
   };
+  function userDataRef() { return handle; }
 
   return handle;
 }

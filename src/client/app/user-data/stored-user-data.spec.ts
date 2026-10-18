@@ -86,7 +86,7 @@ describe('account metadata', () => {
     await runtime.client.query(runtime.documentsQuery);
     await runtime.userData.getDocuments().getById('shared')!.shareWith(access.email);
     await runtime.userData.getDocuments().getById('shared')!.shareWith(access.email);
-    expect(runtime.userData.getDocuments().getById('shared')!.getAccess().getChildren().map((grant) => grant.getEmail()))
+    expect(runtime.userData.getDocuments().getById('shared')!.access.getChildren().map((grant) => grant.getEmail()))
       .toEqual([access.email]);
   });
 
@@ -102,7 +102,7 @@ describe('account metadata', () => {
 
     const renamed = runtime.userData.getDocuments().getById('shared')!;
     expect(renamed.getText()).toBe('Quarterly plan');
-    expect(renamed.getAccess().getChildren().map((grant) => grant.getEmail())).toEqual([access.email]);
+    expect(renamed.access.getChildren().map((grant) => grant.getEmail())).toEqual([access.email]);
   });
 
   it('keeps the stored name when the source rejects a rename', async () => {
@@ -222,7 +222,7 @@ describe('account metadata', () => {
     runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true, access: [access] }]);
     documentRequests(() => Response.json({ email: [message] }, { status: 400 }));
     await expect(runtime.userData.getDocuments().getById('shared')!.shareWith(email)).rejects.toThrow(message);
-    expect(runtime.userData.getDocuments().getById('shared')!.getAccess().getChildren().map((grant) => grant.getEmail()))
+    expect(runtime.userData.getDocuments().getById('shared')!.access.getChildren().map((grant) => grant.getEmail()))
       .toEqual([access.email]);
   });
 
@@ -242,7 +242,7 @@ describe('account metadata', () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('offline'); }));
     await expect(runtime.userData.getDocuments().getById('shared')!.shareWith('bob@example.test'))
       .rejects.toThrow('offline');
-    expect(runtime.userData.getDocuments().getById('shared')!.getAccess().getChildren()).toEqual([]);
+    expect(runtime.userData.getDocuments().getById('shared')!.access.getChildren()).toEqual([]);
   });
 
   it('does not restore grants when a sharing response arrives after account departure', async () => {
