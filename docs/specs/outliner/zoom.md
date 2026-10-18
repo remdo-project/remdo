@@ -12,8 +12,6 @@ editing boundary, distinct from the editor's [selection](./selection.md).
 - **Zoom boundary:** The zoom root and all its descendants.
 - **View actions:** Commands operating on the zoom boundary rather than one
   [editor note](./note-model.md#note-kinds).
-- **Zoom path:** The ordered ancestors from the document to the zoom root, used
-  for breadcrumbs.
 
 ## Visibility and editing boundary
 

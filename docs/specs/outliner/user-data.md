@@ -4,8 +4,7 @@ User data notes expose the signed-in account's
 [document list](../../architecture.md#document-registry) to consumers: its
 documents and each document's direct grants, under
 [Document Access](../access/access-control.md#document-access). The
-[open document](./open-document.md) supplies editor content for the same
-[document note](./note-model.md#definitions).
+[open document](./open-document.md) owns editor content.
 
 ## State and observation
 
@@ -16,18 +15,16 @@ listed documents. Each metadata read resolves the current document list.
 Metadata reads of a document that is no longer listed
 produce the same identifiable unavailable-note error as an
 [open document](./open-document.md#state-and-observation); its metadata
-capability reads return false. The document's `access` collection owns its direct
-grant notes; each grant returns that collection as its parent. Its `content`
-collection remains available as a reference without opened editor content, but
-its editor children are unavailable and cannot be appended. Metadata reads do
-not load editor content.
+capability reads return false. The document's [Access collection](./note-model.md#definitions) owns its direct
+grant notes; each grant returns that collection as its parent. Its Content
+collection's editor children are unavailable, and metadata reads do not load
+them.
 
 A grant's identity is scoped to its document and distinct from the grantee's
 user ID. Grant reads reflect current metadata; a removed grant is unavailable.
 
 User-data references live with the account's metadata host. An opened document's
-reference has its own [host lifetime](./open-document.md), even though both
-references identify the same document.
+reference has its own [host lifetime](./open-document.md).
 
 Observing a document note signals that its values, eligibility, or availability
 should be reread. Each subscription is independent, can be released repeatedly,

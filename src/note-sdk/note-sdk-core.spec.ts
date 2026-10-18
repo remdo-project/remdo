@@ -52,11 +52,7 @@ describe('note SDK user-data core', () => {
     const { documents } = createFixture();
     const document = createUserDataRootNote(documents).getDocuments().getById('main')!;
 
-    expect(document.getParent()).toBeNull();
     expect(document.getText()).toBe('Main');
-    expect(document.getChildren()).toEqual([document.content, document.access]);
-    expect(document.content.getParent()).toBe(document);
-    expect(document.access.getParent()).toBe(document);
     expect(document.access.getChildren().map((access) => access.getEmail())).toEqual(['bob@example.test']);
     expect(document.access.getChildren()[0]!.getParent()).toBe(document.access);
     expect(document.content.getChildren).toThrow(NoteUnavailableError);

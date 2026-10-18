@@ -98,10 +98,7 @@ export function createDocumentNote(
       });
     },
   };
-  const grants = new Map<string, DocumentAccessNote>();
   const grantRef = (id: string): DocumentAccessNote => {
-    const retained = grants.get(id);
-    if (retained) return retained;
     const read = () => {
       const grant = requireSource(metadata).access.getById(id);
       if (!grant) throw new NoteUnavailableError(id);
@@ -119,7 +116,6 @@ export function createDocumentNote(
       getGranteeUserId: () => read().getGranteeUserId(),
       as: createNoteAs(id, grantKind, () => grant),
     };
-    grants.set(id, grant);
     return grant;
   };
   const access: DocumentNote['access'] = {

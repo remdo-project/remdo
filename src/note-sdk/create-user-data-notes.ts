@@ -36,10 +36,6 @@ export interface DocumentSource {
   local: boolean;
 }
 
-interface DocumentAccessItem extends DocumentAccessView {
-  id: NoteId;
-}
-
 export interface CollectionSource<Item extends { id: NoteId }> {
   getChildren: () => readonly Item[];
   getById: (itemId: NoteId) => Item | null;
@@ -74,16 +70,9 @@ function resolveCollectionSource<Item extends { id: NoteId }>(
   return createArrayCollectionSource(input);
 }
 
-function toDocumentAccessItem(access: DocumentAccessView): DocumentAccessItem {
+function documentAccessSource(access: DocumentAccessView) {
   return {
-    ...access,
-    id: `${access.documentId}/access/${encodeURIComponent(access.granteeUserId)}`,
-  };
-}
-
-function documentAccessSource(access: DocumentAccessItem) {
-  return {
-    getId: () => access.id,
+    getId: () => `${access.documentId}/access/${encodeURIComponent(access.granteeUserId)}`,
     getText: () => access.name || access.email,
     getEmail: () => access.email,
     getGranteeUserId: () => access.granteeUserId,
@@ -125,12 +114,10 @@ function createDocumentHandle(
     return document;
   };
   const subscribe = (listener: () => void) => documents.subscribe?.(listener) ?? unsubscribeNothing;
+  const grants = () => (read().access ?? []).map(documentAccessSource);
   const access = {
-    getChildren: () => (read().access ?? []).map(toDocumentAccessItem).map(documentAccessSource),
-    getById: (id: string) => {
-      const grant = (read().access ?? []).map(toDocumentAccessItem).find(item => item.id === id);
-      return grant ? documentAccessSource(grant) : null;
-    },
+    getChildren: grants,
+    getById: (id: string) => grants().find(grant => grant.getId() === id) ?? null,
   };
 
   async function shareWith(email: string) {
@@ -140,8 +127,7 @@ function createDocumentHandle(
     if (typeof email !== 'string') {
       throw new TypeError('document.shareWith(email) requires a user email.');
     }
-    const granted = toDocumentAccessItem(await actions.shareDocument(noteId, email));
-    return { getId: () => granted.id };
+    return documentAccessSource(await actions.shareDocument(noteId, email));
   }
 
   async function rename(title: string): Promise<void> {

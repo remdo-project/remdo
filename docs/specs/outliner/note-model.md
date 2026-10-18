@@ -6,9 +6,7 @@ are adapters that preserve this model.
 
 ## Notes
 
-A **note** lives inside an ordered tree and exposes content to adapters. The
-document, collections, editor notes, and note bodies have kind-specific
-capabilities.
+A **note** lives inside an ordered tree and exposes content to adapters.
 
 - **Structure** is the note's parent and its position among that parent's children.
 - **Content** is the payload a note exposes to adapters; the model treats it as
@@ -44,10 +42,10 @@ Adapters preserve these guarantees whenever they create, import, or export notes
 - **Empty note:** an editor note whose content text is empty after trimming
   whitespace. Its body is separate and does not affect this state.
 - **Empty leaf note:** an empty note with no children.
-- **Document root note:** the document itself, identified by its document ID.
-  Its content text is the document name. It is not directly selectable. Its
-  children are Content and Access collection notes, in that order. Content owns
-  the top-level editor notes; Access owns the document's [direct grants](./user-data.md).
+- **Document root note:** the document itself. Its content text is the document
+  name. It is not directly selectable. Its children are the Content and Access
+  collection notes, in that order. The Content collection owns the top-level
+  editor notes; the Access collection owns the document's [direct grants](./user-data.md).
   Both use the same collection kind.
 - **Subtree:** an editor note and all its descendants. Structural moves preserve
   subtrees as indivisible units.
