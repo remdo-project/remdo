@@ -239,6 +239,28 @@ describe('home view', () => {
       expect(menuTarget()).toBe('Ideas');
     });
 
+    it('keeps a keyboard-chosen row when the pointer crosses a group heading', () => {
+      renderHome(searchProps());
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+
+      fireEvent.pointerMove(screen.getByRole('heading', { name: 'Local' }));
+
+      expect(highlighted()).toEqual(['Project Roadmap']);
+      expect(rowOf('Project Roadmap')).toHaveAttribute('data-highlighted', 'keyboard');
+    });
+
+    it('drops the chosen tint when Escape clears the query', () => {
+      renderHome(searchProps());
+      typeQuery('ideas');
+      fireEvent.pointerMove(rowOf('Roadmap ideas'));
+      expect(highlighted()).toEqual(['Roadmap ideas']);
+
+      fireEvent.keyDown(searchField(), { key: 'Escape' });
+
+      expect(searchField()).toHaveValue('');
+      expect(highlighted()).toEqual([]);
+    });
+
     it('keeps the tint while a menu is open and clears it once the menu closes with the pointer elsewhere', async () => {
       renderHome(searchProps());
       const list = listOf();
