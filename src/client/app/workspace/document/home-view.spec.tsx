@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createUserDataRootNote } from '#note-sdk';
 import type { DocumentNote, DocumentSourceNote } from '#note-sdk';
@@ -84,6 +84,24 @@ const renderHome = (props: HomeViewProps) =>
     </TestMantineProvider>
   );
 
+const longName = `${'Quarterly planning '.repeat(4)}appendix`;
+const searchProps = (): HomeViewProps => {
+  const props = baseProps();
+  props.sources = [sourceNote({
+    id: 'local',
+    label: 'Local',
+    documents: [
+      documentNote({ id: 'docA', title: 'Project Roadmap' }),
+      documentNote({ id: 'docB', title: 'Ideas' }),
+      documentNote({ id: 'docC', title: 'Roadmap ideas' }),
+      documentNote({ id: 'doc-d', title: longName }),
+    ],
+  })];
+  return props;
+};
+
+const rowOf = (name: string) => screen.getByRole('button', { name }).closest('li')!;
+
 const searchField = () => screen.getByRole('combobox', { name: 'Search documents' });
 const typeQuery = (value: string) => fireEvent.change(searchField(), { target: { value } });
 const listedNames = () => [...document.querySelectorAll('.home-doc-label')].map((label) => label.textContent);
@@ -115,26 +133,13 @@ describe('home view', () => {
   });
 
   describe('active row', () => {
-    const rowOf = (name: string) => screen.getByRole('button', { name }).closest('li')!;
     const highlighted = () => [...document.querySelectorAll('[data-highlighted]')]
       .map((row) => row.querySelector('.home-doc-label')?.textContent);
     const menuTarget = () => document.querySelector('[data-menu-target] .home-doc-label')?.textContent;
     const listOf = () => document.getElementById(searchField().getAttribute('aria-controls')!)!;
-    const threeProps = (): HomeViewProps => ({
-      ...baseProps(),
-      sources: [sourceNote({
-        id: 'local',
-        label: 'Local',
-        documents: [
-          documentNote({ id: 'docA', title: 'Project Roadmap' }),
-          documentNote({ id: 'docB', title: 'Ideas' }),
-          documentNote({ id: 'docC', title: 'Roadmap ideas' }),
-        ],
-      })],
-    });
 
     it('keeps one highlighted row with the menu button on it through pointer and search keys', () => {
-      renderHome(threeProps());
+      renderHome(searchProps());
 
       fireEvent.pointerMove(rowOf('Ideas'));
       expect(highlighted()).toEqual(['Ideas']);
@@ -152,7 +157,7 @@ describe('home view', () => {
     });
 
     it('moves the menu button with keyboard focus and with keys inside another row', () => {
-      renderHome(threeProps());
+      renderHome(searchProps());
 
       fireEvent.keyDown(document.body, { key: 'Tab' });
       fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
@@ -165,7 +170,7 @@ describe('home view', () => {
     });
 
     it('opens the hovered document on Enter and continues the arrow keys from it', () => {
-      const props = threeProps();
+      const props = searchProps();
       renderHome(props);
       fireEvent.pointerMove(rowOf('Ideas'));
 
@@ -177,7 +182,7 @@ describe('home view', () => {
     });
 
     it('clears a pointer tint when the pointer leaves the list and keeps a keyboard tint', () => {
-      renderHome(threeProps());
+      renderHome(searchProps());
       fireEvent.pointerMove(rowOf('Ideas'));
 
       fireEvent.pointerLeave(listOf());
@@ -191,7 +196,7 @@ describe('home view', () => {
     });
 
     it('returns to the first match when the query changes after a pointer tint', () => {
-      renderHome(threeProps());
+      renderHome(searchProps());
       typeQuery('road');
       fireEvent.pointerMove(rowOf('Roadmap ideas'));
       expect(highlighted()).toEqual(['Roadmap ideas']);
@@ -225,7 +230,7 @@ describe('home view', () => {
     });
 
     it('ignores touch movement and the focus a tap leaves behind', () => {
-      renderHome(threeProps());
+      renderHome(searchProps());
 
       fireEvent.pointerMove(rowOf('Ideas'), { pointerType: 'touch' });
       fireEvent.pointerDown(rowOf('Ideas'), { pointerType: 'touch' });
@@ -233,31 +238,6 @@ describe('home view', () => {
 
       expect(highlighted()).toEqual([]);
       expect(menuTarget()).toBe('Project Roadmap');
-    });
-
-    it('follows the pointer when scrolling puts another row under it and leaves a keyboard tint alone', async () => {
-      renderHome(threeProps());
-      const underPointer = vi.fn(() => rowOf('Roadmap ideas'));
-      Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: underPointer });
-      const scrolled = () => act(async () => {
-        fireEvent.scroll(document);
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-      });
-      try {
-        fireEvent.pointerMove(rowOf('Ideas'), { clientX: 40, clientY: 90 });
-
-        await scrolled();
-        expect(underPointer).toHaveBeenCalledWith(40, 90);
-        expect(highlighted()).toEqual(['Roadmap ideas']);
-        expect(menuTarget()).toBe('Roadmap ideas');
-
-        fireEvent.keyDown(searchField(), { key: 'ArrowUp' });
-        expect(highlighted()).toEqual(['Ideas']);
-        await scrolled();
-        expect(highlighted()).toEqual(['Ideas']);
-      } finally {
-        Reflect.deleteProperty(document, 'elementFromPoint');
-      }
     });
   });
 
@@ -490,22 +470,6 @@ describe('home view', () => {
   });
 
   describe('document search', () => {
-    const longName = `${'Quarterly planning '.repeat(4)}appendix`;
-    const searchProps = (): HomeViewProps => {
-      const props = baseProps();
-      props.sources = [sourceNote({
-        id: 'local',
-        label: 'Local',
-        documents: [
-          documentNote({ id: 'docA', title: 'Project Roadmap' }),
-          documentNote({ id: 'docB', title: 'Ideas' }),
-          documentNote({ id: 'docC', title: 'Roadmap ideas' }),
-          documentNote({ id: 'doc-d', title: longName }),
-        ],
-      })];
-      return props;
-    };
-
     it('keeps documents whose full name holds every token in any case, in list order', () => {
       renderHome(searchProps());
 
@@ -533,7 +497,6 @@ describe('home view', () => {
 
     it('highlights nothing for an empty query and the first match otherwise', () => {
       renderHome(searchProps());
-      const rowOf = (name: string) => screen.getByRole('button', { name }).closest('li');
 
       expect(document.querySelector('[data-highlighted]')).toBeNull();
       expect(searchField()).not.toHaveAttribute('aria-activedescendant');

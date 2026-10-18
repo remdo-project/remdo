@@ -24,6 +24,10 @@ type LastInput = ActiveInput | 'touch';
 
 const hasOpenMenu = (root: HTMLElement | null) => root?.querySelector('.document-menu-button[aria-expanded="true"]') != null;
 
+const documentIdOf = (element: Element | null) => (
+  element?.closest('.home-doc-row')?.querySelector<HTMLElement>('[data-home-document-ref]')?.dataset.homeDocumentRef
+);
+
 function filterHomeDocuments(documents: readonly DocumentNote[], query: string): DocumentNote[] {
   return documents.filter((document) => (
     matchesPathQuery([formatNavigationLabel(document.getText(), Number.POSITIVE_INFINITY)], query)
@@ -73,9 +77,6 @@ function DocumentGroup({
               key={id}
               onFocus={() => onActivate(id, 'focus')}
               onKeyDownCapture={() => onActivate(id, 'keyboard')}
-              onPointerMove={(event) => {
-                if (event.pointerType !== 'touch') onActivate(id, 'pointer');
-              }}
             >
               <DocumentMenu label={label} note={note} onDelete={onDelete} onRename={onRename} onShare={onShare} />
               <button
@@ -232,8 +233,7 @@ export function HomeView({
       frame = 0;
       const point = pointerRef.current;
       if (!point || hasOpenMenu(homeRef.current)) return;
-      const row = document.elementFromPoint(point.x, point.y)?.closest('.home-doc-row');
-      const docId = row?.querySelector<HTMLElement>('[data-home-document-ref]')?.dataset.homeDocumentRef;
+      const docId = documentIdOf(document.elementFromPoint(point.x, point.y));
       if (docId) setActive((current) => current.input === 'pointer' && current.id !== docId ? { id: docId, input: 'pointer' } : current);
     };
     const onScroll = () => {
@@ -316,7 +316,10 @@ export function HomeView({
           if (!holdsActiveRow()) setActive((current) => current.input === 'pointer' ? { ...current, input: null } : current);
         }}
         onPointerMove={(event) => {
-          if (event.pointerType !== 'touch') pointerRef.current = { x: event.clientX, y: event.clientY };
+          if (event.pointerType === 'touch') return;
+          pointerRef.current = { x: event.clientX, y: event.clientY };
+          const docId = documentIdOf(event.target instanceof Element ? event.target : null);
+          if (docId) activate(docId, 'pointer');
         }}
       >
         {hasQuery && hasDocuments && matchIds.length === 0 && (
