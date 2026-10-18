@@ -40,9 +40,14 @@ async function rpc(method: string, params: unknown) {
   // message so client-SDK parsing cannot discard extension fields such as OAuth.
   if (type.startsWith('application/json')) return JSON.parse(text) as unknown;
   expect(type).toContain('text/event-stream');
-  const messages = text.split(/\r?\n/).filter(line => line.startsWith('data: '));
+  const messages = text.replaceAll(/\r\n?/g, '\n').split('\n\n')
+    .map(event => event.split('\n')
+      .filter(line => line.startsWith('data:'))
+      .map(line => line.slice(5).replace(/^ /, ''))
+      .join('\n'))
+    .filter(data => data.length > 0);
   expect(messages).toHaveLength(1);
-  return JSON.parse(messages[0]!.slice(6)) as unknown;
+  return JSON.parse(messages[0]!) as unknown;
 }
 
 describe('mcp compatibility over HTTP', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {

@@ -69,7 +69,7 @@ afterEach(async () => {
 }, 15000);
 
 describe('review runner', () => {
-  it('honors working directories, preserves arguments and logs, and isolates concurrent failures', async () => {
+  it('preserves JSON stdout and separate diagnostics, literal arguments, and independent failures', async () => {
     const dir = makeDir('review-runner-');
     const literal = 'spaces "quotes" $(touch SHOULD_NOT_EXIST) `echo nope`\nnext line';
     const fixture = path.join(dir, 'review.mjs');
@@ -82,8 +82,8 @@ describe('review runner', () => {
             !fs.existsSync(path.join(dir, 'successful.ready'))) return;
         if (role === 'successful' && !fs.existsSync(path.join(dir, 'release'))) return;
         watcher.close();
-        fs.writeSync(1, process.cwd() + '\\n' + literal + '\\n' + 'x'.repeat(200000));
-        fs.writeSync(2, '\\nstderr evidence');
+        fs.writeSync(1, JSON.stringify({ cwd: process.cwd(), literal, payload: 'x'.repeat(2 * 1024 * 1024) }));
+        fs.writeSync(2, 'stderr evidence');
         process.exit(role === 'failed' ? 7 : 0);
       };
       const watcher = fs.watch(dir, check);
@@ -114,8 +114,16 @@ describe('review runner', () => {
       { source: 'successful', exit_code: 0, session_id: 'session-successful' },
       { source: 'missing', error_code: 'ENOENT' },
     ]);
-    expect(fs.readFileSync(path.join(dir, 'output/successful.log'), 'utf8'))
-      .toBe(`${dir}\n${literal}\n${'x'.repeat(200000)}\nstderr evidence`);
+    expect(results.reviews).toMatchObject(['failed', 'successful', 'missing'].map(source => ({
+      source,
+      stdout_file: path.join(dir, 'output', `${source}.stdout.log`),
+      stderr_file: path.join(dir, 'output', `${source}.stderr.log`),
+    })));
+    for (const source of ['failed', 'successful']) {
+      expect(JSON.parse(fs.readFileSync(path.join(dir, 'output', `${source}.stdout.log`), 'utf8')))
+        .toEqual({ cwd: dir, literal, payload: 'x'.repeat(2 * 1024 * 1024) });
+      expect(fs.readFileSync(path.join(dir, 'output', `${source}.stderr.log`), 'utf8')).toBe('stderr evidence');
+    }
     expect(fs.existsSync(path.join(dir, 'SHOULD_NOT_EXIST'))).toBe(false);
     expect(JSON.stringify(notices)).not.toContain(literal);
     expect(notices).toHaveLength(4);
@@ -135,19 +143,26 @@ describe('review runner', () => {
       { source: 'invalid-cwd', exit_code: null, signal: null, error: expect.any(String) },
       { source: 'healthy', exit_code: 0, signal: null },
     ]);
-    expect(fs.readFileSync(path.join(dir, 'output/invalid-cwd.log'), 'utf8')).toBe('');
-    expect(fs.readFileSync(path.join(dir, 'output/healthy.log'), 'utf8')).toBe('healthy review completed\n');
+    expect(fs.readFileSync(path.join(dir, 'output/invalid-cwd.stdout.log'), 'utf8')).toBe('');
+    expect(fs.readFileSync(path.join(dir, 'output/invalid-cwd.stderr.log'), 'utf8')).toBe('');
+    expect(fs.readFileSync(path.join(dir, 'output/healthy.stdout.log'), 'utf8')).toBe('healthy review completed\n');
   });
 
-  it('succeeds with valid commands and refuses to overwrite an earlier run', () => {
+  it('lets reviewers write final reports in the evidence directory and preserves them on rerun refusal', () => {
     const dir = makeDir('review-runner-');
+    const report = path.join(dir, 'output/review.final.md');
     const plan = planFile(dir, [{
-      source: 'review', executable: process.execPath, args: ['-e', "console.log('complete')"],
+      source: 'review', executable: process.execPath, cwd: dir,
+      args: ['-e', "require('node:fs').appendFileSync(process.argv[1], 'Complete review\\n'); console.log('review progress'); console.error('review diagnostics');", report],
     }]);
     expect(spawnSync(process.execPath, [runner, plan]).status).toBe(0);
+    expect(fs.readFileSync(report, 'utf8')).toBe('Complete review\n');
+    expect(fs.readFileSync(path.join(dir, 'output/review.stdout.log'), 'utf8')).toBe('review progress\n');
+    expect(fs.readFileSync(path.join(dir, 'output/review.stderr.log'), 'utf8')).toBe('review diagnostics\n');
     const before = fs.readFileSync(path.join(dir, 'output/results.yaml'), 'utf8');
     expect(spawnSync(process.execPath, [runner, plan]).status).toBe(1);
     expect(fs.readFileSync(path.join(dir, 'output/results.yaml'), 'utf8')).toBe(before);
+    expect(fs.readFileSync(report, 'utf8')).toBe('Complete review\n');
   });
 
   it('records a synchronous launch failure without interrupting a healthy reviewer', async () => {
@@ -179,7 +194,7 @@ describe('review runner', () => {
       { source: 'healthy', exit_code: 0, signal: null },
       { source: 'too-large', error_code: 'E2BIG' },
     ]);
-    expect(fs.readFileSync(path.join(dir, 'output/healthy.log'), 'utf8')).toBe('healthy review completed');
+    expect(fs.readFileSync(path.join(dir, 'output/healthy.stdout.log'), 'utf8')).toBe('healthy review completed');
   });
 
   it('succeeds with an empty review list and records an empty result', () => {
@@ -245,7 +260,8 @@ describe('review runner', () => {
     expect(parse(fs.readFileSync(path.join(dir, 'output/results.yaml'), 'utf8')).reviews).toMatchObject([
       { source: 'wrapper', exit_code: wrapperExit, signal: null },
     ]);
-    expect(fs.readFileSync(path.join(dir, 'output/wrapper.log'), 'utf8')).toBe('');
+    expect(fs.readFileSync(path.join(dir, 'output/wrapper.stdout.log'), 'utf8')).toBe('');
+    expect(fs.readFileSync(path.join(dir, 'output/wrapper.stderr.log'), 'utf8')).toBe('');
   });
 
   it.each(['duplicate', 'nul', 'source', 'permissions'])('rejects %s input before launching any command', (kind) => {
@@ -298,20 +314,20 @@ describe('review runner', () => {
     expect(parse(fs.readFileSync(path.join(dir, 'output/results.yaml'), 'utf8')).interrupted).toBe('SIGINT');
   }, 15000);
 
-  it('terminates an unresponsive reviewer after the cancellation grace period', async () => {
+  it.each([['SIGINT', 130], ['SIGTERM', 143]] as const)('terminates an unresponsive reviewer after the %s cancellation grace period', async (signal, exitCode) => {
     const dir = makeDir('review-runner-');
     const marker = path.join(dir, 'ready');
     const ready = waitForFile(marker);
     const child = start(planFile(dir, [{
       source: 'unresponsive', executable: process.execPath,
-      args: ['-e', `process.on('SIGTERM', () => {}); require('node:fs').writeFileSync(${JSON.stringify(marker)}, ''); setInterval(() => {}, 1000);`],
+      args: ['-e', `process.on('${signal}', () => {}); require('node:fs').writeFileSync(${JSON.stringify(marker)}, ''); setInterval(() => {}, 1000);`],
     }]));
     const closed = once(child, 'close');
     await ready;
-    child.kill('SIGTERM');
-    expect(await closed).toEqual([143, null]);
+    child.kill(signal);
+    expect(await closed).toEqual([exitCode, null]);
     expect(parse(fs.readFileSync(path.join(dir, 'output/results.yaml'), 'utf8'))).toMatchObject({
-      interrupted: 'SIGTERM', reviews: [{ source: 'unresponsive', exit_code: null, signal: 'SIGKILL' }],
+      interrupted: signal, reviews: [{ source: 'unresponsive', exit_code: null, signal: 'SIGKILL' }],
     });
   }, 15000);
 });

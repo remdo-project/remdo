@@ -1,18 +1,17 @@
 # remdo-merge-main
 
 This capability merges `origin/main` into the current branch, verifies the
-change, and returns an [agent result](../protocol.md#results). Requested local
-work may be preserved; unrelated branch convergence and remote mutation are
-outside the capability. Concurrent repository mutation and recovery from an
-interrupted run are also outside the capability.
+change, and returns an [agent result](../protocol.md#results). Unrelated branch
+convergence and remote mutation are outside the capability. Concurrent
+repository mutation and recovery from an interrupted run are also outside the
+capability.
 
 ## Authority
 
 [Repository authority](../../../../AGENTS.md#repository-authority): invocation
 authorizes updating the local `origin/main` tracking ref to the fetched target,
 fast-forwarding or preparing and committing one merge of that target, staging
-determined conflict resolutions and integration corrections. Preserve mode also
-authorizes stashing and restoring requested local work.
+determined conflict resolutions and integration corrections.
 
 ## Target
 
@@ -24,16 +23,9 @@ target, unrelated histories, or an unrelated Git operation already in progress.
 
 ## Working state
 
-By default, the capability requires a clean repository. Explicit preserve mode
-saves staged, unstaged, and non-ignored untracked work, including staged versus
-unstaged distinctions, before changing the branch.
-
-Integration verification and the merge commit finish before restoration begins.
-The capability then reapplies the saved work and discards its saved copy only
-after restoration succeeds.
-
-The capability resolves a restoration conflict only when the correct result can
-be determined. Otherwise, it leaves the conflict and saved work for manual recovery.
+The capability starts only with a clean index and working tree, including no
+non-ignored untracked files. It refuses dirty work before fetching or changing
+the branch.
 
 ## Merge
 
@@ -61,7 +53,7 @@ merge unchanged and produces `verification-failed`.
 The result uses the shared [result fields](../protocol.md#results):
 
 ```yaml
-outcome: <up-to-date | fast-forwarded | merged | conflicted | verification-failed | restore-conflicted | stopped>
+outcome: <up-to-date | fast-forwarded | merged | conflicted | verification-failed | stopped>
 reason: <stop or manual recovery condition> # if any
 concerns: <Concern[]> # if any
 destination: <branch> # if resolved
@@ -74,11 +66,6 @@ conflicts: # if any
 corrections: # if any
   - summary: <integration correction>
 verification: <not-run | passed | failed> # if merge form determined
-preservation: <not-needed | untouched | pending | restored | restore-conflicted> # if requested and known
-saved_work: <stash commit> # if retained
 ```
 
-- `stopped` means an otherwise-unclassified failure ended the run.
-- `not-needed` means preserve mode found no local work.
-- `untouched` means an unchanged branch left local work in place.
-- `pending` means saved work remains in its stash for manual recovery.
+`stopped` means an otherwise-unclassified failure ended the run.

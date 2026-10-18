@@ -23,7 +23,8 @@ interface ReviewResult {
   source: string;
   session_id?: string;
   pid?: number;
-  output_file: string;
+  stdout_file: string;
+  stderr_file: string;
   exit_code: number | null;
   signal: NodeJS.Signals | null;
   error?: string;
@@ -72,13 +73,15 @@ async function main(): Promise<void> {
   try {
     // Open every output destination before any reviewer can start.
     for (const review of plan.reviews) {
-      logs.push(openSync(path.join(outputDir, `${review.source}.log`), 'wx'));
+      logs.push(openSync(path.join(outputDir, `${review.source}.stdout.log`), 'wx'));
+      logs.push(openSync(path.join(outputDir, `${review.source}.stderr.log`), 'wx'));
     }
     const results = await Promise.all(plan.reviews.map((review, index) => new Promise<ReviewResult>((resolve) => {
       const result: ReviewResult = {
         source: review.source,
         session_id: review.session_id,
-        output_file: path.join(outputDir, `${review.source}.log`),
+        stdout_file: path.join(outputDir, `${review.source}.stdout.log`),
+        stderr_file: path.join(outputDir, `${review.source}.stderr.log`),
         exit_code: null,
         signal: null,
       };
@@ -105,9 +108,9 @@ async function main(): Promise<void> {
           cwd: review.cwd,
           shell: false,
           detached: true,
-          // The shared descriptor preserves stdout/stderr without model output
-          // limits or an in-memory transcript. The parent still owns the child.
-          stdio: ['ignore', logs[index]!, logs[index]!],
+          // Separate files keep native output parseable despite stderr diagnostics,
+          // without output limits or an in-memory transcript. The parent owns the child.
+          stdio: ['ignore', logs[index * 2]!, logs[index * 2 + 1]!],
         });
         result.pid = child.pid;
         if (child.pid !== undefined) active.set(child.pid, result);

@@ -8,7 +8,6 @@ import * as Y from 'yjs';
 import { config } from '#config';
 import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '#collaboration/runtime';
 import { createTestAuthAccount, TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
-import { provisionDjangoUser } from '#tools/django-user';
 import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveMcpServerOrigin } from '#platform/net/origins';
 import { ensureCollabTestUser } from './_support/auth';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
@@ -102,7 +101,6 @@ describe('mcp server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
   it('lists an empty inventory and then the exact documents without changing them', async () => {
     const account = createTestAuthAccount('mcp-contract-inventory');
-    await provisionDjangoUser(account);
     const token = await delegatedToken(account.email);
     const headers = { Authorization: `Bearer ${token}`, Host: new URL(config.env.APP_ORIGIN).host };
     const documentsUrl = new URL('/api/documents', resolveApiServerOrigin());
@@ -194,10 +192,7 @@ describe('mcp server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   it('reads a new document without storing or linking its generated note', async () => {
     const client = await connect(await delegatedToken());
     const { documentId } = (await call(client, 'create_document', { title: 'Untouched' })).value as { documentId: string };
-    const read = await client.callTool({ name: 'read_document', arguments: { target: documentId } });
-    expect(read.isError).toBeFalsy();
-    const [outline] = read.content as Array<{ text: string }>;
-    expect(outline!.text).toBe(`Document: ${noteUrl(documentId)}\n\n- `);
+    expect(await read(client, documentId)).toBe(`Document: ${noteUrl(documentId)}\n\n- `);
     expect(await storedText(documentId)).toBe('');
   });
 
