@@ -70,22 +70,19 @@ blur halo around the button.
 
 ## Active row
 
-The document list has one **active row**. It is the target of the
-[quick action menu](./menu.md#entry) button and of the [document search](./search.md#document-scope) keys, and it carries every
-row cue.
+The document list has at most one **active row**, shown tinted. The
+[quick action menu](./menu.md#entry) button and the [document search](./search.md#document-scope) keys target it.
 
-1. The latest input chooses it: the pointer entering a row, a search arrow key,
-   or keyboard focus or a key press within a row. Touch input does not. An open
+1. The latest input chooses it: the pointer entering a row, including a row
+   scrolled under a pointer that was the latest input, a search arrow key, or
+   keyboard focus or a key press within a row. Touch input does not. An open
    menu or dialog holds it.
 2. A pointer-chosen row is tinted. A keyboard-chosen row is tinted and edged in
-   the accent color. Leaving the list clears a pointer-chosen row's tint and
-   keeps its menu button.
-3. Scrolling that moves a row under a stationary pointer chooses that row.
-4. Editing or clearing the search query returns the tint to the first match, or
-   to none for an empty query.
-5. A row without document actions can be tinted but has no menu button. While no
-   row is tinted, the menu button stays on the last chosen row when it has
-   actions, otherwise on the first row with actions.
+   the accent color. Leaving the list clears the tint of a pointer-chosen row
+   and leaves the menu button on that row unless another row becomes active.
+3. Editing or clearing the search query clears the tint of any input-chosen row.
+4. While no row is active, the menu button rests on the last chosen row when it
+   has actions, otherwise on the first row with actions.
 
 ## Shared documents
 
@@ -100,7 +97,7 @@ entries usable. It has no unread state or notification history.
 1. **New document** opens a naming dialog before creating a document in the
    local source and opening it.
 2. **Upload document** imports a document from a backup file.
-3. Each document row has a separate [quick action menu](./menu.md) button.
+3. Each document row with document actions has a separate [quick action menu](./menu.md) button.
    Opening it targets that document without opening the document. Its document
    actions match those on the document-root header;
    actions requiring an open outline are absent.
