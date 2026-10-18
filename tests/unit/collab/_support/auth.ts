@@ -11,6 +11,8 @@ interface CollabTestAuthentication {
   csrfToken: string;
 }
 
+type AuthAccount = Parameters<typeof provisionDjangoUser>[0];
+
 let authenticationPromise: Promise<CollabTestAuthentication> | null = null;
 
 function toApiUrl(pathname: string): string {
@@ -27,11 +29,12 @@ export async function ensureCollabTestUser(): Promise<void> {
   return provisioningPromise;
 }
 
-async function signInTestUser(): Promise<CollabTestAuthentication> {
-  await ensureCollabTestUser();
+async function signInTestUser(account: AuthAccount = TEST_AUTH_ACCOUNT): Promise<CollabTestAuthentication> {
+  if (account === TEST_AUTH_ACCOUNT) await ensureCollabTestUser();
+  else await provisionDjangoUser(account);
   const request = await playwrightRequest.newContext();
   try {
-    const csrfToken = await authenticateDjangoTestUser(request, resolveApiServerOrigin(), TEST_AUTH_ACCOUNT);
+    const csrfToken = await authenticateDjangoTestUser(request, resolveApiServerOrigin(), account);
     const { cookies } = await request.storageState();
     return { cookie: cookies.map(({ name, value }) => `${name}=${value}`).join('; '), csrfToken };
   } finally {
@@ -39,7 +42,8 @@ async function signInTestUser(): Promise<CollabTestAuthentication> {
   }
 }
 
-export async function getCollabTestAuthentication(): Promise<CollabTestAuthentication> {
+export async function getCollabTestAuthentication(account?: AuthAccount): Promise<CollabTestAuthentication> {
+  if (account) return signInTestUser(account);
   authenticationPromise ??= signInTestUser().catch((error: unknown) => {
     authenticationPromise = null;
     throw error;
@@ -65,8 +69,8 @@ export function withTestAuthentication(
   return new Request(request, { headers });
 }
 
-export async function installAuthenticatedApiFetch(): Promise<() => void> {
-  const authentication = await getCollabTestAuthentication();
+export async function installAuthenticatedApiFetch(account?: AuthAccount): Promise<() => void> {
+  const authentication = await getCollabTestAuthentication(account);
   const originalWebSocket = globalThis.WebSocket;
   class AuthenticatedWebSocket extends WebSocket {
     constructor(url: string | URL) {

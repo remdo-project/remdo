@@ -117,6 +117,12 @@ Tests may rely on their declared fixture shape. Do not add guards or assertions
 that only revalidate that setup; use a non-null assertion when TypeScript cannot
 infer that a fixture value exists.
 
+Account workflows reuse the [account fixture](../../tests/_support/account-fixture.ts), with ordinary owner and recipient
+accounts, known editor fixtures, and preset sharing. Each test gets an isolated
+copy and explicitly chooses which user signs in and which document opens. Use
+the shared document for read examples and the private document when exercising
+sharing. The [account showcase](../../tests/unit/collab/note-sdk-showcase.collab.spec.ts) demonstrates setup.
+
 ## References
 
 - [Software Engineering at Google: Unit Testing](https://abseil.io/resources/swe-book/html/ch12.html)

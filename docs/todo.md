@@ -342,14 +342,10 @@ Remaining:
 
 ### SDK
 
-- **Account scenario fixtures.** Replace ad hoc showcase account setup with a
-  small reusable scenario of named ordinary users, known documents using existing
-  editor fixtures, and explicit sharing grants. Start with an owner and
-  recipient; add unrelated or privileged users only when a scenario needs them.
-  Reuse the scenario recipe with isolated mutable data per test. Keep sharing
-  preconfigured for read examples and absent when testing the sharing operation
-  itself. Reuse existing account provisioning and document helpers, then migrate
-  the [account showcase](../tests/unit/collab/note-sdk-showcase.collab.spec.ts); broader test adoption can follow separately.
+- **Account fixture adoption.** Reuse the [account fixture](../tests/_support/account-fixture.ts) in remaining
+  collaboration and browser workflows that use ad hoc accounts and sharing
+  setup. Add roles or documents only when a concrete scenario needs them;
+  preserve per-test isolation.
 
 - **Reusable SDK note shapes.** Reassess remaining user-data, source, and grant
   kinds against shared note structure, typed data, and reusable operations using
