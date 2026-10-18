@@ -68,6 +68,25 @@ blur halo around the button.
 4. Above the list, Home offers [document search](./search.md#document-scope),
    omitted with the list.
 
+## Active row
+
+The document list has one **active row**. It is the target of the
+[quick action menu](./menu.md#entry) button and of the [document search](./search.md#document-scope) keys, and it carries every
+row cue.
+
+1. The latest input chooses it: the pointer entering a row, a search arrow key,
+   or keyboard focus or a key press within a row. Touch input does not. An open
+   menu or dialog holds it.
+2. A pointer-chosen row is tinted. A keyboard-chosen row is tinted and edged in
+   the accent color. Leaving the list clears a pointer-chosen row's tint and
+   keeps its menu button.
+3. Scrolling that moves a row under a stationary pointer chooses that row.
+4. Editing or clearing the search query returns the tint to the first match, or
+   to none for an empty query.
+5. A row without document actions can be tinted but has no menu button. While no
+   row is tinted, the menu button stays on the last chosen row when it has
+   actions, otherwise on the first row with actions.
+
 ## Shared documents
 
 The **Shared with you** bell in the [signed-in app header](../../architecture.md#shared-presentation) opens a panel listing the

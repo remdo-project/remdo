@@ -57,6 +57,44 @@ test.describe('Home', () => {
     await expect(page.getByRole('menu')).toBeVisible();
   });
 
+  test('keeps one active row through search keys, hover and scrolling', async ({ page, editor }) => {
+    await page.setViewportSize({ width: 1000, height: 500 });
+    await editor.load('basic');
+    for (let index = 1; index <= 8; index += 1) await createUserDocument(page, `Document ${index}`);
+    await homeZoomBreadcrumb(page).click();
+    const home = homeView(page);
+    const rows = home.getByRole('listitem');
+    await expect(rows).toHaveCount(10);
+    const tintedRows = () => rows.evaluateAll(
+      (items) => items.filter((item) => getComputedStyle(item).backgroundColor !== 'rgba(0, 0, 0, 0)').length,
+    );
+    const activeLabel = home.locator('li[data-highlighted] .home-doc-label');
+    const actionsOf = (index: number) => rows.nth(index).getByRole('button', { name: /^Actions for/u });
+
+    await homeSearch(page).press('ArrowDown');
+    await homeSearch(page).press('ArrowDown');
+    await expect.poll(tintedRows).toBe(1);
+    await expect(actionsOf(1)).toHaveCSS('opacity', '1');
+    await expect(actionsOf(0)).toHaveCSS('opacity', '0');
+
+    await rows.nth(3).hover();
+    await expect.poll(tintedRows).toBe(1);
+    await expect(actionsOf(3)).toHaveCSS('opacity', '1');
+    await expect(actionsOf(1)).toHaveCSS('opacity', '0');
+    const hovered = await activeLabel.textContent();
+
+    await page.mouse.wheel(0, 200);
+    await expect(activeLabel).not.toHaveText(hovered!);
+    await expect(home.locator('li[data-highlighted]:hover')).toHaveCount(1);
+    await expect(home.locator('li[data-highlighted] .document-menu-button')).toHaveCSS('opacity', '1');
+    await expect.poll(tintedRows).toBe(1);
+
+    await homeSearch(page).press('ArrowDown');
+    const keyed = await activeLabel.textContent();
+    await page.mouse.wheel(0, -100);
+    await expect(activeLabel).toHaveText(keyed!);
+  });
+
   test('falls back to an available row after deleting the active document', async ({ page, editor }) => {
     await editor.load('basic');
     await homeZoomBreadcrumb(page).click();

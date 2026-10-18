@@ -498,13 +498,11 @@
   border-radius: 3px;
 }
 
-.home-doc-row:hover,
-.home-doc-row:focus-within {
+.home-doc-row[data-highlighted] {
   background: var(--chrome-hover);
 }
 
-.home-doc-row[data-search-active] {
-  background: var(--chrome-hover);
+.home-doc-row[data-highlighted='keyboard'] {
   box-shadow: inset 2px 0 0 var(--remdo-accent);
 }
 
@@ -580,7 +578,7 @@
   /* Reserved gutter space keeps the row from shifting as the button appears.
      Opacity rather than visibility keeps the button focusable while hidden. */
   opacity: 0;
-  transition: opacity 120ms ease, background-color 120ms ease;
+  transition: background-color 120ms ease;
 }
 
 .location-header .document-menu-button {

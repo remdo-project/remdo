@@ -12,12 +12,13 @@ contract.
    header. Revealing a button does not shift the content. Activating it opens
    the menu for the represented note.
 2. On hover-capable devices, one active menu button remains visible beside its
-   target. Hovering another note or keyboard navigation moves it; leaving the
+   target, unless the target has no actions. Hovering another note or keyboard
+   navigation moves it; leaving the
    row or page preserves the target. Only an open menu/dialog holds its target;
    restored button focus does not block subsequent hover. Keyboard input
    reveals the focused target before acting. Initially use the document heading,
    or the caret note when
-   editing starts; Home uses its first document row. A removed or hidden target
+   editing starts; Home uses its [active row](./home.md#active-row). A removed or hidden target
    falls back to an available target. The button scrolls with its note.
    Header and Home row buttons remain keyboard reachable while visually hidden.
    Without hover, header and Home row buttons remain visible; editor actions

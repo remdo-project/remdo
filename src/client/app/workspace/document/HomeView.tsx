@@ -18,6 +18,12 @@ export interface HomeViewProps {
   onUploadDocument: (file: File) => void;
 }
 
+type ActiveInput = 'pointer' | 'keyboard';
+type ActivationSource = ActiveInput | 'focus';
+type LastInput = ActiveInput | 'touch';
+
+const hasOpenMenu = (root: HTMLElement | null) => root?.querySelector('.document-menu-button[aria-expanded="true"]') != null;
+
 function filterHomeDocuments(documents: readonly DocumentNote[], query: string): DocumentNote[] {
   return documents.filter((document) => (
     matchesPathQuery([formatNavigationLabel(document.getText(), Number.POSITIVE_INFINITY)], query)
@@ -27,23 +33,25 @@ function filterHomeDocuments(documents: readonly DocumentNote[], query: string):
 function DocumentGroup({
   label,
   documents,
-  activeId,
+  highlightId,
+  highlightInput,
   onSelectDocument,
   onDelete,
   onRename,
   onShare,
   menuTargetId,
-  onMenuTarget,
+  onActivate,
 }: {
   label: string;
   documents: readonly DocumentNote[];
-  activeId: string | null;
+  highlightId: string | null;
+  highlightInput: ActiveInput | null;
   onSelectDocument: (docId: string) => void;
   onDelete: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onShare: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   menuTargetId: string | null;
-  onMenuTarget: (docId: string) => void;
+  onActivate: (docId: string, source: ActivationSource) => void;
 }) {
   return (
     <section aria-label={label} className="home-group" role="group">
@@ -60,13 +68,13 @@ function DocumentGroup({
           return (
             <li
               className="home-doc-row"
+              data-highlighted={id === highlightId ? highlightInput : undefined}
               data-menu-target={id === menuTargetId ? true : undefined}
-              data-search-active={id === activeId ? true : undefined}
               key={id}
-              onFocus={() => onMenuTarget(id)}
-              onKeyDownCapture={() => onMenuTarget(id)}
+              onFocus={() => onActivate(id, 'focus')}
+              onKeyDownCapture={() => onActivate(id, 'keyboard')}
               onPointerMove={(event) => {
-                if (event.pointerType !== 'touch') onMenuTarget(id);
+                if (event.pointerType !== 'touch') onActivate(id, 'pointer');
               }}
             >
               <DocumentMenu label={label} note={note} onDelete={onDelete} onRename={onRename} onShare={onShare} />
@@ -120,7 +128,9 @@ export function HomeView({
   const coarsePointer = useCoarsePointer();
   const { documentDialog, openDelete, openRename, openShare } = useDocumentDialogs(headingRef);
   const [query, setQuery] = useState('');
-  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [active, setActive] = useState<{ id: string | null; input: ActiveInput | null }>({ id: null, input: null });
+  const lastInputRef = useRef<LastInput>('pointer');
+  const pointerRef = useRef<{ x: number; y: number } | null>(null);
   const groups = sources.map((source) => {
     const documents = source.documents.getChildren();
     return { source, documents, visibleDocuments: filterHomeDocuments(documents, query) };
@@ -129,22 +139,26 @@ export function HomeView({
   const visibleDocuments = groups.flatMap((group) => group.visibleDocuments);
   const matchIds = visibleDocuments.map((note) => note.getId());
   const hasQuery = tokenizeQuery(query).length > 0;
-  const activeId = highlightedId !== null && matchIds.includes(highlightedId)
-    ? highlightedId
-    : hasQuery ? matchIds[0] ?? null : null;
+  const activeRowId = active.id !== null && matchIds.includes(active.id) ? active.id : null;
+  const chosenInput = activeRowId === null ? null : active.input;
+  const highlightId = chosenInput === null ? hasQuery ? matchIds[0] ?? null : null : activeRowId;
+  const highlightInput = chosenInput ?? (highlightId === null ? null : 'keyboard');
   const menuDocumentIds = visibleDocuments
     .filter((note) => note.canRename() || note.canShareWith() || note.canDelete())
     .map((note) => note.getId());
-  const [menuTarget, setMenuTarget] = useState<string | null>(null);
-  const menuTargetId = menuTarget !== null && menuDocumentIds.includes(menuTarget)
-    ? menuTarget
+  const restingId = activeRowId !== null && menuDocumentIds.includes(activeRowId)
+    ? activeRowId
     : menuDocumentIds[0] ?? null;
-  if (menuTarget !== menuTargetId) setMenuTarget(menuTargetId);
+  const menuTargetId = highlightId ?? restingId;
 
-  const targetDocument = (docId: string) => {
-    if (documentDialog || homeRef.current?.querySelector('.document-menu-button[aria-expanded="true"]')) return;
-    if (menuDocumentIds.includes(docId)) setMenuTarget(docId);
+  const holdsActiveRow = () => Boolean(documentDialog) || hasOpenMenu(homeRef.current);
+  const activate = (docId: string, source: ActivationSource) => {
+    if (holdsActiveRow()) return;
+    const input = source === 'focus' ? lastInputRef.current : source;
+    if (input === 'touch') return;
+    setActive((current) => current.id === docId && current.input === input ? current : { id: docId, input });
   };
+  const rest = () => setActive((current) => current.input === null ? current : { ...current, input: null });
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -168,14 +182,14 @@ export function HomeView({
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setQuery(event.currentTarget.value);
-    setHighlightedId(null);
+    rest();
   };
 
   const moveHighlight = (delta: 1 | -1) => {
     if (matchIds.length === 0) return;
-    const index = activeId === null ? -1 : matchIds.indexOf(activeId);
+    const index = highlightId === null ? -1 : matchIds.indexOf(highlightId);
     if (index === -1 && delta === -1) return;
-    setHighlightedId(matchIds[Math.max(0, Math.min(matchIds.length - 1, index + delta))]!);
+    setActive({ id: matchIds[Math.max(0, Math.min(matchIds.length - 1, index + delta))]!, input: 'keyboard' });
   };
 
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -187,17 +201,50 @@ export function HomeView({
       moveHighlight(event.key === 'ArrowDown' ? 1 : -1);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      if (activeId !== null) onSelectDocument(activeId);
+      if (highlightId !== null) onSelectDocument(highlightId);
     } else if (event.key === 'Escape' && query !== '') {
       event.preventDefault();
       setQuery('');
-      setHighlightedId(null);
+      rest();
     }
   };
 
   useEffect(() => {
-    homeRef.current?.querySelector('[data-search-active]')?.scrollIntoView({ block: 'nearest' });
-  }, [activeId]);
+    if (highlightInput === 'keyboard') homeRef.current?.querySelector('[data-highlighted]')?.scrollIntoView({ block: 'nearest' });
+  }, [highlightId, highlightInput]);
+
+  useEffect(() => {
+    const keyboard = () => { lastInputRef.current = 'keyboard'; };
+    const pointer = (event: PointerEvent) => { lastInputRef.current = event.pointerType === 'touch' ? 'touch' : 'pointer'; };
+    document.addEventListener('keydown', keyboard, true);
+    document.addEventListener('pointerdown', pointer, true);
+    return () => {
+      document.removeEventListener('keydown', keyboard, true);
+      document.removeEventListener('pointerdown', pointer, true);
+    };
+  }, []);
+
+  // Scrolling moves rows under a stationary pointer without a pointermove.
+  useEffect(() => {
+    if (documentDialog) return;
+    let frame = 0;
+    const followPointer = () => {
+      frame = 0;
+      const point = pointerRef.current;
+      if (!point || hasOpenMenu(homeRef.current)) return;
+      const row = document.elementFromPoint(point.x, point.y)?.closest('.home-doc-row');
+      const docId = row?.querySelector<HTMLElement>('[data-home-document-ref]')?.dataset.homeDocumentRef;
+      if (docId) setActive((current) => current.input === 'pointer' && current.id !== docId ? { id: docId, input: 'pointer' } : current);
+    };
+    const onScroll = () => {
+      if (frame === 0) frame = requestAnimationFrame(followPointer);
+    };
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener('scroll', onScroll, { capture: true });
+      cancelAnimationFrame(frame);
+    };
+  }, [documentDialog]);
 
   const handleUploadInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0] ?? null;
@@ -240,7 +287,7 @@ export function HomeView({
       {hasDocuments && (
         <>
           <TextInput
-            aria-activedescendant={activeId === null ? undefined : `home-doc-link-${activeId}`}
+            aria-activedescendant={highlightId === null ? undefined : `home-doc-link-${highlightId}`}
             aria-autocomplete="list"
             aria-controls={listId}
             aria-expanded
@@ -262,13 +309,23 @@ export function HomeView({
         </>
       )}
 
-      <div id={listId}>
+      <div
+        id={listId}
+        onPointerLeave={() => {
+          pointerRef.current = null;
+          if (!holdsActiveRow()) setActive((current) => current.input === 'pointer' ? { ...current, input: null } : current);
+        }}
+        onPointerMove={(event) => {
+          if (event.pointerType !== 'touch') pointerRef.current = { x: event.clientX, y: event.clientY };
+        }}
+      >
         {hasQuery && hasDocuments && matchIds.length === 0 && (
           <p className="home-search-empty">No documents match</p>
         )}
         {groups.filter((group) => group.visibleDocuments.length > 0).map(({ source, visibleDocuments: documents }) => (
           <DocumentGroup
-            activeId={activeId}
+            highlightId={highlightId}
+            highlightInput={highlightInput}
             key={source.getId()}
             label={source.getText()}
             documents={documents}
@@ -277,7 +334,7 @@ export function HomeView({
             onSelectDocument={onSelectDocument}
             onShare={openShare}
             menuTargetId={menuTargetId}
-            onMenuTarget={targetDocument}
+            onActivate={activate}
           />
         ))}
       </div>
