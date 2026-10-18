@@ -2,7 +2,6 @@ import type { DocumentAccessView, DocumentContactView } from '#domain/documents/
 import type { UserDocument } from '#domain/documents/user-data';
 import type {
   DocumentSourceNote,
-  DocumentSourcesNote,
   DocumentNote,
   UserDataNote,
   UserDocumentsNote,
@@ -117,7 +116,8 @@ function sharingSuggestions(document: UserDocument, documents: readonly UserDocu
 function createDocumentHandle(
   noteId: NoteId,
   documents: CollectionSource<UserDocument>,
-  actions: UserDataNoteActions,
+  getActions: () => UserDataNoteActions,
+  parent: () => CollectionNote<DocumentNote>,
 ): DocumentNote {
   const read = () => {
     const document = documents.getById(noteId);
@@ -134,6 +134,7 @@ function createDocumentHandle(
   };
 
   async function shareWith(email: string) {
+    const actions = getActions();
     if (!actions.shareDocument) {
       throw new Error('Document sharing is not available for this document.');
     }
@@ -145,6 +146,7 @@ function createDocumentHandle(
   }
 
   async function rename(title: string): Promise<void> {
+    const actions = getActions();
     if (!actions.renameDocument) {
       throw new Error('Renaming is not available for this document.');
     }
@@ -155,6 +157,7 @@ function createDocumentHandle(
   }
 
   async function deleteDocument(): Promise<void> {
+    const actions = getActions();
     if (!actions.deleteDocument) {
       throw new Error('Deletion is not available for this document.');
     }
@@ -163,99 +166,19 @@ function createDocumentHandle(
 
   return createDocumentNote(noteId, {
     metadata: {
+      getParent: parent,
       getText: () => read().title,
       access,
       getSharingSuggestions: () => sharingSuggestions(read(), documents.getChildren()),
-      canShareWith: () => documents.getById(noteId)?.shareable === true,
+      canShareWith: () => eligible(() => Boolean(getActions().shareDocument) && documents.getById(noteId)?.shareable === true),
       shareWith,
-      canRename: () => Boolean(actions.renameDocument) && documents.getById(noteId) !== null,
+      canRename: () => eligible(() => Boolean(getActions().renameDocument) && documents.getById(noteId) !== null),
       rename,
-      canDelete: () => documents.getById(noteId)?.deletable === true && Boolean(actions.deleteDocument),
+      canDelete: () => eligible(() => Boolean(getActions().deleteDocument) && documents.getById(noteId)?.deletable === true),
       delete: deleteDocument,
       subscribe,
     },
   });
-}
-
-function createUserDocumentsHandle(
-  documents: CollectionSource<UserDocument>,
-  actions: UserDataNoteActions,
-  parent: () => UserDataNote,
-): UserDocumentsNote {
-  const noteId = USER_DOCUMENTS_ID;
-  const kind = () => 'collection' as const;
-  async function create(text: string): Promise<DocumentNote> {
-    if (!actions.createDocument) {
-      throw new Error('Document creation is not available for this user data.');
-    }
-    if (typeof text !== 'string') {
-      throw new TypeError('documents.create(text) requires a document title.');
-    }
-    const created = await actions.createDocument(text);
-    return createDocumentHandle(created.id, documents, actions);
-  }
-
-  const handle: UserDocumentsNote = {
-    getId: () => noteId,
-    getKind: kind,
-    getText: () => USER_DOCUMENTS_TITLE,
-    getParent: parent,
-    getChildren: () => documents.getChildren().map((document) => createDocumentHandle(document.id, documents, actions)),
-    getById: (documentId) => (
-      documents.getById(documentId) ? createDocumentHandle(documentId, documents, actions) : null
-    ),
-    create,
-    subscribe: (listener) => documents.subscribe?.(listener) ?? unsubscribeNothing,
-    as: createNoteAs(noteId, kind, () => handle),
-  };
-
-  return handle;
-}
-
-function createDocumentSourceHandle(
-  source: DocumentSource,
-  actions: UserDataNoteActions,
-  parent: () => DocumentSourcesNote,
-): DocumentSourceNote {
-  const noteId = source.id;
-  const kind = () => 'document-source' as const;
-  const documentActions = source.local ? actions : {};
-  const documents = createCollectionHandle({
-    createItemNote: (document) => createDocumentHandle(document.id, source.documents, documentActions),
-    items: source.documents,
-    noteId: `${noteId}/documents`,
-    text: USER_DOCUMENTS_TITLE,
-    parent: sourceRef,
-  });
-  const handle: DocumentSourceNote = {
-    getId: () => noteId,
-    getKind: kind,
-    getText: () => source.label,
-    getParent: parent,
-    getChildren: () => [documents],
-    getBaseUrl: () => source.baseUrl,
-    getDocuments: () => documents,
-    getLocal: () => source.local,
-    as: createNoteAs(noteId, kind, () => handle),
-  };
-  function sourceRef() { return handle; }
-
-  return handle;
-}
-
-function createDocumentSourcesHandle(
-  sources: CollectionSource<DocumentSource>,
-  actions: UserDataNoteActions,
-  parent: () => UserDataNote,
-): DocumentSourcesNote {
-  const handle: DocumentSourcesNote = createCollectionHandle({
-    createItemNote: (source) => createDocumentSourceHandle(source, actions, () => handle),
-    items: sources,
-    noteId: USER_DOCUMENT_SOURCES_ID,
-    text: USER_DOCUMENT_SOURCES_TITLE,
-    parent,
-  });
-  return handle;
 }
 
 function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends Note, Parent extends Note | null>({
@@ -289,38 +212,194 @@ function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends No
   return handle;
 }
 
+function eligible(read: () => boolean): boolean {
+  try { return read(); } catch (error) {
+    if (error instanceof NoteUnavailableError) return false;
+    throw error;
+  }
+}
+
 export function createUserDataRootNote(
   documents: CollectionSourceInput<UserDocument>,
   actions: UserDataNoteActions = {},
 ): UserDataNote {
   const noteId = USER_DATA_ROOT_ID;
   const kind = () => 'user-data' as const;
-  const userDocumentsSource = resolveCollectionSource(documents);
-  const userDocuments = createUserDocumentsHandle(userDocumentsSource, actions, userDataRef);
-  const documentSources = createDocumentSourcesHandle(
-    actions.documentSources ?? createArrayCollectionSource([{
-      baseUrl: null,
-      documents: userDocumentsSource,
-      id: LOCAL_DOCUMENT_SOURCE_ID,
-      label: 'Current Server',
-      local: true,
-    }]),
-    actions,
-    userDataRef,
-  );
+  const localDocuments = resolveCollectionSource(documents);
+  const sources = actions.documentSources ?? createArrayCollectionSource([{
+    baseUrl: null,
+    documents: localDocuments,
+    id: LOCAL_DOCUMENT_SOURCE_ID,
+    label: 'Current Server',
+    local: true,
+  }]);
+  const sourceRefs = new Map<NoteId, DocumentSourceNote>();
+  const documentRefs = new Map<NoteId, DocumentNote>();
 
+  function readSource(sourceId: NoteId): DocumentSource {
+    const source = sources.getById(sourceId);
+    if (!source) throw new NoteUnavailableError(sourceId);
+    return source;
+  }
+
+  function sourceFor(documentId: NoteId): DocumentSource | null {
+    for (const source of sources.getChildren()) {
+      if (source.documents.getById(documentId)) {
+        return source;
+      }
+    }
+    return null;
+  }
+
+  // Discover subscriptions without requiring inventories to be readable. Their
+  // existing subscriptions still deliver failure and recovery notifications.
+  function observeSources(listener: () => void): () => void {
+    const subscriptions = new Map<CollectionSource<UserDocument>, () => void>();
+    const state = { released: false, refreshing: false, refreshPending: false };
+    const active = () => !state.released;
+    const refreshPending = () => state.refreshPending;
+    const notify = () => { if (!state.released) listener(); };
+    function refresh() {
+      if (!active()) return;
+      if (state.refreshing) { state.refreshPending = true; return; }
+      state.refreshing = true;
+      try {
+        do {
+          state.refreshPending = false;
+          let current: readonly DocumentSource[];
+          try { current = sources.getChildren(); } catch { return; }
+          const desired = new Set(current.map(source => source.documents));
+          for (const [source, stop] of subscriptions) {
+            if (desired.has(source)) continue;
+            stop();
+            subscriptions.delete(source);
+          }
+          for (const source of desired) {
+            if (!active()) break;
+            if (!subscriptions.has(source)) {
+              const stop = source.subscribe?.(notify) ?? unsubscribeNothing;
+              if (!active()) stop();
+              else subscriptions.set(source, stop);
+            }
+          }
+        } while (refreshPending() && active());
+      } finally { state.refreshing = false; }
+    }
+    const stopSources = sources.subscribe?.(() => { refresh(); notify(); }) ?? unsubscribeNothing;
+    function unsubscribe() {
+      if (state.released) return;
+      state.released = true;
+      stopSources();
+      for (const stop of subscriptions.values()) stop();
+      subscriptions.clear();
+    }
+    try { refresh(); } catch (error) { unsubscribe(); throw error; }
+    return unsubscribe;
+  }
+
+  function documentRef(documentId: NoteId): DocumentNote {
+    const retained = documentRefs.get(documentId);
+    if (retained) return retained;
+    const document = createDocumentHandle(documentId, {
+      getChildren: () => {
+        const source = sourceFor(documentId);
+        if (!source) throw new NoteUnavailableError(documentId);
+        return source.documents.getChildren();
+      },
+      getById: id => sourceFor(documentId)?.documents.getById(id) ?? null,
+      subscribe: observeSources,
+    }, () => {
+      if (!actions.documentSources) return actions;
+      const source = sourceFor(documentId);
+      if (!source) throw new NoteUnavailableError(documentId);
+      return source.local ? actions : {};
+    }, () => {
+      const source = sourceFor(documentId);
+      if (!source) throw new NoteUnavailableError(documentId);
+      return sourceRef(source.id).documents;
+    });
+    documentRefs.set(documentId, document);
+    return document;
+  }
+
+  function sourceRef(sourceId: NoteId): DocumentSourceNote {
+    const retained = sourceRefs.get(sourceId);
+    if (retained) return retained;
+    const read = () => readSource(sourceId);
+    const sourceKind = () => 'document-source' as const;
+    const sourceDocuments = createCollectionHandle({
+      noteId: `${sourceId}/documents`,
+      text: USER_DOCUMENTS_TITLE,
+      parent: sourceParent,
+      items: {
+        getChildren: () => read().documents.getChildren(),
+        getById: id => read().documents.getById(id),
+        subscribe: observeSources,
+      },
+      createItemNote: document => documentRef(document.id),
+    });
+    const source: DocumentSourceNote = {
+      getId: () => sourceId,
+      getKind: sourceKind,
+      getText: () => read().label,
+      getParent: () => { read(); return sourcesParent(); },
+      getChildren: () => { read(); return [sourceDocuments]; },
+      documents: sourceDocuments,
+      getBaseUrl: () => read().baseUrl,
+      getLocal: () => read().local,
+      as: createNoteAs(sourceId, sourceKind, () => source),
+    };
+    function sourceParent() { read(); return source; }
+    sourceRefs.set(sourceId, source);
+    return source;
+  }
+
+  const sourceCollection = createCollectionHandle({
+    noteId: USER_DOCUMENT_SOURCES_ID,
+    text: USER_DOCUMENT_SOURCES_TITLE,
+    parent: userDataRef,
+    items: sources,
+    createItemNote: source => sourceRef(source.id),
+  });
+  function sourcesParent() { return sourceCollection; }
+  const collectionKind = () => 'collection' as const;
+  const userDocuments: UserDocumentsNote = {
+    getId: () => USER_DOCUMENTS_ID,
+    getKind: collectionKind,
+    getText: () => USER_DOCUMENTS_TITLE,
+    getParent: userDataRef,
+    getChildren: () => sourceCollection.getChildren().flatMap(source => source.documents.getChildren()),
+    getById: documentId => {
+      for (const source of sourceCollection.getChildren()) {
+        const document = source.documents.getById(documentId);
+        if (document) return document;
+      }
+      return null;
+    },
+    create: async text => {
+      if (!actions.createDocument) {
+        throw new Error('Document creation is not available for this user data.');
+      }
+      if (typeof text !== 'string') {
+        throw new TypeError('documents.create(text) requires a document title.');
+      }
+      const created = await actions.createDocument(text);
+      return documentRef(created.id);
+    },
+    subscribe: observeSources,
+    as: createNoteAs(USER_DOCUMENTS_ID, collectionKind, () => userDocuments),
+  };
   const handle: UserDataNote = {
     getId: () => noteId,
     getKind: kind,
     getText: () => USER_DATA_TITLE,
     getParent: () => null,
-    getChildren: () => [documentSources, userDocuments],
-    getDocumentSources: () => documentSources,
-    getDocuments: () => userDocuments,
-    documentRef: (documentId) => createDocumentHandle(documentId, userDocumentsSource, actions),
+    getChildren: () => [sourceCollection, userDocuments],
+    sources: sourceCollection,
+    documents: userDocuments,
+    documentRef,
     as: createNoteAs(noteId, kind, () => handle),
   };
   function userDataRef() { return handle; }
-
   return handle;
 }

@@ -24,17 +24,17 @@ describe('document sharing suggestions', () => {
   it('combines direct relationships, ranks outgoing first, and excludes existing recipients', () => {
     const mutual = { ...incoming, id: 'mutual', sharedBy: { userId: 'zoe', email: 'zoe@example.test', name: '' } };
     const data = createUserDataRootNote([target, incoming, mutual, outgoing, { ...outgoing, id: 'duplicate' }]);
-    expect(data.getDocuments().getById('target')!.getSharingSuggestions()).toEqual([
+    expect(data.documents.getById('target')!.getSharingSuggestions()).toEqual([
       { userId: 'bob', email: 'bob@example.test', name: 'Bob' },
       { userId: 'zoe', email: 'zoe@example.test', name: '' },
       { userId: 'aaron', email: 'aaron@example.test', name: 'Aaron' },
     ]);
-    expect(data.getDocuments().getById('incoming')!.getSharingSuggestions()).toEqual([]);
+    expect(data.documents.getById('incoming')!.getSharingSuggestions()).toEqual([]);
   });
 
   it('updates a held document reference when relationships disappear or become current recipients', () => {
     const { source, replace } = createObservableDocumentList([target, outgoing, incoming]);
-    const note = createUserDataRootNote(source).getDocuments().getById('target')!;
+    const note = createUserDataRootNote(source).documents.getById('target')!;
     expect(note.getSharingSuggestions().map(({ userId }) => userId)).toEqual(['bob', 'zoe', 'aaron']);
     replace([target, incoming]);
     expect(note.getSharingSuggestions().map(({ userId }) => userId)).toEqual(['aaron']);
@@ -52,8 +52,10 @@ describe('document sharing suggestions', () => {
     const data = createUserDataRootNote(local, {
       documentSources: { getChildren: () => sources, getById: (id) => sources.find((source) => source.id === id) ?? null },
     });
-    expect(data.getDocuments().getById('target')!.getSharingSuggestions().map(({ userId }) => userId)).toEqual(['bob', 'zoe']);
-    expect(data.getDocumentSources().getById('remote')!.getDocuments().getById('remote-target')!.getSharingSuggestions())
+    expect(data.documents.getById('target')!.getSharingSuggestions().map(({ userId }) => userId)).toEqual(['bob', 'zoe']);
+    const remoteTarget = data.documents.getById('remote-target')!;
+    expect(remoteTarget).toBe(data.sources.getById('remote')!.documents.getById('remote-target'));
+    expect(remoteTarget.getSharingSuggestions())
       .toEqual([{ userId: 'aaron', email: 'aaron@example.test', name: 'Aaron' }]);
   });
 });

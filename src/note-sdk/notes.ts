@@ -21,9 +21,9 @@ export interface Note<K extends NoteKind = NoteKind> {
   getKind: () => K;
   /** Returns current note text. Throws when note does not exist. */
   getText: () => string;
-  /** Returns the current containing note, or null at this host's tree root. */
+  /** Returns the canonical containing note, or null at the tree root. Throws when unknown. */
   getParent: () => Note | null;
-  /** Returns direct child notes. */
+  /** Lists direct notes, including results of a collection, without changing their parents. */
   getChildren: () => readonly Note[];
   /** Narrows the note by runtime kind; throws when the expected kind does not match. */
   as: {
@@ -44,9 +44,8 @@ export interface AddressableNote<K extends NoteKind = NoteKind> extends Note<K> 
 }
 
 export interface CollectionNote<Item extends Note = Note> extends AddressableNote<'collection'> {
-  /** Returns the projected collection entries in display order. */
   getChildren: () => readonly Item[];
-  /** Returns the projected collection entry with the given id, if present. */
+  /** Returns a listed note with the given id, if present. */
   getById: (noteId: NoteId) => Item | null;
   /** Notifies when collection entries or availability may have changed. */
   subscribe: (listener: () => void) => () => void;

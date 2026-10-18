@@ -4,7 +4,7 @@ import { NoteUnavailableError } from './note-unavailable-error';
 
 type GrantSource = Pick<DocumentAccessNote, 'getId' | 'getText' | 'getEmail' | 'getName' | 'getGranteeUserId'>;
 type DocumentMetadata = Pick<DocumentNote,
-  'getText' | 'getSharingSuggestions' | 'canShareWith'
+  'getParent' | 'getText' | 'getSharingSuggestions' | 'canShareWith'
   | 'canRename' | 'canDelete' | 'delete' | 'subscribe'
 > & {
   access: {
@@ -135,7 +135,7 @@ export function createDocumentNote(
   const handle: DocumentNote = {
     getId: () => documentId,
     getKind: kind,
-    getParent: () => { requireActive(); return null; },
+    getParent: () => requireSource(metadata).getParent(),
     getText: () => requireSource(metadata).getText(),
     getChildren: () => { requireActive(); return [content, access]; },
     content,

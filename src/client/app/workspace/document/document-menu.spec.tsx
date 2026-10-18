@@ -11,9 +11,10 @@ const documentNote = (
   [{ id: 'doc-a', title: 'Ideas', shareable: canShareWith, deletable: canDelete }],
   {
     ...(canRename && { renameDocument: () => Promise.resolve() }),
+    ...(canShareWith && { shareDocument: vi.fn() }),
     ...(canDelete && { deleteDocument: () => Promise.resolve() }),
   },
-).getDocuments().getById('doc-a')!;
+).documents.getById('doc-a')!;
 
 const openView = () => ({ zoomOut: vi.fn(), foldToLevel: vi.fn() });
 

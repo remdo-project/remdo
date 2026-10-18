@@ -23,7 +23,7 @@ it('exposes document identity while missing sources stay unavailable', async () 
   expect(document.getId()).toBe('document');
   expect(document.getKind()).toBe('document');
   expect(document.as('document')).toBe(document);
-  expect(document.getParent()).toBeNull();
+  expect(document.getParent).toThrow(NoteUnavailableError);
   expect(document.getChildren()).toEqual([document.content, document.access]);
   expect(document.content.getKind()).toBe('collection');
   expect(document.access.getKind()).toBe('collection');
@@ -46,6 +46,7 @@ it('keeps opened content available independently of metadata', async () => {
   const document = createDocumentNote('document', { content: source });
 
   expect(document.getText).toThrow(NoteUnavailableError);
+  expect(document.getParent).toThrow(NoteUnavailableError);
   expect(document.canRename()).toBe(false);
   expect(document.content.getChildListType()).toBe('bullet');
   await expect(document.content.appendChildren([{ text: 'Child' }])).resolves.toEqual(['child']);
@@ -66,6 +67,7 @@ it('returns the composed document after an acknowledged metadata rename', async 
   expect(renamed.as('document')).toBe(document);
   expect(renamed.getText()).toBe('After');
   expect(metadata.getText()).toBe('After');
+  expect(renamed.getParent()).toBe(metadata.getParent());
   expect(renamed.content.getChildListType()).toBe('bullet');
 });
 

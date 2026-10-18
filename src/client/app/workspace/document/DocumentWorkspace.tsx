@@ -1,4 +1,6 @@
 import { Alert } from '@mantine/core';
+import { NoteUnavailableError } from '#note-sdk';
+import type { DocumentNote } from '#note-sdk';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUserData, useUserDataRuntime } from '#client/app/user-data/user-data';
 import {
@@ -18,7 +20,6 @@ import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentMenu } from './DocumentMenu';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
 import DocumentToolbar from './DocumentToolbar';
-import { resolveDocumentSource } from './resolveDocumentSource';
 import { useDocumentDialogs } from './useDocumentDialogs';
 import '../DocumentRoute.css';
 
@@ -67,8 +68,6 @@ export default function DocumentWorkspace({
   const userData = useUserData();
   const metadataNote = useMemo(() => userData.documentRef(docId), [userData, docId]);
   const { userId } = useUserDataRuntime();
-  const documentSources = userData.getDocumentSources().getChildren();
-  const source = resolveDocumentSource(docId, documentSources);
   const [importError, setImportError] = useState<{ docId: string; message: string } | null>(null);
   if (importError && importError.docId !== docId) {
     setImportError(null);
@@ -80,12 +79,16 @@ export default function DocumentWorkspace({
   const targetHeader = () => {
     if (!shellRef.current?.querySelector('[data-note-menu]')) setMenuTarget('header');
   };
-  const listedDocument = userData.getDocuments().getById(docId);
-  const documentNote = listedDocument ? (openDocument?.root ?? metadataNote) : null;
-  const documentTitle = documentNote?.getText() ?? source.documentLabel;
+  let documentNote: DocumentNote | null = null;
+  try {
+    if (userData.documents.getById(docId)) documentNote = openDocument?.root ?? metadataNote;
+  } catch (error) {
+    if (!(error instanceof NoteUnavailableError)) throw error;
+  }
+  const documentTitle = documentNote?.getText() ?? docId;
   const documentLabel = formatNavigationLabel(documentTitle);
   const ownsDocument = documentNote?.canShareWith() === true;
-  const recipientCount = ownsDocument ? documentNote.access.getChildren().length : 0;
+  const recipientCount = ownsDocument && documentNote ? documentNote.access.getChildren().length : 0;
   const shared = !ownsDocument || recipientCount > 0;
   const shareAction = ownsDocument ? 'Share document' : 'View document access';
   const shareAccess = ownsDocument

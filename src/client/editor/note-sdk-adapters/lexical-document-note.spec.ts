@@ -44,7 +44,8 @@ describe('document note in an opened editor', () => {
     expect(root.getKind()).toBe('document');
     expect(root.as('document')).toBe(root);
     expect(root.getId()).toBe(docId);
-    expect(root.getParent()).toBeNull();
+    expect(root.getParent()).toBe(metadata.note.getParent());
+    expect(root.getParent().getChildren().map(document => document.getId())).toContain(docId);
     expect(root.getText()).toBe('Project');
     expect(root.getChildren()).toEqual([root.content, root.access]);
     expect(root.content.getParent()).toBe(root);
@@ -202,7 +203,7 @@ describe('document note in an opened editor', () => {
     const root = remdo.openDocument.root;
     expect(root.getId()).toBe(remdo.getCollabDocId());
     expect(root.getKind()).toBe('document');
-    expect(root.getParent()).toBeNull();
+    expect(root.getParent).toThrow(NoteUnavailableError);
     expect(root.content.getChildren()[0]!.getParent()).toBe(root.content);
     expect(root.getText).toThrow(NoteUnavailableError);
     expect(root.access.getChildren).toThrow(NoteUnavailableError);

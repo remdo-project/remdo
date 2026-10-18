@@ -1,6 +1,7 @@
 import { onlineManager, QueryClient, QueryObserver } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUserDataRuntime, getUserDataRuntime, resetUserDataRuntime } from './stored-user-data';
+import { NoteUnavailableError } from '#note-sdk';
 import type { UserDataRuntime } from './stored-user-data';
 
 const runtimes: UserDataRuntime[] = [];
@@ -37,6 +38,52 @@ afterEach(() => {
 });
 
 describe('account metadata', () => {
+  it('distinguishes unavailable metadata from a loaded empty inventory and keeps cached data through refresh failures', async () => {
+    const runtime = account();
+    const response = deferred<Response>();
+    documentRequests(() => response.promise);
+    const listing = runtime.client.query(runtime.documentsQuery);
+    expect(() => runtime.userData.documents.getChildren()).toThrow(NoteUnavailableError);
+    expect(() => runtime.userData.documents.getById('missing')).toThrow(NoteUnavailableError);
+
+    response.resolve(new Response(null, { status: 503 }));
+    await expect(listing).rejects.toThrow('Request failed: 503');
+    expect(() => runtime.userData.documents.getChildren()).toThrow(NoteUnavailableError);
+    expect(() => runtime.userData.documents.getById('missing')).toThrow(NoteUnavailableError);
+
+    documentRequests(() => Response.json([]));
+    await runtime.client.query(runtime.documentsQuery);
+    expect(runtime.userData.documents.getChildren()).toEqual([]);
+    expect(runtime.userData.documents.getById('missing')).toBeNull();
+
+    runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'cached', title: 'Saved locally', shareable: false }]);
+    documentRequests(() => new Response(null, { status: 503 }));
+    await expect(runtime.client.query(runtime.documentsQuery)).rejects.toThrow('Request failed: 503');
+    expect(runtime.userData.documents.getById('cached')?.getText()).toBe('Saved locally');
+    expect(runtime.userData.documents.getChildren().map((document) => document.getId())).toEqual(['cached']);
+    expect(runtime.userData.documents.getById('missing')).toBeNull();
+  });
+
+  it('notifies retained document references when their cached inventory becomes unavailable', () => {
+    const runtime = account();
+    runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'cached', title: 'Saved locally', shareable: false }]);
+    const document = runtime.userData.documentRef('cached');
+    const unavailable = vi.fn();
+    const unsubscribe = document.subscribe(() => {
+      try { document.getText(); }
+      catch (error) {
+        if (!(error instanceof NoteUnavailableError)) throw error;
+        unavailable();
+      }
+    });
+
+    runtime.client.removeQueries({ queryKey: runtime.documentsQuery.queryKey });
+
+    expect(unavailable).toHaveBeenCalled();
+    expect(() => document.getText()).toThrow(NoteUnavailableError);
+    unsubscribe();
+  });
+
   it('lists documents while the account bootstrap is still pending', async () => {
     const runtime = account();
     const bootstrapResponse = deferred<Response>();
@@ -45,7 +92,7 @@ describe('account metadata', () => {
       : Promise.resolve(Response.json([{ id: 'starter', title: 'New Document', shareable: true }]))));
     const bootstrap = runtime.client.query(runtime.bootstrapQuery);
     await runtime.client.query(runtime.documentsQuery);
-    expect(runtime.userData.getDocuments().getById('starter')?.getText()).toBe('New Document');
+    expect(runtime.userData.documents.getById('starter')?.getText()).toBe('New Document');
     bootstrapResponse.resolve(Response.json({ userId: 'alice' }));
     await bootstrap;
   });
@@ -59,7 +106,7 @@ describe('account metadata', () => {
     documentRequests(() => Response.json([{ id: 'aliceDoc', title: 'Research', shareable: false }]));
     await runtime.client.query(runtime.documentsQuery);
     expect(runtime.client.getQueryState(runtime.documentsQuery.queryKey)?.error).toBeNull();
-    expect(runtime.userData.getDocuments().getById('aliceDoc')?.getText()).toBe('Research');
+    expect(runtime.userData.documents.getById('aliceDoc')?.getText()).toBe('Research');
   });
 
   it('uses the same cache for query subscribers and the note SDK, including creation', async () => {
@@ -72,9 +119,9 @@ describe('account metadata', () => {
       return Response.json([{ id: 'aliceDoc', title: 'Research', shareable: false }]);
     });
     await Promise.all([runtime.client.query(runtime.bootstrapQuery), runtime.client.query(runtime.documentsQuery)]);
-    const created = await runtime.userData.getDocuments().create('Research');
+    const created = await runtime.userData.documents.create('Research');
     expect(created.getText()).toBe('Research');
-    expect(runtime.userData.getDocuments().getById('created')?.getText()).toBe('Research');
+    expect(runtime.userData.documents.getById('created')?.getText()).toBe('Research');
   });
 
   it('updates the observed document grants after sharing without duplicating a recipient', async () => {
@@ -84,9 +131,9 @@ describe('account metadata', () => {
       ? Response.json(access)
       : Response.json([{ id: 'shared', title: 'Shared', shareable: true, access: [] }]));
     await runtime.client.query(runtime.documentsQuery);
-    await runtime.userData.getDocuments().getById('shared')!.shareWith(access.email);
-    await runtime.userData.getDocuments().getById('shared')!.shareWith(access.email);
-    expect(runtime.userData.getDocuments().getById('shared')!.access.getChildren().map((grant) => grant.getEmail()))
+    await runtime.userData.documents.getById('shared')!.shareWith(access.email);
+    await runtime.userData.documents.getById('shared')!.shareWith(access.email);
+    expect(runtime.userData.documents.getById('shared')!.access.getChildren().map((grant) => grant.getEmail()))
       .toEqual([access.email]);
   });
 
@@ -98,9 +145,9 @@ describe('account metadata', () => {
       : Response.json([{ id: 'shared', title: 'Shared', shareable: true, access: [access] }]));
     await runtime.client.query(runtime.documentsQuery);
 
-    await runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan');
+    await runtime.userData.documents.getById('shared')!.rename('Quarterly plan');
 
-    const renamed = runtime.userData.getDocuments().getById('shared')!;
+    const renamed = runtime.userData.documents.getById('shared')!;
     expect(renamed.getText()).toBe('Quarterly plan');
     expect(renamed.access.getChildren().map((grant) => grant.getEmail())).toEqual([access.email]);
   });
@@ -112,9 +159,9 @@ describe('account metadata', () => {
       : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
     await runtime.client.query(runtime.documentsQuery);
 
-    await expect(runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan'))
+    await expect(runtime.userData.documents.getById('shared')!.rename('Quarterly plan'))
       .rejects.toThrow('This document is no longer available.');
-    expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
+    expect(runtime.userData.documents.getById('shared')!.getText()).toBe('Shared');
   });
 
   it('explains a rejected over-long name instead of inviting an identical retry', async () => {
@@ -124,9 +171,9 @@ describe('account metadata', () => {
       : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
     await runtime.client.query(runtime.documentsQuery);
 
-    await expect(runtime.userData.getDocuments().getById('shared')!.rename('x'.repeat(501)))
+    await expect(runtime.userData.documents.getById('shared')!.rename('x'.repeat(501)))
       .rejects.toThrow('Use a shorter name, up to 500 characters.');
-    expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
+    expect(runtime.userData.documents.getById('shared')!.getText()).toBe('Shared');
   });
 
   it('reports a rejection it cannot attribute to length without blaming length', async () => {
@@ -136,7 +183,7 @@ describe('account metadata', () => {
       : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
     await runtime.client.query(runtime.documentsQuery);
 
-    await expect(runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan'))
+    await expect(runtime.userData.documents.getById('shared')!.rename('Quarterly plan'))
       .rejects.toThrow('That name was rejected. Try a different one.');
   });
 
@@ -147,9 +194,9 @@ describe('account metadata', () => {
       : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
     await runtime.client.query(runtime.documentsQuery);
 
-    await expect(runtime.userData.getDocuments().getById('shared')!.rename('Quarterly plan'))
+    await expect(runtime.userData.documents.getById('shared')!.rename('Quarterly plan'))
       .rejects.toThrow('Could not rename the document. Please retry.');
-    expect(runtime.userData.getDocuments().getById('shared')!.getText()).toBe('Shared');
+    expect(runtime.userData.documents.getById('shared')!.getText()).toBe('Shared');
   });
 
   it('notifies document observers when the listing changes', async () => {
@@ -158,7 +205,7 @@ describe('account metadata', () => {
       ? Response.json({ id: 'shared', title: 'Quarterly plan' })
       : Response.json([{ id: 'shared', title: 'Shared', shareable: true }]));
     await runtime.client.query(runtime.documentsQuery);
-    const document = runtime.userData.getDocuments().getById('shared')!;
+    const document = runtime.userData.documents.getById('shared')!;
     const titles: string[] = [];
     const unsubscribe = document.subscribe(() => titles.push(document.getText()));
 
@@ -184,11 +231,11 @@ describe('account metadata', () => {
     });
     await runtime.client.query(runtime.documentsQuery);
 
-    expect(runtime.userData.getDocuments().getById('draft')!.canDelete()).toBe(true);
-    await runtime.userData.getDocuments().getById('draft')!.delete();
-    await runtime.userData.getDocuments().getById('gone')!.delete();
+    expect(runtime.userData.documents.getById('draft')!.canDelete()).toBe(true);
+    await runtime.userData.documents.getById('draft')!.delete();
+    await runtime.userData.documents.getById('gone')!.delete();
 
-    expect(runtime.userData.getDocuments().getChildren().map((document) => document.getId())).toEqual(['kept']);
+    expect(runtime.userData.documents.getChildren().map((document) => document.getId())).toEqual(['kept']);
   });
 
   it('keeps a document the source refuses to delete', async () => {
@@ -198,17 +245,17 @@ describe('account metadata', () => {
       : Response.json([{ id: 'shared', title: 'Shared', shareable: false, deletable: false }]));
     await runtime.client.query(runtime.documentsQuery);
 
-    expect(runtime.userData.getDocuments().getById('shared')!.canDelete()).toBe(false);
-    await expect(runtime.userData.getDocuments().getById('shared')!.delete())
+    expect(runtime.userData.documents.getById('shared')!.canDelete()).toBe(false);
+    await expect(runtime.userData.documents.getById('shared')!.delete())
       .rejects.toThrow('Could not delete the document. Please retry.');
-    expect(runtime.userData.getDocuments().getById('shared')).not.toBeNull();
+    expect(runtime.userData.documents.getById('shared')).not.toBeNull();
   });
 
   it('explains an invite to a document that is gone', async () => {
     const runtime = account();
     runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true }]);
     documentRequests(() => new Response(null, { status: 404 }));
-    await expect(runtime.userData.getDocuments().getById('shared')!.shareWith('bob@example.test'))
+    await expect(runtime.userData.documents.getById('shared')!.shareWith('bob@example.test'))
       .rejects.toThrow('This document is no longer available.');
   });
 
@@ -221,8 +268,8 @@ describe('account metadata', () => {
     const access = { documentId: 'shared', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' };
     runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true, access: [access] }]);
     documentRequests(() => Response.json({ email: [message] }, { status: 400 }));
-    await expect(runtime.userData.getDocuments().getById('shared')!.shareWith(email)).rejects.toThrow(message);
-    expect(runtime.userData.getDocuments().getById('shared')!.access.getChildren().map((grant) => grant.getEmail()))
+    await expect(runtime.userData.documents.getById('shared')!.shareWith(email)).rejects.toThrow(message);
+    expect(runtime.userData.documents.getById('shared')!.access.getChildren().map((grant) => grant.getEmail()))
       .toEqual([access.email]);
   });
 
@@ -231,7 +278,7 @@ describe('account metadata', () => {
     runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true }]);
     documentRequests(() => Response.json({ detail: 'Malformed request.' }, { status: 400 }));
 
-    await expect(runtime.userData.getDocuments().getById('shared')!.shareWith('bob@example.test'))
+    await expect(runtime.userData.documents.getById('shared')!.shareWith('bob@example.test'))
       .rejects.toThrow('That email was rejected. Check the address and try again.');
   });
 
@@ -240,9 +287,9 @@ describe('account metadata', () => {
     runtime.client.setQueryData(runtime.documentsQuery.queryKey, [{ id: 'shared', title: 'Shared', shareable: true }]);
     onlineManager.setOnline(false);
     vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('offline'); }));
-    await expect(runtime.userData.getDocuments().getById('shared')!.shareWith('bob@example.test'))
+    await expect(runtime.userData.documents.getById('shared')!.shareWith('bob@example.test'))
       .rejects.toThrow('offline');
-    expect(runtime.userData.getDocuments().getById('shared')!.access.getChildren()).toEqual([]);
+    expect(runtime.userData.documents.getById('shared')!.access.getChildren()).toEqual([]);
   });
 
   it('does not restore grants when a sharing response arrives after account departure', async () => {
@@ -251,15 +298,15 @@ describe('account metadata', () => {
     const response = deferred<Response>();
     const started = deferred<void>();
     documentRequests(() => { started.resolve(); return response.promise; });
-    const sharing = runtime.userData.getDocuments().getById('shared')!.shareWith('bob@example.test');
+    const sharing = runtime.userData.documents.getById('shared')!.shareWith('bob@example.test');
     const rejected = expect(sharing).rejects.toThrow();
     await started.promise;
     runtime.dispose();
     const next = account('bob');
     response.resolve(Response.json({ documentId: 'shared', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' }));
     await rejected;
-    expect(runtime.userData.getDocuments().getChildren()).toEqual([]);
-    expect(next.userData.getDocuments().getChildren()).toEqual([]);
+    expect(() => runtime.userData.documents.getChildren()).toThrow(NoteUnavailableError);
+    expect(() => next.userData.documents.getChildren()).toThrow(NoteUnavailableError);
   });
 
   it('keeps a successful creation when the following background listing fails', async () => {
@@ -276,10 +323,10 @@ describe('account metadata', () => {
     const refresh = deferred<void>();
     const unsubscribe = observer.subscribe((result) => { if (result.isError) { refresh.resolve(); } });
     await runtime.client.query(runtime.documentsQuery);
-    const created = await runtime.userData.getDocuments().create('Research');
+    const created = await runtime.userData.documents.create('Research');
     await refresh.promise;
     expect(created.getId()).toBe('created');
-    expect(runtime.userData.getDocuments().getById('created')?.getText()).toBe('Research');
+    expect(runtime.userData.documents.getById('created')?.getText()).toBe('Research');
     expect(observer.getCurrentResult().error?.message).toBe('Request failed: 503');
     unsubscribe();
   });
@@ -288,8 +335,8 @@ describe('account metadata', () => {
     const runtime = account();
     onlineManager.setOnline(false);
     vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('offline'); }));
-    await expect(runtime.userData.getDocuments().create('Research')).rejects.toThrow('offline');
-    expect(runtime.userData.getDocuments().getChildren()).toEqual([]);
+    await expect(runtime.userData.documents.create('Research')).rejects.toThrow('offline');
+    expect(() => runtime.userData.documents.getChildren()).toThrow(NoteUnavailableError);
   });
 
   it('cannot restore a departed account from a late listing', async () => {
@@ -305,8 +352,8 @@ describe('account metadata', () => {
     await bob.client.query(bob.documentsQuery);
     response.resolve(Response.json([{ id: 'aliceDoc', title: 'Alice', shareable: false }]));
     await load;
-    expect(alice.userData.getDocuments().getChildren()).toEqual([]);
-    expect(bob.userData.getDocuments().getChildren().map((doc) => doc.getId())).toEqual(['bobHome']);
+    expect(() => alice.userData.documents.getChildren()).toThrow(NoteUnavailableError);
+    expect(bob.userData.documents.getChildren().map((doc) => doc.getId())).toEqual(['bobHome']);
   });
 
   it('rejects a late creation after logout and cannot refill either account cache', async () => {
@@ -314,24 +361,24 @@ describe('account metadata', () => {
     const response = deferred<Response>();
     const started = deferred<void>();
     documentRequests(() => { started.resolve(); return response.promise; });
-    const creation = alice.userData.getDocuments().create('Private');
+    const creation = alice.userData.documents.create('Private');
     const rejected = expect(creation).rejects.toThrow();
     await started.promise;
     alice.dispose();
     const bob = account('bob');
     response.resolve(Response.json({ id: 'private', title: 'Private', shareable: false }, { status: 201 }));
     await rejected;
-    expect(alice.userData.getDocuments().getChildren()).toEqual([]);
-    expect(bob.userData.getDocuments().getChildren()).toEqual([]);
-    await expect(alice.userData.getDocuments().create('Another')).rejects.toThrow();
+    expect(() => alice.userData.documents.getChildren()).toThrow(NoteUnavailableError);
+    expect(() => bob.userData.documents.getChildren()).toThrow(NoteUnavailableError);
+    await expect(alice.userData.documents.create('Another')).rejects.toThrow();
   });
 
   it('retires the previous account immediately when the authenticated boundary changes identity', () => {
     const alice = getUserDataRuntime('alice');
     alice.client.setQueryData(alice.documentsQuery.queryKey, [{ id: 'private', title: 'Private', shareable: false }]);
     const bob = getUserDataRuntime('bob');
-    expect(alice.userData.getDocuments().getChildren()).toEqual([]);
-    expect(bob.userData.getDocuments().getChildren()).toEqual([]);
+    expect(() => alice.userData.documents.getChildren()).toThrow(NoteUnavailableError);
+    expect(() => bob.userData.documents.getChildren()).toThrow(NoteUnavailableError);
     expect(bob.client).not.toBe(alice.client);
   });
 });
@@ -367,7 +414,7 @@ describe('document-list change stream', () => {
     documentRequests(() => Response.json([{ id: 'shared', title: titles[Math.min(listings++, titles.length - 1)], shareable: false }]));
     runtimeCleanup.push(new QueryObserver(runtime.client, runtime.documentsQuery).subscribe(() => {}));
     const stop = runtime.watchDocumentList();
-    const title = () => runtime.userData.getDocuments().getById('shared')?.getText();
+    const title = () => runtime.userData.documents.getById('shared')?.getText();
     return { runtime, stop, title, listings: () => listings };
   }
 
@@ -411,7 +458,7 @@ describe('document-list change stream', () => {
 
     FakeWebSocket.opened[0]!.connect();
     staleListing.resolve(Response.json([{ id: 'shared', title: 'Draft', shareable: false }]));
-    await vi.waitFor(() => expect(runtime.userData.getDocuments().getById('shared')?.getText())
+    await vi.waitFor(() => expect(runtime.userData.documents.getById('shared')?.getText())
       .toBe('Renamed while disconnected'));
   });
 

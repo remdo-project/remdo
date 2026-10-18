@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { createUserDataRootNote } from '#note-sdk';
+import { createUserDataRootNote, NoteUnavailableError } from '#note-sdk';
 import type { UserDataNote, UserDocument } from '#note-sdk';
 import { TestMantineProvider } from '#tests';
 import { SharedDocumentsButton } from './SharedDocumentsButton';
@@ -21,7 +21,7 @@ function Destination() {
 }
 
 function renderButton(documents: readonly UserDocument[] = []) {
-  userData = createUserDataRootNote(documents);
+  userData = createUserDataRootNote(documents, { shareDocument: vi.fn() });
   return render(
     <TestMantineProvider>
       <MemoryRouter>
@@ -67,9 +67,23 @@ describe('shared documents bell', () => {
   it('distinguishes loading from an empty list', async () => {
     status.loading = true;
     renderButton();
+    vi.spyOn(userData.documents, 'getChildren').mockImplementation(() => { throw new NoteUnavailableError('user-documents'); });
     fireEvent.click(await screen.findByRole('button', { name: 'Shared with you' }));
     expect(await screen.findByText('Loading documents…')).toBeInTheDocument();
     expect(screen.queryByText('Nothing shared with you yet.')).toBeNull();
+  });
+
+  it('reports an unavailable initial listing without claiming it is empty', async () => {
+    status.error = 'The document server is unavailable.';
+    renderButton();
+    vi.spyOn(userData.documents, 'getChildren').mockImplementation(() => { throw new NoteUnavailableError('user-documents'); });
+    fireEvent.click(await screen.findByRole('button', { name: 'Shared with you' }));
+
+    const panel = await screen.findByRole('dialog', { name: 'Shared with you' });
+    expect(within(panel).getByRole('alert')).toHaveTextContent(status.error);
+    expect(within(panel).queryByText('Nothing shared with you yet.')).toBeNull();
+    fireEvent.click(within(panel).getByRole('button', { name: 'Retry' }));
+    expect(status.retry).toHaveBeenCalledOnce();
   });
 
   it('reports an unavailable listing, retains cached entries, and retries on request', async () => {

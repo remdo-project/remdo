@@ -5,10 +5,10 @@ import type { DocumentContactView } from '#domain/documents/access';
 export interface UserDataNote extends AddressableNote<'user-data'> {
   /** Returns a live document reference without checking list membership or loading content. */
   documentRef: (documentId: string) => DocumentNote;
-  /** Returns document lists grouped by current and linked source servers. */
-  getDocumentSources: () => DocumentSourcesNote;
-  /** Returns the user-documents child note. */
-  getDocuments: () => UserDocumentsNote;
+  /** Source notes, each owning its Documents collection. */
+  readonly sources: DocumentSourcesNote;
+  /** All available source documents as members, without changing their parents. */
+  readonly documents: UserDocumentsNote;
 }
 
 export interface UserDocumentsNote extends CollectionNote<DocumentNote> {
@@ -21,15 +21,15 @@ export type DocumentSourcesNote = CollectionNote<DocumentSourceNote>;
 export interface DocumentSourceNote extends AddressableNote<'document-source'> {
   /** Returns the source server origin, when the source is remote. */
   getBaseUrl: () => string | null;
-  /** Returns documents projected by this source. */
-  getDocuments: () => CollectionNote<DocumentNote>;
+  /** The collection structurally containing this source's documents. */
+  readonly documents: CollectionNote<DocumentNote>;
   /** Returns whether this source is the current/home server. */
   getLocal: () => boolean;
 }
 
 export interface DocumentNote extends AddressableNote<'document'> {
-  /** Returns null at this host's document boundary; outer parentage is not resolved here. */
-  getParent: () => null;
+  /** Returns this document's source Documents collection; throws when unknown. */
+  getParent: () => CollectionNote<DocumentNote>;
   /** Stable collection references; their contents are independently available. */
   getChildren: () => readonly [DocumentNote['content'], DocumentNote['access']];
   /** The editor outline, with top-level notes as its structural children. */

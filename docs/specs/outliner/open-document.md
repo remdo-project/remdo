@@ -33,7 +33,8 @@ readable after disposal.
 
 A parent read returns a reference to the editor note's current parent, or the
 Content collection for a top-level note. Both collections return the document as
-their parent. Reparenting a note does not retarget a returned reference.
+their parent. The document's outer parent follows [user data](./user-data.md#state-and-observation);
+opened content does not make unavailable account context readable.
 
 Informative: A retained reference stays useful across edits and deletion/undo.
 Its values are fresh when read; previously returned values do not update

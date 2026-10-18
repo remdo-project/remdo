@@ -9,7 +9,7 @@ import { DocumentRenameDialog } from './DocumentRenameDialog';
 
 function openWhileDocumentLeavesTheList(dialog: (note: DocumentNote) => ReactNode) {
   const list = createObservableDocumentList([{ id: 'doc-a', title: 'Ideas', deletable: true }]);
-  const note = createUserDataRootNote(list.source).getDocuments().getById('doc-a')!;
+  const note = createUserDataRootNote(list.source).documents.getById('doc-a')!;
   const view = render(<TestMantineProvider>{dialog(note)}</TestMantineProvider>);
   act(() => list.replace([]));
   view.rerender(<TestMantineProvider>{dialog(note)}</TestMantineProvider>);

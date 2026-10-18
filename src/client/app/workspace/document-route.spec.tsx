@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTestUserData, setCoarsePointer } from '#tests';
 import { createDocumentPath } from '#document-routes';
+import { NoteUnavailableError } from '#note-sdk';
 import {
   renderDocumentRoute,
   renderDocumentRouteWithResult,
@@ -28,8 +29,20 @@ describe('document route', () => {
     });
   });
 
+  it('keeps the editor and route title usable while account metadata is unavailable', async () => {
+    vi.spyOn(getTestUserData().documents, 'getById').mockImplementation(() => {
+      throw new NoteUnavailableError('user-documents');
+    });
+    renderDocumentRoute();
+
+    expect(await screen.findByTestId('editor-probe')).toHaveAttribute('data-doc-id', 'routeDoc');
+    expect(screen.getByRole('heading', { level: 1, name: 'routeDoc' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Actions for routeDoc' })).toBeNull();
+    expect(document.title).toBe('routeDoc · RemDo');
+  });
+
   it('uses listed document titles instead of route document ids in the page title', async () => {
-    const createdDocument = await getTestUserData().getDocuments().create('  Project\nNotes  ');
+    const createdDocument = await getTestUserData().documents.create('  Project\nNotes  ');
     renderDocumentRoute(createDocumentPath(createdDocument.getId()));
 
     await waitFor(() => {
@@ -64,7 +77,7 @@ describe('document route', () => {
 
   it('heads the document-root view with the full document name and hides the heading when zoomed', async () => {
     const name = `Quarterly ${'planning '.repeat(8)}notes`;
-    const createdDocument = await getTestUserData().getDocuments().create(name);
+    const createdDocument = await getTestUserData().documents.create(name);
     renderDocumentRoute(createDocumentPath(createdDocument.getId()));
 
     expect(await screen.findByRole('heading', { level: 1, name })).toBeInTheDocument();
@@ -77,7 +90,7 @@ describe('document route', () => {
   });
 
   it('starts each opened document with the header as the menu target', async () => {
-    const second = await getTestUserData().getDocuments().create('Second Document');
+    const second = await getTestUserData().documents.create('Second Document');
     renderDocumentRoute(createDocumentPath('testDoc'));
 
     fireEvent.focus(await screen.findByTestId('editor-input-probe'));

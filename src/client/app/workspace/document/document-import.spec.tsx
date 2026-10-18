@@ -29,11 +29,7 @@ describe('document import', () => {
 
   const rejectDocumentCreation = (message = 'offline') => {
     const userData = getTestUserData();
-    const realDocuments = userData.getDocuments.bind(userData);
-    vi.spyOn(userData, 'getDocuments').mockImplementation(() => ({
-      ...realDocuments(),
-      create: vi.fn().mockRejectedValue(new Error(message)),
-    }));
+    vi.spyOn(userData.documents, 'create').mockRejectedValue(new Error(message));
   };
 
   it('creates a document from the selected backup filename before registering the pending import', async () => {
@@ -54,7 +50,7 @@ describe('document import', () => {
 
     const [createdDocId, registeredFile] = registerPendingImport.mock.calls[0]!;
     expect(registeredFile).toBe(file);
-    expect(getTestUserData().getDocuments().getById(createdDocId)?.getText()).toBe('Project Backup');
+    expect(getTestUserData().documents.getById(createdDocId)?.getText()).toBe('Project Backup');
     expect(router.state.location.pathname).toBe(createDocumentPath(createdDocId));
   });
 

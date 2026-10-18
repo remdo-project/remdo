@@ -24,7 +24,7 @@ export function useDocumentActions({
   const [createError, setCreateError] = useState<string | null>(null);
 
   const createDocument = async (title: string) => {
-    const nextDocument = await userData.getDocuments().create(title);
+    const nextDocument = await userData.documents.create(title);
     setCreateError(null);
     trackAnalyticsEvent('document-created');
     onSelectDocument(nextDocument.getId());
@@ -32,7 +32,7 @@ export function useDocumentActions({
 
   const uploadDocument = async (file: File) => {
     try {
-      const nextDocument = await userData.getDocuments().create(resolveUploadedDocumentTitle(file.name));
+      const nextDocument = await userData.documents.create(resolveUploadedDocumentTitle(file.name));
       registerPendingDocumentImport(nextDocument.getId(), file);
       setCreateError(null);
       onSelectDocument(nextDocument.getId());
