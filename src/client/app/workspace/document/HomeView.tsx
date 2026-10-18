@@ -1,6 +1,6 @@
 import { TextInput, VisuallyHidden } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
-import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
+import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { DocumentNote, DocumentSourceNote } from '#note-sdk';
 import { useCoarsePointer } from '#client/browser/useCoarsePointer';
@@ -49,7 +49,7 @@ function DocumentGroup({
   label: string;
   documents: readonly DocumentNote[];
   highlightId: string | null;
-  highlightInput: ActiveInput | null;
+  highlightInput: ActiveInput;
   onSelectDocument: (docId: string) => void;
   onDelete: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
@@ -144,7 +144,7 @@ export function HomeView({
   const activeRowId = active.id !== null && matchIds.includes(active.id) ? active.id : null;
   const chosenInput = activeRowId === null ? null : active.input;
   const highlightId = chosenInput === null ? hasQuery ? matchIds[0] ?? null : null : activeRowId;
-  const highlightInput = chosenInput ?? (highlightId === null ? null : 'keyboard');
+  const highlightInput = chosenInput ?? 'keyboard';
   const menuDocumentIds = visibleDocuments
     .filter((note) => note.canRename() || note.canShareWith() || note.canDelete())
     .map((note) => note.getId());
@@ -169,6 +169,17 @@ export function HomeView({
     }
     if ((active.id === docId && active.input === input) || holdsActiveRow()) return;
     choose(docId, input);
+  };
+
+  const trackPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'touch') return;
+    lastInputRef.current = 'pointer';
+    const inList = event.target instanceof Node && event.currentTarget.contains(event.target);
+    pointerRef.current = inList ? { x: event.clientX, y: event.clientY } : null;
+    const docId = inList ? documentIdOf(event.target as Element) ?? null : null;
+    pointerRowRef.current = docId;
+    if (docId) activate(docId, 'pointer');
+    else if (!holdsActiveRow()) rest('pointer');
   };
 
   useEffect(() => {
@@ -221,7 +232,9 @@ export function HomeView({
   };
 
   useEffect(() => {
-    if (chosenInput === 'keyboard') homeRef.current?.querySelector('[data-highlighted]')?.scrollIntoView({ block: 'nearest' });
+    if (chosenInput === 'keyboard' || (chosenInput === null && lastInputRef.current === 'keyboard')) {
+      homeRef.current?.querySelector('[data-highlighted]')?.scrollIntoView({ block: 'nearest' });
+    }
   }, [highlightId, chosenInput]);
 
   useEffect(() => {
@@ -328,16 +341,8 @@ export function HomeView({
           pointerRowRef.current = null;
           if (!holdsActiveRow()) rest('pointer');
         }}
-        onPointerMove={(event) => {
-          if (event.pointerType === 'touch') return;
-          lastInputRef.current = 'pointer';
-          const inList = event.target instanceof Node && event.currentTarget.contains(event.target);
-          pointerRef.current = inList ? { x: event.clientX, y: event.clientY } : null;
-          const docId = inList ? documentIdOf(event.target as Element) ?? null : null;
-          pointerRowRef.current = docId;
-          if (docId) activate(docId, 'pointer');
-          else if (!holdsActiveRow()) rest('pointer');
-        }}
+        onPointerDown={trackPointer}
+        onPointerMove={trackPointer}
       >
         {hasQuery && hasDocuments && matchIds.length === 0 && (
           <p className="home-search-empty">No documents match</p>

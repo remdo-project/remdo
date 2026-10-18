@@ -116,6 +116,37 @@ test.describe('Home', () => {
     await expect(rows.nth(1).getByRole('button', { name: /^Actions for/u })).toHaveCSS('opacity', '1');
   });
 
+  test('keeps the tint through a rename dialog and drops it when the dialog closes with the pointer elsewhere', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const rows = homeView(page).getByRole('listitem');
+    const tintedRows = () => tintedRowCount(rows);
+
+    await rows.nth(1).hover();
+    await rows.nth(1).getByRole('button', { name: /^Actions for/u }).click();
+    await page.getByRole('menuitem', { name: 'Rename…' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect.poll(tintedRows).toBe(1);
+
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect.poll(tintedRows).toBe(0);
+  });
+
+  test('turns a pointer tint into a keyboard choice when Escape closes its menu', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const rows = homeView(page).getByRole('listitem');
+
+    await rows.nth(1).hover();
+    await rows.nth(1).getByRole('button', { name: /^Actions for/u }).click();
+    await page.mouse.move(5, 5);
+    await page.keyboard.press('Escape');
+
+    await expect(rows.nth(1)).toHaveAttribute('data-highlighted', 'keyboard');
+    await expect.poll(() => tintedRowCount(rows)).toBe(1);
+  });
+
   test('falls back to an available row after deleting the active document', async ({ page, editor }) => {
     await editor.load('basic');
     await homeZoomBreadcrumb(page).click();

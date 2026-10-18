@@ -285,6 +285,16 @@ describe('home view', () => {
       expect(menuTarget()).toBe('Ideas');
     });
 
+    it('chooses the row a pointer press lands on even without a prior move', () => {
+      renderHome(searchProps());
+
+      fireEvent.pointerDown(rowOf('Ideas'));
+      fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
+
+      expect(highlighted()).toEqual(['Ideas']);
+      expect(rowOf('Ideas')).toHaveAttribute('data-highlighted', 'pointer');
+    });
+
     it('ignores the focus a pointer action restores while the pointer is outside the list', () => {
       renderHome(searchProps());
 
@@ -299,6 +309,7 @@ describe('home view', () => {
       try {
         renderHome(searchProps());
         typeQuery('road');
+        expect(scrollIntoView).toHaveBeenCalled();
         fireEvent.pointerMove(rowOf('Roadmap ideas'));
         scrollIntoView.mockClear();
 
