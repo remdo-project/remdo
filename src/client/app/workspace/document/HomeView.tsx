@@ -26,12 +26,10 @@ const hasOpenMenu = (root: HTMLElement | null) => root?.querySelector('.document
 
 const MODIFIER_KEYS = new Set([
   'Alt', 'AltGraph', 'CapsLock', 'Control', 'Fn', 'FnLock', 'Hyper', 'Meta', 'NumLock', 'ScrollLock', 'Shift', 'Super',
-  'Symbol', 'SymbolLock',
+  'Symbol', 'SymbolLock', 'OS', 'Win',
 ]);
 
-const documentIdOf = (element: Element | null) => (
-  element?.closest('.home-doc-row')?.querySelector<HTMLElement>('[data-home-document-ref]')?.dataset.homeDocumentRef
-);
+const documentIdOf = (element: Element | null) => element?.closest<HTMLElement>('[data-home-row]')?.dataset.homeRow;
 
 function filterHomeDocuments(documents: readonly DocumentNote[], query: string): DocumentNote[] {
   return documents.filter((document) => (
@@ -78,10 +76,13 @@ function DocumentGroup({
             <li
               className="home-doc-row"
               data-highlighted={id === highlightId ? highlightInput : undefined}
+              data-home-row={id}
               data-menu-target={id === menuTargetId ? true : undefined}
               key={id}
               onFocus={() => onActivate(id, 'focus')}
-              onKeyDownCapture={() => onActivate(id, 'keyboard')}
+              onKeyDownCapture={(event) => {
+                if (!MODIFIER_KEYS.has(event.key)) onActivate(id, 'keyboard');
+              }}
             >
               <DocumentMenu label={label} note={note} onDelete={onDelete} onRename={onRename} onShare={onShare} />
               <button
@@ -167,11 +168,15 @@ export function HomeView({
     current.input === null || (only && current.input !== only) ? current : { ...current, input: null }
   ));
   const activate = (docId: string, source: ActivationSource) => {
-    const input = source === 'focus' ? lastInputRef.current : source;
-    if (input === 'touch') return;
-    if (source === 'focus' && input === 'pointer' && pointerRowRef.current !== docId) {
-      if (!holdsActiveRow()) rest('pointer');
-      return;
+    const lastInput = source === 'focus' ? lastInputRef.current : source;
+    if (lastInput === 'touch') return;
+    let input: ActiveInput = lastInput;
+    if (source === 'focus' && lastInput === 'pointer' && pointerRowRef.current !== docId) {
+      if (docId === active.id) {
+        if (!holdsActiveRow()) rest('pointer');
+        return;
+      }
+      input = 'keyboard';
     }
     if ((active.id === docId && active.input === input) || holdsActiveRow()) return;
     choose(docId, input);

@@ -295,13 +295,32 @@ describe('home view', () => {
       expect(rowOf('Ideas')).toHaveAttribute('data-highlighted', 'pointer');
     });
 
-    it('ignores the focus a pointer action restores while the pointer is outside the list', () => {
+    it('shows the row that receives focus without a key press after pointer input', () => {
       renderHome(searchProps());
+      fireEvent.pointerMove(rowOf('Ideas'));
 
       fireEvent.pointerDown(document.body);
-      fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      fireEvent.focus(screen.getByRole('button', { name: 'Actions for Roadmap ideas' }));
 
-      expect(highlighted()).toEqual([]);
+      expect(highlighted()).toEqual(['Roadmap ideas']);
+      expect(rowOf('Roadmap ideas')).toHaveAttribute('data-highlighted', 'keyboard');
+    });
+
+    it('keeps a pointer-chosen row pointer-chosen when only a modifier key is pressed inside it', () => {
+      renderHome(searchProps());
+      fireEvent.pointerMove(rowOf('Ideas'));
+
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Ideas' }), { key: 'Shift' });
+
+      expect(rowOf('Ideas')).toHaveAttribute('data-highlighted', 'pointer');
+    });
+
+    it('exposes the pointer-chosen row as the search box active descendant', () => {
+      renderHome(searchProps());
+
+      fireEvent.pointerMove(rowOf('Ideas'));
+
+      expect(searchField()).toHaveAttribute('aria-activedescendant', screen.getByRole('button', { name: 'Ideas' }).id);
     });
 
     it('does not scroll when the pointer leaving hands the highlight back to the first match', () => {

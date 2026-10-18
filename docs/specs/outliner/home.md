@@ -80,7 +80,8 @@ The document list has at most one **active row**, shown tinted. The
 2. A pointer-chosen row is tinted. A keyboard-chosen row is tinted and edged in
    the accent color. The pointer leaving the rows clears the tint of a
    pointer-chosen row and leaves the menu button on that row unless another row
-   becomes active. An open menu or dialog defers that clearing to its closing,
+   becomes active, such as the first match of a non-empty query. An open menu or
+   dialog defers that clearing to its closing,
    unless a keyboard close leaves the row keyboard-chosen.
 3. Editing or clearing the search query clears the tint of any input-chosen row.
 4. While no row is active, the menu button rests on the last chosen row when it
