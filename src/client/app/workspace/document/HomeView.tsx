@@ -24,7 +24,10 @@ type LastInput = ActiveInput | 'touch';
 
 const hasOpenMenu = (root: HTMLElement | null) => root?.querySelector('.document-menu-button[aria-expanded="true"]') != null;
 
-const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
+const MODIFIER_KEYS = new Set([
+  'Alt', 'AltGraph', 'CapsLock', 'Control', 'Fn', 'FnLock', 'Hyper', 'Meta', 'NumLock', 'ScrollLock', 'Shift', 'Super',
+  'Symbol', 'SymbolLock',
+]);
 
 const documentIdOf = (element: Element | null) => (
   element?.closest('.home-doc-row')?.querySelector<HTMLElement>('[data-home-document-ref]')?.dataset.homeDocumentRef
@@ -249,11 +252,14 @@ export function HomeView({
       if (!MODIFIER_KEYS.has(event.key)) lastInputRef.current = 'keyboard';
     };
     const pointer = (event: PointerEvent) => { lastInputRef.current = event.pointerType === 'touch' ? 'touch' : 'pointer'; };
+    const wheel = () => { lastInputRef.current = 'pointer'; };
     document.addEventListener('keydown', keyboard, true);
     document.addEventListener('pointerdown', pointer, true);
+    document.addEventListener('wheel', wheel, { capture: true, passive: true });
     return () => {
       document.removeEventListener('keydown', keyboard, true);
       document.removeEventListener('pointerdown', pointer, true);
+      document.removeEventListener('wheel', wheel, { capture: true });
     };
   }, []);
 

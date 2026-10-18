@@ -338,7 +338,7 @@ describe('home view', () => {
         expect(highlighted()).toEqual(['Roadmap ideas']);
         expect(menuTarget()).toBe('Roadmap ideas');
 
-        fireEvent.keyDown(document.body, { key: 'Shift' });
+        fireEvent.keyDown(document.body, { key: 'CapsLock' });
         underPointer = rowOf('Project Roadmap');
         await scrolled();
         expect(highlighted()).toEqual(['Project Roadmap']);
@@ -352,6 +352,10 @@ describe('home view', () => {
         underPointer = rowOf('Ideas');
         await scrolled();
         expect(highlighted()).toEqual(['Project Roadmap']);
+
+        fireEvent.wheel(document.body);
+        await scrolled();
+        expect(highlighted()).toEqual(['Ideas']);
 
         const otherRow = rowOf('Roadmap ideas');
         fireEvent.pointerMove(rowOf('Ideas'));
