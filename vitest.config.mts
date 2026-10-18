@@ -14,6 +14,7 @@ const directlyRunsSkillTests = process.argv.some(argument =>
 
 // These tests exercise Node boundaries and do not need a DOM or an editor.
 const nodeTests = [
+  'tests/unit/collab/account-fixture.collab.spec.ts',
   'plugins/openai/package.spec.ts',
   'tools/demo/*.spec.ts',
   'src/collaboration-server/server.spec.ts',
@@ -60,6 +61,7 @@ const nodeTests = [
 
 // These tests need a DOM but not the shared RemDo editor fixture.
 const domTests = [
+  'tests/unit/collab/note-sdk-showcase.collab.spec.ts',
   'src/client/editor/outline/selection/selection-tree.spec.ts',
   'src/client/editor/outline/selection/selection-rungs.spec.ts',
   'src/client/editor/dev/vanilla-lexical-editor.spec.tsx',
@@ -147,6 +149,7 @@ export default defineConfig({
         test: {
           name: 'dom',
           environment: 'jsdom',
+          environmentOptions: { jsdom: { url: resolveCollabServerOrigin() } },
           include: domTests,
           setupFiles: ['./tests/unit/_support/setup/dom.ts'],
         },
