@@ -74,12 +74,13 @@ The document list has at most one **active row**, shown tinted. The
 [quick action menu](./menu.md#entry) button and the [document search](./search.md#document-scope) keys target it.
 
 1. The latest input chooses it: the pointer entering a row, including a row
-   scrolled under a pointer that was the latest input, a search arrow key, or
-   keyboard focus or a key press within a row. Touch input does not. An open
-   menu or dialog holds it.
+   scrolled under a pointer resting on the list that was the latest input, a
+   search arrow key, or keyboard focus or a key press within a row. Touch input
+   does not. An open menu or dialog holds it.
 2. A pointer-chosen row is tinted. A keyboard-chosen row is tinted and edged in
-   the accent color. Leaving the list clears the tint of a pointer-chosen row
-   and leaves the menu button on that row unless another row becomes active.
+   the accent color. The pointer leaving the rows clears the tint of a
+   pointer-chosen row and leaves the menu button on that row unless another row
+   becomes active. An open menu or dialog defers that clearing to its closing.
 3. Editing or clearing the search query clears the tint of any input-chosen row.
 4. While no row is active, the menu button rests on the last chosen row when it
    has actions, otherwise on the first row with actions.

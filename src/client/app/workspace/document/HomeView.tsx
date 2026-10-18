@@ -132,6 +132,7 @@ export function HomeView({
   const [active, setActive] = useState<{ id: string | null; input: ActiveInput | null }>({ id: null, input: null });
   const lastInputRef = useRef<LastInput>('keyboard');
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
+  const pointerRowRef = useRef<string | null>(null);
   const groups = sources.map((source) => {
     const documents = source.documents.getChildren();
     return { source, documents, visibleDocuments: filterHomeDocuments(documents, query) };
@@ -153,13 +154,22 @@ export function HomeView({
   const menuTargetId = highlightId ?? restingId;
 
   const holdsActiveRow = () => Boolean(documentDialog) || hasOpenMenu(homeRef.current);
+  const choose = (docId: string, input: ActiveInput) => setActive((current) => (
+    current.id === docId && current.input === input ? current : { id: docId, input }
+  ));
+  const rest = (only?: ActiveInput) => setActive((current) => (
+    current.input === null || (only && current.input !== only) ? current : { ...current, input: null }
+  ));
   const activate = (docId: string, source: ActivationSource) => {
     const input = source === 'focus' ? lastInputRef.current : source;
-    if (input === 'touch' || (source === 'focus' && input === 'pointer' && !pointerRef.current)) return;
+    if (input === 'touch') return;
+    if (source === 'focus' && input === 'pointer' && pointerRowRef.current !== docId) {
+      if (!holdsActiveRow()) rest('pointer');
+      return;
+    }
     if ((active.id === docId && active.input === input) || holdsActiveRow()) return;
-    setActive({ id: docId, input });
+    choose(docId, input);
   };
-  const rest = () => setActive((current) => current.input === null ? current : { ...current, input: null });
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -233,11 +243,10 @@ export function HomeView({
       frame = 0;
       const point = pointerRef.current;
       if (!point || lastInputRef.current !== 'pointer' || hasOpenMenu(homeRef.current)) return;
-      const docId = documentIdOf(document.elementFromPoint(point.x, point.y));
-      setActive((current) => {
-        if (docId) return current.id === docId && current.input === 'pointer' ? current : { id: docId, input: 'pointer' };
-        return current.input === 'pointer' ? { ...current, input: null } : current;
-      });
+      const docId = documentIdOf(document.elementFromPoint(point.x, point.y)) ?? null;
+      pointerRowRef.current = docId;
+      if (docId) choose(docId, 'pointer');
+      else rest('pointer');
     };
     const onScroll = () => {
       if (frame === 0) frame = requestAnimationFrame(followPointer);
@@ -316,14 +325,18 @@ export function HomeView({
         id={listId}
         onPointerLeave={() => {
           pointerRef.current = null;
-          setActive((current) => current.input === 'pointer' ? { ...current, input: null } : current);
+          pointerRowRef.current = null;
+          if (!holdsActiveRow()) rest('pointer');
         }}
         onPointerMove={(event) => {
           if (event.pointerType === 'touch') return;
           lastInputRef.current = 'pointer';
-          pointerRef.current = { x: event.clientX, y: event.clientY };
-          const docId = documentIdOf(event.target instanceof Element ? event.target : null);
+          const inList = event.target instanceof Node && event.currentTarget.contains(event.target);
+          pointerRef.current = inList ? { x: event.clientX, y: event.clientY } : null;
+          const docId = inList ? documentIdOf(event.target as Element) ?? null : null;
+          pointerRowRef.current = docId;
           if (docId) activate(docId, 'pointer');
+          else if (!holdsActiveRow()) rest('pointer');
         }}
       >
         {hasQuery && hasDocuments && matchIds.length === 0 && (

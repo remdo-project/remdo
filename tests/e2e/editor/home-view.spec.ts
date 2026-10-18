@@ -4,6 +4,10 @@ import { ensureReady, load, waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
 import { createUserDocument } from '../_support/documents';
 
+const tintedRowCount = (rows: ReturnType<typeof homeView>) => rows.evaluateAll(
+  (items) => items.filter((item) => getComputedStyle(item).backgroundColor !== 'rgba(0, 0, 0, 0)').length,
+);
+
 test.describe('Home', () => {
   test('keeps one row action visible through hover, keyboard and overlays', async ({ page, editor }) => {
     await editor.load('basic');
@@ -65,9 +69,7 @@ test.describe('Home', () => {
     const home = homeView(page);
     const rows = home.getByRole('listitem');
     await expect(rows).toHaveCount(10);
-    const tintedRows = () => rows.evaluateAll(
-      (items) => items.filter((item) => getComputedStyle(item).backgroundColor !== 'rgba(0, 0, 0, 0)').length,
-    );
+    const tintedRows = () => tintedRowCount(rows);
     const activeLabel = home.locator('li[data-highlighted] .home-doc-label');
     const actionsOf = (index: number) => rows.nth(index).getByRole('button', { name: /^Actions for/u });
 
@@ -93,6 +95,25 @@ test.describe('Home', () => {
     const keyed = await activeLabel.textContent();
     await page.mouse.wheel(0, -100);
     await expect(activeLabel).toHaveText(keyed!);
+  });
+
+  test('keeps the tint while a menu is open and drops it once the menu closes with the pointer elsewhere', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const rows = homeView(page).getByRole('listitem');
+    const tintedRows = () => tintedRowCount(rows);
+
+    await rows.nth(1).hover();
+    await expect.poll(tintedRows).toBe(1);
+    await rows.nth(1).getByRole('button', { name: /^Actions for/u }).click();
+    await expect(page.getByRole('menu')).toBeVisible();
+    await page.mouse.move(5, 5);
+    await expect.poll(tintedRows).toBe(1);
+
+    await page.mouse.click(5, 5);
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect.poll(tintedRows).toBe(0);
+    await expect(rows.nth(1).getByRole('button', { name: /^Actions for/u })).toHaveCSS('opacity', '1');
   });
 
   test('falls back to an available row after deleting the active document', async ({ page, editor }) => {

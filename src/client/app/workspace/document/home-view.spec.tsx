@@ -229,6 +229,62 @@ describe('home view', () => {
       expect(menuTarget()).toBe('Ideas');
     });
 
+    it('clears a pointer tint when the pointer moves off the rows within the list', () => {
+      renderHome(searchProps());
+      fireEvent.pointerMove(rowOf('Ideas'));
+
+      fireEvent.pointerMove(screen.getByRole('heading', { name: 'Local' }));
+
+      expect(highlighted()).toEqual([]);
+      expect(menuTarget()).toBe('Ideas');
+    });
+
+    it('keeps the tint while a menu is open and clears it once the menu closes with the pointer elsewhere', async () => {
+      renderHome(searchProps());
+      const list = listOf();
+      fireEvent.pointerMove(rowOf('Ideas'));
+      fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      await screen.findByRole('menu');
+
+      fireEvent.pointerLeave(list);
+      fireEvent.pointerMove(screen.getByRole('menu'));
+      expect(highlighted()).toEqual(['Ideas']);
+
+      const underlay = document.querySelector('[data-testid="underlay"]')!;
+      fireEvent.pointerDown(underlay);
+      fireEvent.pointerUp(underlay);
+      fireEvent.click(underlay);
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+      fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      expect(highlighted()).toEqual([]);
+      expect(menuTarget()).toBe('Ideas');
+    });
+
+    it('keeps the menu button on the last chosen row when it loses its actions and returns it when they come back', () => {
+      let ideasActions = true;
+      const props = searchProps();
+      props.sources = [sourceNote({
+        id: 'local',
+        label: 'Local',
+        documents: [
+          documentNote({ id: 'docA', title: 'Project Roadmap' }),
+          { ...documentNote({ id: 'docB', title: 'Ideas' }), canRename: () => ideasActions },
+        ],
+      })];
+      const view = renderHome(props);
+      fireEvent.pointerMove(rowOf('Ideas'));
+      fireEvent.pointerLeave(listOf());
+      expect(menuTarget()).toBe('Ideas');
+
+      ideasActions = false;
+      view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
+      expect(menuTarget()).toBe('Project Roadmap');
+
+      ideasActions = true;
+      view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
+      expect(menuTarget()).toBe('Ideas');
+    });
+
     it('ignores the focus a pointer action restores while the pointer is outside the list', () => {
       renderHome(searchProps());
 
