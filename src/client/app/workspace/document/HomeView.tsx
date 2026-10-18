@@ -190,10 +190,10 @@ export function HomeView({
           return;
         }
         input = 'keyboard';
-        lastInputRef.current = 'keyboard';
       }
     }
     if ((active.id === docId && active.input === input) || holdsActiveRow()) return;
+    if (source === 'focus') lastInputRef.current = input;
     choose(docId, input);
   };
 

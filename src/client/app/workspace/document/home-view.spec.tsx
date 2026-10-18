@@ -453,6 +453,21 @@ describe('home view', () => {
       expect(highlighted()).toEqual(['Roadmap ideas']);
     });
 
+    it('does not follow a pointer that touch input has replaced as the latest input', async () => {
+      renderHome(searchProps());
+      layoutRows();
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
+      fireEvent.pointerDown(document.body, { ...atRow(1), pointerType: 'touch' });
+
+      layoutRows(rowPitch);
+      await act(async () => {
+        fireEvent.scroll(document);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+
+      expect(highlighted()).toEqual(['Ideas']);
+    });
+
     it('ignores touch movement and the focus a tap leaves behind', () => {
       renderHome(searchProps());
 
