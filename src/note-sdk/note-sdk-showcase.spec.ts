@@ -98,6 +98,17 @@ describe('note SDK showcase', () => {
         .rejects.toThrow(IneligibleOperationError);
     });
 
+    it('reaches fixed child collections through properties or children', meta({ fixture: 'tree' }), ({ remdo }) => {
+      const document = remdo.openDocument.root;
+
+      expect(document.getChildren()).toEqual([document.content, document.access]);
+
+      // Content children support the ordinary editor-note API.
+      const children = document.content.getChildren();
+      expect(children.map(note => note.getText())).toEqual(['note1', 'note2']);
+      expect(children[1]!.getChildren().map(note => note.getText())).toEqual(['note3']);
+    });
+
     it('walks document content through children reads, including bodies', meta({ fixture: 'editor-showcase' }), ({ remdo }) => {
       interface OutlineEntry { text: string; body: string | null; childListType: NoteListType | null; children: OutlineEntry[] }
       const walk = (parent: DocumentNote['content'] | OpenDocumentNote): OutlineEntry[] => parent.getChildren().map((note) => ({

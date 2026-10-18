@@ -1,8 +1,7 @@
 import { Alert } from '@mantine/core';
-import { NoteUnavailableError } from '#note-sdk';
-import type { DocumentNote } from '#note-sdk';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useUserData, useUserDataRuntime } from '#client/app/user-data/user-data';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useUserDataRuntime } from '#client/app/user-data/user-data';
+import { useUserDataRead } from '#client/app/user-data/use-user-data-read';
 import {
   useDocumentSearchModel,
 } from '#client/app/workspace/useDocumentSearchModel';
@@ -65,8 +64,8 @@ export default function DocumentWorkspace({
   const openDocument = useOpenDocument();
   const openDocumentView = openDocument?.view;
   const { documentDialog, openDelete, openRename, openShare } = useDocumentDialogs(headingRef, onSelectHome);
-  const userData = useUserData();
-  const metadataNote = useMemo(() => userData.documentRef(docId), [userData, docId]);
+  const { userData, data: listedDocument } = useUserDataRead((data) => data.documents.getById(docId));
+  const metadataNote = userData.documentRef(docId);
   const { userId } = useUserDataRuntime();
   const [importError, setImportError] = useState<{ docId: string; message: string } | null>(null);
   if (importError && importError.docId !== docId) {
@@ -79,16 +78,11 @@ export default function DocumentWorkspace({
   const targetHeader = () => {
     if (!shellRef.current?.querySelector('[data-note-menu]')) setMenuTarget('header');
   };
-  let documentNote: DocumentNote | null = null;
-  try {
-    if (userData.documents.getById(docId)) documentNote = openDocument?.root ?? metadataNote;
-  } catch (error) {
-    if (!(error instanceof NoteUnavailableError)) throw error;
-  }
+  const documentNote = listedDocument ? (openDocument?.root ?? metadataNote) : null;
   const documentTitle = documentNote?.getText() ?? docId;
   const documentLabel = formatNavigationLabel(documentTitle);
   const ownsDocument = documentNote?.canShareWith() === true;
-  const recipientCount = ownsDocument && documentNote ? documentNote.access.getChildren().length : 0;
+  const recipientCount = ownsDocument ? documentNote.access.getChildren().length : 0;
   const shared = !ownsDocument || recipientCount > 0;
   const shareAction = ownsDocument ? 'Share document' : 'View document access';
   const shareAccess = ownsDocument

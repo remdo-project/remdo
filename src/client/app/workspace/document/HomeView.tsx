@@ -4,12 +4,11 @@ import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { DocumentNote, DocumentSourceNote } from '#note-sdk';
 import { useCoarsePointer } from '#client/browser/useCoarsePointer';
-import { tokenizeQuery } from '#client/search/query-match';
+import { matchesPathQuery, tokenizeQuery } from '#client/search/query-match';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 import { useDocumentSearchShortcut } from '../useDocumentSearchShortcut';
 import { DocumentMenu } from './DocumentMenu';
 import { useDocumentDialogs } from './useDocumentDialogs';
-import { filterHomeDocuments } from './home-content';
 
 export interface HomeViewProps {
   focusSearchRequested?: boolean;
@@ -19,9 +18,15 @@ export interface HomeViewProps {
   onUploadDocument: (file: File) => void;
 }
 
+function filterHomeDocuments(documents: readonly DocumentNote[], query: string): DocumentNote[] {
+  return documents.filter((document) => (
+    matchesPathQuery([formatNavigationLabel(document.getText(), Number.POSITIVE_INFINITY)], query)
+  ));
+}
+
 function DocumentGroup({
-  source,
-  query,
+  label,
+  documents,
   activeId,
   onSelectDocument,
   onDelete,
@@ -30,8 +35,8 @@ function DocumentGroup({
   menuTargetId,
   onMenuTarget,
 }: {
-  source: DocumentSourceNote;
-  query: string;
+  label: string;
+  documents: readonly DocumentNote[];
   activeId: string | null;
   onSelectDocument: (docId: string) => void;
   onDelete: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
@@ -40,9 +45,6 @@ function DocumentGroup({
   menuTargetId: string | null;
   onMenuTarget: (docId: string) => void;
 }) {
-  const documents = filterHomeDocuments(source.documents.getChildren(), query);
-  if (documents.length === 0) return null;
-  const label = source.getText();
   return (
     <section aria-label={label} className="home-group" role="group">
       <h2 className="home-group-label">{label}</h2>
@@ -119,9 +121,12 @@ export function HomeView({
   const { documentDialog, openDelete, openRename, openShare } = useDocumentDialogs(headingRef);
   const [query, setQuery] = useState('');
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
-  const documents = sources.flatMap((source) => source.documents.getChildren());
-  const hasDocuments = documents.length > 0;
-  const visibleDocuments = filterHomeDocuments(documents, query);
+  const groups = sources.map((source) => {
+    const documents = source.documents.getChildren();
+    return { source, documents, visibleDocuments: filterHomeDocuments(documents, query) };
+  });
+  const hasDocuments = groups.some(({ documents }) => documents.length > 0);
+  const visibleDocuments = groups.flatMap((group) => group.visibleDocuments);
   const matchIds = visibleDocuments.map((note) => note.getId());
   const hasQuery = tokenizeQuery(query).length > 0;
   const activeId = highlightedId !== null && matchIds.includes(highlightedId)
@@ -261,12 +266,12 @@ export function HomeView({
         {hasQuery && hasDocuments && matchIds.length === 0 && (
           <p className="home-search-empty">No documents match</p>
         )}
-        {sources.map((source) => (
+        {groups.filter((group) => group.visibleDocuments.length > 0).map(({ source, visibleDocuments: documents }) => (
           <DocumentGroup
             activeId={activeId}
             key={source.getId()}
-            source={source}
-            query={query}
+            label={source.getText()}
+            documents={documents}
             onDelete={openDelete}
             onRename={openRename}
             onSelectDocument={onSelectDocument}

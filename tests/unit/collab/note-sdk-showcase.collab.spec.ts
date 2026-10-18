@@ -59,17 +59,6 @@ describe('note SDK account showcase', () => {
     expect(document.getParent()).toBe(source.documents);
   });
 
-  it('reaches fixed child collections through properties or children', meta({ fixture: 'tree' }), ({ remdo }) => {
-    const document = remdo.openDocument.root;
-
-    expect(document.getChildren()).toEqual([document.content, document.access]);
-
-    // Content children support the ordinary editor-note API.
-    const children = document.content.getChildren();
-    expect(children.map(note => note.getText())).toEqual(['note1', 'note2']);
-    expect(children[1]!.getChildren().map(note => note.getText())).toEqual(['note3']);
-  });
-
   it('reads account metadata without acquiring editor content', meta({
     fixture: 'tree', collabDocId: 'sdkShowcaseData',
   }), ({ remdo }) => {

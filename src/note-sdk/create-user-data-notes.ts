@@ -104,7 +104,7 @@ function sharingSuggestions(document: UserDocument, documents: readonly UserDocu
 
 function createDocumentHandle(
   noteId: NoteId,
-  documents: CollectionSource<UserDocument>,
+  documents: Required<CollectionSource<UserDocument>>,
   getActions: () => UserDataNoteActions,
   parent: () => CollectionNote<DocumentNote>,
 ): DocumentNote {
@@ -113,7 +113,7 @@ function createDocumentHandle(
     if (!document) throw new NoteUnavailableError(noteId);
     return document;
   };
-  const subscribe = (listener: () => void) => documents.subscribe?.(listener) ?? unsubscribeNothing;
+  const { subscribe } = documents;
   const grants = () => (read().access ?? []).map(documentAccessSource);
   const access = {
     getChildren: grants,
@@ -237,6 +237,12 @@ export function createUserDataRootNote(
     return null;
   }
 
+  function requireSourceFor(documentId: NoteId): DocumentSource {
+    const source = sourceFor(documentId);
+    if (!source) throw new NoteUnavailableError(documentId);
+    return source;
+  }
+
   // Discover subscriptions without requiring inventories to be readable. Their
   // existing subscriptions still deliver failure and recovery notifications.
   function observeSources(listener: () => void): () => void {
@@ -287,23 +293,13 @@ export function createUserDataRootNote(
     const retained = documentRefs.get(documentId);
     if (retained) return retained;
     const document = createDocumentHandle(documentId, {
-      getChildren: () => {
-        const source = sourceFor(documentId);
-        if (!source) throw new NoteUnavailableError(documentId);
-        return source.documents.getChildren();
-      },
+      getChildren: () => requireSourceFor(documentId).documents.getChildren(),
       getById: id => sourceFor(documentId)?.documents.getById(id) ?? null,
       subscribe: observeSources,
     }, () => {
       if (!actions.documentSources) return actions;
-      const source = sourceFor(documentId);
-      if (!source) throw new NoteUnavailableError(documentId);
-      return source.local ? actions : {};
-    }, () => {
-      const source = sourceFor(documentId);
-      if (!source) throw new NoteUnavailableError(documentId);
-      return sourceRef(source.id).documents;
-    });
+      return requireSourceFor(documentId).local ? actions : {};
+    }, () => sourceRef(requireSourceFor(documentId).id).documents);
     documentRefs.set(documentId, document);
     return document;
   }
@@ -355,13 +351,7 @@ export function createUserDataRootNote(
     getText: () => USER_DOCUMENTS_TITLE,
     getParent: userDataRef,
     getChildren: () => sourceCollection.getChildren().flatMap(source => source.documents.getChildren()),
-    getById: documentId => {
-      for (const source of sourceCollection.getChildren()) {
-        const document = source.documents.getById(documentId);
-        if (document) return document;
-      }
-      return null;
-    },
+    getById: documentId => (sourceFor(documentId) ? documentRef(documentId) : null),
     create: async text => {
       if (!actions.createDocument) {
         throw new Error('Document creation is not available for this user data.');

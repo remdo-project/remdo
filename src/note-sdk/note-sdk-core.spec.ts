@@ -69,15 +69,12 @@ describe('note SDK user-data core', () => {
     expect(userData.documents.getChildren()).toContain(document);
     expect(userData.documents.getById('main')).toBe(document);
     expect(userData.documentRef('main')).toBe(document);
-    expect(document.getParent()).toBe(source.documents);
   });
 
   it('keeps document metadata and access readable without pretending its unopened content is empty', async () => {
     const { documents } = createFixture();
-    const userData = createUserDataRootNote(documents);
-    const document = userData.documents.getById('main')!;
+    const document = createUserDataRootNote(documents).documents.getById('main')!;
 
-    expect(document.getParent()).toBe(userData.sources.getById('local')!.documents);
     expect(document.getText()).toBe('Main');
     expect(document.access.getChildren().map((access) => access.getEmail())).toEqual(['bob@example.test']);
     expect(document.access.getChildren()[0]!.getParent()).toBe(document.access);
