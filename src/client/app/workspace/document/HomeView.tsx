@@ -2,23 +2,26 @@ import { TextInput, VisuallyHidden } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import type { DocumentNote } from '#note-sdk';
+import type { DocumentNote, DocumentSourceNote } from '#note-sdk';
 import { useCoarsePointer } from '#client/browser/useCoarsePointer';
-import { tokenizeQuery } from '#client/search/query-match';
+import { matchesPathQuery, tokenizeQuery } from '#client/search/query-match';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 import { useDocumentSearchShortcut } from '../useDocumentSearchShortcut';
 import { DocumentMenu } from './DocumentMenu';
 import { useDocumentDialogs } from './useDocumentDialogs';
-import { filterHomeSources } from './home-content';
-import type { HomeDocumentEntry, HomeDocumentSource } from './home-content';
 
 export interface HomeViewProps {
   focusSearchRequested?: boolean;
-  sources: readonly HomeDocumentSource[];
+  sources: readonly DocumentSourceNote[];
   onSelectDocument: (docId: string) => void;
   onCreateDocument: () => void;
   onUploadDocument: (file: File) => void;
-  resolveDocument: (docId: string) => DocumentNote | null;
+}
+
+function filterHomeDocuments(documents: readonly DocumentNote[], query: string): DocumentNote[] {
+  return documents.filter((document) => (
+    matchesPathQuery([formatNavigationLabel(document.getText(), Number.POSITIVE_INFINITY)], query)
+  ));
 }
 
 function DocumentGroup({
@@ -29,18 +32,16 @@ function DocumentGroup({
   onDelete,
   onRename,
   onShare,
-  resolveDocument,
   menuTargetId,
   onMenuTarget,
 }: {
   label: string;
-  documents: readonly HomeDocumentEntry[];
+  documents: readonly DocumentNote[];
   activeId: string | null;
   onSelectDocument: (docId: string) => void;
   onDelete: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onShare: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
-  resolveDocument: (docId: string) => DocumentNote | null;
   menuTargetId: string | null;
   onMenuTarget: (docId: string) => void;
 }) {
@@ -48,35 +49,33 @@ function DocumentGroup({
     <section aria-label={label} className="home-group" role="group">
       <h2 className="home-group-label">{label}</h2>
       <ul className="home-doc-list">
-        {documents.map((document) => {
-          const note = resolveDocument(document.id);
-          const label = formatNavigationLabel(document.label);
-          const shareable = note?.canShareWith() === true;
-          const sharedNote = note === null ? null : !shareable
+        {documents.map((note) => {
+          const id = note.getId();
+          const label = formatNavigationLabel(note.getText());
+          const shareable = note.canShareWith();
+          const sharedNote = !shareable
             ? 'Shared with you'
             : note.access.getChildren().length > 0 ? 'Shared by you' : null;
-          const sharedId = `home-doc-shared-${document.id}`;
+          const sharedId = `home-doc-shared-${id}`;
           return (
             <li
               className="home-doc-row"
-              data-menu-target={document.id === menuTargetId ? true : undefined}
-              data-search-active={document.id === activeId ? true : undefined}
-              key={document.id}
-              onFocus={() => onMenuTarget(document.id)}
-              onKeyDownCapture={() => onMenuTarget(document.id)}
+              data-menu-target={id === menuTargetId ? true : undefined}
+              data-search-active={id === activeId ? true : undefined}
+              key={id}
+              onFocus={() => onMenuTarget(id)}
+              onKeyDownCapture={() => onMenuTarget(id)}
               onPointerMove={(event) => {
-                if (event.pointerType !== 'touch') onMenuTarget(document.id);
+                if (event.pointerType !== 'touch') onMenuTarget(id);
               }}
             >
-              {note && (
-                <DocumentMenu label={label} note={note} onDelete={onDelete} onRename={onRename} onShare={onShare} />
-              )}
+              <DocumentMenu label={label} note={note} onDelete={onDelete} onRename={onRename} onShare={onShare} />
               <button
                 aria-describedby={sharedNote ? sharedId : undefined}
                 className="home-doc remdo-interaction-surface"
-                data-home-document-ref={document.id}
-                id={`home-doc-link-${document.id}`}
-                onClick={() => onSelectDocument(document.id)}
+                data-home-document-ref={id}
+                id={`home-doc-link-${id}`}
+                onClick={() => onSelectDocument(id)}
                 type="button"
               >
                 <span className="home-doc-label">{label}</span>
@@ -85,7 +84,7 @@ function DocumentGroup({
                 )}
               </button>
               {sharedNote && <span hidden id={sharedId}>{sharedNote}</span>}
-              {note && shareable && sharedNote && (
+              {shareable && sharedNote && (
                 <button
                   aria-label={`${sharedNote}, manage sharing for ${label}`}
                   className="home-doc-shared home-doc-shared-action remdo-interaction-surface"
@@ -109,7 +108,6 @@ export function HomeView({
   onCreateDocument,
   onSelectDocument,
   onUploadDocument,
-  resolveDocument,
   sources,
 }: HomeViewProps) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -123,17 +121,20 @@ export function HomeView({
   const { documentDialog, openDelete, openRename, openShare } = useDocumentDialogs(headingRef);
   const [query, setQuery] = useState('');
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
-  const hasDocuments = sources.some((source) => source.documents.length > 0);
-  const visibleSources = filterHomeSources(sources, query);
-  const matchIds = visibleSources.flatMap((source) => source.documents.map((document) => document.id));
+  const groups = sources.map((source) => {
+    const documents = source.documents.getChildren();
+    return { source, documents, visibleDocuments: filterHomeDocuments(documents, query) };
+  });
+  const hasDocuments = groups.some(({ documents }) => documents.length > 0);
+  const visibleDocuments = groups.flatMap((group) => group.visibleDocuments);
+  const matchIds = visibleDocuments.map((note) => note.getId());
   const hasQuery = tokenizeQuery(query).length > 0;
   const activeId = highlightedId !== null && matchIds.includes(highlightedId)
     ? highlightedId
     : hasQuery ? matchIds[0] ?? null : null;
-  const menuDocumentIds = matchIds.filter((docId) => {
-    const note = resolveDocument(docId);
-    return note && (note.canRename() || note.canShareWith() || note.canDelete());
-  });
+  const menuDocumentIds = visibleDocuments
+    .filter((note) => note.canRename() || note.canShareWith() || note.canDelete())
+    .map((note) => note.getId());
   const [menuTarget, setMenuTarget] = useState<string | null>(null);
   const menuTargetId = menuTarget !== null && menuDocumentIds.includes(menuTarget)
     ? menuTarget
@@ -265,23 +266,20 @@ export function HomeView({
         {hasQuery && hasDocuments && matchIds.length === 0 && (
           <p className="home-search-empty">No documents match</p>
         )}
-        {visibleSources
-          .filter((source) => source.documents.length > 0)
-          .map((source) => (
-            <DocumentGroup
-              activeId={activeId}
-              documents={source.documents}
-              key={source.id}
-              label={source.label}
-              onDelete={openDelete}
-              onRename={openRename}
-              onSelectDocument={onSelectDocument}
-              onShare={openShare}
-              resolveDocument={resolveDocument}
-              menuTargetId={menuTargetId}
-              onMenuTarget={targetDocument}
-            />
-          ))}
+        {groups.filter((group) => group.visibleDocuments.length > 0).map(({ source, visibleDocuments: documents }) => (
+          <DocumentGroup
+            activeId={activeId}
+            key={source.getId()}
+            label={source.getText()}
+            documents={documents}
+            onDelete={openDelete}
+            onRename={openRename}
+            onSelectDocument={onSelectDocument}
+            onShare={openShare}
+            menuTargetId={menuTargetId}
+            onMenuTarget={targetDocument}
+          />
+        ))}
       </div>
 
       {documentDialog}

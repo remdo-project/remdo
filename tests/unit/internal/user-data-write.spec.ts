@@ -8,7 +8,7 @@ describe('user data writes', () => {
 
   it('creates a new document in the local user data', async () => {
     const initialUserData = getTestUserData();
-    expect(initialUserData.getDocuments().getChildren().map((document) => ({
+    expect(initialUserData.documents.getChildren().map((document) => ({
       id: document.getId(),
       title: document.getText(),
     }))).toEqual([
@@ -16,9 +16,9 @@ describe('user data writes', () => {
     ]);
 
     const userData = getTestUserData();
-    const document = await userData.getDocuments().create('New Document');
+    const document = await userData.documents.create('New Document');
 
-    expect(userData.getDocuments().getChildren().map((document) => ({
+    expect(userData.documents.getChildren().map((document) => ({
       id: document.getId(),
       title: document.getText(),
     }))).toEqual([
@@ -27,7 +27,7 @@ describe('user data writes', () => {
     ]);
 
     const reloadedUserData = getTestUserData();
-    expect(reloadedUserData.getDocuments().getChildren().map((document) => ({
+    expect(reloadedUserData.documents.getChildren().map((document) => ({
       id: document.getId(),
       title: document.getText(),
     }))).toEqual([

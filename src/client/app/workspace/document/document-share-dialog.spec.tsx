@@ -17,7 +17,7 @@ afterEach(() => {
 
 function renderDialog({
   documents = [DOC],
-  shareDocument,
+  shareDocument = vi.fn(),
   onClose = vi.fn(),
 }: {
   documents?: readonly UserDocument[];
@@ -25,7 +25,7 @@ function renderDialog({
   onClose?: () => void;
 } = {}) {
   const { source, replace: replaceListing } = createObservableDocumentList(documents);
-  const listGrant: typeof shareDocument = shareDocument && (async (documentId, email) => {
+  const listGrant: typeof shareDocument = async (documentId, email) => {
     const grant = await shareDocument(documentId, email);
     replaceListing(documents.map((document) => (document.id === documentId
       ? {
@@ -34,8 +34,8 @@ function renderDialog({
       }
       : document)));
     return grant;
-  });
-  const note = createUserDataRootNote(source, { shareDocument: listGrant }).getDocuments().getById('docA')!;
+  };
+  const note = createUserDataRootNote(source, { shareDocument: listGrant }).documents.getById('docA')!;
   const view = render(
     <TestMantineProvider>
       <DocumentShareDialog note={note} onClose={onClose} />
@@ -162,7 +162,7 @@ describe('document share dialog', () => {
         return source.subscribe!(listener);
       },
     };
-    const note = createUserDataRootNote(lateSource).getDocuments().getById('docA')!;
+    const note = createUserDataRootNote(lateSource).documents.getById('docA')!;
 
     render(<TestMantineProvider><DocumentShareDialog note={note} onClose={vi.fn()} /></TestMantineProvider>);
 

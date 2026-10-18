@@ -1,5 +1,5 @@
 import { hashKey, QueryClient, queryOptions } from '@tanstack/react-query';
-import { createUserDataRootNote } from '#note-sdk';
+import { createUserDataRootNote, NoteUnavailableError } from '#note-sdk';
 import type { CollectionSource, UserDocument } from '#note-sdk';
 import type { DocumentAccessView } from '#domain/documents/access';
 import { DOCUMENT_TITLE_MAX_LENGTH } from '#domain/documents/user-data';
@@ -22,10 +22,11 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
   });
   const documentsQueryHash = hashKey(documentsQuery.queryKey);
   const documents: CollectionSource<UserDocument> = {
-    getChildren: () => client.getQueryData(documentsQuery.queryKey) ?? [],
+    getChildren: readDocuments,
     getById: (id) => documents.getChildren().find((document) => document.id === id) ?? null,
     subscribe: (listener) => client.getQueryCache().subscribe((event) => {
-      if (event.query.queryHash === documentsQueryHash && event.type === 'updated' && event.action.type === 'success') {
+      if (event.query.queryHash === documentsQueryHash && (event.type === 'removed'
+        || (event.type === 'updated' && (event.action.type === 'success' || event.action.type === 'error')))) {
         listener();
       }
     }),
@@ -141,6 +142,12 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     renameDocument: (documentId, title) => client.getMutationCache().build(client, renameDocumentOptions).execute({ documentId, title }),
     deleteDocument: (documentId) => client.getMutationCache().build(client, deleteDocumentOptions).execute(documentId),
   });
+
+  function readDocuments(): readonly UserDocument[] {
+    const items = client.getQueryData(documentsQuery.queryKey);
+    if (items === undefined) throw new NoteUnavailableError(userData.documents.getId());
+    return items;
+  }
 
   function watchDocumentList(): () => void {
     const url = new URL(DOCUMENT_LIST_PATH, location.origin);

@@ -1,4 +1,4 @@
-export type { NoteId } from './notes';
+export type { Note, NoteId } from './notes';
 export type {
   ChildPreview,
   DocumentSearchOptions,

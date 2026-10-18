@@ -66,7 +66,7 @@ test('suggests direct sharing contacts in both directions without granting acces
     await expect(field).toHaveValue('example');
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await field.fill('Ada');
+    await field.fill(incoming.name);
     await expect(list.getByRole('option')).toHaveCount(1);
     const bounds = await list.boundingBox();
     expect(bounds!.x).toBeGreaterThanOrEqual(0);

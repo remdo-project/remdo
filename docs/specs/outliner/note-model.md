@@ -6,7 +6,8 @@ are adapters that preserve this model.
 
 ## Notes
 
-A **note** lives inside an ordered tree and exposes content to adapters.
+A **note** exposes content to adapters and participates in ordered containment
+structure.
 
 - **Structure** is the note's parent and its position among that parent's children.
 - **Content** is the payload a note exposes to adapters; the model treats it as
@@ -21,14 +22,16 @@ Adapters preserve these guarantees whenever they create, import, or export notes
   [`noteId`](./note-ids.md) within its tree. A document carries its separate
   [`documentId`](./note-ids.md#definitions); a [body](./body.md) is identified
   through its owning editor note rather than by its own identifier.
-- Within a document, every note except the document root has exactly one parent.
-  Each parent owns an ordered list of children, and parent and children reads
-  agree. An editor note's body is separate from its content and is not one of
-  its children.
+- A contained note has exactly one canonical parent, independent of the route
+  used to reach it. Its parent lists it among its children. An editor note's body
+  is separate from its content and is not one of its children.
+- A parent read identifies the current parent, or returns null for a known
+  structural root. Reparenting a note does not retarget a previously returned
+  parent reference.
 - A document always contains at least one editor note. An operation that would
   remove the final editor note leaves an empty editor note instead.
-- A parent owns its children's order, so changing sibling order does not mutate
-  the child notes.
+- A parent owns its contained children's order, so changing sibling order does
+  not mutate the child notes.
 - Content does not alter a note's structural position.
 
 ## Definitions
@@ -43,15 +46,30 @@ Adapters preserve these guarantees whenever they create, import, or export notes
   whitespace. Its body is separate and does not affect this state.
 - **Empty leaf note:** an empty note with no children.
 - **Document root note:** the document itself. Its content text is the document
-  name. It is not directly selectable. Its children are the Content and Access
-  collection notes, in that order. The Content collection owns the top-level
-  editor notes; the Access collection owns the document's [direct grants](./user-data.md).
-  Both use the same collection kind.
+  name. It is not directly selectable. Its
+  children are Content and Access collection notes, in that order. Content owns
+  the top-level editor notes; Access owns the document's [direct grants](./user-data.md).
+  Its account-level parent follows the
+  [user-data hierarchy](./user-data.md#hierarchy).
 - **Subtree:** an editor note and all its descendants. Structural moves preserve
   subtrees as indivisible units.
 - **Note path:** the ordered chain of editor notes from a top-level note through
   a note's ancestors to the note itself. The document root and collection notes
   are not part of a note path.
+
+## Collections
+
+A collection is a note kind that lists ordered notes through the shared
+`getChildren()` read and resolves a listed note by identity through `getById()`,
+returning null when it is known absent. A collection can compute its children
+without changing their parents. The collection determines listing order.
+Unavailable contents produce the
+[unavailable-note error](./open-document.md#state-and-observation) rather than an empty list.
+
+Listing a note does not imply ownership or support for insertion, reordering, or
+deletion. Structural operations follow containment; recursive navigation handles
+repeated notes and cycles. The visited route belongs to caller state and need
+not follow canonical ancestry.
 
 ## Note kinds
 

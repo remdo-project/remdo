@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { DocumentNote } from '#note-sdk';
+import { createUserDataRootNote } from '#note-sdk';
+import type { DocumentNote, DocumentSourceNote } from '#note-sdk';
 import { HomeView } from './HomeView';
 import type { HomeViewProps } from './HomeView';
 import { TestMantineProvider, setCoarsePointer } from '#tests';
@@ -37,32 +38,43 @@ const documentNote = (
   delete: remove,
 } as unknown as DocumentNote);
 
+const sourceNote = ({ id, label, documents }: {
+  id: string;
+  label: string;
+  documents: readonly DocumentNote[];
+}): DocumentSourceNote => ({
+  getId: () => id,
+  getText: () => label,
+  documents: { getChildren: () => documents },
+} as unknown as DocumentSourceNote);
+
 const openRenameDialog = async (name: string) => {
   fireEvent.click(screen.getAllByRole('button', { name: `Actions for ${name}` })[0]!);
   fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename…' }));
   return screen.getByLabelText('Document name');
 };
 
-const baseProps = (): HomeViewProps => ({
+const baseProps = (
+  makeDocument: (document: { id: string; title: string }) => DocumentNote = documentNote,
+): HomeViewProps => ({
   sources: [
-    {
+    sourceNote({
       id: 'local',
       label: 'Local',
       documents: [
-        { id: 'docA', label: 'Project Roadmap' },
-        { id: 'docB', label: 'Ideas' },
+        makeDocument({ id: 'docA', title: 'Project Roadmap' }),
+        makeDocument({ id: 'docB', title: 'Ideas' }),
       ],
-    },
-    {
+    }),
+    sourceNote({
       id: 'server',
       label: 'team-server.dev',
-      documents: [{ id: 'docC', label: 'Team notes' }],
-    },
+      documents: [makeDocument({ id: 'docC', title: 'Team notes' })],
+    }),
   ],
   onSelectDocument: vi.fn(),
   onCreateDocument: vi.fn(),
   onUploadDocument: vi.fn(),
-  resolveDocument: (docId) => documentNote({ id: docId, title: docId }),
 });
 
 const renderHome = (props: HomeViewProps) =>
@@ -80,10 +92,7 @@ describe('home view', () => {
   afterEach(() => setCoarsePointer(false));
 
   it('starts at the first document with available actions', () => {
-    const props = baseProps();
-    props.resolveDocument = (docId) => docId === 'docA'
-      ? null
-      : documentNote({ id: docId, title: docId, canRename: docId === 'docC' });
+    const props = baseProps(note => documentNote({ ...note, canRename: note.id === 'docC' }));
     renderHome(props);
 
     expect(screen.getByRole('button', { name: 'Actions for Team notes' }).closest('li'))
@@ -93,13 +102,11 @@ describe('home view', () => {
   });
 
   it('falls back when its target loses its menu and keeps the replacement when that menu returns', () => {
-    const props = baseProps();
     let ideasAvailable = true;
-    props.resolveDocument = (docId) => documentNote({
-      id: docId,
-      title: docId,
-      canRename: docId !== 'docB' || ideasAvailable,
-    });
+    const props = baseProps(note => ({
+      ...documentNote(note),
+      canRename: () => note.id !== 'docB' || ideasAvailable,
+    }));
     const view = renderHome(props);
     const roadmap = screen.getByRole('button', { name: 'Actions for Project Roadmap' });
     const ideas = screen.getByRole('button', { name: 'Actions for Ideas' });
@@ -140,7 +147,7 @@ describe('home view', () => {
 
   it('omits a group that has no documents', () => {
     const props = baseProps();
-    props.sources = [...props.sources, { id: 'empty', label: 'Empty server', documents: [] }];
+    props.sources = [...props.sources, sourceNote({ id: 'empty', label: 'Empty server', documents: [] })];
     renderHome(props);
 
     expect(screen.getByRole('group', { name: 'Local' })).toBeInTheDocument();
@@ -148,13 +155,11 @@ describe('home view', () => {
   });
 
   it('marks documents shared with or by the user as Shared, leaving the accessible name unchanged', () => {
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({
-      id: docId,
-      title: docId,
-      canShareWith: docId !== 'docC',
-      recipients: docId === 'docB' ? 2 : 0,
-    });
+    const props = baseProps(note => documentNote({
+      ...note,
+      canShareWith: note.id !== 'docC',
+      recipients: note.id === 'docB' ? 2 : 0,
+    }));
     renderHome(props);
 
     const owned = screen.getByRole('button', { name: 'Project Roadmap' });
@@ -170,20 +175,18 @@ describe('home view', () => {
   });
 
   it('opens the sharing surface from the marker of a document the user shared, not from a received one', async () => {
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({
-      id: docId,
-      title: docId,
-      canShareWith: docId !== 'docC',
-      recipients: docId === 'docB' ? 1 : 0,
-    });
+    const props = baseProps(note => documentNote({
+      ...note,
+      canShareWith: note.id !== 'docC',
+      recipients: note.id === 'docB' ? 1 : 0,
+    }));
     renderHome(props);
 
     expect(screen.queryByRole('button', { name: /manage sharing for Team notes/u })).toBeNull();
     expect(screen.queryByRole('button', { name: /manage sharing for Project Roadmap/u })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Shared by you, manage sharing for Ideas' }));
 
-    const dialog = await screen.findByRole('dialog', { name: 'Share “docB”' });
+    const dialog = await screen.findByRole('dialog', { name: 'Share “Ideas”' });
     expect(within(dialog).getByText('recipient-0@example.test')).toBeInTheDocument();
   });
 
@@ -198,21 +201,19 @@ describe('home view', () => {
 
   it('submits a trimmed new name through the row menu', async () => {
     const rename = vi.fn().mockResolvedValue(undefined);
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
+    const props = baseProps(note => documentNote({ ...note, rename: note.id === 'docB' ? rename : vi.fn() }));
     renderHome(props);
 
     const input = await openRenameDialog('Ideas');
     fireEvent.change(input, { target: { value: '  Renamed Ideas  ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
 
-    await waitFor(() => expect(rename).toHaveBeenCalledWith('Renamed Ideas'));
+    await waitFor(() => expect(rename).toHaveBeenCalledExactlyOnceWith('Renamed Ideas'));
   });
 
   it('rejects an empty name without calling the source', async () => {
     const rename = vi.fn();
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
+    const props = baseProps(note => documentNote({ ...note, rename }));
     renderHome(props);
 
     const input = await openRenameDialog('Ideas');
@@ -225,8 +226,7 @@ describe('home view', () => {
 
   it('keeps the draft and shows the failure when the source rejects the rename', async () => {
     const rename = vi.fn().mockRejectedValue(new Error('Document is no longer available.'));
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
+    const props = baseProps(note => documentNote({ ...note, rename }));
     renderHome(props);
 
     const input = await openRenameDialog('Ideas');
@@ -239,8 +239,7 @@ describe('home view', () => {
 
   it('closes without a write when the opening name is submitted unchanged', async () => {
     const rename = vi.fn();
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
+    const props = baseProps(note => documentNote({ ...note, rename }));
     renderHome(props);
 
     const input = await openRenameDialog('Ideas');
@@ -253,8 +252,7 @@ describe('home view', () => {
 
   it('closes without a write when a stored name carrying edge whitespace is resubmitted', async () => {
     const rename = vi.fn();
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: '  Ideas  ', rename });
+    const props = baseProps(note => documentNote({ ...note, title: note.id === 'docB' ? '  Ideas  ' : note.title, rename }));
     renderHome(props);
 
     const input = await openRenameDialog('Ideas');
@@ -268,8 +266,7 @@ describe('home view', () => {
   it('blocks dismissal and repeat submission while a rename is pending', async () => {
     let settle!: () => void;
     const rename = vi.fn().mockReturnValue(new Promise<void>((resolve) => { settle = resolve; }));
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', rename });
+    const props = baseProps(note => documentNote({ ...note, rename }));
     renderHome(props);
 
     const input = await openRenameDialog('Ideas');
@@ -287,8 +284,7 @@ describe('home view', () => {
   });
 
   it('offers sharing only for a document the user can share', async () => {
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canShareWith: docId === 'docB' });
+    const props = baseProps(note => documentNote({ ...note, canShareWith: note.id === 'docB' }));
     renderHome(props);
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
@@ -301,8 +297,7 @@ describe('home view', () => {
   });
 
   it('omits deletion for a document the user cannot delete', async () => {
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: docId, canDelete: false });
+    const props = baseProps(note => documentNote({ ...note, canDelete: false }));
     renderHome(props);
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
@@ -317,12 +312,11 @@ describe('home view', () => {
     // notification does, so the dialog closes while the row still exists.
     const remove = vi.fn().mockImplementation(async () => {
       setTimeout(() => {
-        props.sources = [{ id: 'local', label: 'Local', documents: [{ id: 'docA', label: 'Project Roadmap' }] }];
+        props.sources = [sourceNote({ id: 'local', label: 'Local', documents: [documentNote({ id: 'docA', title: 'Project Roadmap' })] })];
         view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
       });
     });
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canDelete: true, remove });
-    props.sources = [{ id: 'local', label: 'Local', documents: baseProps().sources[0]!.documents }];
+    props.sources = [baseProps(note => documentNote({ ...note, canDelete: true, remove })).sources[0]!];
     view = renderHome(props);
 
     fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
@@ -341,8 +335,7 @@ describe('home view', () => {
 
   it('keeps the document and shows the failure when the source refuses deletion', async () => {
     const remove = vi.fn().mockRejectedValue(new Error('Could not delete the document. Please retry.'));
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canDelete: true, remove });
+    const props = baseProps(note => documentNote({ ...note, canDelete: true, remove }));
     renderHome(props);
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Actions for Ideas' })[0]!);
@@ -354,8 +347,7 @@ describe('home view', () => {
   });
 
   it('omits the menu for a document that cannot be renamed', () => {
-    const props = baseProps();
-    props.resolveDocument = (docId) => documentNote({ id: docId, title: 'Ideas', canRename: false, canShareWith: false });
+    const props = baseProps(note => documentNote({ ...note, canRename: false, canShareWith: false }));
     renderHome(props);
 
     expect(screen.queryByRole('button', { name: /^Actions for/ })).toBeNull();
@@ -365,16 +357,16 @@ describe('home view', () => {
     const longName = `${'Quarterly planning '.repeat(4)}appendix`;
     const searchProps = (): HomeViewProps => {
       const props = baseProps();
-      props.sources = [{
+      props.sources = [sourceNote({
         id: 'local',
         label: 'Local',
         documents: [
-          { id: 'docA', label: 'Project Roadmap' },
-          { id: 'docB', label: 'Ideas' },
-          { id: 'docC', label: 'Roadmap ideas' },
-          { id: 'doc-d', label: longName },
+          documentNote({ id: 'docA', title: 'Project Roadmap' }),
+          documentNote({ id: 'docB', title: 'Ideas' }),
+          documentNote({ id: 'docC', title: 'Roadmap ideas' }),
+          documentNote({ id: 'doc-d', title: longName }),
         ],
-      }];
+      })];
       return props;
     };
 
@@ -478,7 +470,7 @@ describe('home view', () => {
       const view = renderHome(props);
       typeQuery('ideas');
 
-      props.sources = [{ id: 'local', label: 'Local', documents: [{ id: 'docB', label: 'Ideas' }] }];
+      props.sources = [sourceNote({ id: 'local', label: 'Local', documents: [documentNote({ id: 'docB', title: 'Ideas' })] })];
       view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
       expect(searchField()).toHaveValue('ideas');
       expect(listedNames()).toEqual(['Ideas']);
@@ -486,6 +478,27 @@ describe('home view', () => {
       props.sources = [];
       view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
       expect(screen.queryByRole('combobox')).toBeNull();
+    });
+
+    it('uses current note names for filtering and rendering when the same references are read again', () => {
+      let documents = [{ id: 'draft', title: 'Draft', shareable: true }];
+      const userData = createUserDataRootNote({
+        getChildren: () => documents,
+        getById: id => documents.find(document => document.id === id) ?? null,
+      });
+      const props = baseProps();
+      props.sources = userData.sources.getChildren();
+      const view = renderHome(props);
+      typeQuery('final');
+      expect(screen.getByText('No documents match')).toBeInTheDocument();
+
+      documents = [{ id: 'draft', title: 'Final notes', shareable: true }];
+      view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
+
+      expect(searchField()).toHaveValue('final');
+      expect(listedNames()).toEqual(['Final notes']);
+      fireEvent.click(screen.getByRole('button', { name: 'Final notes' }));
+      expect(props.onSelectDocument).toHaveBeenCalledExactlyOnceWith('draft');
     });
 
     it('moves the menu target to a visible document when filtering hides it', () => {
@@ -516,12 +529,12 @@ describe('home view', () => {
 
     it('takes arrival focus once the listing arrives while focus is still free', () => {
       const props = searchProps();
-      const documents = props.sources[0]!.documents;
+      const source = props.sources[0]!;
       props.sources = [];
       const view = renderHome(props);
       expect(screen.getByRole('heading', { name: 'Home' })).toHaveFocus();
 
-      props.sources = [{ id: 'local', label: 'Local', documents }];
+      props.sources = [source];
       view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
 
       expect(searchField()).toHaveFocus();
@@ -529,12 +542,12 @@ describe('home view', () => {
 
     it('leaves focus alone when the listing arrives after the user moved on', () => {
       const props = searchProps();
-      const documents = props.sources[0]!.documents;
+      const source = props.sources[0]!;
       props.sources = [];
       const view = renderHome(props);
       screen.getByRole('button', { name: 'New document' }).focus();
 
-      props.sources = [{ id: 'local', label: 'Local', documents }];
+      props.sources = [source];
       view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
 
       expect(screen.getByRole('button', { name: 'New document' })).toHaveFocus();

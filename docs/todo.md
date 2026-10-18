@@ -48,6 +48,12 @@ implementation.
   against the [document registry](architecture.md#document-registry) and [offline inventory](architecture.md#future). The retired
   projection-backed implementation remains historical evidence. Once decided,
   align the [note model](specs/outliner/note-model.md), architecture, and links owners.
+- **Overlapping source inventories.** When source discovery can expose one
+  document through several sources, decide how its canonical source parent is
+  selected and how aggregate membership reports duplicate, partial, or
+  unavailable coverage. Preserve the [single-parent and membership distinction](specs/outliner/note-model.md#invariants),
+  global document identity, and each source's authorization boundary; the
+  [account hierarchy](specs/outliner/user-data.md#hierarchy) does not establish a federation or authentication protocol.
 - **External sources.** Test the [adapter direction](principles.md#multi-origin-direction) against calendar entries and
   email: find, address, link, and use their context while their content remains
   in its original source. Use concrete examples to settle identity, navigation,
@@ -336,16 +342,18 @@ Remaining:
 
 ### SDK
 
-- **Outer note hierarchy.** Settle the document's canonical parent through account
-  and source collections. Preserve one structural parent while allowing aggregate
-  collections to list the same note without changing its identity or parent.
-  The document's Content and Access branches settle only its inner hierarchy;
-  align the [note model](specs/outliner/note-model.md), [user-data API](specs/outliner/user-data.md), and consumer examples when outer
-  parentage and collection membership are decided.
+- **Account scenario fixtures.** Replace ad hoc showcase account setup with a
+  small reusable scenario of named ordinary users, known documents using existing
+  editor fixtures, and explicit sharing grants. Start with an owner and
+  recipient; add unrelated or privileged users only when a scenario needs them.
+  Reuse the scenario recipe with isolated mutable data per test. Keep sharing
+  preconfigured for read examples and absent when testing the sharing operation
+  itself. Reuse existing account provisioning and document helpers, then migrate
+  the [account showcase](../tests/unit/collab/note-sdk-showcase.collab.spec.ts); broader test adoption can follow separately.
 
 - **Reusable SDK note shapes.** Reassess remaining user-data, source, and grant
   kinds against shared note structure, typed data, and reusable operations using
-  concrete consumers. The shared collection kind for Content and Access does not
+  concrete consumers. The shared collection kind does not
   settle that broader taxonomy. Follow [SDK design](dev/sdk.md) and the [external-source examples](#cross-source-discovery)
   before introducing another kind or a runtime descriptor framework.
 
@@ -373,9 +381,12 @@ Remaining:
 
   Keep model and API choices open to revision throughout this SDK initiative.
   Revisit them when consumer evidence reveals friction or a better fit, and
-  update the design guidance, affected behavior owners, and [showcases](../src/note-sdk/note-sdk-showcase.spec.ts) with each
+  update the design guidance, affected behavior owners, and executable showcases
+  ([editor](../src/note-sdk/note-sdk-showcase.spec.ts), [account](../tests/unit/collab/note-sdk-showcase.collab.spec.ts)) with each
   changed decision. Before closing the SDK work, reconcile those artifacts with
   the final choices and explicitly track any remaining gaps.
+  Add external-source and saved-filter consumer examples when real host support
+  exists.
 
 - **Note-centered SDK consumer boundary.** The
   [open document](specs/outliner/open-document.md) now owns the first

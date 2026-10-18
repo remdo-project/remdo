@@ -1,6 +1,7 @@
 import { Alert } from '@mantine/core';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useUserData, useUserDataRuntime } from '#client/app/user-data/user-data';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useUserDataRuntime } from '#client/app/user-data/user-data';
+import { useUserDataRead } from '#client/app/user-data/use-user-data-read';
 import {
   useDocumentSearchModel,
 } from '#client/app/workspace/useDocumentSearchModel';
@@ -18,7 +19,6 @@ import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentMenu } from './DocumentMenu';
 import { DocumentSearchInput, DocumentSearchResults } from './DocumentSearch';
 import DocumentToolbar from './DocumentToolbar';
-import { resolveDocumentSource } from './resolveDocumentSource';
 import { useDocumentDialogs } from './useDocumentDialogs';
 import '../DocumentRoute.css';
 
@@ -64,11 +64,9 @@ export default function DocumentWorkspace({
   const openDocument = useOpenDocument();
   const openDocumentView = openDocument?.view;
   const { documentDialog, openDelete, openRename, openShare } = useDocumentDialogs(headingRef, onSelectHome);
-  const userData = useUserData();
-  const metadataNote = useMemo(() => userData.documentRef(docId), [userData, docId]);
+  const { userData, data: listedDocument } = useUserDataRead((data) => data.documents.getById(docId));
+  const metadataNote = userData.documentRef(docId);
   const { userId } = useUserDataRuntime();
-  const documentSources = userData.getDocumentSources().getChildren();
-  const source = resolveDocumentSource(docId, documentSources);
   const [importError, setImportError] = useState<{ docId: string; message: string } | null>(null);
   if (importError && importError.docId !== docId) {
     setImportError(null);
@@ -80,9 +78,8 @@ export default function DocumentWorkspace({
   const targetHeader = () => {
     if (!shellRef.current?.querySelector('[data-note-menu]')) setMenuTarget('header');
   };
-  const listedDocument = userData.getDocuments().getById(docId);
   const documentNote = listedDocument ? (openDocument?.root ?? metadataNote) : null;
-  const documentTitle = documentNote?.getText() ?? source.documentLabel;
+  const documentTitle = documentNote?.getText() ?? docId;
   const documentLabel = formatNavigationLabel(documentTitle);
   const ownsDocument = documentNote?.canShareWith() === true;
   const recipientCount = ownsDocument ? documentNote.access.getChildren().length : 0;

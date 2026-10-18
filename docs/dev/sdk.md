@@ -6,33 +6,49 @@ specifications own accepted behavior.
 
 ## Design principles
 
-- Simplicity covers the whole consumer lifecycle. Identity, freshness, lifetime,
-  completion, observation, error recovery, and cleanup contribute to the API's
-  cost alongside successful operations. Fewer caller responsibilities and fewer
-  opportunities for silent misuse matter more than shorter calls.
+- Minimize the complexity of understanding, using, and maintaining the SDK and
+  its consumers. Prefer abstractions that hide implementation decisions and make
+  common tasks easy to perform correctly. Evaluate complete workflows, including
+  failure, recovery, and cleanup. Additional implementation complexity is
+  justified when it removes greater complexity from consumers. Keep behavioral
+  guarantees explicit, including identity, freshness, and operation completion.
 - Consistency follows semantics. Established models are useful where their
   behavior and runtime assumptions fit; addressed interaction and readonly
   queries can justify different representations within a coherent API.
-- Design evidence reflects real usage and is reproducible. Executable examples
-  make required setup, error handling, and observation visible; focused
-  lifecycle coverage supports the guarantees those examples rely on. Rationale
-  that depends on external implementation details identifies the source release
-  or commit.
+- Design evidence reflects real usage and is reproducible. Rationale that
+  depends on external implementation details identifies the source release or
+  commit.
+
+## Showcases
+
+Each example teaches a clear consumer capability or semantic distinction through
+public APIs, real implementations, and known fixtures. Prefer complementary
+examples over exhaustive permutations, keeping required setup, error handling,
+and observation visible. State the lesson in the example's name; brief comments
+distinguish additional lessons within a shared workflow. Assertions keep
+illustrations executable; focused tests own regression coverage. Adapter
+construction and prototypes belong in ordinary tests or research.
 
 ## API conventions
 
 Fallible reads use explicit methods; mutations have separate semantic operations.
 The naming defaults are `getX()` for state reads, `canX()` for eligibility, and
 semantic verbs for operations, including `setX(value)` for assignment. Related
-methods follow the same conventions.
+methods follow the same conventions. Fixed child references use readonly named
+properties; fallible state reads remain methods on those references.
 
 Direct reads of locally available note state are synchronous. Asynchronous
 operations have an explicit completion contract.
 
 ## References
 
+- [Parnas: On the Criteria To Be Used in Decomposing Systems into Modules](https://www.cs.lafayette.edu/~gexia/cs301/resources/parnas.html)
+  — information hiding to localize implementation decisions and their changes.
+- [Ousterhout: Modular Design](https://web.stanford.edu/~ouster/cgi-bin/cs190-spring16/lecture.php?topic=modularDesign) — simple interfaces, behavioral obligations,
+  and absorbing complexity within modules to simplify their consumers.
 - [W3C Web Platform Design Principles](https://www.w3.org/TR/design-principles/) — primary design reference for live versus
-  static objects, fallible reads, overloads, and timing. These principles apply
+  static objects, fallible reads, overloads, timing, and simplicity for common use
+  cases. These principles apply
   independently of its browser-specific interfaces and event machinery.
 - [VS Code API](https://code.visualstudio.com/api/references/vscode-api#TextEditor) and [Extension API guidelines](https://github.com/microsoft/vscode/wiki/Extension-API-guidelines) — supporting examples of local reads
   and awaitable edits. Closed document objects are not reused on reopening;

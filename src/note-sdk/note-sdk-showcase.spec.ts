@@ -1,27 +1,19 @@
 /**
- * Illustrative examples of the current experimental note SDK surface.
+ * Consumer examples of the current experimental open-document SDK surface.
  *
- * These examples optimize for showing consumer usage, not for defining an
- * accepted API or exhaustively covering behavior. Required host setup remains
- * visible when it is part of the current surface, so awkwardness is not hidden.
- * Focused unit and integration specs remain the quality gate.
+ * Example names identify the consumer lesson; comments distinguish related
+ * lessons within a workflow. docs/dev/sdk.md owns the showcase conventions.
+ * Uses the existing editor fixtures and real SDK adapter. Account examples run
+ * against the real backend in tests/unit/collab/note-sdk-showcase.collab.spec.ts.
  */
-import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
-import {
-  createObservableDocumentList,
-  getTestUserData,
-  meta,
-  placeCaretAtNote,
-  resetTestUserData,
-  selectNoteRange,
-  TEST_USER_DATA_DOCUMENT,
-} from '#tests';
-import { createUserDataRootNote, IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
+import { meta, placeCaretAtNote, selectNoteRange } from '#tests';
+import { IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
 import type { DocumentNote, NoteListType, OpenDocumentNote } from '#note-sdk';
 
 describe('note SDK showcase', () => {
   describe('open document', () => {
-    it('reads action eligibility directly and observes changes when needed', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    it('reads current eligibility and observes it as focus changes', meta({ fixture: 'tree' }), async ({ remdo }) => {
       const openDocument = remdo.openDocument;
       await placeCaretAtNote(remdo, 'note1');
       expect(openDocument.focus.canToggleFold()).toBe(false);
@@ -34,19 +26,18 @@ describe('note SDK showcase', () => {
       await placeCaretAtNote(remdo, 'note2');
       await vi.waitFor(() => expect(canFold).toBe(true));
       unsubscribe();
-
-      await placeCaretAtNote(remdo, 'note1');
-      expect(openDocument.focus.canToggleFold()).toBe(false);
     });
 
-    it('retains a reference and reads fresh text after an edit', meta({ fixture: 'tree' }), async ({ remdo }) => {
+    it('retains a live reference while previously read values stay unchanged', meta({ fixture: 'tree' }), async ({ remdo }) => {
       const note = remdo.openDocument.noteRef('note2');
-      const earlierText = note.getText();
+      const earlierChecked = note.getChecked();
 
-      await remdo.updateNoteText('note2', 'changed');
+      await note.toggleChecked();
 
-      expect(note.getText()).toBe('changed');
-      expect(earlierText).toBe('note2');
+      expect(note.getChecked()).toBe(true);
+      expect(earlierChecked).toBe(false);
+      // An addressed toggle includes the note's descendants.
+      expect(remdo.openDocument.noteRef('note3').getChecked()).toBe(true);
     });
 
     it("reads and toggles an addressed note's folded state", meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -59,26 +50,15 @@ describe('note SDK showcase', () => {
       expect(note.getFolded()).toBe(true);
     });
 
-    it('discovers operations for a particular note, independent of focus', meta({ fixture: 'tree' }), ({ remdo }) => {
+    it('reads eligibility from an addressed note without moving focus', meta({ fixture: 'tree' }), ({ remdo }) => {
       const parent = remdo.openDocument.noteRef('note2');
       const leaf = remdo.openDocument.noteRef('note1');
 
       expect(parent.canToggleFold()).toBe(true);
-      expect(parent.canSetChildListType()).toBe(true);
       expect(leaf.canToggleFold()).toBe(false);
-      expect(leaf.canSetChildListType()).toBe(false);
     });
 
-    it('toggles an addressed subtree', meta({ fixture: 'tree' }), async ({ remdo }) => {
-      const note = remdo.openDocument.noteRef('note2');
-
-      await note.toggleChecked();
-
-      expect(note.getChecked()).toBe(true);
-      expect(remdo.openDocument.noteRef('note3').getChecked()).toBe(true);
-    });
-
-    it('uses a note target to choose the contextual selected range', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    it('uses the selected range when a contextual target belongs to it', meta({ fixture: 'flat' }), async ({ remdo }) => {
       await selectNoteRange(remdo, 'note1', 'note2');
 
       remdo.openDocument.selection.toggleChecked({ noteId: 'note2' });
@@ -90,7 +70,7 @@ describe('note SDK showcase', () => {
       });
     });
 
-    it('reads the containing list through a retained parent reference', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
+    it('reads fresh child-list state through a retained parent reference', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
       const parent = remdo.openDocument.noteRef('note2').getParent();
       expect(parent.getChildListType()).toBe('number');
 
@@ -113,8 +93,20 @@ describe('note SDK showcase', () => {
       expect(openDocument.root.content.getChildren().at(-1)!.getText()).toBe('Conversation summary');
       expect(summary.getParent()).toBe(openDocument.root.content);
 
+      // Appending to an unavailable note rejects instead of silently dropping data.
       await expect(openDocument.noteRef('missing').appendChildren([{ text: 'Lost' }]))
         .rejects.toThrow(IneligibleOperationError);
+    });
+
+    it('reaches fixed child collections through properties or children', meta({ fixture: 'tree' }), ({ remdo }) => {
+      const document = remdo.openDocument.root;
+
+      expect(document.getChildren()).toEqual([document.content, document.access]);
+
+      // Content children support the ordinary editor-note API.
+      const children = document.content.getChildren();
+      expect(children.map(note => note.getText())).toEqual(['note1', 'note2']);
+      expect(children[1]!.getChildren().map(note => note.getText())).toEqual(['note3']);
     });
 
     it('walks document content through children reads, including bodies', meta({ fixture: 'editor-showcase' }), ({ remdo }) => {
@@ -128,12 +120,14 @@ describe('note SDK showcase', () => {
 
       const outline = walk(remdo.openDocument.root.content);
 
+      // A note's body stays separate from its short label.
       expect(outline.find(({ text }) => text === 'Note with body')).toEqual({
         text: 'Note with body',
         body: 'Body has rich text and a note link\nSecond body line\nThird body line',
         childListType: null,
         children: [],
       });
+      // Child-list presentation belongs to the parent note.
       expect(outline.find(({ text }) => text === 'Checklist')).toEqual({
         text: 'Checklist',
         body: null,
@@ -145,186 +139,30 @@ describe('note SDK showcase', () => {
       });
     });
 
-    it("observes text changes and handles an unavailable note", meta({ fixture: 'tree' }), async ({ remdo }) => {
+    it('rereads observed state and handles a deleted note', meta({ fixture: 'tree' }), async ({ remdo }) => {
       const note = remdo.openDocument.noteRef('note2');
-      let text: string | null = note.getText();
+      let checked: boolean | null = note.getChecked();
+      // Notifications tell the consumer to reread; they carry no state.
       const unsubscribe = note.subscribe(() => {
         try {
-          text = note.getText();
+          checked = note.getChecked();
         } catch (error) {
           if (!(error instanceof NoteUnavailableError)) throw error;
-          text = null;
+          checked = null;
         }
       });
       onTestFinished(unsubscribe);
 
-      await remdo.updateNoteText('note2', 'changed');
+      await note.toggleChecked();
 
       await vi.waitFor(() => {
-        expect(text).toBe('changed');
+        expect(checked).toBe(true);
       });
 
       await placeCaretAtNote(remdo, 'note2');
       remdo.openDocument.selection.delete();
-      await vi.waitFor(() => expect(text).toBeNull());
+      await vi.waitFor(() => expect(checked).toBeNull());
       unsubscribe();
-    });
-  });
-
-  describe('user data', () => {
-    beforeEach(() => {
-      resetTestUserData();
-    });
-
-    it('lists and creates documents through a projected user-data collection', async () => {
-      const userData = getTestUserData();
-      const documents = userData.getDocuments();
-
-      expect(documents.getId()).toBe('user-documents');
-      expect(documents.getKind()).toBe('collection');
-      expect(documents.getById(TEST_USER_DATA_DOCUMENT.id)?.getText()).toBe(TEST_USER_DATA_DOCUMENT.title);
-      expect(documents.getChildren().map((document) => ({
-        id: document.getId(),
-        text: document.getText(),
-      }))).toEqual([
-        { id: TEST_USER_DATA_DOCUMENT.id, text: TEST_USER_DATA_DOCUMENT.title },
-      ]);
-
-      const createdDocument = await documents.create('New Document');
-
-      expect(createdDocument.getKind()).toBe('document');
-      expect(documents.getChildren().map((document) => ({
-        id: document.getId(),
-        text: document.getText(),
-      }))).toEqual([
-        { id: TEST_USER_DATA_DOCUMENT.id, text: TEST_USER_DATA_DOCUMENT.title },
-        { id: createdDocument.getId(), text: 'New Document' },
-      ]);
-    });
-
-    it('manages sharing through document-level user-data handles', async () => {
-      const documents = [{
-        id: 'doc',
-        title: 'Document',
-        access: [{
-          documentId: 'doc',
-          email: 'alice@example.test',
-          granteeUserId: 'alice',
-          name: 'Alice',
-        }],
-      }];
-      const userData = createUserDataRootNote(documents, {
-        shareDocument: async (documentId, email) => {
-          const grant = { documentId, email, granteeUserId: 'bob', name: 'Bob' };
-          documents[0]!.access.push(grant);
-          return grant;
-        },
-      });
-
-      const document = userData.getDocuments().getById('doc')!;
-      const access = document.access;
-
-      expect(access.getKind()).toBe('collection');
-      expect(access.getChildren().map((person) => ({
-        id: person.getId(),
-        text: person.getText(),
-        email: person.getEmail(),
-      }))).toEqual([{
-        id: 'doc/access/alice',
-        text: 'Alice',
-        email: 'alice@example.test',
-      }]);
-
-      const shared = await document.shareWith('bob@example.test');
-
-      expect(shared.getKind()).toBe('document-access');
-      expect(shared.getText()).toBe('Bob');
-    });
-
-    it('observes a retained document through its source', () => {
-      const { source, replace: replaceListing } = createObservableDocumentList([
-        { id: 'doc', title: 'Draft', shareable: true },
-      ]);
-      const userData = createUserDataRootNote(source);
-      const document = userData.getDocuments().getById('doc')!;
-      const titles: Array<string | null> = [];
-      const unsubscribe = document.subscribe(() => {
-        try {
-          titles.push(document.getText());
-        } catch (error) {
-          if (!(error instanceof NoteUnavailableError)) throw error;
-          titles.push(null);
-        }
-      });
-
-      replaceListing([{ id: 'doc', title: 'Quarterly plan', shareable: true }]);
-      expect(document.getText()).toBe('Quarterly plan');
-      replaceListing([]);
-      expect(document.canShareWith()).toBe(false);
-      unsubscribe();
-      replaceListing([{ id: 'doc', title: 'Restored', shareable: true }]);
-
-      expect(titles).toEqual(['Quarterly plan', null]);
-    });
-
-    it('reads grouped document sources as collection notes', () => {
-      const localDocuments = [{ id: 'localDoc', title: 'Local Document' }];
-      const remoteDocuments = [{ id: 'sourceDoc', title: 'Source Document' }];
-      const userData = createUserDataRootNote(localDocuments, {
-        documentSources: {
-          getById: (sourceId) => sourceId === 'source'
-            ? {
-                baseUrl: 'https://source.example',
-                documents: {
-                  getById: (documentId) => remoteDocuments.find((document) => document.id === documentId) ?? null,
-                  getChildren: () => remoteDocuments,
-                },
-                id: 'source',
-                label: 'Source Server',
-                local: false,
-              }
-            : null,
-          getChildren: () => [{
-            baseUrl: null,
-            documents: {
-              getById: (documentId) => localDocuments.find((document) => document.id === documentId) ?? null,
-              getChildren: () => localDocuments,
-            },
-            id: 'local',
-            label: 'Current Server',
-            local: true,
-          }, {
-            baseUrl: 'https://source.example',
-            documents: {
-              getById: (documentId) => remoteDocuments.find((document) => document.id === documentId) ?? null,
-              getChildren: () => remoteDocuments,
-            },
-            id: 'source',
-            label: 'Source Server',
-            local: false,
-          }],
-        },
-      });
-
-      expect(userData.getDocumentSources().getChildren().map((source) => ({
-        documents: source.getDocuments().getChildren().map((document) => document.getText()),
-        id: source.getId(),
-        text: source.getText(),
-      }))).toEqual([
-        { id: 'local', text: 'Current Server', documents: ['Local Document'] },
-        { id: 'source', text: 'Source Server', documents: ['Source Document'] },
-      ]);
-    });
-
-    it('shows explicit user-data note narrowing with as(kind)', () => {
-      const userData = createUserDataRootNote([TEST_USER_DATA_DOCUMENT]);
-      const documents = userData.getDocuments();
-      const firstDocument = documents.getChildren()[0]!;
-
-      expect(userData.as('user-data')).toBe(userData);
-      expect(documents.as('collection')).toBe(documents);
-      expect(firstDocument.as('document')).toBe(firstDocument);
-      expect(firstDocument.getText()).toBe(TEST_USER_DATA_DOCUMENT.title);
     });
   });
 });

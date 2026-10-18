@@ -3,17 +3,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { createDocumentPath } from '#document-routes';
 import { APP_TITLE } from '#client/ui/navigation-label';
-import { useUserData, useUserDataStatus } from '#client/app/user-data/user-data';
+import { useUserDataRead } from '#client/app/user-data/use-user-data-read';
 import { HomeView } from './document/HomeView';
 import { DocumentCreateDialog } from './document/DocumentCreateDialog';
-import { buildHomeSources } from './document/home-content';
 import { useDocumentActions } from './document/useDocumentActions';
 import { isFocusDocumentSearchState } from './useDocumentSearchShortcut';
 import './DocumentRoute.css';
 
 export default function Home() {
-  const userData = useUserData();
-  const status = useUserDataStatus();
+  const { userData, data: sources = [], error, retry } = useUserDataRead(
+    userData => userData.sources.getChildren().filter(source => source.documents.getChildren().length > 0),
+  );
   const navigate = useNavigate();
   const location = useLocation();
   // History traversal is a new navigation intent: Back to this entry must not
@@ -23,7 +23,6 @@ export default function Home() {
     void navigate(createDocumentPath(docId));
   }, [navigate]);
   const actions = useDocumentActions({ onSelectDocument: openDocument, userData });
-  const sources = buildHomeSources(userData.getDocumentSources().getChildren());
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -33,11 +32,11 @@ export default function Home() {
 
   return (
     <Container className="document-route-container" component="main" fluid>
-      {status.error && (
+      {error && (
         <Alert color="red" title="Could not load documents">
           <Stack align="flex-start" gap="xs">
-            {status.error}
-            <Button onClick={status.retry}>Retry</Button>
+            {error}
+            <Button onClick={retry}>Retry</Button>
           </Stack>
         </Alert>
       )}
@@ -52,11 +51,10 @@ export default function Home() {
         onCreateDocument={() => setCreateDialogOpen(true)}
         onSelectDocument={openDocument}
         onUploadDocument={(file) => { void actions.uploadDocument(file); }}
-        resolveDocument={(docId) => userData.getDocuments().getById(docId)}
       />
       {createDialogOpen && (
         <DocumentCreateDialog
-          existingNames={sources.flatMap((source) => source.documents.map((document) => document.label))}
+          existingNames={sources.flatMap((source) => source.documents.getChildren().map((document) => document.getText()))}
           onClose={() => setCreateDialogOpen(false)}
           onCreate={actions.createDocument}
         />

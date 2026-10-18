@@ -4,7 +4,7 @@ import { getTestUserData } from '#tests';
 import { createDocumentPath } from '#document-routes';
 import { renderDocumentRoute, resetDocumentRouteHarness } from '../../../../../tests/unit/_support/document-route-harness';
 
-const documents = () => getTestUserData().getDocuments().getChildren();
+const documents = () => getTestUserData().documents.getChildren();
 
 async function openCreation() {
   const trigger = screen.getByRole('button', { name: 'New document' });
@@ -26,7 +26,7 @@ describe('home document creation', () => {
     { names: ['New Document', 'New Document 2'], suggestion: 'New Document 1' },
     { names: [' new document ', 'NEW DOCUMENT 1'], suggestion: 'New Document 2' },
   ])('selects $suggestion against the existing names $names', async ({ names, suggestion }) => {
-    for (const name of names) await getTestUserData().getDocuments().create(name);
+    for (const name of names) await getTestUserData().documents.create(name);
     const before = documents().length;
     const router = renderDocumentRoute('/');
     const { input } = await openCreation();
@@ -100,17 +100,17 @@ describe('home document creation', () => {
   it('keeps the suggestion and edited draft stable when the document list changes', async () => {
     renderDocumentRoute('/');
     const { input } = await openCreation();
-    await act(async () => { await getTestUserData().getDocuments().create('New Document'); });
+    await act(async () => { await getTestUserData().documents.create('New Document'); });
     expect(input).toHaveValue('New Document');
 
     fireEvent.change(input, { target: { value: 'My draft' } });
-    await act(async () => { await getTestUserData().getDocuments().create('My draft'); });
+    await act(async () => { await getTestUserData().documents.create('My draft'); });
     expect(input).toHaveValue('My draft');
   });
 
   it('locks a pending creation, keeps a rejected draft, and retries once', async () => {
     let rejectCreation!: (failure: Error) => void;
-    const create = vi.spyOn(getTestUserData().getDocuments(), 'create')
+    const create = vi.spyOn(getTestUserData().documents, 'create')
       .mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectCreation = reject; }));
     const router = renderDocumentRoute('/');
     const before = documents().length;
