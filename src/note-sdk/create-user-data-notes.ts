@@ -259,7 +259,12 @@ export function createUserDataRootNote(
         do {
           state.refreshPending = false;
           let current: readonly DocumentSource[];
-          try { current = sources.getChildren(); } catch { return; }
+          try {
+            current = sources.getChildren();
+          } catch (error) {
+            if (error instanceof NoteUnavailableError) return;
+            throw error;
+          }
           const desired = new Set(current.map(source => source.documents));
           for (const [source, stop] of subscriptions) {
             if (desired.has(source)) continue;

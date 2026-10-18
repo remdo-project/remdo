@@ -377,6 +377,18 @@ describe('note SDK user-data core', () => {
     expect(previousParent.getChildren()).toEqual([]);
   });
 
+  it('propagates unexpected source registry failures when observing', () => {
+    const failure = new TypeError('registry failed');
+    const userData = createUserDataRootNote([], {
+      documentSources: {
+        getChildren: () => { throw failure; },
+        getById: () => null,
+      },
+    });
+
+    expect(() => userData.documents.subscribe(vi.fn())).toThrow(failure);
+  });
+
   it('distinguishes unavailable aggregate inventories from empty results and observes recovery', () => {
     let registryAvailable = false;
     let remoteAvailable = true;
