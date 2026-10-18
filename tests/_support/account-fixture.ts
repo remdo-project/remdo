@@ -4,7 +4,7 @@ import { provisionDjangoUser } from '#tools/django-user';
 import { createFixtureDocuments } from '#tools/fixture-document';
 import { readFixtureState } from '#tools/fixtures';
 import { resolveApiServerOrigin } from '#platform/net/origins';
-import DEVELOPMENT_USERS from '../../backend/fixtures/development-users.json';
+import DEVELOPMENT_USERS from '../../backend/fixtures/development-users.json' with { type: 'json' };
 import { createTestAuthAccount } from './auth-account';
 import { authenticateDjangoTestUser } from './django-auth';
 
