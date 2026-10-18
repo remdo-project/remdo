@@ -353,7 +353,7 @@ Remaining:
 
 - **Reusable SDK note shapes.** Reassess remaining user-data, source, and grant
   kinds against shared note structure, typed data, and reusable operations using
-  concrete consumers. The shared collection kind for Content and Access does not
+  concrete consumers. The shared collection kind does not
   settle that broader taxonomy. Follow [SDK design](dev/sdk.md) and the [external-source examples](#cross-source-discovery)
   before introducing another kind or a runtime descriptor framework.
 
@@ -386,7 +386,7 @@ Remaining:
   changed decision. Before closing the SDK work, reconcile those artifacts with
   the final choices and explicitly track any remaining gaps.
   Add external-source and saved-filter consumer examples when real host support
-  exists; retain prototypes as research.
+  exists.
 
 - **Note-centered SDK consumer boundary.** The
   [open document](specs/outliner/open-document.md) now owns the first

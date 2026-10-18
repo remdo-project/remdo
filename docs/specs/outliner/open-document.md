@@ -17,7 +17,7 @@ document-local note ID; cross-document identity for addressable editor notes
 uses the global [`noteAddress`](./note-ids.md#definitions). The document root
 is the same logical [document note](./user-data.md) exposed through account metadata.
 Its Content and Access collection notes are reachable from it. The Content
-collection and each editor note support children reads, which return references
+collection and each editor note support [children reads](./note-model.md#collections), which return references
 to their current direct editor children in order, and
 [appending](./insertion.md#appending-notes). Creating a live reference
 neither requires the note to exist nor creates it. Value reads resolve the
@@ -27,13 +27,11 @@ unavailable-note error, distinct from unexpected read failures.
 Document metadata and editor content are independently available. A usable
 document reference returns its two child collection references even when either
 collection's contents are unavailable. Synchronous reads use locally available
-state; the host owns asynchronous acquisition. Unavailable collection contents
-produce the unavailable-note error, not an empty list.
+state; the host owns asynchronous acquisition.
 
 A parent read returns a reference to the editor note's current parent, or the
 Content collection for a top-level note. Both collections return the document as
-their parent. The document's outer parent follows [user data](./user-data.md#state-and-observation);
-opened content does not make unavailable account context readable.
+their parent. The document's outer parent follows the [user-data hierarchy](./user-data.md#hierarchy).
 
 Informative: A retained reference stays useful across edits and deletion/undo.
 Its values are fresh when read; previously returned values do not update

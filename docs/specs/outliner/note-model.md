@@ -45,11 +45,11 @@ Adapters preserve these guarantees whenever they create, import, or export notes
 - **Empty note:** an editor note whose content text is empty after trimming
   whitespace. Its body is separate and does not affect this state.
 - **Empty leaf note:** an empty note with no children.
-- **Document root note:** the document itself, identified by its document ID.
-  Its content text is the document name. It is not directly selectable. Its
+- **Document root note:** the document itself. Its content text is the document
+  name. It is not directly selectable. Its
   children are Content and Access collection notes, in that order. Content owns
   the top-level editor notes; Access owns the document's [direct grants](./user-data.md).
-  Both use the same collection kind. Its account-level parent follows the
+  Its account-level parent follows the
   [user-data hierarchy](./user-data.md#hierarchy).
 - **Subtree:** an editor note and all its descendants. Structural moves preserve
   subtrees as indivisible units.
@@ -59,11 +59,11 @@ Adapters preserve these guarantees whenever they create, import, or export notes
 
 ## Collections
 
-A collection lists ordered notes through the shared `getChildren()` read and
-resolves a listed note by identity through `getById()`, returning null when it is
-known absent. A collection can compute its children, for example by combining
-sources or filtering notes, without changing their parents. The collection
-determines listing order. An unavailable inventory produces the
+A collection is a note kind that lists ordered notes through the shared
+`getChildren()` read and resolves a listed note by identity through `getById()`,
+returning null when it is known absent. A collection can compute its children
+without changing their parents. The collection determines listing order.
+Unavailable contents produce the
 [unavailable-note error](./open-document.md#state-and-observation) rather than an empty list.
 
 Listing a note does not imply ownership or support for insertion, reordering, or

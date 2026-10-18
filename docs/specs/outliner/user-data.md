@@ -15,9 +15,12 @@ structurally contains that source's documents. These fixed properties return
 collection references without acquiring their contents.
 
 The aggregate Documents collection lists documents across sources through the
-same [children read](./note-model.md#collections) as source collections. Listed documents retain their source
-Documents collection as their parent. Within one metadata host, either route
-returns the same document reference. Source
+same [children read](./note-model.md#collections) as source collections. Within
+one metadata host, either route returns the same document reference. The User
+Data root is the structural root. A document's parent is the source Documents
+collection currently listing it. An unlisted document, or one without available
+account context such as an open document on a host without account metadata,
+produces the unavailable-note error rather than a null parent. Source
 parentage describes containment in the account context, not document ownership
 or [access authority](../access/access-control.md#document-access).
 
@@ -30,14 +33,11 @@ listed documents. Each metadata read resolves the current document list.
 Metadata reads of a document that is no longer listed
 produce the same identifiable unavailable-note error as an
 [open document](./open-document.md#state-and-observation); its metadata
-capability reads return false. The document's `access` collection owns its direct
-grant notes; each grant returns that collection as its parent. Its `content`
+capability reads return false. The document's [Access collection](./note-model.md#definitions) owns its direct
+grant notes; each grant returns that collection as its parent. Its Content
 collection remains available as a reference without opened editor content, but
 its editor children are unavailable and cannot be appended. Metadata reads do
-not load editor content. A document's parent read returns the source Documents
-collection currently listing it. An unlisted document or unavailable parent
-context produces the unavailable-note error, including on a content-only host;
-it does not imply that the document has no parent.
+not load editor content.
 
 A grant's identity is scoped to its document and distinct from the grantee's
 user ID. Grant reads reflect current metadata; a removed grant is unavailable.
@@ -63,5 +63,5 @@ includes the acknowledged result. A later document-list refresh failure does not
 fail a resolved operation. A rejected operation leaves the document list
 unchanged. An operation addresses its document by `docId` whether or not the
 document is listed; the document's source decides its outcome. An unlisted
-target requires source context known to the host; unknown source context
-produces the unavailable-note error. A document name is at most 500 characters.
+target whose source context the host does not know produces the
+unavailable-note error. A document name is at most 500 characters.
