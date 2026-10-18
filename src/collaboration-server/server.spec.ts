@@ -352,7 +352,7 @@ it('cancels headless acquisition during repeated authorization failures without 
   authorizeStatus = 503;
   let outcome: string | undefined;
   const opening = withHeadlessOpenDocument('document', 'Bearer delegated-token',
-    (document) => document.root.appendChildren([{ text: 'late append' }]), options)
+    (document) => document.root.content.appendChildren([{ text: 'late append' }]), options)
     .then(() => { outcome = 'appended'; }, (error: Error) => { outcome = error.message; });
   try {
     await expect.poll(() => authorizations, { timeout: 3000 }).toBeGreaterThan(1);
@@ -371,7 +371,7 @@ it('cancels headless acquisition during repeated authorization failures without 
     expectDiagnostics(['[onAuthenticate]']);
   }
   const contents = await withHeadlessOpenDocument('document', 'Bearer delegated-token',
-    async (document) => document.root.getChildren().map((note) => note.getText()), { readOnly: true });
+    async (document) => document.root.content.getChildren().map((note) => note.getText()), { readOnly: true });
   expect(contents).not.toContain('late append');
 });
 
@@ -384,14 +384,14 @@ it('keeps writing after opening even when the acquisition deadline expires', asy
   const write = withHeadlessOpenDocument('document', 'Bearer delegated-token', async (document) => {
     opened.resolve();
     await resume.promise;
-    return document.root.appendChildren([{ text: 'written after opening' }]);
+    return document.root.content.appendChildren([{ text: 'written after opening' }]);
   }, { signal: controller.signal });
   await opened.promise;
   controller.abort(new Error('RemDo is busy; try again shortly.'));
   resume.resolve();
   await write;
   const contents = await withHeadlessOpenDocument('document', 'Bearer delegated-token',
-    async (document) => document.root.getChildren().map((note) => note.getText()), { readOnly: true });
+    async (document) => document.root.content.getChildren().map((note) => note.getText()), { readOnly: true });
   expect(contents).toContain('written after opening');
 });
 
@@ -515,13 +515,13 @@ it.each(['synchronization', 'callback'])('reports a post-write %s error as uncon
     runtimeCleanup.push(() => awaitSynced.mockRestore());
   }
   await expect(withHeadlessOpenDocument('document', 'Bearer delegated-token', async (document) => {
-    await document.root.appendChildren([{ text: 'sync outcome unknown' }]);
+    await document.root.content.appendChildren([{ text: 'sync outcome unknown' }]);
     if (stage === 'callback') throw failure;
   }))
     .rejects.toMatchObject({ message: expect.stringContaining('Document changes are unconfirmed'), cause: failure });
   if (stage === 'synchronization') {
     const contents = await withHeadlessOpenDocument('document', 'Bearer delegated-token',
-      async (document) => document.root.getChildren().map((note) => note.getText()), { readOnly: true });
+      async (document) => document.root.content.getChildren().map((note) => note.getText()), { readOnly: true });
     expect(contents).toContain('sync outcome unknown');
   }
 });

@@ -54,7 +54,7 @@ function DocumentGroup({
           const shareable = note?.canShareWith() === true;
           const sharedNote = note === null ? null : !shareable
             ? 'Shared with you'
-            : note.getAccess().getChildren().length > 0 ? 'Shared by you' : null;
+            : note.access.getChildren().length > 0 ? 'Shared by you' : null;
           const sharedId = `home-doc-shared-${document.id}`;
           return (
             <li

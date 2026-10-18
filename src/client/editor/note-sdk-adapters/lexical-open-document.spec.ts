@@ -233,7 +233,7 @@ describe('lexical open document', () => {
   });
 
   it('reads the document root list type', meta({ fixture: 'tree-ordered-root' }), ({ remdo }) => {
-    expect(remdo.openDocument.root.getChildListType()).toBe('number');
+    expect(remdo.openDocument.root.content.getChildListType()).toBe('number');
   });
 
   it('reads parent references through body wrappers and returns the root for top-level notes', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
@@ -245,7 +245,7 @@ describe('lexical open document', () => {
 
     expect(parent.getChildren().map((note) => note.getId())).toEqual(['note2']);
     expect(parent.getChildListType()).toBe('number');
-    expect(openDocument.noteRef('note1').getParent()).toBe(openDocument.root);
+    expect(openDocument.noteRef('note1').getParent()).toBe(openDocument.root.content);
     expect(openDocument.noteRef('missing').getParent).toThrow(NoteUnavailableError);
   });
 
@@ -266,7 +266,7 @@ describe('lexical open document', () => {
 
     openDocument.selection.outdent();
     await waitFor(() => expect(listener).toHaveBeenCalledTimes(2));
-    expect(note.getParent()).toBe(openDocument.root);
+    expect(note.getParent()).toBe(openDocument.root.content);
   });
 
   it('reads addressed-note values without subscribing', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -701,7 +701,7 @@ describe('lexical open document', () => {
     expect(note.getFolded()).toBe(false);
     expect(note.getChecked()).toBe(false);
     expect(note.getChildListType()).toBe('bullet');
-    expect(note.getParent()).toBe(runtime.openDocument.root);
+    expect(note.getParent()).toBe(runtime.openDocument.root.content);
     stop();
     expect(note.getText).toThrow(NoteUnavailableError);
     expect(note.getParent).toThrow(NoteUnavailableError);
@@ -737,7 +737,7 @@ describe('lexical open document', () => {
     await waitFor(() => expect(observed).toEqual([undefined, 'note2']));
     expect(eligibility).toEqual([false, true]);
     expect(note.getText()).toBe('note2');
-    expect(note.getParent()).toBe(runtime.openDocument.root);
+    expect(note.getParent()).toBe(runtime.openDocument.root.content);
 
     await remdo.updateNoteText('note2', 'restored note');
     await waitFor(() => expect(observed).toEqual([undefined, 'note2', 'restored note']));
@@ -847,8 +847,8 @@ describe('lexical open document', () => {
     await expect(runtime.openDocument.search(SEARCH_ALL)).rejects.toThrow('not available');
     expect(runtime.openDocument.history.canUndo()).toBe(false);
     await expect(runtime.openDocument.noteRef('note1').toggleFold()).rejects.toThrow(IneligibleOperationError);
-    expect(runtime.openDocument.root.getChildren).toThrow(NoteUnavailableError);
-    expect(runtime.openDocument.root.getChildListType).toThrow(NoteUnavailableError);
+    expect(runtime.openDocument.root.content.getChildren).toThrow(NoteUnavailableError);
+    expect(runtime.openDocument.root.content.getChildListType).toThrow(NoteUnavailableError);
 
     await typeText(remdo, 'fresh ');
     runtime.setSourceReady(true);
@@ -999,7 +999,7 @@ describe('lexical open document', () => {
     await expect(runtime.openDocument.noteRef('note2').toggleFold()).rejects.toThrow(IneligibleOperationError);
     await expect(runtime.openDocument.noteRef('note2').toggleChecked()).rejects.toThrow(IneligibleOperationError);
     await expect(runtime.openDocument.noteRef('note2').setChildListType('check')).rejects.toThrow(IneligibleOperationError);
-    await expect(runtime.openDocument.root.appendChildren([{ text: 'new' }])).rejects.toThrow(IneligibleOperationError);
+    await expect(runtime.openDocument.root.content.appendChildren([{ text: 'new' }])).rejects.toThrow(IneligibleOperationError);
     runtime.openDocument.noteRef('note2').zoom();
     runtime.openDocument.view.zoomOut();
     runtime.openDocument.view.foldToLevel(1);
@@ -1030,7 +1030,7 @@ describe('lexical open document', () => {
         childListType: 'check',
         children: [{ text: 'Done', checked: true }, { text: 'Open' }],
       }]);
-      const [first, second] = await openDocument.root.appendChildren([{ text: 'First' }, { text: 'Second' }]);
+      const [first, second] = await openDocument.root.content.appendChildren([{ text: 'First' }, { text: 'Second' }]);
 
       expect(remdo).toMatchOutline([
         {
@@ -1048,7 +1048,7 @@ describe('lexical open document', () => {
       ]);
       expect(openDocument.noteRef('note1').getChildListType()).toBe('bullet');
       expect(openDocument.noteRef(summary!).getChildListType()).toBe('check');
-      expect(openDocument.root.getChildren().map((note) => note.getId())).toEqual(['note1', 'note2', first, second]);
+      expect(openDocument.root.content.getChildren().map((note) => note.getId())).toEqual(['note1', 'note2', first, second]);
       expect(openDocument.noteRef(summary!).getChildren().map((note) => note.getText())).toEqual(['Done', 'Open']);
     });
 
@@ -1056,7 +1056,7 @@ describe('lexical open document', () => {
       await remdo.mutate(() => $setSingleNoteDocument('blank', ''));
       await placeCaretAtNote(remdo, 'blank');
 
-      const [first, second] = await remdo.openDocument.root.appendChildren([{ text: 'First' }, { text: 'Second' }]);
+      const [first, second] = await remdo.openDocument.root.content.appendChildren([{ text: 'First' }, { text: 'Second' }]);
 
       expect(remdo).toMatchOutline([{ noteId: first!, text: 'First' }, { noteId: second!, text: 'Second' }]);
       expect(remdo).toMatchSelection({ state: 'caret', note: first! });
@@ -1075,11 +1075,11 @@ describe('lexical open document', () => {
       runtime.setSourceReady(true);
       onTestFinished(runtime.dispose);
 
-      const [first] = await runtime.openDocument.root.appendChildren([{ text: 'First' }]);
+      const [first] = await runtime.openDocument.root.content.appendChildren([{ text: 'First' }]);
 
       expect(editor.getEditorState().read(() => $getRoot().getFirstChild<ListNode>()!.getChildren().map((item) => item.getTextContent())))
         .toEqual(['First']);
-      expect(runtime.openDocument.root.getChildren().map((note) => note.getId())).toEqual([first]);
+      expect(runtime.openDocument.root.content.getChildren().map((note) => note.getId())).toEqual([first]);
     });
 
     it('keeps a sole empty note that has a body or receives the append', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -1091,8 +1091,8 @@ describe('lexical open document', () => {
         $setSingleNoteDocument('blank', '');
         $addNoteBody($findNoteById('blank')!).append($createTextNode('details'));
       });
-      const [appended] = await remdo.openDocument.root.appendChildren([{ text: 'Appended' }]);
-      expect(remdo.openDocument.root.getChildren().map((note) => note.getId())).toEqual(['blank', appended]);
+      const [appended] = await remdo.openDocument.root.content.appendChildren([{ text: 'Appended' }]);
+      expect(remdo.openDocument.root.content.getChildren().map((note) => note.getId())).toEqual(['blank', appended]);
     });
 
     it('notifies a subscriber of the parent when its children change', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -1139,7 +1139,7 @@ describe('lexical open document', () => {
 
       await expect(openDocument.noteRef('missing').appendChildren([{ text: 'orphan' }]))
         .rejects.toThrow(IneligibleOperationError);
-      await expect(openDocument.root.appendChildren([{ text: 'valid', children: [{ text: 'two\nlines' }] }]))
+      await expect(openDocument.root.content.appendChildren([{ text: 'valid', children: [{ text: 'two\nlines' }] }]))
         .rejects.toThrow(IneligibleOperationError);
       await expect(openDocument.noteRef('note1').appendChildren([])).resolves.toEqual([]);
 

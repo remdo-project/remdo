@@ -25,7 +25,17 @@ function renderDialog({
   onClose?: () => void;
 } = {}) {
   const { source, replace: replaceListing } = createObservableDocumentList(documents);
-  const note = createUserDataRootNote(source, { shareDocument }).getDocuments().getById('docA')!;
+  const listGrant: typeof shareDocument = shareDocument && (async (documentId, email) => {
+    const grant = await shareDocument(documentId, email);
+    replaceListing(documents.map((document) => (document.id === documentId
+      ? {
+        ...document,
+        access: [...(document.access ?? []).filter(({ granteeUserId }) => granteeUserId !== grant.granteeUserId), grant],
+      }
+      : document)));
+    return grant;
+  });
+  const note = createUserDataRootNote(source, { shareDocument: listGrant }).getDocuments().getById('docA')!;
   const view = render(
     <TestMantineProvider>
       <DocumentShareDialog note={note} onClose={onClose} />
@@ -122,12 +132,7 @@ describe('document share dialog', () => {
     const access: DocumentAccessView = {
       documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
     };
-    const { replaceListing } = renderDialog({
-      shareDocument: async () => {
-        replaceListing([{ ...DOC, access: [access] }]);
-        return access;
-      },
-    });
+    renderDialog({ shareDocument: async () => access });
 
     invite('bob@example.test');
 
@@ -212,11 +217,10 @@ describe('document share dialog', () => {
   });
 
   it('clears the invited address once the grant is accepted', async () => {
-    renderDialog({
-      shareDocument: async () => ({
-        documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
-      }),
-    });
+    const access: DocumentAccessView = {
+      documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
+    };
+    renderDialog({ shareDocument: async () => access });
 
     invite('bob@example.test');
 
@@ -232,9 +236,10 @@ describe('document share dialog', () => {
   });
 
   it('shows the owner and editing access and confirms the exact granted address', async () => {
-    renderDialog({
-      shareDocument: async () => ({ documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' }),
-    });
+    const access: DocumentAccessView = {
+      documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
+    };
+    renderDialog({ shareDocument: async () => access });
     expect(screen.getByText('You')).toBeInTheDocument();
     expect(screen.getByText('Owner')).toBeInTheDocument();
     invite('  bob@example.test  ');

@@ -17,7 +17,7 @@ import {
   TEST_USER_DATA_DOCUMENT,
 } from '#tests';
 import { createUserDataRootNote, IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
-import type { NoteListType, OpenDocumentParentNote } from '#note-sdk';
+import type { DocumentNote, NoteListType, OpenDocumentNote } from '#note-sdk';
 
 describe('note SDK showcase', () => {
   describe('open document', () => {
@@ -102,7 +102,7 @@ describe('note SDK showcase', () => {
     it('appends an outline and addresses its new notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
       const openDocument = remdo.openDocument;
 
-      const [summaryId] = await openDocument.root.appendChildren([{
+      const [summaryId] = await openDocument.root.content.appendChildren([{
         text: 'Conversation summary',
         childListType: 'check',
         children: [{ text: 'Follow up' }],
@@ -110,22 +110,23 @@ describe('note SDK showcase', () => {
       const summary = openDocument.noteRef(summaryId!);
       expect(summary.getChildListType()).toBe('check');
       expect(summary.getChildren().map((note) => note.getText())).toEqual(['Follow up']);
-      expect(openDocument.root.getChildren().at(-1)!.getText()).toBe('Conversation summary');
+      expect(openDocument.root.content.getChildren().at(-1)!.getText()).toBe('Conversation summary');
+      expect(summary.getParent()).toBe(openDocument.root.content);
 
       await expect(openDocument.noteRef('missing').appendChildren([{ text: 'Lost' }]))
         .rejects.toThrow(IneligibleOperationError);
     });
 
-    it('walks a document through children reads, including bodies', meta({ fixture: 'editor-showcase' }), ({ remdo }) => {
+    it('walks document content through children reads, including bodies', meta({ fixture: 'editor-showcase' }), ({ remdo }) => {
       interface OutlineEntry { text: string; body: string | null; childListType: NoteListType | null; children: OutlineEntry[] }
-      const walk = (parent: OpenDocumentParentNote): OutlineEntry[] => parent.getChildren().map((note) => ({
+      const walk = (parent: DocumentNote['content'] | OpenDocumentNote): OutlineEntry[] => parent.getChildren().map((note) => ({
         text: note.getText(),
         body: note.getBody(),
         childListType: note.getChildListType(),
         children: walk(note),
       }));
 
-      const outline = walk(remdo.openDocument.root);
+      const outline = walk(remdo.openDocument.root.content);
 
       expect(outline.find(({ text }) => text === 'Note with body')).toEqual({
         text: 'Note with body',
@@ -202,7 +203,7 @@ describe('note SDK showcase', () => {
     });
 
     it('manages sharing through document-level user-data handles', async () => {
-      const userData = createUserDataRootNote([{
+      const documents = [{
         id: 'doc',
         title: 'Document',
         access: [{
@@ -211,17 +212,17 @@ describe('note SDK showcase', () => {
           granteeUserId: 'alice',
           name: 'Alice',
         }],
-      }], {
-        shareDocument: async (documentId, email) => ({
-          documentId,
-          email,
-          granteeUserId: 'bob',
-          name: 'Bob',
-        }),
+      }];
+      const userData = createUserDataRootNote(documents, {
+        shareDocument: async (documentId, email) => {
+          const grant = { documentId, email, granteeUserId: 'bob', name: 'Bob' };
+          documents[0]!.access.push(grant);
+          return grant;
+        },
       });
 
       const document = userData.getDocuments().getById('doc')!;
-      const access = document.getAccess();
+      const access = document.access;
 
       expect(access.getKind()).toBe('collection');
       expect(access.getChildren().map((person) => ({
@@ -229,7 +230,7 @@ describe('note SDK showcase', () => {
         text: person.getText(),
         email: person.getEmail(),
       }))).toEqual([{
-        id: 'alice',
+        id: 'doc/access/alice',
         text: 'Alice',
         email: 'alice@example.test',
       }]);

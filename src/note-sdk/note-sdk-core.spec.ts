@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CollectionSource, DocumentSource, UserDocument } from '#note-sdk';
-import { createUserDataRootNote } from '#note-sdk';
+import { createUserDataRootNote, NoteUnavailableError } from '#note-sdk';
 
 function createFixture(): { documents: UserDocument[] } {
   return {
@@ -46,6 +46,82 @@ describe('note SDK user-data core', () => {
       { id: 'main', kind: 'document', shareable: true, text: 'Main' },
       { id: 'flat', kind: 'document', shareable: false, text: 'Flat' },
     ]);
+  });
+
+  it('keeps document metadata and access readable without pretending its unopened content is empty', async () => {
+    const { documents } = createFixture();
+    const document = createUserDataRootNote(documents).getDocuments().getById('main')!;
+
+    expect(document.getText()).toBe('Main');
+    expect(document.access.getChildren().map((access) => access.getEmail())).toEqual(['bob@example.test']);
+    expect(document.access.getChildren()[0]!.getParent()).toBe(document.access);
+    expect(document.content.getChildren).toThrow(NoteUnavailableError);
+    expect(document.content.getChildListType).toThrow(NoteUnavailableError);
+    expect(() => document.content.getById('unknown')).toThrow(NoteUnavailableError);
+    await expect(document.content.appendChildren([{ text: 'Child' }])).rejects.toBeInstanceOf(NoteUnavailableError);
+  });
+
+  it('addresses an unlisted document without acquiring data and lets its source decide a rename', async () => {
+    const documents: UserDocument[] = [];
+    const listeners = new Set<() => void>();
+    const source: CollectionSource<UserDocument> = {
+      getChildren: vi.fn(() => documents),
+      getById: vi.fn((id) => documents.find((document) => document.id === id) ?? null),
+      subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    };
+    const renameDocument = vi.fn(async (id: string, title: string) => {
+      documents.push({ id, title: title.trim() });
+      for (const listener of listeners) listener();
+    });
+    const userData = createUserDataRootNote(source, { renameDocument });
+    const document = userData.documentRef('unlisted');
+
+    expect(document.getId()).toBe('unlisted');
+    expect(source.getChildren).not.toHaveBeenCalled();
+    expect(source.getById).not.toHaveBeenCalled();
+    expect(userData.getDocuments().getById('unlisted')).toBeNull();
+    expect(document.getText).toThrow(NoteUnavailableError);
+    expect(document.canRename()).toBe(false);
+
+    const renamed = await document.rename(' Renamed ');
+
+    expect(renameDocument).toHaveBeenCalledWith('unlisted', ' Renamed ');
+    expect(renamed.getId()).toBe('unlisted');
+    expect(document.getText()).toBe('Renamed');
+    expect(userData.getDocuments().getById('unlisted')?.getText()).toBe('Renamed');
+    expect(source.getChildren).not.toHaveBeenCalled();
+  });
+
+  it('reads refreshed grants through retained access and grant references', () => {
+    const { documents } = createFixture();
+    const document = createUserDataRootNote(documents).documentRef('main');
+    const access = document.access;
+    const bob = access.getById('main/access/bob')!;
+
+    expect(access.getChildren().map((grant) => grant.getEmail())).toEqual(['bob@example.test']);
+
+    documents[0] = {
+      ...documents[0]!,
+      access: [{ documentId: 'main', granteeUserId: 'bob', email: 'robert@example.test', name: 'Robert' }],
+    };
+
+    expect(bob.getText()).toBe('Robert');
+    expect(bob.getEmail()).toBe('robert@example.test');
+
+    documents[0] = {
+      ...documents[0],
+      access: [{ documentId: 'main', granteeUserId: 'carol', email: 'carol@example.test', name: 'Carol' }],
+    };
+
+    expect(access.getChildren().map((grant) => grant.getEmail())).toEqual(['carol@example.test']);
+    expect(access.getById('main/access/bob')).toBeNull();
+    expect(access.getById('main/access/carol')?.getText()).toBe('Carol');
+    expect(bob.getText).toThrow(NoteUnavailableError);
+
+    documents.shift();
+
+    expect(access.getChildren).toThrow(NoteUnavailableError);
+    expect(() => access.getById('main/access/carol')).toThrow(NoteUnavailableError);
   });
 
   it('lists documents through grouped document-source traversal', async () => {
@@ -110,17 +186,17 @@ describe('note SDK user-data core', () => {
 
   it('shares documents through document-level user-data handles', async () => {
     const { documents } = createFixture();
-    const shareDocument = vi.fn(async (documentId: string, email: string) => ({
-      documentId,
-      email,
-      granteeUserId: 'carol',
-      name: 'Carol',
-    }));
+    const shareDocument = vi.fn(async (documentId: string, email: string) => {
+      const grant = { documentId, email, granteeUserId: 'carol', name: 'Carol' };
+      const document = documents.find((candidate) => candidate.id === documentId)!;
+      document.access = [...document.access!, grant];
+      return grant;
+    });
     const document = createUserDataRootNote(documents, { shareDocument })
       .getDocuments()
       .getById('main')!;
 
-    expect(document.getAccess().getChildren().map((access) => ({
+    expect(document.access.getChildren().map((access) => ({
       id: access.getId(),
       kind: access.getKind(),
       text: access.getText(),
@@ -128,7 +204,7 @@ describe('note SDK user-data core', () => {
       granteeUserId: access.getGranteeUserId(),
       name: access.getName(),
     }))).toEqual([{
-      id: 'bob',
+      id: 'main/access/bob',
       kind: 'document-access',
       text: 'Bob',
       email: 'bob@example.test',
@@ -140,6 +216,9 @@ describe('note SDK user-data core', () => {
 
     expect(shareDocument).toHaveBeenCalledWith('main', 'carol@example.test');
     expect(access.getText()).toBe('Carol');
+    expect(access.getId()).toBe('main/access/carol');
+    expect(access.getParent()).toBe(document.access);
+    expect(document.access.getById(access.getId())?.getText()).toBe('Carol');
   });
 
   it('uses the email as access text when the display name is empty', () => {
@@ -152,7 +231,7 @@ describe('note SDK user-data core', () => {
       }],
       id: 'main',
       title: 'Main',
-    }]).getDocuments().getById('main')!.getAccess().getChildren()[0]!;
+    }]).getDocuments().getById('main')!.access.getChildren()[0]!;
 
     expect(access.getText()).toBe('reader@example.test');
   });

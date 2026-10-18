@@ -58,7 +58,7 @@ plain text is interpreted and focus after paste) live in [Clipboard](./clipboard
 ## Appending notes
 
 Appending adds described notes as the last children of a note; appending to the
-[document root](./note-model.md#definitions) adds top-level notes, which replace
+[Content collection](./note-model.md#definitions) adds top-level notes, which replace
 the document's only editor note when it is an
 [empty note](./note-model.md#definitions) without a body. Each
 described note supplies its plain text and optionally its checked state, its

@@ -8,7 +8,6 @@ export type {
   OpenDocumentNote,
   EditorNoteSnapshot,
   NewNote,
-  OpenDocumentParentNote,
   SearchResult,
 } from './open-document';
 export type {

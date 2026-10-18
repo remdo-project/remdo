@@ -5,6 +5,7 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { useCallback, useEffect, useState } from 'react';
+import type { DocumentNote } from '#note-sdk';
 import { editorExtension } from '#client/editor/runtime/config';
 import { CollaborationPlugin, useOfflineDocumentUnavailable } from '#client/editor/runtime/collaboration';
 import { CheckListPlugin } from '#client/editor/features/list-types/CheckListPlugin';
@@ -40,6 +41,7 @@ import './Editor.css';
 
 interface EditorProps {
   docId: string;
+  metadataNote?: DocumentNote;
   accountId?: string;
   onSelectHome: () => void;
   statusPortalRoot: HTMLElement | null;
@@ -49,6 +51,7 @@ interface EditorProps {
 
 export default function Editor({
   docId,
+  metadataNote,
   accountId,
   statusPortalRoot,
   editingToolbarPortalRoot,
@@ -62,6 +65,7 @@ export default function Editor({
         <CollaborationPlugin docId={docId} accountId={accountId}>
           <EditorRuntime
             docId={docId}
+            metadataNote={metadataNote}
             statusPortalRoot={statusPortalRoot}
             editingToolbarPortalRoot={editingToolbarPortalRoot}
             onPendingDocumentImportError={onPendingDocumentImportError}
@@ -75,6 +79,7 @@ export default function Editor({
 
 function EditorRuntime({
   docId,
+  metadataNote,
   statusPortalRoot,
   editingToolbarPortalRoot = null,
   onPendingDocumentImportError,
@@ -83,7 +88,7 @@ function EditorRuntime({
   const [editor] = useLexicalComposerContext();
   const coarse = useCoarsePointer();
   const [schemaReady, setSchemaReady] = useState(false);
-  const openDocument = useLexicalOpenDocument({ editor, docId, ready: schemaReady });
+  const openDocument = useLexicalOpenDocument({ editor, docId, metadataNote, ready: schemaReady });
   const registerOpenDocument = useRegisterOpenDocument();
   const offlineDocumentUnavailable = useOfflineDocumentUnavailable();
   const handleSchemaReadyChange = useCallback((ready: boolean) => {

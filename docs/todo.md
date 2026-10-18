@@ -42,9 +42,9 @@ implementation.
   access changes, and unavailable sources before choosing direct document
   loading or a derived search index. Coordinate the UI, [note-link picker](specs/outliner/links.md#future), and
   [MCP](#claude-mcp-save-a-conversation-to-remdo) through shared SDK operations.
-- **Unopened documents.** Settle non-current `DocumentNote` loading, whether
-  children reads may hydrate content, and which operations are available before
-  loading. Reassess persisted user-data handles and document-specific kinds
+- **Unopened documents.** Settle host-owned acquisition of non-current documents,
+  content retention, and offline availability under the [open-document read boundary](specs/outliner/open-document.md#state-and-observation).
+  Reassess persisted user-data handles and document-specific kinds
   against the [document registry](architecture.md#document-registry) and [offline inventory](architecture.md#future). The retired
   projection-backed implementation remains historical evidence. Once decided,
   align the [note model](specs/outliner/note-model.md), architecture, and links owners.
@@ -336,16 +336,20 @@ Remaining:
 
 ### SDK
 
-- **Parent and document references — after compatibility.** Clarify real
-  editor/document note references under the [note model](specs/outliner/note-model.md), replacing the temporary
-  `OpenDocumentParentNote` exposed by [PR #822](https://github.com/remdo-project/remdo/pull/822). Distinguish identity,
-  host-owned asynchronous acquisition, and locally available values; resolve how
-  the [opened document root](specs/outliner/open-document.md) and [user-data document note](specs/outliner/user-data.md) share document identity while
-  preserving their availability and lifetime guarantees. Align contracts,
-  implementation, and [consumer showcases](../src/note-sdk/note-sdk-showcase.spec.ts), including retained-parent identity
-  across reparenting.
+- **Outer note hierarchy.** Settle the document's canonical parent through account
+  and source collections. Preserve one structural parent while allowing aggregate
+  collections to list the same note without changing its identity or parent.
+  The document's Content and Access branches settle only its inner hierarchy;
+  align the [note model](specs/outliner/note-model.md), [user-data API](specs/outliner/user-data.md), and consumer examples when outer
+  parentage and collection membership are decided.
 
-- **Backend note ownership — after API clarification.** Move non-editor note
+- **Reusable SDK note shapes.** Reassess remaining user-data, source, and grant
+  kinds against shared note structure, typed data, and reusable operations using
+  concrete consumers. The shared collection kind for Content and Access does not
+  settle that broader taxonomy. Follow [SDK design](dev/sdk.md) and the [external-source examples](#cross-source-discovery)
+  before introducing another kind or a runtime descriptor framework.
+
+- **Backend note ownership — next SDK slice.** Move non-editor note
   processing, including user data and its MCP handling, to Django/Python. Keep
   TypeScript for the browser SDK and backend Node for processing that currently
   depends on Lexical/Yjs. A coherent note API does not require a shared

@@ -19,7 +19,7 @@ function readSharing(note: DocumentNote) {
     return {
       name: note.getText(),
       owner: note.canShareWith(),
-      recipients: note.getAccess().getChildren(),
+      recipients: note.access.getChildren(),
       suggestions: note.getSharingSuggestions(),
     };
   } catch (error) {

@@ -16,7 +16,7 @@ it('renders list types, checked state, bodies, and note links as nested Markdown
   await remdo.updateNoteText('note5', 'see [ref]');
   await remdo.openDocument.noteRef('note3').toggleChecked();
 
-  expect(renderOutline(remdo.openDocument.root.getChildren(), url)).toBe([
+  expect(renderOutline(remdo.openDocument.root.content.getChildren(), url)).toBe([
     '- [note1](https://remdo.example/n/doc_note1)',
     '  1. [note2](https://remdo.example/n/doc_note2)',
     '- [x] [note3](https://remdo.example/n/doc_note3)',
@@ -37,8 +37,8 @@ it('renders a note read on its own with the marker of its containing list', meta
   expect(() => read('missing')).toThrow(NoteUnavailableError);
 });
 
-it('renders top-level notes with the marker of the document root list', meta({ fixture: 'tree-ordered-root' }), ({ remdo }) => {
-  expect(renderOutline(remdo.openDocument.root.getChildren(), url)).toBe([
+it('renders top-level notes with the marker of the content collection list', meta({ fixture: 'tree-ordered-root' }), ({ remdo }) => {
+  expect(renderOutline(remdo.openDocument.root.content.getChildren(), url)).toBe([
     '1. [note1](https://remdo.example/n/doc_note1)',
     '1. [note2](https://remdo.example/n/doc_note2)',
     '   - [note3](https://remdo.example/n/doc_note3)',
@@ -51,7 +51,7 @@ it('renders top-level notes with the marker of the document root list', meta({ f
 
 it('leaves notes without a URL unlinked', meta({ fixture: 'flat' }), async ({ remdo }) => {
   await remdo.updateNoteText('note2', 'see [ref]');
-  expect(renderOutline(remdo.openDocument.root.getChildren(), (noteId) => noteId === 'note2' ? null : url(noteId))).toBe([
+  expect(renderOutline(remdo.openDocument.root.content.getChildren(), (noteId) => noteId === 'note2' ? null : url(noteId))).toBe([
     '- [note1](https://remdo.example/n/doc_note1)',
     String.raw`- see \[ref\]`,
     '- [note3](https://remdo.example/n/doc_note3)',
@@ -61,7 +61,7 @@ it('leaves notes without a URL unlinked', meta({ fixture: 'flat' }), async ({ re
 it('cuts the outline off at the depth limit and reports the children it hides', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
   await remdo.openDocument.noteRef('note1').appendChildren([{ text: 'extra' }]);
 
-  expect(renderOutline(remdo.openDocument.root.getChildren(), url, { depth: 1 })).toBe([
+  expect(renderOutline(remdo.openDocument.root.content.getChildren(), url, { depth: 1 })).toBe([
     '- [note1](https://remdo.example/n/doc_note1) *(2 children not shown)*',
     '- [note3](https://remdo.example/n/doc_note3) *(1 child not shown)*',
     '- [note5](https://remdo.example/n/doc_note5) *(1 child not shown)*',

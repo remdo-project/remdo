@@ -16,10 +16,12 @@ import type {
   NewNote,
   NoteId,
   OpenDocumentNote,
-  OpenDocumentParentNote,
+  DocumentNote,
   NoteListType,
 } from '#note-sdk';
 import { IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
+import { createDocumentNote } from '../../../note-sdk/create-document-note';
+import { createNoteAs } from '../../../note-sdk/handle-utils';
 import { $toggleNoteCheckedForTargets } from '#client/editor/features/list-types/checked-operations';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 import { $getNestedListType } from '#client/editor/features/list-types/nested-list-type';
@@ -53,6 +55,7 @@ import { $appendNewNotes, hasLineBreak } from './lexical-note-insertion';
 interface LexicalOpenDocumentSource {
   editor: LexicalEditor;
   docId: string;
+  metadataNote?: DocumentNote;
 }
 
 interface UseLexicalOpenDocumentOptions extends LexicalOpenDocumentSource {
@@ -72,6 +75,11 @@ interface AddressedNoteValues {
 interface AddressedNoteObservation {
   listeners: Set<() => void>;
   values: AddressedNoteValues | null | undefined;
+}
+
+interface RootValues {
+  childListType: NoteListType;
+  childIds: readonly NoteId[];
 }
 
 export interface LexicalOpenDocumentRuntime {
@@ -96,6 +104,10 @@ function capabilityValuesEqual(left: CapabilityValues | null, right: CapabilityV
     && left.canRedo === right.canRedo);
 }
 
+function sameIds(left: readonly NoteId[], right: readonly NoteId[]): boolean {
+  return left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
 function addressedNoteValuesEqual(
   left: AddressedNoteValues | null,
   right: AddressedNoteValues | null,
@@ -107,8 +119,7 @@ function addressedNoteValuesEqual(
       && left.folded === right.folded
       && left.checked === right.checked
       && left.childListType === right.childListType
-      && left.childIds.length === right.childIds.length
-      && left.childIds.every((childId, index) => childId === right.childIds[index])
+      && sameIds(left.childIds, right.childIds)
       && left.text === right.text
       && left.body === right.body);
 }
@@ -116,7 +127,12 @@ function addressedNoteValuesEqual(
 export function createLexicalOpenDocumentRuntime({
   editor,
   docId,
+  metadataNote,
 }: LexicalOpenDocumentSource): LexicalOpenDocumentRuntime {
+  const documentLifetime = new AbortController();
+  const rootListeners = new Set<() => void>();
+  let rootValues: RootValues | null | undefined = null;
+  let rootDirty = false;
   const capabilityListeners = new Set<() => void>();
   const addressedNotes = new Map<NoteId, AddressedNoteObservation>();
   let capabilityValues: CapabilityValues | null | undefined = null;
@@ -138,9 +154,12 @@ export function createLexicalOpenDocumentRuntime({
     }
   };
 
-  const publishUnavailable = () => {
+  const publishUnavailable = (forceRoot = false) => {
     capabilitiesDirty = false;
     addressedNotesDirty = false;
+    rootDirty = false;
+    const rootChanged = rootListeners.size > 0 && (forceRoot || rootValues !== null);
+    rootValues = null;
     const addressedListeners = new Set<() => void>();
     for (const observation of addressedNotes.values()) {
       if (observation.values !== null) {
@@ -156,6 +175,7 @@ export function createLexicalOpenDocumentRuntime({
       notify(capabilityListeners);
     }
     notify(addressedListeners);
+    if (rootChanged) notify(rootListeners);
   };
 
   const $resolveFocusedNote = (): ListItemNode | null => {
@@ -221,6 +241,19 @@ export function createLexicalOpenDocumentRuntime({
     }
     return read(note);
   });
+
+  const readRootObservation = (): RootValues | null | undefined => {
+    if (!started || disposed || !sourceReady) return null;
+    try {
+      return editor.getEditorState().read(() => {
+        const list = $requireRootContentList();
+        return { childListType: list.getListType(), childIds: $getChildNoteIds(list) };
+      }, { editor });
+    } catch {
+      // Consumers reread the root to receive the original failure.
+      return undefined;
+    }
+  };
 
   const readCanToggleFold = () => {
     if (!started || disposed || !sourceReady) return false;
@@ -332,18 +365,28 @@ export function createLexicalOpenDocumentRuntime({
       return noteIds;
     });
 
-  const refresh = () => {
+  const refresh = (forceRoot = false) => {
     pending = false;
     if (!started || disposed) {
       return;
     }
 
     let capabilitiesChanged = false;
+    let rootChanged = forceRoot;
     const addressedListeners = new Set<() => void>();
 
     if (!sourceReady) {
-      publishUnavailable();
+      publishUnavailable(forceRoot);
       return;
+    }
+
+    if (rootListeners.size > 0 && rootDirty) {
+      rootDirty = false;
+      const next = readRootObservation();
+      rootChanged ||= rootValues == null || next == null
+        || rootValues.childListType !== next.childListType
+        || !sameIds(rootValues.childIds, next.childIds);
+      rootValues = next;
     }
 
     if (capabilityListeners.size > 0 && capabilitiesDirty) {
@@ -372,6 +415,7 @@ export function createLexicalOpenDocumentRuntime({
       notify(capabilityListeners);
     }
     notify(addressedListeners);
+    if (rootChanged) notify(rootListeners);
   };
 
   const schedule = () => {
@@ -432,7 +476,7 @@ export function createLexicalOpenDocumentRuntime({
     pending = false;
     unregisterSource();
     unregisterSource = () => {};
-    publishUnavailable();
+    publishUnavailable(true);
   };
 
   const dispose = () => {
@@ -440,37 +484,61 @@ export function createLexicalOpenDocumentRuntime({
       return;
     }
     disposed = true;
+    documentLifetime.abort();
     stop();
     unregisterHistory();
     unregisterHistory = () => {};
     capabilityListeners.clear();
     addressedNotes.clear();
+    rootListeners.clear();
   };
 
-  const rootNote: OpenDocumentParentNote = Object.freeze({
-    getChildren: () => {
-      if (!started || disposed || !sourceReady) {
-        throw new NoteUnavailableError(docId);
-      }
-      return editor.getEditorState()
-        .read(() => $getChildNoteIds($requireRootContentList()), { editor })
-        .map(createNoteRef);
+  const rootNote = createDocumentNote(docId, {
+    metadata: metadataNote,
+    isActive: () => started,
+    signal: documentLifetime.signal,
+    content: {
+      getChildren: () => {
+        if (!started || disposed || !sourceReady) {
+          throw new NoteUnavailableError(docId);
+        }
+        return editor.getEditorState()
+          .read(() => $getChildNoteIds($requireRootContentList()), { editor })
+          .map(createNoteRef);
+      },
+      getChildListType: () => {
+        if (!started || disposed || !sourceReady) {
+          throw new NoteUnavailableError(docId);
+        }
+        return editor.getEditorState().read(() => $requireRootContentList().getListType(), { editor });
+      },
+      appendChildren: (notes: readonly NewNote[]) => appendChildren(null, notes),
+      subscribe: (listener) => {
+        if (rootListeners.size === 0) rootValues = readRootObservation();
+        const registration = () => {
+          if (rootListeners.has(registration)) listener();
+        };
+        rootListeners.add(registration);
+        return () => {
+          if (!rootListeners.delete(registration)) return;
+          if (rootListeners.size === 0) {
+            rootDirty = false;
+            rootValues = null;
+          }
+        };
+      },
     },
-    getChildListType: () => {
-      if (!started || disposed || !sourceReady) {
-        throw new NoteUnavailableError(docId);
-      }
-      return editor.getEditorState().read(() => $requireRootContentList().getListType(), { editor });
-    },
-    appendChildren: (notes: readonly NewNote[]) => appendChildren(null, notes),
   });
 
   function createNoteRef(noteId: NoteId): OpenDocumentNote {
+    const kind = () => 'editor-note' as const;
     const handle: OpenDocumentNote = {
       getId: () => noteId,
+      getKind: kind,
+      as: createNoteAs(noteId, kind, () => handle),
       getParent: () => {
         const parentId = requireAddressedNote(noteId, $getParentNoteId);
-        return parentId === null ? rootNote : createNoteRef(parentId);
+        return parentId === null ? rootNote.content : createNoteRef(parentId);
       },
       getChildren: () => requireAddressedNote(noteId, $getNestedChildNoteIds).map(createNoteRef),
       appendChildren: (notes) => appendChildren(noteId, notes),
@@ -623,6 +691,7 @@ export function createLexicalOpenDocumentRuntime({
     unregisterSource = mergeRegister(
       editor.registerUpdateListener(({ dirtyElements, dirtyLeaves }) => {
         if (dirtyElements.size > 0 || dirtyLeaves.size > 0) {
+          if (rootListeners.size > 0) rootDirty = true;
           if (addressedNotes.size > 0) {
             addressedNotesDirty = true;
           }
@@ -630,7 +699,7 @@ export function createLexicalOpenDocumentRuntime({
         if (capabilityListeners.size > 0) {
           capabilitiesDirty = true;
         }
-        if (capabilitiesDirty || addressedNotesDirty) {
+        if (capabilitiesDirty || addressedNotesDirty || rootDirty) {
           schedule();
         }
       }),
@@ -644,7 +713,8 @@ export function createLexicalOpenDocumentRuntime({
 
     capabilitiesDirty = capabilityListeners.size > 0;
     addressedNotesDirty = addressedNotes.size > 0;
-    refresh();
+    rootDirty = rootListeners.size > 0;
+    refresh(true);
     return stop;
   };
 
@@ -659,6 +729,7 @@ export function createLexicalOpenDocumentRuntime({
     }
     capabilitiesDirty = capabilityListeners.size > 0;
     addressedNotesDirty = addressedNotes.size > 0;
+    rootDirty = rootListeners.size > 0;
     if (started) {
       schedule();
     }
@@ -670,14 +741,15 @@ export function createLexicalOpenDocumentRuntime({
 export function useLexicalOpenDocument({
   editor,
   docId,
+  metadataNote,
   ready: sourceReady = false,
 }: UseLexicalOpenDocumentOptions): OpenDocument {
   const lifecycle = useMemo(
     () => ({
       generation: 0,
-      runtime: createLexicalOpenDocumentRuntime({ editor, docId }),
+      runtime: createLexicalOpenDocumentRuntime({ editor, docId, metadataNote }),
     }),
-    [docId, editor],
+    [docId, editor, metadataNote],
   );
   const { runtime } = lifecycle;
   useEffect(() => {
