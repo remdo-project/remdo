@@ -91,10 +91,10 @@ test.describe('Home', () => {
     await expect(home.locator('li[data-highlighted] .document-menu-button')).toHaveCSS('opacity', '1');
     await expect.poll(tintedRows).toBe(1);
 
-    await homeSearch(page).press('ArrowDown');
-    const keyed = await activeLabel.textContent();
-    await page.mouse.wheel(0, -100);
-    await expect(activeLabel).toHaveText(keyed!);
+    for (let step = 0; step < 6; step += 1) await homeSearch(page).press('ArrowDown');
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await expect(home.locator('li[data-highlighted]')).toHaveAttribute('data-highlighted', 'keyboard');
+    await expect.poll(tintedRows).toBe(1);
   });
 
   test('keeps the tint while a menu is open and drops it once the menu closes with the pointer elsewhere', async ({ page, editor }) => {

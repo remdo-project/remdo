@@ -190,6 +190,7 @@ export function HomeView({
           return;
         }
         input = 'keyboard';
+        lastInputRef.current = 'keyboard';
       }
     }
     if ((active.id === docId && active.input === input) || holdsActiveRow()) return;
@@ -307,7 +308,8 @@ export function HomeView({
       if (docId) choose(docId, 'pointer');
       else setActive((current) => current.input === 'pointer' ? { ...current, input: null } : current);
     };
-    const onScroll = () => {
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Node && !event.target.contains(homeRef.current)) return;
       if (frame === 0) frame = requestAnimationFrame(followPointer);
     };
     document.addEventListener('scroll', onScroll, { capture: true, passive: true });

@@ -326,7 +326,7 @@ describe('home view', () => {
       expect(rowOf('Ideas')).toHaveAttribute('data-highlighted', 'pointer');
     });
 
-    it('shows the row that receives focus without a key press after pointer input', () => {
+    it('shows the row that receives focus without a key press after pointer input and keeps it through a scroll', async () => {
       renderHome(searchProps());
       layoutRows();
       fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
@@ -336,6 +336,13 @@ describe('home view', () => {
 
       expect(highlighted()).toEqual(['Roadmap ideas']);
       expect(rowOf('Roadmap ideas')).toHaveAttribute('data-highlighted', 'keyboard');
+
+      layoutRows(rowPitch);
+      await act(async () => {
+        fireEvent.scroll(document);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      expect(highlighted()).toEqual(['Roadmap ideas']);
     });
 
     it('keeps a pointer-chosen row pointer-chosen when only a modifier key is pressed inside it', () => {
@@ -384,6 +391,13 @@ describe('home view', () => {
       });
       fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
       layoutRows(rowPitch);
+      const unrelated = document.body.appendChild(document.createElement('div'));
+      await act(async () => {
+        fireEvent.scroll(unrelated);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      unrelated.remove();
+      expect(highlighted()).toEqual(['Ideas']);
       await scrolled();
       expect(highlighted()).toEqual(['Roadmap ideas']);
       expect(menuTarget()).toBe('Roadmap ideas');
