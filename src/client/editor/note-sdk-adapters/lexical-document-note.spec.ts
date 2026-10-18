@@ -41,15 +41,10 @@ describe('document note in an opened editor', () => {
     expect(parent.getKind()).toBe('editor-note');
     expect(parent.as('editor-note').getText()).toBe('note1');
     expect(parent.getParent()).toBe(root.content);
-    expect(root.getKind()).toBe('document');
-    expect(root.as('document')).toBe(root);
     expect(root.getId()).toBe(docId);
     expect(root.getParent()).toBe(metadata.note.getParent());
     expect(root.getParent().getChildren().map(document => document.getId())).toContain(docId);
     expect(root.getText()).toBe('Project');
-    expect(root.getChildren()).toEqual([root.content, root.access]);
-    expect(root.content.getParent()).toBe(root);
-    expect(root.access.getParent()).toBe(root);
     expect(root.content.getById('note1')!.getParent()).toBe(root.content);
     expect(root.content.getById('note2')).toBeNull();
     expect(() => root.as('editor-note')).toThrow('expected "editor-note"');

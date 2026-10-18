@@ -17,6 +17,16 @@ function createContent() {
   };
 }
 
+function createMetadata() {
+  const listeners = new Set<() => void>();
+  const documents: CollectionSource<UserDocument> = {
+    getChildren: () => [{ id: 'document', title: 'Title' }],
+    getById: () => ({ id: 'document', title: 'Title' }),
+    subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+  };
+  return { listeners, metadata: createUserDataRootNote(documents).documentRef('document') };
+}
+
 it('exposes document identity while missing sources stay unavailable', async () => {
   const document = createDocumentNote('document');
 
@@ -72,13 +82,7 @@ it('returns the composed document after an acknowledged metadata rename', async 
 });
 
 it('observes both sources independently and notifies unavailability before releasing a closed host', () => {
-  const metadataListeners = new Set<() => void>();
-  const documents: CollectionSource<UserDocument> = {
-    getChildren: () => [{ id: 'document', title: 'Title' }],
-    getById: () => ({ id: 'document', title: 'Title' }),
-    subscribe: (listener) => { metadataListeners.add(listener); return () => { metadataListeners.delete(listener); }; },
-  };
-  const metadata = createUserDataRootNote(documents).documentRef('document');
+  const { listeners: metadataListeners, metadata } = createMetadata();
   const content = createContent();
   const controller = new AbortController();
   const document = createDocumentNote('document', { metadata, content: content.source, signal: controller.signal });
@@ -135,13 +139,7 @@ it('keeps repeated subscriptions by the same listener independent', () => {
 });
 
 it('observes Content and Access independently and expires both collections with their host', () => {
-  const metadataListeners = new Set<() => void>();
-  const documents: CollectionSource<UserDocument> = {
-    getChildren: () => [{ id: 'document', title: 'Title' }],
-    getById: () => ({ id: 'document', title: 'Title' }),
-    subscribe: (listener) => { metadataListeners.add(listener); return () => { metadataListeners.delete(listener); }; },
-  };
-  const metadata = createUserDataRootNote(documents).documentRef('document');
+  const { listeners: metadataListeners, metadata } = createMetadata();
   const content = createContent();
   const controller = new AbortController();
   const document = createDocumentNote('document', { metadata, content: content.source, signal: controller.signal });

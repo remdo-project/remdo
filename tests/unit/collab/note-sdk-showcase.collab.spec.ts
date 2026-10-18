@@ -122,6 +122,6 @@ describe('note SDK account showcase', () => {
     expect(grant.getEmail()).toBe(recipient.email);
     expect(grant.getText()).toBe(recipient.name);
     expect(grant.getParent()).toBe(document.access);
-    expect(document.access.getChildren()).toContain(grant);
+    expect(document.access.getChildren().map((child) => child.getId())).toContain(grant.getId());
   });
 });

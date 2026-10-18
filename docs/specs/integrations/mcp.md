@@ -27,8 +27,9 @@ read a document or one note's subtree, append notes, and set a note's child
 operation's owner defines its behavior.
 
 - A tool addresses a document by its
-  [`documentId`](../outliner/note-ids.md#definitions), which also addresses the
-  document root, and an editor note by its
+  [`documentId`](../outliner/note-ids.md#definitions), whose reads and appends
+  act on the document's [Content collection](../outliner/note-model.md#definitions),
+  and an editor note by its
   [`noteAddress`](../outliner/note-ids.md#global-addresses). Results that
   identify documents or notes include their URLs.
 - Reading a document, or the addressed note and its descendants, returns every

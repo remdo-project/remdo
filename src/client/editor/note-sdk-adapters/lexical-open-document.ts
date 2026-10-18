@@ -104,6 +104,10 @@ function capabilityValuesEqual(left: CapabilityValues | null, right: CapabilityV
     && left.canRedo === right.canRedo);
 }
 
+function sameIds(left: readonly NoteId[], right: readonly NoteId[]): boolean {
+  return left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
 function addressedNoteValuesEqual(
   left: AddressedNoteValues | null,
   right: AddressedNoteValues | null,
@@ -115,8 +119,7 @@ function addressedNoteValuesEqual(
       && left.folded === right.folded
       && left.checked === right.checked
       && left.childListType === right.childListType
-      && left.childIds.length === right.childIds.length
-      && left.childIds.every((childId, index) => childId === right.childIds[index])
+      && sameIds(left.childIds, right.childIds)
       && left.text === right.text
       && left.body === right.body);
 }
@@ -382,8 +385,7 @@ export function createLexicalOpenDocumentRuntime({
       const next = readRootObservation();
       rootChanged ||= rootValues == null || next == null
         || rootValues.childListType !== next.childListType
-        || rootValues.childIds.length !== next.childIds.length
-        || rootValues.childIds.some((id, index) => id !== next.childIds[index]);
+        || !sameIds(rootValues.childIds, next.childIds);
       rootValues = next;
     }
 
@@ -493,7 +495,7 @@ export function createLexicalOpenDocumentRuntime({
 
   const rootNote = createDocumentNote(docId, {
     metadata: metadataNote,
-    isActive: () => started && !disposed,
+    isActive: () => started,
     signal: documentLifetime.signal,
     content: {
       getChildren: () => {
@@ -512,7 +514,6 @@ export function createLexicalOpenDocumentRuntime({
       },
       appendChildren: (notes: readonly NewNote[]) => appendChildren(null, notes),
       subscribe: (listener) => {
-        if (disposed) return () => {};
         if (rootListeners.size === 0) rootValues = readRootObservation();
         const registration = () => {
           if (rootListeners.has(registration)) listener();

@@ -25,7 +25,17 @@ function renderDialog({
   onClose?: () => void;
 } = {}) {
   const { source, replace: replaceListing } = createObservableDocumentList(documents);
-  const note = createUserDataRootNote(source, { shareDocument }).documents.getById('docA')!;
+  const listGrant: typeof shareDocument = async (documentId, email) => {
+    const grant = await shareDocument(documentId, email);
+    replaceListing(documents.map((document) => (document.id === documentId
+      ? {
+        ...document,
+        access: [...(document.access ?? []).filter(({ granteeUserId }) => granteeUserId !== grant.granteeUserId), grant],
+      }
+      : document)));
+    return grant;
+  };
+  const note = createUserDataRootNote(source, { shareDocument: listGrant }).documents.getById('docA')!;
   const view = render(
     <TestMantineProvider>
       <DocumentShareDialog note={note} onClose={onClose} />
@@ -122,12 +132,7 @@ describe('document share dialog', () => {
     const access: DocumentAccessView = {
       documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
     };
-    const { replaceListing } = renderDialog({
-      shareDocument: async () => {
-        replaceListing([{ ...DOC, access: [access] }]);
-        return access;
-      },
-    });
+    renderDialog({ shareDocument: async () => access });
 
     invite('bob@example.test');
 
@@ -199,13 +204,8 @@ describe('document share dialog', () => {
 
   it('locks the invite while the grant is in flight', async () => {
     let settle!: (access: DocumentAccessView) => void;
-    const { replaceListing } = renderDialog({
-      shareDocument: () => new Promise<DocumentAccessView>((resolve) => {
-        settle = (access) => {
-          replaceListing([{ ...DOC, access: [access] }]);
-          resolve(access);
-        };
-      }),
+    renderDialog({
+      shareDocument: () => new Promise<DocumentAccessView>((resolve) => { settle = resolve; }),
     });
 
     invite('bob@example.test');
@@ -220,12 +220,7 @@ describe('document share dialog', () => {
     const access: DocumentAccessView = {
       documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
     };
-    const { replaceListing } = renderDialog({
-      shareDocument: async () => {
-        replaceListing([{ ...DOC, access: [access] }]);
-        return access;
-      },
-    });
+    renderDialog({ shareDocument: async () => access });
 
     invite('bob@example.test');
 
@@ -244,12 +239,7 @@ describe('document share dialog', () => {
     const access: DocumentAccessView = {
       documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob',
     };
-    const { replaceListing } = renderDialog({
-      shareDocument: async () => {
-        replaceListing([{ ...DOC, access: [access] }]);
-        return access;
-      },
-    });
+    renderDialog({ shareDocument: async () => access });
     expect(screen.getByText('You')).toBeInTheDocument();
     expect(screen.getByText('Owner')).toBeInTheDocument();
     invite('  bob@example.test  ');
@@ -258,13 +248,7 @@ describe('document share dialog', () => {
 
   it.each([true, false])('confirms an existing grant when the cached recipient is listed: %s', async (listed) => {
     const grant = { documentId: 'docA', granteeUserId: 'bob', email: 'bob@example.test', name: 'Bob' };
-    const { replaceListing } = renderDialog({
-      documents: [{ ...DOC, access: listed ? [grant] : [] }],
-      shareDocument: async () => {
-        replaceListing([{ ...DOC, access: [grant] }]);
-        return grant;
-      },
-    });
+    renderDialog({ documents: [{ ...DOC, access: listed ? [grant] : [] }], shareDocument: async () => grant });
     invite('BOB@example.test');
     expect(await screen.findByRole('status')).toHaveTextContent('bob@example.test has access. They can edit this document. No email was sent.');
   });

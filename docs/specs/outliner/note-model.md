@@ -7,8 +7,7 @@ are adapters that preserve this model.
 ## Notes
 
 A **note** exposes content to adapters and participates in ordered containment
-structure. The document, collections, editor notes, and note bodies have
-kind-specific capabilities.
+structure.
 
 - **Structure** is the note's parent and its position among that parent's children.
 - **Content** is the payload a note exposes to adapters; the model treats it as

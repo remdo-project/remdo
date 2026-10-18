@@ -4,8 +4,7 @@ User data notes expose the signed-in account's
 [document list](../../architecture.md#document-registry) to consumers: its
 documents and each document's direct grants, under
 [Document Access](../access/access-control.md#document-access). The
-[open document](./open-document.md) supplies editor content for the same
-[document note](./note-model.md#definitions).
+[open document](./open-document.md) owns editor content.
 
 ## Hierarchy
 
@@ -44,8 +43,7 @@ A grant's identity is scoped to its document and distinct from the grantee's
 user ID. Grant reads reflect current metadata; a removed grant is unavailable.
 
 User-data references live with the account's metadata host. An opened document's
-reference has its own [host lifetime](./open-document.md), even though both
-references identify the same document.
+reference has its own [host lifetime](./open-document.md).
 
 Observing a document note signals that its values, eligibility, or availability
 should be reread. Each subscription is independent, can be released repeatedly,
