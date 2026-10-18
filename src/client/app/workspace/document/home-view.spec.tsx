@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createUserDataRootNote } from '#note-sdk';
 import type { DocumentNote, DocumentSourceNote } from '#note-sdk';
@@ -227,6 +227,62 @@ describe('home view', () => {
       fireEvent.pointerLeave(listOf());
       expect(highlighted()).toEqual([]);
       expect(menuTarget()).toBe('Ideas');
+    });
+
+    it('ignores the focus a pointer action restores while the pointer is outside the list', () => {
+      renderHome(searchProps());
+
+      fireEvent.pointerDown(document.body);
+      fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
+
+      expect(highlighted()).toEqual([]);
+    });
+
+    it('does not scroll when the pointer leaving hands the highlight back to the first match', () => {
+      const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+      try {
+        renderHome(searchProps());
+        typeQuery('road');
+        fireEvent.pointerMove(rowOf('Roadmap ideas'));
+        scrollIntoView.mockClear();
+
+        fireEvent.pointerLeave(listOf());
+        expect(highlighted()).toEqual(['Project Roadmap']);
+        expect(scrollIntoView).not.toHaveBeenCalled();
+
+        fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+        expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      } finally {
+        scrollIntoView.mockRestore();
+      }
+    });
+
+    it('follows a pointer that scrolling moved onto another row or off the rows, but not a keyboard choice', async () => {
+      renderHome(searchProps());
+      let underPointer: Element = rowOf('Roadmap ideas');
+      Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => underPointer });
+      const scrolled = () => act(async () => {
+        fireEvent.scroll(document);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      try {
+        fireEvent.pointerMove(rowOf('Ideas'));
+        await scrolled();
+        expect(highlighted()).toEqual(['Roadmap ideas']);
+        expect(menuTarget()).toBe('Roadmap ideas');
+
+        underPointer = document.body;
+        await scrolled();
+        expect(highlighted()).toEqual([]);
+        expect(menuTarget()).toBe('Roadmap ideas');
+
+        fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+        underPointer = rowOf('Ideas');
+        await scrolled();
+        expect(highlighted()).toEqual(['Project Roadmap']);
+      } finally {
+        Reflect.deleteProperty(document, 'elementFromPoint');
+      }
     });
 
     it('ignores touch movement and the focus a tap leaves behind', () => {
