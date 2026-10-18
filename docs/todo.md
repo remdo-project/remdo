@@ -364,6 +364,12 @@ Remaining:
   separately under the pending-review constraint. Keep [representation research](#note-representation-and-history)
   separate; this sequence does not require reducing the existing [offline scope](architecture.md#offline-application-behavior).
 
+  Read/append execution and Markdown rendering are isolated in the [Node editor operations](../src/headless/editor-operations.ts),
+  with direct integration coverage and unchanged MCP compatibility guards. Next,
+  use that boundary to define the private Python-to-Node call, keeping MCP input
+  policy and public result/error presentation with the MCP host. Transport,
+  process lifecycle, and deployment remain to be decided.
+
 - **Simplify SDK consumer types.** Review consumers beyond the mobile toolbar
   for narrowing driven only by test setup and duplicate local types. Prefer
   existing public types at meaningful boundaries; retain narrower contracts

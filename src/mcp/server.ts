@@ -11,7 +11,7 @@ import type { NewNote, NoteListType } from '#note-sdk';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { parseDocumentRef } from '#document-routes';
 import { withHeadlessOpenDocument } from '../headless/open-document';
-import { renderOutline } from './outline';
+import { appendChildren, readDocumentOutline } from '../headless/editor-operations';
 import { createDocumentSlots } from './document-slots';
 import { AuthorizationError } from '#platform/net/authorization-error';
 import {
@@ -227,13 +227,9 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       const ref = parseDocumentRef(target);
       if (!ref) throw new ToolError('INVALID_ARGUMENT', 'The target is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
-      const outline = await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, async (openDocument, isStored) => {
-        return renderOutline(
-          noteId ? [openDocument.noteRef(noteId)] : openDocument.root.content.getChildren(),
-          (id) => isStored(id) ? documentUrl(documentId, id) : null,
-          { depth },
-        );
-      }, { readOnly: true, signal }));
+      const outline = await withDocumentSlot((signal) => readDocumentOutline(
+        documentId, authorization, (id) => documentUrl(documentId, id), { noteId, depth, signal },
+      ));
       return `Document: ${documentUrl(documentId)}\n\n${outline}`;
     }));
 
@@ -254,8 +250,7 @@ export function createMcpServer({ origin, apiOrigin, appOrigin, documentSlots }:
       const ref = parseDocumentRef(parent);
       if (!ref) throw new ToolError('INVALID_ARGUMENT', 'The parent is not a documentId or a noteAddress.');
       const { docId: documentId, noteId } = ref;
-      const noteIds = await withDocumentSlot((signal) => withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
-        (noteId ? openDocument.noteRef(noteId) : openDocument.root.content).appendChildren(notes), { signal }));
+      const noteIds = await withDocumentSlot((signal) => appendChildren(documentId, authorization, notes, { noteId, signal }));
       return noteIds.map((id) => ({ noteAddress: `${documentId}_${id}`, url: documentUrl(documentId, id) }));
     }));
 
