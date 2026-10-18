@@ -324,7 +324,7 @@ describe('home view', () => {
       }
     });
 
-    it('follows a pointer that scrolling moved onto another row or off the rows, but not a keyboard choice', async () => {
+    it('follows a pointer that scrolling moved onto another row or off the rows, but not a keyboard choice or an open menu', async () => {
       renderHome(searchProps());
       let underPointer: Element = rowOf('Roadmap ideas');
       Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => underPointer });
@@ -338,15 +338,28 @@ describe('home view', () => {
         expect(highlighted()).toEqual(['Roadmap ideas']);
         expect(menuTarget()).toBe('Roadmap ideas');
 
+        fireEvent.keyDown(document.body, { key: 'Shift' });
+        underPointer = rowOf('Project Roadmap');
+        await scrolled();
+        expect(highlighted()).toEqual(['Project Roadmap']);
+
         underPointer = document.body;
         await scrolled();
         expect(highlighted()).toEqual([]);
-        expect(menuTarget()).toBe('Roadmap ideas');
+        expect(menuTarget()).toBe('Project Roadmap');
 
         fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
         underPointer = rowOf('Ideas');
         await scrolled();
         expect(highlighted()).toEqual(['Project Roadmap']);
+
+        const otherRow = rowOf('Roadmap ideas');
+        fireEvent.pointerMove(rowOf('Ideas'));
+        fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
+        await screen.findByRole('menu');
+        underPointer = otherRow;
+        await scrolled();
+        expect(highlighted()).toEqual(['Ideas']);
       } finally {
         Reflect.deleteProperty(document, 'elementFromPoint');
       }

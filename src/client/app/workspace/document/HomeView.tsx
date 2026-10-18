@@ -24,6 +24,8 @@ type LastInput = ActiveInput | 'touch';
 
 const hasOpenMenu = (root: HTMLElement | null) => root?.querySelector('.document-menu-button[aria-expanded="true"]') != null;
 
+const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
+
 const documentIdOf = (element: Element | null) => (
   element?.closest('.home-doc-row')?.querySelector<HTMLElement>('[data-home-document-ref]')?.dataset.homeDocumentRef
 );
@@ -153,7 +155,8 @@ export function HomeView({
     : menuDocumentIds[0] ?? null;
   const menuTargetId = highlightId ?? restingId;
 
-  const holdsActiveRow = () => Boolean(documentDialog) || hasOpenMenu(homeRef.current);
+  const dialogOpen = Boolean(documentDialog);
+  const holdsActiveRow = () => dialogOpen || hasOpenMenu(homeRef.current);
   const choose = (docId: string, input: ActiveInput) => setActive((current) => (
     current.id === docId && current.input === input ? current : { id: docId, input }
   ));
@@ -179,7 +182,7 @@ export function HomeView({
     const docId = inList ? documentIdOf(event.target as Element) ?? null : null;
     pointerRowRef.current = docId;
     if (docId) activate(docId, 'pointer');
-    else if (!holdsActiveRow()) rest('pointer');
+    else if (active.input === 'pointer' && !holdsActiveRow()) rest('pointer');
   };
 
   useEffect(() => {
@@ -231,14 +234,20 @@ export function HomeView({
     }
   };
 
+  const scrollHighlightIntoView = () => homeRef.current?.querySelector('[data-highlighted]')?.scrollIntoView({ block: 'nearest' });
+
   useEffect(() => {
-    if (chosenInput === 'keyboard' || (chosenInput === null && lastInputRef.current === 'keyboard')) {
-      homeRef.current?.querySelector('[data-highlighted]')?.scrollIntoView({ block: 'nearest' });
-    }
+    if (chosenInput === 'keyboard') scrollHighlightIntoView();
   }, [highlightId, chosenInput]);
 
   useEffect(() => {
-    const keyboard = () => { lastInputRef.current = 'keyboard'; };
+    if (hasQuery) scrollHighlightIntoView();
+  }, [hasQuery, query]);
+
+  useEffect(() => {
+    const keyboard = (event: KeyboardEvent) => {
+      if (!MODIFIER_KEYS.has(event.key)) lastInputRef.current = 'keyboard';
+    };
     const pointer = (event: PointerEvent) => { lastInputRef.current = event.pointerType === 'touch' ? 'touch' : 'pointer'; };
     document.addEventListener('keydown', keyboard, true);
     document.addEventListener('pointerdown', pointer, true);
@@ -250,7 +259,7 @@ export function HomeView({
 
   // Scrolling moves rows under a stationary pointer without a pointermove.
   useEffect(() => {
-    if (documentDialog) return;
+    if (dialogOpen) return;
     let frame = 0;
     const followPointer = () => {
       frame = 0;
@@ -269,7 +278,7 @@ export function HomeView({
       document.removeEventListener('scroll', onScroll, { capture: true });
       cancelAnimationFrame(frame);
     };
-  }, [documentDialog]);
+  }, [dialogOpen]);
 
   const handleUploadInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0] ?? null;
