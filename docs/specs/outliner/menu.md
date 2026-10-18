@@ -18,7 +18,8 @@ contract.
    restored button focus does not block subsequent hover. Keyboard input
    reveals the focused target before acting. Initially use the document heading,
    or the caret note when
-   editing starts; Home follows its [active row](./home.md#active-row). A removed or hidden target
+   editing starts; Home follows its [active row](./home.md#active-row), which
+   decides what leaving the list preserves. A removed or hidden target
    falls back to an available target. The button scrolls with its note.
    Header and Home row buttons remain keyboard reachable while visually hidden.
    Without hover, header and Home row buttons remain visible; editor actions

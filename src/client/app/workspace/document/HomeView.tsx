@@ -268,8 +268,7 @@ export function HomeView({
     const keyboard = (event: KeyboardEvent) => {
       if (!MODIFIER_KEYS.has(event.key)) lastInputRef.current = 'keyboard';
     };
-    // The document sees pointer events the list does not: while a menu is open
-    // they target the body, outside the list's React tree.
+    // The document sees pointer events the list does not, such as those over an open menu.
     const pointer = (event: PointerEvent) => {
       if (event.pointerType === 'touch') {
         if (event.type === 'pointerdown') lastInputRef.current = 'touch';
