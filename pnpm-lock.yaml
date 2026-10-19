@@ -186,31 +186,31 @@ catalogs:
       specifier: ^3.12.4
       version: 3.12.4
     '@lexical/clipboard':
-      specifier: ^0.51.0
+      specifier: 0.51.0
       version: 0.51.0
     '@lexical/eslint-plugin':
-      specifier: ^0.51.0
+      specifier: 0.51.0
       version: 0.51.0
     '@lexical/extension':
-      specifier: ^0.51.0
+      specifier: 0.51.0
       version: 0.51.0
     '@lexical/link':
-      specifier: ^0.51.0
+      specifier: 0.51.0
       version: 0.51.0
     '@lexical/list':
-      specifier: ^0.51.0
+      specifier: 0.51.0
       version: 0.51.0
     '@lexical/markdown':
-      specifier: ^0.51.0
+      specifier: 0.51.0
       version: 0.51.0
     '@lexical/react':
-      specifier: ^0.51.0
+      specifier: 0.51.0
       version: 0.51.0
     '@lexical/rich-text':
-      specifier: ^0.51.0
+      specifier: 0.51.0
       version: 0.51.0
     '@lexical/yjs':
-      specifier: ^0.51.0
+      specifier: 0.51.0
       version: 0.51.0
     '@mantine/core':
       specifier: ^9.6.2
@@ -309,7 +309,7 @@ catalogs:
       specifier: ^6.38.0
       version: 6.41.0
     lexical:
-      specifier: ^0.51.0
+      specifier: 0.51.0
       version: 0.51.0
     linkify-it:
       specifier: ^6.1.0
