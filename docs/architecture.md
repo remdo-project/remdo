@@ -127,6 +127,12 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
 Django resolves the user from the session or a delegated access token for
 ownership and document access decisions.
 
+### Backend note processing
+
+Django/Python owns non-editor note processing, including account and document
+metadata and authorization. Backend Node handles operations that depend on
+Lexical/Yjs.
+
 ### Document identity
 
 `docId` is RemDo's canonical document identity. It is intended to be globally
@@ -153,7 +159,7 @@ collaboration authorization.
   Request handlers authorize from ORM-backed identity and document metadata.
 - Data boundary: the registry is the durable source for document ownership,
   access-critical metadata, and the current per-user document list. Yjs
-  documents hold collaborative document content. Browser-facing app resources
+  documents hold collaborative editor content. Browser-facing app resources
   use authenticated HTTP reads and established server-state cache tooling.
 - Change notices: after committing a document-list change made through the
   RemDo API, the registry notifies the [Collab Hub](#collab-hub) of each
@@ -183,9 +189,10 @@ browser session, and may open only registered documents.
 
 ## Runtime Persistence Boundary
 
-Django owns document metadata and binary Yjs state in the [configured database](specs/runtime/configuration.md#database).
-Each document's content is stored separately from metadata queries and is
-deleted with its registry entry. An existing document without saved content
+Django owns document metadata and editor documents' binary Yjs state in the
+[configured database](specs/runtime/configuration.md#database).
+Each editor document's content is stored separately from metadata queries and is
+deleted with its registry entry. An existing editor document without saved content
 starts empty; missing registry entries and database failures do not become empty
 documents.
 

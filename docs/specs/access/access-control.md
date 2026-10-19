@@ -21,7 +21,7 @@ sign-in](../runtime/configuration.md#email-delivery). The
 [deployment account bootstrap](../runtime/configuration.md#deployment-accounts)
 creates the configured accounts at startup, and operators create further
 accounts through Django administration. Password signup is closed.
-Creating an account also creates one empty document titled **New Document**.
+Creating an account also creates one empty [editor document](../outliner/note-model.md#definitions) titled **New Document**.
 Account and document creation succeed together. Later account updates and reads
 leave the document inventory unchanged.
 
@@ -108,7 +108,17 @@ stops using the local data it is losing.
 
 ## Document Access
 
-These rules apply to each user authenticated by the server.
+Each [document](../outliner/note-model.md#definitions) owns the authorization policy for itself and the notes belonging
+to it. Every note has one owning document. A document is its own owning document.
+Listing or linking a note alone grants no additional authority over it and does
+not change its owning document.
+
+Exposing data or performing operations through another document requires the
+source document's authorization. The receiving document controls access to that
+exposure within the source's permitted data and operations. The receiving
+document's users need not have direct access to the source document.
+
+The following rules apply to each user authenticated by the server.
 
 Every document has one owner. A document may have zero or more direct
 grants; a new one has none. Its URL only locates it; ownership or a grant
