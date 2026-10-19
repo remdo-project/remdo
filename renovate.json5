@@ -9,11 +9,29 @@
     "security:minimumReleaseAgePypi",
   ],
   "timezone": "Europe/Warsaw",
+  // A rate limit would hold an update back without a PR to show for it.
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^package\\.json$/", "/^docs/guides/mobile-devices\\.md$/"],
+      "matchStrings": ["(?<depName>ghcr\\.io/hadolint/hadolint|testingbot/tunnel):(?<currentValue>[\\w.-]+)"],
+      "datasourceTemplate": "docker",
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^pnpm-workspace\\.yaml$/"],
+      "matchStrings": ["(?<depName>caniuse-lite): (?<currentValue>\\d[\\w.]*)"],
+      "datasourceTemplate": "npm",
+    },
+  ],
   "packageRules": [
     {
-      "description": "Overrides are dependency repairs, reviewed with their owning update.",
+      "description": "An override holds a transitive dependency at its owner's major, so only minors and patches are proposed.",
       "matchManagers": ["npm"],
       "matchDepTypes": ["overrides", "pnpm.overrides", "pnpm-workspace.overrides"],
+      "matchUpdateTypes": ["major"],
       "enabled": false,
     },
     {
