@@ -1,10 +1,14 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":maintainLockFilesWeekly", "group:allNonMajor"],
+  "extends": [
+    "config:recommended",
+    "group:allNonMajor",
+    "security:minimumReleaseAgeNpm",
+    "security:minimumReleaseAgePypi",
+  ],
   "timezone": "Europe/Warsaw",
   "schedule": ["* 0-8 * * 1"],
-  "prConcurrentLimit": 3,
-  "lockFileMaintenance": { "schedule": ["* 0-8 * * 1"] },
+  "lockFileMaintenance": { "enabled": true, "schedule": ["* 0-8 * * 1"] },
   "packageRules": [
     {
       "description": "Overrides are dependency repairs, reviewed with their owning update.",
@@ -19,23 +23,40 @@
       "groupName": "GitHub Actions",
     },
     {
+      "description": "0.x minors may break, so they stay out of the non-major group.",
+      "matchCurrentVersion": "/^0\\./",
+      "matchUpdateTypes": ["minor"],
+      "groupName": "pre-1.0 minors",
+    },
+    {
       "matchPackageNames": ["astral-sh/uv", "ghcr.io/astral-sh/uv"],
-      "matchUpdateTypes": ["major"],
       "groupName": "uv",
     },
     {
+      // TODO(deps): drop with the Lexical patches in pnpm-workspace.yaml; Renovate cannot regenerate them, so a bump needs a manual patch pass.
+      // Probe: remove patchedDependencies and this rule, then run the regressions named beside each patch.
+      "matchPackageNames": ["lexical", "@lexical/*"],
+      "groupName": "lexical",
+      "draftPR": true,
+    },
+    {
+      "description": "A Python minor moves requires-python, .python-version, both Dockerfile stages and CI together.",
+      "matchPackageNames": ["python"],
+      "groupName": "python",
+    },
+    {
       // TODO(deps): retry TypeScript; typescript-eslint rejects 7.0 and tracks 7.1+ in typescript-eslint#10940.
-      // Probe: approve the dashboard update and run typecheck and lint:code against its generated lockfile.
+      // Probe: rebase the draft PR and run typecheck and lint:code against its generated lockfile.
       "matchPackageNames": ["typescript"],
       "groupName": null,
-      "dependencyDashboardApproval": true,
+      "draftPR": true,
     },
     {
       // TODO(deps): retry workbox-build; 7.4.1 pulls @trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1, a trust downgrade.
-      // Probe: approve the dashboard update and run a cold pnpm install and the Docker E2E group.
+      // Probe: rebase the draft PR and run a cold pnpm install and the Docker E2E group.
       "matchPackageNames": ["workbox-build"],
       "groupName": null,
-      "dependencyDashboardApproval": true,
+      "draftPR": true,
     },
   ],
 }

@@ -87,8 +87,11 @@ Dependency changes preserve workspace catalogs, applicable trust and
 build-approval policy, package-manager integrity, and locked runtime and project
 dependencies.
 
-Dependency-specific workarounds and updater approval rules follow the
-[tracked-comment policy](#code-comments). Remove an affected existing approval rule only when the
+Every update reaches review as a pull request rather than waiting on dashboard
+approval; one that cannot merge yet stays open as a draft.
+
+Dependency-specific workarounds and updater holds follow the
+[tracked-comment policy](#code-comments). Remove an affected existing hold only when the
 selected update proves its deferral obsolete.
 
 ### Dependency patches
