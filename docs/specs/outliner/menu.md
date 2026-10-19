@@ -8,9 +8,9 @@ contract.
 
 ## Entry
 
-1. Menu buttons use the same More icon in the leading gutter of their row or
-   header. Revealing a button does not shift the content. Activating it opens
-   the menu for the represented note.
+1. Menu buttons use the same More icon at the same size in the leading gutter
+   of their row or header. Revealing a button is immediate and does not shift
+   the content. Activating it opens the menu for the represented note.
 2. On hover-capable devices, one active menu button remains visible beside its
    target, unless the target has no actions. Hovering another note or keyboard
    navigation moves it; leaving the

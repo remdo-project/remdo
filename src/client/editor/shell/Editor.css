@@ -4,7 +4,7 @@
   box-sizing: border-box;
   position: relative;
   padding: var(--mantine-spacing-lg) var(--remdo-body-inset);
-  --note-control-size: 0.85rem;
+  --note-control-size: var(--menu-icon-size);
   --note-control-gap: 0.35rem;
   --note-controls-strip-width: calc(var(--note-control-size) * 2 + var(--note-control-gap));
   --note-controls-track-gap: var(--note-control-gap);

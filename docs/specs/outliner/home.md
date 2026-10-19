@@ -75,8 +75,8 @@ The document list has at most one **active row**, shown tinted. The
 
 1. The latest input chooses it: the pointer entering a row, including a row
    scrolled under a pointer resting on the list that was the latest input, a
-   search arrow key, or keyboard focus or a key press within a row. Touch input
-   does not. An open menu or dialog holds it.
+   search arrow key, or keyboard focus or a non-modifier key press within a row.
+   Touch input does not. An open menu or dialog holds it.
 2. A pointer-chosen row is tinted. A keyboard-chosen row is tinted and edged in
    the accent color. The pointer leaving the rows clears the tint of a
    pointer-chosen row and leaves the menu button on that row unless another row
