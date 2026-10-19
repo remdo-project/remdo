@@ -20,7 +20,7 @@ Adapters preserve these guarantees whenever they create, import, or export notes
 
 - Addressability is kind-specific. An editor note carries a unique
   [`noteId`](./note-ids.md) within its tree. A document carries its separate
-  [`documentId`](./note-ids.md#definitions); a [body](./body.md) is identified
+  [`docId`](../../architecture.md#document-identity); a [body](./body.md) is identified
   through its owning editor note rather than by its own identifier.
 - A contained note has exactly one canonical parent, independent of the route
   used to reach it. Its parent lists it among its children. An editor note's body
@@ -28,14 +28,17 @@ Adapters preserve these guarantees whenever they create, import, or export notes
 - A parent read identifies the current parent, or returns null for a known
   structural root. Reparenting a note does not retarget a previously returned
   parent reference.
-- A document always contains at least one editor note. An operation that would
-  remove the final editor note leaves an empty editor note instead.
+- An editor document always contains at least one editor note. An operation
+  that would remove the final editor note leaves an empty editor note instead.
 - A parent owns its contained children's order, so changing sibling order does
   not mutate the child notes.
 - Content does not alter a note's structural position.
 
 ## Definitions
 
+- **Document:** a note that owns an [authorization boundary](../access/access-control.md#document-access), independently of
+  editor or storage representation.
+- **Editor document:** a document containing an editor outline.
 - **Document order:** the depth-first, pre-order traversal of editor notes in
   the structural tree.
 - **Previous note / next note:** adjacent editor notes in document order. View
@@ -46,8 +49,8 @@ Adapters preserve these guarantees whenever they create, import, or export notes
   whitespace. Its body is separate and does not affect this state.
 - **Empty leaf note:** an empty note with no children.
 - **Document root note:** the document itself. Its content text is the document
-  name. It is not directly selectable. Its
-  children are Content and Access collection notes, in that order. Content owns
+  name. An editor document root is not directly selectable and has Content and
+  Access collection notes as children, in that order. Content owns
   the top-level editor notes; Access owns the document's [direct grants](./user-data.md).
   Its account-level parent follows the
   [user-data hierarchy](./user-data.md#hierarchy).

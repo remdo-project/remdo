@@ -353,22 +353,28 @@ Remaining:
   settle that broader taxonomy. Follow [SDK design](dev/sdk.md) and the [external-source examples](#cross-source-discovery)
   before introducing another kind or a runtime descriptor framework.
 
-- **Backend note ownership — next SDK slice.** Move non-editor note
-  processing, including user data and its MCP handling, to Django/Python. Keep
-  TypeScript for the browser SDK and backend Node for processing that currently
-  depends on Lexical/Yjs. A coherent note API does not require a shared
-  TypeScript backend implementation. Before changing the public MCP
-  implementation, define and test the Python-to-Node editor operation boundary,
-  preserving caller authorization, errors, limits, and [durable completion](architecture.md#hydration-vs-sync).
-  Extend the compatibility checks for that boundary and assess deployment
-  separately under the pending-review constraint. Keep [representation research](#note-representation-and-history)
-  separate; this sequence does not require reducing the existing [offline scope](architecture.md#offline-application-behavior).
+- **Non-editor document support.** The [document model](specs/outliner/note-model.md#definitions) is broader than the current
+  editor-specific `DocumentNote` implementation. Establish account/source notes'
+  owning documents through a concrete non-editor workflow. Cross-document
+  exposure mechanisms, identities for exposed notes, and additional runtime kinds
+  remain undecided.
 
-  Read/append execution and Markdown rendering are isolated in the [Node editor operations](../src/headless/editor-operations.ts),
-  with direct integration coverage and unchanged MCP compatibility guards. Next,
-  use that boundary to define the private Python-to-Node call, keeping MCP input
-  policy and public result/error presentation with the MCP host. Transport,
-  process lifecycle, and deployment remain to be decided.
+- **Backend note ownership — next SDK slice.** Move remaining non-editor
+  handling, including MCP handling, to Python under [backend note processing](architecture.md#backend-note-processing).
+  Read/append execution and Markdown rendering are already isolated in the
+  [Node editor operations](../src/headless/editor-operations.ts), with direct integration coverage.
+
+  Implement Python MCP handling together with the Node editor connection it
+  needs; the private HTTP prototype was deferred because its only Python
+  callers were tests. Keep public authorization, input policy, and result/error
+  presentation with the MCP host. Preserve caller authorization, errors, limits,
+  and [durable completion](architecture.md#hydration-vs-sync), and extend the [compatibility guards](#temporary-mcp-compatibility-guards) across that
+  connection. Transport and process lifecycle remain to be decided, including
+  concurrency when Node calls Django back for authorization and storage.
+
+  Assess deployment separately under the [pending-review constraint](#claude-mcp-save-a-conversation-to-remdo). The public
+  MCP host remains Node pending that assessment. Keep [representation research](#note-representation-and-history)
+  separate; this sequence does not require reducing the existing [offline scope](architecture.md#offline-application-behavior).
 
 - **Simplify SDK consumer types.** Review consumers beyond the mobile toolbar
   for narrowing driven only by test setup and duplicate local types. Prefer

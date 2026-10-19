@@ -1,7 +1,7 @@
 # Open document
 
 An open document is the adapter-neutral contract between consumers and
-one opened document. It exposes the [document root](./note-model.md#definitions), [editor notes](./note-model.md#note-kinds), [search](./search.md),
+one opened [editor document](./note-model.md#definitions). It exposes the [document root](./note-model.md#definitions), [editor notes](./note-model.md#note-kinds), [search](./search.md),
 action capabilities, and semantic operations. The application host owns its
 lifetime and exposes it only while the committed document is usable. Each
 operation's behavioral owner retains its semantics. A disposed open document
