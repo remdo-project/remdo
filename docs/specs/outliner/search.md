@@ -129,12 +129,14 @@ or not the search box has focus, so Search Mode does not apply.
    case-insensitive substring of its full name. Matches keep the
    list's order, and an empty query lists every document. When a non-empty query
    matches nothing, Home shows **No documents match** in place of the list.
-2. With a non-empty query the first match is highlighted; with an empty query none
-   is. `ArrowDown` and `ArrowUp` move the highlight without wrapping,
-   `ArrowDown` from none highlights the first, and `ArrowUp` from none does
-   nothing. `Enter` opens the highlighted document like activating its row, and
-   does nothing without one or during input-method composition. `Escape` clears
-   a non-empty query and keeps focus in the search box.
+2. The highlighted document is the [active row](./home.md#active-row). When input has chosen no row, a
+   non-empty query highlights the first match, cued as keyboard-chosen, and an
+   empty query highlights none. `ArrowDown` and `ArrowUp` move the highlight
+   without wrapping, `ArrowDown` from none highlights the first, and `ArrowUp`
+   from none does nothing. `Enter` opens the highlighted document like
+   activating its row, and does nothing without one or during input-method
+   composition. `Escape` clears a non-empty query and keeps focus in the search
+   box.
 3. The search box is a combobox exposing the highlighted document as its active
    descendant, and assistive technology is told when the number of matches
    changes.

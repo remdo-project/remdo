@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createUserDataRootNote } from '#note-sdk';
 import type { DocumentNote, DocumentSourceNote } from '#note-sdk';
@@ -84,6 +84,24 @@ const renderHome = (props: HomeViewProps) =>
     </TestMantineProvider>
   );
 
+const longName = `${'Quarterly planning '.repeat(4)}appendix`;
+const searchProps = (): HomeViewProps => {
+  const props = baseProps();
+  props.sources = [sourceNote({
+    id: 'local',
+    label: 'Local',
+    documents: [
+      documentNote({ id: 'docA', title: 'Project Roadmap' }),
+      documentNote({ id: 'docB', title: 'Ideas' }),
+      documentNote({ id: 'docC', title: 'Roadmap ideas' }),
+      documentNote({ id: 'doc-d', title: longName }),
+    ],
+  })];
+  return props;
+};
+
+const rowOf = (name: string) => screen.getByRole('button', { name }).closest('li')!;
+
 const searchField = () => screen.getByRole('combobox', { name: 'Search documents' });
 const typeQuery = (value: string) => fireEvent.change(searchField(), { target: { value } });
 const listedNames = () => [...document.querySelectorAll('.home-doc-label')].map((label) => label.textContent);
@@ -101,28 +119,365 @@ describe('home view', () => {
     expect(screen.queryByRole('button', { name: 'Actions for Ideas' })).toBeNull();
   });
 
-  it('falls back when its target loses its menu and keeps the replacement when that menu returns', () => {
-    let ideasAvailable = true;
-    const props = baseProps(note => ({
-      ...documentNote(note),
-      canRename: () => note.id !== 'docB' || ideasAvailable,
-    }));
+  it('falls back to an available document when its target leaves the listing', () => {
+    const props = baseProps();
     const view = renderHome(props);
-    const roadmap = screen.getByRole('button', { name: 'Actions for Project Roadmap' });
-    const ideas = screen.getByRole('button', { name: 'Actions for Ideas' });
-    fireEvent.focus(ideas);
-    expect(ideas.closest('li')).toHaveAttribute('data-menu-target', 'true');
+    fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
+    expect(screen.getByRole('button', { name: 'Actions for Ideas' }).closest('li')).toHaveAttribute('data-menu-target', 'true');
 
-    ideasAvailable = false;
+    props.sources = [sourceNote({ id: 'local', label: 'Local', documents: [documentNote({ id: 'docA', title: 'Project Roadmap' })] })];
     view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
-    expect(screen.queryByRole('button', { name: 'Actions for Ideas' })).toBeNull();
-    expect(roadmap.closest('li')).toHaveAttribute('data-menu-target', 'true');
 
-    ideasAvailable = true;
-    view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
-    expect(roadmap.closest('li')).toHaveAttribute('data-menu-target', 'true');
-    expect(screen.getByRole('button', { name: 'Actions for Ideas' }).closest('li'))
-      .not.toHaveAttribute('data-menu-target');
+    expect(screen.getByRole('button', { name: 'Actions for Project Roadmap' }).closest('li'))
+      .toHaveAttribute('data-menu-target', 'true');
+  });
+
+  describe('active row', () => {
+    const highlighted = () => [...document.querySelectorAll('[data-highlighted]')]
+      .map((row) => row.querySelector('.home-doc-label')?.textContent);
+    const menuTarget = () => document.querySelector('[data-menu-target] .home-doc-label')?.textContent;
+    const listOf = () => document.getElementById(searchField().getAttribute('aria-controls')!)!;
+    const rowPitch = 60;
+    const layoutRows = (scrolled = 0) => document.querySelectorAll('[data-home-row]').forEach((row, index) => {
+      vi.spyOn(row, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, index * rowPitch - scrolled, 1000, 56));
+    });
+    const atRow = (index: number) => ({ clientX: 10, clientY: index * rowPitch + 10 });
+    const outsideRows = { clientX: 10, clientY: 900 };
+    afterEach(() => vi.restoreAllMocks());
+
+    it('keeps one highlighted row with the menu button on it through pointer and search keys', () => {
+      renderHome(searchProps());
+
+      fireEvent.pointerMove(rowOf('Ideas'));
+      expect(highlighted()).toEqual(['Ideas']);
+      expect(menuTarget()).toBe('Ideas');
+      expect(rowOf('Ideas')).toHaveAttribute('data-highlighted', 'pointer');
+
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+      expect(highlighted()).toEqual(['Roadmap ideas']);
+      expect(menuTarget()).toBe('Roadmap ideas');
+      expect(rowOf('Roadmap ideas')).toHaveAttribute('data-highlighted', 'keyboard');
+
+      fireEvent.pointerMove(rowOf('Project Roadmap'));
+      expect(highlighted()).toEqual(['Project Roadmap']);
+      expect(menuTarget()).toBe('Project Roadmap');
+    });
+
+    it('moves the menu button with keyboard focus and with keys inside another row', () => {
+      renderHome(searchProps());
+
+      fireEvent.keyDown(document.body, { key: 'Tab' });
+      fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      expect(rowOf('Ideas')).toHaveAttribute('data-highlighted', 'keyboard');
+      expect(menuTarget()).toBe('Ideas');
+
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Roadmap ideas' }), { key: 'ArrowDown' });
+      expect(highlighted()).toEqual(['Roadmap ideas']);
+      expect(menuTarget()).toBe('Roadmap ideas');
+    });
+
+    it('opens the hovered document on Enter and continues the arrow keys from it', () => {
+      const props = searchProps();
+      renderHome(props);
+      fireEvent.pointerMove(rowOf('Ideas'));
+
+      fireEvent.keyDown(searchField(), { key: 'Enter' });
+      expect(props.onSelectDocument).toHaveBeenCalledExactlyOnceWith('docB');
+
+      fireEvent.keyDown(searchField(), { key: 'ArrowUp' });
+      expect(highlighted()).toEqual(['Project Roadmap']);
+    });
+
+    it('clears a pointer tint when the pointer leaves the list and keeps a keyboard tint', () => {
+      renderHome(searchProps());
+      fireEvent.pointerMove(rowOf('Ideas'));
+
+      fireEvent.pointerLeave(listOf());
+      expect(highlighted()).toEqual([]);
+      expect(menuTarget()).toBe('Ideas');
+
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+      expect(highlighted()).toEqual(['Project Roadmap']);
+      fireEvent.pointerLeave(listOf());
+      expect(highlighted()).toEqual(['Project Roadmap']);
+    });
+
+    it('returns to the first match when the query changes after a pointer tint', () => {
+      renderHome(searchProps());
+      typeQuery('road');
+      fireEvent.pointerMove(rowOf('Roadmap ideas'));
+      expect(highlighted()).toEqual(['Roadmap ideas']);
+
+      typeQuery('roadm');
+
+      expect(highlighted()).toEqual(['Project Roadmap']);
+    });
+
+    it('tints a row without actions without a menu button and keeps one button on an available row at rest', () => {
+      renderHome({
+        ...baseProps(),
+        sources: [sourceNote({
+          id: 'local',
+          label: 'Local',
+          documents: [
+            documentNote({ id: 'docA', title: 'Project Roadmap', canRename: false }),
+            documentNote({ id: 'docB', title: 'Ideas' }),
+          ],
+        })],
+      });
+
+      fireEvent.pointerMove(rowOf('Project Roadmap'));
+      expect(highlighted()).toEqual(['Project Roadmap']);
+      expect(menuTarget()).toBe('Project Roadmap');
+      expect(screen.queryByRole('button', { name: 'Actions for Project Roadmap' })).toBeNull();
+
+      fireEvent.pointerLeave(listOf());
+      expect(highlighted()).toEqual([]);
+      expect(menuTarget()).toBe('Ideas');
+    });
+
+    it('clears a pointer tint when the pointer moves off the rows within the list', () => {
+      renderHome(searchProps());
+      fireEvent.pointerMove(rowOf('Ideas'));
+
+      fireEvent.pointerMove(screen.getByRole('heading', { name: 'Local' }));
+
+      expect(highlighted()).toEqual([]);
+      expect(menuTarget()).toBe('Ideas');
+    });
+
+    it('keeps a keyboard-chosen row when the pointer crosses a group heading', () => {
+      renderHome(searchProps());
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+
+      fireEvent.pointerMove(screen.getByRole('heading', { name: 'Local' }));
+
+      expect(highlighted()).toEqual(['Project Roadmap']);
+      expect(rowOf('Project Roadmap')).toHaveAttribute('data-highlighted', 'keyboard');
+    });
+
+    it('drops the chosen tint when Escape clears the query', () => {
+      renderHome(searchProps());
+      typeQuery('ideas');
+      fireEvent.pointerMove(rowOf('Roadmap ideas'));
+      expect(highlighted()).toEqual(['Roadmap ideas']);
+
+      fireEvent.keyDown(searchField(), { key: 'Escape' });
+
+      expect(searchField()).toHaveValue('');
+      expect(highlighted()).toEqual([]);
+    });
+
+    it('keeps the tint while a menu is open and clears it once the menu closes with the pointer elsewhere', async () => {
+      renderHome(searchProps());
+      const list = listOf();
+      layoutRows();
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
+      fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      await screen.findByRole('menu');
+
+      fireEvent.pointerLeave(list);
+      fireEvent.pointerMove(screen.getByRole('menu'), outsideRows);
+      expect(highlighted()).toEqual(['Ideas']);
+
+      const underlay = document.querySelector('[data-testid="underlay"]')!;
+      fireEvent.pointerDown(underlay, outsideRows);
+      fireEvent.pointerUp(underlay);
+      fireEvent.click(underlay);
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+      fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      expect(highlighted()).toEqual([]);
+      expect(menuTarget()).toBe('Ideas');
+    });
+
+    it('keeps the menu button on the last chosen row when it loses its actions and returns it when they come back', () => {
+      let ideasActions = true;
+      const props = searchProps();
+      props.sources = [sourceNote({
+        id: 'local',
+        label: 'Local',
+        documents: [
+          documentNote({ id: 'docA', title: 'Project Roadmap' }),
+          { ...documentNote({ id: 'docB', title: 'Ideas' }), canRename: () => ideasActions },
+        ],
+      })];
+      const view = renderHome(props);
+      fireEvent.pointerMove(rowOf('Ideas'));
+      fireEvent.pointerLeave(listOf());
+      expect(menuTarget()).toBe('Ideas');
+
+      ideasActions = false;
+      view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
+      expect(menuTarget()).toBe('Project Roadmap');
+
+      ideasActions = true;
+      view.rerender(<TestMantineProvider><HomeView {...props} /></TestMantineProvider>);
+      expect(menuTarget()).toBe('Ideas');
+    });
+
+    it('chooses the row a pointer press lands on even without a prior move', () => {
+      renderHome(searchProps());
+
+      layoutRows();
+      fireEvent.pointerDown(rowOf('Ideas'), atRow(1));
+      fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
+
+      expect(highlighted()).toEqual(['Ideas']);
+      expect(rowOf('Ideas')).toHaveAttribute('data-highlighted', 'pointer');
+    });
+
+    it('shows the row that receives focus without a key press after pointer input and keeps it through a scroll', async () => {
+      renderHome(searchProps());
+      layoutRows();
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
+
+      fireEvent.pointerDown(document.body, atRow(1));
+      fireEvent.focus(screen.getByRole('button', { name: 'Actions for Roadmap ideas' }));
+
+      expect(highlighted()).toEqual(['Roadmap ideas']);
+      expect(rowOf('Roadmap ideas')).toHaveAttribute('data-highlighted', 'keyboard');
+
+      layoutRows(rowPitch);
+      await act(async () => {
+        fireEvent.scroll(document);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      expect(highlighted()).toEqual(['Roadmap ideas']);
+    });
+
+    it('keeps a pointer-chosen row pointer-chosen when only a modifier key is pressed inside it', () => {
+      renderHome(searchProps());
+      fireEvent.pointerMove(rowOf('Ideas'));
+
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Ideas' }), { key: 'Shift' });
+
+      expect(rowOf('Ideas')).toHaveAttribute('data-highlighted', 'pointer');
+    });
+
+    it('exposes the pointer-chosen row as the search box active descendant', () => {
+      renderHome(searchProps());
+
+      fireEvent.pointerMove(rowOf('Ideas'));
+
+      expect(searchField()).toHaveAttribute('aria-activedescendant', screen.getByRole('button', { name: 'Ideas' }).id);
+    });
+
+    it('does not scroll when the pointer leaving hands the highlight back to the first match', () => {
+      const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView');
+      try {
+        renderHome(searchProps());
+        typeQuery('road');
+        expect(scrollIntoView).toHaveBeenCalled();
+        fireEvent.pointerMove(rowOf('Roadmap ideas'));
+        scrollIntoView.mockClear();
+
+        fireEvent.pointerLeave(listOf());
+        expect(highlighted()).toEqual(['Project Roadmap']);
+        expect(scrollIntoView).not.toHaveBeenCalled();
+
+        fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+        expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      } finally {
+        scrollIntoView.mockRestore();
+      }
+    });
+
+    it('follows a pointer that scrolling moved onto another row or off the rows, but not a keyboard choice or an open menu', async () => {
+      renderHome(searchProps());
+      layoutRows();
+      const scrolled = () => act(async () => {
+        fireEvent.scroll(document);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
+      layoutRows(rowPitch);
+      const unrelated = document.body.appendChild(document.createElement('div'));
+      await act(async () => {
+        fireEvent.scroll(unrelated);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      unrelated.remove();
+      expect(highlighted()).toEqual(['Ideas']);
+      await scrolled();
+      expect(highlighted()).toEqual(['Roadmap ideas']);
+      expect(menuTarget()).toBe('Roadmap ideas');
+
+      fireEvent.keyDown(document.body, { key: 'CapsLock' });
+      layoutRows(-rowPitch);
+      await scrolled();
+      expect(highlighted()).toEqual(['Project Roadmap']);
+
+      layoutRows(1000);
+      await scrolled();
+      expect(highlighted()).toEqual([]);
+      expect(menuTarget()).toBe('Project Roadmap');
+
+      fireEvent.keyDown(searchField(), { key: 'ArrowDown' });
+      layoutRows();
+      await scrolled();
+      expect(highlighted()).toEqual(['Project Roadmap']);
+
+      fireEvent.wheel(document.body);
+      await scrolled();
+      expect(highlighted()).toEqual(['Ideas']);
+
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
+      fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      await screen.findByRole('menu');
+      layoutRows(rowPitch);
+      await scrolled();
+      expect(highlighted()).toEqual(['Ideas']);
+    });
+
+    it('chooses the row under the pointer when a menu closes over it', async () => {
+      renderHome(searchProps());
+      layoutRows();
+      const closeMenu = async (at: { clientX: number; clientY: number }) => {
+        const underlay = document.querySelector('[data-testid="underlay"]')!;
+        fireEvent.pointerDown(underlay, at);
+        fireEvent.pointerUp(underlay);
+        fireEvent.click(underlay);
+        await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+        fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      };
+
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
+      fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      await screen.findByRole('menu');
+      await closeMenu(atRow(1));
+      expect(highlighted()).toEqual(['Ideas']);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Actions for Ideas' }));
+      await screen.findByRole('menu');
+      await closeMenu(atRow(2));
+      expect(highlighted()).toEqual(['Roadmap ideas']);
+    });
+
+    it('does not follow a pointer that touch input has replaced as the latest input', async () => {
+      renderHome(searchProps());
+      layoutRows();
+      fireEvent.pointerMove(rowOf('Ideas'), atRow(1));
+      fireEvent.pointerDown(document.body, { ...atRow(1), pointerType: 'touch' });
+
+      layoutRows(rowPitch);
+      await act(async () => {
+        fireEvent.scroll(document);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+
+      expect(highlighted()).toEqual(['Ideas']);
+    });
+
+    it('ignores touch movement and the focus a tap leaves behind', () => {
+      renderHome(searchProps());
+
+      fireEvent.pointerMove(rowOf('Ideas'), { pointerType: 'touch' });
+      fireEvent.pointerDown(rowOf('Ideas'), { pointerType: 'touch' });
+      fireEvent.focus(screen.getByRole('button', { name: 'Actions for Ideas' }));
+
+      expect(highlighted()).toEqual([]);
+      expect(menuTarget()).toBe('Project Roadmap');
+    });
   });
 
   it('lists documents grouped under a heading per source', () => {
@@ -354,22 +709,6 @@ describe('home view', () => {
   });
 
   describe('document search', () => {
-    const longName = `${'Quarterly planning '.repeat(4)}appendix`;
-    const searchProps = (): HomeViewProps => {
-      const props = baseProps();
-      props.sources = [sourceNote({
-        id: 'local',
-        label: 'Local',
-        documents: [
-          documentNote({ id: 'docA', title: 'Project Roadmap' }),
-          documentNote({ id: 'docB', title: 'Ideas' }),
-          documentNote({ id: 'docC', title: 'Roadmap ideas' }),
-          documentNote({ id: 'doc-d', title: longName }),
-        ],
-      })];
-      return props;
-    };
-
     it('keeps documents whose full name holds every token in any case, in list order', () => {
       renderHome(searchProps());
 
@@ -397,21 +736,20 @@ describe('home view', () => {
 
     it('highlights nothing for an empty query and the first match otherwise', () => {
       renderHome(searchProps());
-      const rowOf = (name: string) => screen.getByRole('button', { name }).closest('li');
 
-      expect(document.querySelector('[data-search-active]')).toBeNull();
+      expect(document.querySelector('[data-highlighted]')).toBeNull();
       expect(searchField()).not.toHaveAttribute('aria-activedescendant');
 
       typeQuery('road');
-      expect(rowOf('Project Roadmap')).toHaveAttribute('data-search-active', 'true');
-      expect(rowOf('Roadmap ideas')).not.toHaveAttribute('data-search-active');
+      expect(rowOf('Project Roadmap')).toHaveAttribute('data-highlighted', 'keyboard');
+      expect(rowOf('Roadmap ideas')).not.toHaveAttribute('data-highlighted');
       expect(searchField()).toHaveAttribute('aria-activedescendant', screen.getByRole('button', { name: 'Project Roadmap' }).id);
       expect(screen.getByRole('status')).toHaveTextContent('2 documents');
     });
 
     it('moves the highlight without wrapping and starts on the first document from none', () => {
       renderHome(searchProps());
-      const active = () => document.querySelector('[data-search-active] .home-doc-label')?.textContent ?? null;
+      const active = () => document.querySelector('[data-highlighted] .home-doc-label')?.textContent ?? null;
 
       fireEvent.keyDown(searchField(), { key: 'ArrowUp' });
       expect(active()).toBeNull();

@@ -4,6 +4,10 @@ import { ensureReady, load, waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
 import { createUserDocument } from '../_support/documents';
 
+const tintedRowCount = (rows: ReturnType<typeof homeView>) => rows.evaluateAll(
+  (items) => items.filter((item) => getComputedStyle(item).backgroundColor !== 'rgba(0, 0, 0, 0)').length,
+);
+
 test.describe('Home', () => {
   test('keeps one row action visible through hover, keyboard and overlays', async ({ page, editor }) => {
     await editor.load('basic');
@@ -55,6 +59,124 @@ test.describe('Home', () => {
     await expect(first).toHaveCSS('opacity', '0');
     await page.keyboard.press('Space');
     await expect(page.getByRole('menu')).toBeVisible();
+  });
+
+  test('keeps one active row through search keys, hover and scrolling', async ({ page, editor }) => {
+    await page.setViewportSize({ width: 1000, height: 500 });
+    await editor.load('basic');
+    for (let index = 1; index <= 8; index += 1) await createUserDocument(page, `Document ${index}`);
+    await homeZoomBreadcrumb(page).click();
+    const home = homeView(page);
+    const rows = home.getByRole('listitem');
+    await expect(rows).toHaveCount(10);
+    const tintedRows = () => tintedRowCount(rows);
+    const activeLabel = home.locator('li[data-highlighted] .home-doc-label');
+    const actionsOf = (index: number) => rows.nth(index).getByRole('button', { name: /^Actions for/u });
+
+    await homeSearch(page).press('ArrowDown');
+    await homeSearch(page).press('ArrowDown');
+    await expect.poll(tintedRows).toBe(1);
+    await expect(actionsOf(1)).toHaveCSS('opacity', '1');
+    await expect(actionsOf(0)).toHaveCSS('opacity', '0');
+
+    await rows.nth(3).hover();
+    await expect.poll(tintedRows).toBe(1);
+    await expect(actionsOf(3)).toHaveCSS('opacity', '1');
+    await expect(actionsOf(1)).toHaveCSS('opacity', '0');
+    const hovered = await activeLabel.textContent();
+
+    await page.mouse.wheel(0, 200);
+    await expect(activeLabel).not.toHaveText(hovered!);
+    await expect(home.locator('li[data-highlighted]:hover')).toHaveCount(1);
+    await expect(home.locator('li[data-highlighted] .document-menu-button')).toHaveCSS('opacity', '1');
+    await expect.poll(tintedRows).toBe(1);
+
+    for (let step = 0; step < 6; step += 1) await homeSearch(page).press('ArrowDown');
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await expect(home.locator('li[data-highlighted]')).toHaveAttribute('data-highlighted', 'keyboard');
+    await expect.poll(tintedRows).toBe(1);
+  });
+
+  test('keeps the tint while a menu is open and drops it once the menu closes with the pointer elsewhere', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const rows = homeView(page).getByRole('listitem');
+    const tintedRows = () => tintedRowCount(rows);
+
+    await rows.nth(1).hover();
+    await expect.poll(tintedRows).toBe(1);
+    await rows.nth(1).getByRole('button', { name: /^Actions for/u }).click();
+    await expect(page.getByRole('menu')).toBeVisible();
+    await page.mouse.move(5, 5);
+    await expect.poll(tintedRows).toBe(1);
+
+    await page.mouse.click(5, 5);
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect.poll(tintedRows).toBe(0);
+    await expect(rows.nth(1).getByRole('button', { name: /^Actions for/u })).toHaveCSS('opacity', '1');
+  });
+
+  test('keeps the tint when a menu closes with the pointer resting on its row', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const rows = homeView(page).getByRole('listitem');
+
+    await rows.nth(1).hover();
+    await rows.nth(1).getByRole('button', { name: /^Actions for/u }).click();
+    const box = (await rows.nth(1).boundingBox())!;
+    await page.mouse.click(box.x + box.width - 40, box.y + box.height / 2);
+
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect.poll(() => tintedRowCount(rows)).toBe(1);
+    await expect(rows.nth(1)).toHaveAttribute('data-highlighted', 'pointer');
+  });
+
+  test('keeps the tint through a rename dialog and drops it when the dialog closes with the pointer elsewhere', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const rows = homeView(page).getByRole('listitem');
+    const tintedRows = () => tintedRowCount(rows);
+
+    await rows.nth(1).hover();
+    await rows.nth(1).getByRole('button', { name: /^Actions for/u }).click();
+    await page.getByRole('menuitem', { name: 'Rename…' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect.poll(tintedRows).toBe(1);
+
+    await page.mouse.move(5, 5);
+    await page.getByRole('button', { name: 'Cancel', exact: true }).dispatchEvent('click');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect.poll(tintedRows).toBe(0);
+  });
+
+  test('leaves the row keyboard-chosen when Escape closes its rename dialog', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const rows = homeView(page).getByRole('listitem');
+
+    await rows.nth(1).hover();
+    await rows.nth(1).getByRole('button', { name: /^Actions for/u }).click();
+    await page.getByRole('menuitem', { name: 'Rename…' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(rows.nth(1)).toHaveAttribute('data-highlighted', 'keyboard');
+    await expect.poll(() => tintedRowCount(rows)).toBe(1);
+  });
+
+  test('turns a pointer tint into a keyboard choice when Escape closes its menu', async ({ page, editor }) => {
+    await editor.load('basic');
+    await homeZoomBreadcrumb(page).click();
+    const rows = homeView(page).getByRole('listitem');
+
+    await rows.nth(1).hover();
+    await rows.nth(1).getByRole('button', { name: /^Actions for/u }).click();
+    await page.mouse.move(5, 5);
+    await page.keyboard.press('Escape');
+
+    await expect(rows.nth(1)).toHaveAttribute('data-highlighted', 'keyboard');
+    await expect.poll(() => tintedRowCount(rows)).toBe(1);
   });
 
   test('falls back to an available row after deleting the active document', async ({ page, editor }) => {

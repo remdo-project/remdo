@@ -1,6 +1,6 @@
 import { TextInput, VisuallyHidden } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
-import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
+import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { DocumentNote, DocumentSourceNote } from '#note-sdk';
 import { useCoarsePointer } from '#client/browser/useCoarsePointer';
@@ -18,6 +18,19 @@ export interface HomeViewProps {
   onUploadDocument: (file: File) => void;
 }
 
+type ActiveInput = 'pointer' | 'keyboard';
+type ActivationSource = ActiveInput | 'focus';
+type LastInput = ActiveInput | 'touch';
+
+const hasOpenMenu = (root: HTMLElement | null) => root?.querySelector('.document-menu-button[aria-expanded="true"]') != null;
+
+const MODIFIER_KEYS = new Set([
+  'Alt', 'AltGraph', 'CapsLock', 'Control', 'Fn', 'FnLock', 'Hyper', 'Meta', 'NumLock', 'ScrollLock', 'Shift', 'Super',
+  'Symbol', 'SymbolLock', 'OS', 'Win',
+]);
+
+const documentIdOf = (element: Element | null) => element?.closest<HTMLElement>('[data-home-row]')?.dataset.homeRow;
+
 function filterHomeDocuments(documents: readonly DocumentNote[], query: string): DocumentNote[] {
   return documents.filter((document) => (
     matchesPathQuery([formatNavigationLabel(document.getText(), Number.POSITIVE_INFINITY)], query)
@@ -27,23 +40,25 @@ function filterHomeDocuments(documents: readonly DocumentNote[], query: string):
 function DocumentGroup({
   label,
   documents,
-  activeId,
+  highlightId,
+  highlightInput,
   onSelectDocument,
   onDelete,
   onRename,
   onShare,
   menuTargetId,
-  onMenuTarget,
+  onActivate,
 }: {
   label: string;
   documents: readonly DocumentNote[];
-  activeId: string | null;
+  highlightId: string | null;
+  highlightInput: ActiveInput;
   onSelectDocument: (docId: string) => void;
   onDelete: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   onShare: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
   menuTargetId: string | null;
-  onMenuTarget: (docId: string) => void;
+  onActivate: (docId: string, source: ActivationSource) => void;
 }) {
   return (
     <section aria-label={label} className="home-group" role="group">
@@ -60,13 +75,13 @@ function DocumentGroup({
           return (
             <li
               className="home-doc-row"
+              data-highlighted={id === highlightId ? highlightInput : undefined}
+              data-home-row={id}
               data-menu-target={id === menuTargetId ? true : undefined}
-              data-search-active={id === activeId ? true : undefined}
               key={id}
-              onFocus={() => onMenuTarget(id)}
-              onKeyDownCapture={() => onMenuTarget(id)}
-              onPointerMove={(event) => {
-                if (event.pointerType !== 'touch') onMenuTarget(id);
+              onFocus={() => onActivate(id, 'focus')}
+              onKeyDownCapture={(event) => {
+                if (!MODIFIER_KEYS.has(event.key)) onActivate(id, 'keyboard');
               }}
             >
               <DocumentMenu label={label} note={note} onDelete={onDelete} onRename={onRename} onShare={onShare} />
@@ -120,7 +135,9 @@ export function HomeView({
   const coarsePointer = useCoarsePointer();
   const { documentDialog, openDelete, openRename, openShare } = useDocumentDialogs(headingRef);
   const [query, setQuery] = useState('');
-  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [active, setActive] = useState<{ id: string | null; input: ActiveInput | null }>({ id: null, input: null });
+  const lastInputRef = useRef<LastInput>('keyboard');
+  const pointerRef = useRef<{ x: number; y: number } | null>(null);
   const groups = sources.map((source) => {
     const documents = source.documents.getChildren();
     return { source, documents, visibleDocuments: filterHomeDocuments(documents, query) };
@@ -129,21 +146,63 @@ export function HomeView({
   const visibleDocuments = groups.flatMap((group) => group.visibleDocuments);
   const matchIds = visibleDocuments.map((note) => note.getId());
   const hasQuery = tokenizeQuery(query).length > 0;
-  const activeId = highlightedId !== null && matchIds.includes(highlightedId)
-    ? highlightedId
-    : hasQuery ? matchIds[0] ?? null : null;
+  const activeRowId = active.id !== null && matchIds.includes(active.id) ? active.id : null;
+  const chosenInput = activeRowId === null ? null : active.input;
+  const highlightId = chosenInput === null ? hasQuery ? matchIds[0] ?? null : null : activeRowId;
+  const highlightInput = chosenInput ?? 'keyboard';
   const menuDocumentIds = visibleDocuments
     .filter((note) => note.canRename() || note.canShareWith() || note.canDelete())
     .map((note) => note.getId());
-  const [menuTarget, setMenuTarget] = useState<string | null>(null);
-  const menuTargetId = menuTarget !== null && menuDocumentIds.includes(menuTarget)
-    ? menuTarget
+  const restingId = activeRowId !== null && menuDocumentIds.includes(activeRowId)
+    ? activeRowId
     : menuDocumentIds[0] ?? null;
-  if (menuTarget !== menuTargetId) setMenuTarget(menuTargetId);
+  const menuTargetId = highlightId ?? restingId;
 
-  const targetDocument = (docId: string) => {
-    if (documentDialog || homeRef.current?.querySelector('.document-menu-button[aria-expanded="true"]')) return;
-    if (menuDocumentIds.includes(docId)) setMenuTarget(docId);
+  const dialogOpen = Boolean(documentDialog);
+  const holdsActiveRow = () => dialogOpen || hasOpenMenu(homeRef.current);
+  const choose = (docId: string, input: ActiveInput) => setActive((current) => (
+    current.id === docId && current.input === input ? current : { id: docId, input }
+  ));
+  const rest = () => setActive((current) => current.input === null ? current : { ...current, input: null });
+  const restPointer = () => setActive((current) => (
+    current.input === 'pointer' && !holdsActiveRow() ? { ...current, input: null } : current
+  ));
+  const rowUnderPointer = () => {
+    const point = pointerRef.current;
+    if (!point) return null;
+    for (const row of homeRef.current?.querySelectorAll<HTMLElement>('[data-home-row]') ?? []) {
+      const { left, right, top, bottom } = row.getBoundingClientRect();
+      if (point.x >= left && point.x < right && point.y >= top && point.y < bottom) return row.dataset.homeRow ?? null;
+    }
+    return null;
+  };
+  const activate = (docId: string, source: ActivationSource) => {
+    const lastInput = source === 'focus' ? lastInputRef.current : source;
+    if (lastInput === 'touch') return;
+    let input: ActiveInput = lastInput;
+    if (source === 'focus' && lastInput === 'pointer') {
+      const underPointer = rowUnderPointer();
+      if (underPointer !== docId) {
+        if (docId === active.id) {
+          if (holdsActiveRow()) return;
+          if (underPointer) choose(underPointer, 'pointer');
+          else restPointer();
+          return;
+        }
+        input = 'keyboard';
+      }
+    }
+    if ((active.id === docId && active.input === input) || holdsActiveRow()) return;
+    if (source === 'focus') lastInputRef.current = input;
+    choose(docId, input);
+  };
+
+  const trackPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'touch') return;
+    const inList = event.target instanceof Node && event.currentTarget.contains(event.target);
+    const docId = inList ? documentIdOf(event.target as Element) : undefined;
+    if (docId) activate(docId, 'pointer');
+    else restPointer();
   };
 
   useEffect(() => {
@@ -168,14 +227,14 @@ export function HomeView({
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setQuery(event.currentTarget.value);
-    setHighlightedId(null);
+    rest();
   };
 
   const moveHighlight = (delta: 1 | -1) => {
     if (matchIds.length === 0) return;
-    const index = activeId === null ? -1 : matchIds.indexOf(activeId);
+    const index = highlightId === null ? -1 : matchIds.indexOf(highlightId);
     if (index === -1 && delta === -1) return;
-    setHighlightedId(matchIds[Math.max(0, Math.min(matchIds.length - 1, index + delta))]!);
+    choose(matchIds[Math.max(0, Math.min(matchIds.length - 1, index + delta))]!, 'keyboard');
   };
 
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -187,17 +246,77 @@ export function HomeView({
       moveHighlight(event.key === 'ArrowDown' ? 1 : -1);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      if (activeId !== null) onSelectDocument(activeId);
+      if (highlightId !== null) onSelectDocument(highlightId);
     } else if (event.key === 'Escape' && query !== '') {
       event.preventDefault();
       setQuery('');
-      setHighlightedId(null);
+      rest();
     }
   };
 
+  const scrollHighlightIntoView = () => homeRef.current?.querySelector('[data-highlighted]')?.scrollIntoView({ block: 'nearest' });
+
   useEffect(() => {
-    homeRef.current?.querySelector('[data-search-active]')?.scrollIntoView({ block: 'nearest' });
-  }, [activeId]);
+    if (chosenInput === 'keyboard') scrollHighlightIntoView();
+  }, [highlightId, chosenInput]);
+
+  useEffect(() => {
+    if (hasQuery) scrollHighlightIntoView();
+  }, [hasQuery, query]);
+
+  useEffect(() => {
+    const keyboard = (event: KeyboardEvent) => {
+      if (!MODIFIER_KEYS.has(event.key)) lastInputRef.current = 'keyboard';
+    };
+    // The document sees pointer events the list does not, such as those over an open menu.
+    const pointer = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') {
+        if (event.type === 'pointerdown') lastInputRef.current = 'touch';
+        return;
+      }
+      lastInputRef.current = 'pointer';
+      pointerRef.current = { x: event.clientX, y: event.clientY };
+    };
+    const pointerOut = (event: PointerEvent) => {
+      if (!event.relatedTarget) pointerRef.current = null;
+    };
+    const wheel = () => { lastInputRef.current = 'pointer'; };
+    document.addEventListener('keydown', keyboard, true);
+    document.addEventListener('pointerdown', pointer, true);
+    document.addEventListener('pointermove', pointer, true);
+    document.addEventListener('pointerout', pointerOut, true);
+    document.addEventListener('wheel', wheel, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener('keydown', keyboard, true);
+      document.removeEventListener('pointerdown', pointer, true);
+      document.removeEventListener('pointermove', pointer, true);
+      document.removeEventListener('pointerout', pointerOut, true);
+      document.removeEventListener('wheel', wheel, { capture: true });
+    };
+  }, []);
+
+  // Scrolling moves rows under a stationary pointer without a pointermove.
+  useEffect(() => {
+    if (dialogOpen) return;
+    let frame = 0;
+    const followPointer = () => {
+      frame = 0;
+      const point = pointerRef.current;
+      if (!point || lastInputRef.current !== 'pointer' || hasOpenMenu(homeRef.current)) return;
+      const docId = rowUnderPointer();
+      if (docId) choose(docId, 'pointer');
+      else setActive((current) => current.input === 'pointer' ? { ...current, input: null } : current);
+    };
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Node && !event.target.contains(homeRef.current)) return;
+      if (frame === 0) frame = requestAnimationFrame(followPointer);
+    };
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener('scroll', onScroll, { capture: true });
+      cancelAnimationFrame(frame);
+    };
+  }, [dialogOpen]);
 
   const handleUploadInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0] ?? null;
@@ -240,7 +359,7 @@ export function HomeView({
       {hasDocuments && (
         <>
           <TextInput
-            aria-activedescendant={activeId === null ? undefined : `home-doc-link-${activeId}`}
+            aria-activedescendant={highlightId === null ? undefined : `home-doc-link-${highlightId}`}
             aria-autocomplete="list"
             aria-controls={listId}
             aria-expanded
@@ -262,13 +381,19 @@ export function HomeView({
         </>
       )}
 
-      <div id={listId}>
+      <div
+        id={listId}
+        onPointerLeave={restPointer}
+        onPointerDown={trackPointer}
+        onPointerMove={trackPointer}
+      >
         {hasQuery && hasDocuments && matchIds.length === 0 && (
           <p className="home-search-empty">No documents match</p>
         )}
         {groups.filter((group) => group.visibleDocuments.length > 0).map(({ source, visibleDocuments: documents }) => (
           <DocumentGroup
-            activeId={activeId}
+            highlightId={highlightId}
+            highlightInput={highlightInput}
             key={source.getId()}
             label={source.getText()}
             documents={documents}
@@ -277,7 +402,7 @@ export function HomeView({
             onSelectDocument={onSelectDocument}
             onShare={openShare}
             menuTargetId={menuTargetId}
-            onMenuTarget={targetDocument}
+            onActivate={activate}
           />
         ))}
       </div>
