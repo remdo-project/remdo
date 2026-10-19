@@ -1,5 +1,5 @@
 import { expect, isolatedTest as test } from '#editor/fixtures';
-import { documentShell, editorLocator, homeSearch } from '#editor/locators';
+import { documentShell, editorLocator, homeSearch, homeView, homeZoomBreadcrumb } from '#editor/locators';
 import { openNoteMenu } from './_support/menu';
 import { waitForSynced } from './_support/bridge';
 import { createEditorDocumentPath } from './_support/routes';
@@ -18,6 +18,38 @@ test.describe('Document-root header', () => {
     await editorLocator(page).locator('[data-lexical-text="true"]', { hasText: 'note2' }).first().hover();
     await expect(noteButton).toBeVisible();
     await expect(headerButton).toHaveCSS('opacity', '0');
+  });
+
+  test('draws the Home, header and note-strip menu buttons at one size and hides the header button instantly', async ({ page, editor }) => {
+    await editor.load('tree-complex');
+    const headerButton = page.getByRole('button', { name: /^Actions for/u });
+    const noteButton = editorLocator(page).locator('.note-controls__button--menu');
+    const sizeOf = async (button: typeof headerButton) => {
+      const box = (await button.boundingBox())!;
+      return { width: box.width, height: box.height };
+    };
+
+    await page.getByRole('heading', { level: 1 }).hover();
+    await expect(headerButton).toHaveCSS('opacity', '1');
+    const headerSize = await sizeOf(headerButton);
+
+    const headerOpacityAtHandoff = documentShell(page).evaluate((shell) => new Promise<string>((resolve) => {
+      const observer = new MutationObserver(() => {
+        observer.disconnect();
+        resolve(getComputedStyle(shell.querySelector('.document-menu-button')!).opacity);
+      });
+      observer.observe(shell, { attributes: true, attributeFilter: ['data-menu-target'] });
+    }));
+    await editorLocator(page).locator('[data-lexical-text="true"]', { hasText: 'note2' }).first().hover();
+    await expect(noteButton).toBeVisible();
+
+    expect(await headerOpacityAtHandoff).toBe('0');
+    expect(await sizeOf(noteButton)).toEqual(headerSize);
+    expect(await sizeOf(editorLocator(page).locator('.note-controls__button--expanded'))).toEqual(headerSize);
+
+    await homeZoomBreadcrumb(page).click();
+    const rowButton = homeView(page).getByRole('listitem').first().getByRole('button', { name: /^Actions for/u });
+    expect(await sizeOf(rowButton)).toEqual(headerSize);
   });
 
   test('hands the target to a hovered note in an ordered root list', async ({ page, editor }) => {

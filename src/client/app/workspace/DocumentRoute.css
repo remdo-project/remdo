@@ -561,8 +561,8 @@
    stay opaque in every state or the icon disappears. */
 .document-menu-button {
   flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: var(--menu-icon-size);
+  height: var(--menu-icon-size);
   padding: 0;
   border: none;
   background-color: var(--mantine-color-dark-2);
@@ -578,15 +578,11 @@
   /* Reserved gutter space keeps the row from shifting as the button appears.
      Opacity rather than visibility keeps the button focusable while hidden. */
   opacity: 0;
-  transition: opacity 120ms ease, background-color 120ms ease;
-}
-
-.home-doc-row .document-menu-button {
   transition: background-color 120ms ease;
 }
 
 .location-header .document-menu-button {
-  margin-inline: calc(-1.25rem - 0.375rem) 0.375rem;
+  margin-inline: calc(-1 * var(--menu-icon-size) - 0.375rem) 0.375rem;
 }
 
 .document-menu-button:hover,
