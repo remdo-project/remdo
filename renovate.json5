@@ -3,12 +3,12 @@
   "extends": [
     "config:recommended",
     "group:allNonMajor",
+    "schedule:weekly",
+    ":maintainLockFilesWeekly",
     "security:minimumReleaseAgeNpm",
     "security:minimumReleaseAgePypi",
   ],
   "timezone": "Europe/Warsaw",
-  "schedule": ["* 0-8 * * 1"],
-  "lockFileMaintenance": { "enabled": true, "schedule": ["* 0-8 * * 1"] },
   "packageRules": [
     {
       "description": "Overrides are dependency repairs, reviewed with their owning update.",
@@ -48,7 +48,7 @@
       // TODO(deps): retry TypeScript; typescript-eslint rejects 7.0 and tracks 7.1+ in typescript-eslint#10940.
       // Probe: rebase the draft PR and run typecheck and lint:code against its generated lockfile.
       "matchPackageNames": ["typescript"],
-      "groupName": null,
+      "matchUpdateTypes": ["major"],
       "draftPR": true,
     },
     {
