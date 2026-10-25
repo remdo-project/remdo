@@ -96,14 +96,15 @@ import os
 import time
 from urllib.request import Request, urlopen
 from urllib.parse import urlsplit
-for attempt in range(100):
+deadline = time.monotonic() + 120
+while True:
     try:
         with urlopen(Request(f"http://127.0.0.1:{os.environ['API_SERVER_PORT']}/api/health", headers={"Host": urlsplit(os.environ["APP_ORIGIN"]).netloc}), timeout=1):
             break
     except OSError:
+        if time.monotonic() > deadline:
+            raise SystemExit("Django did not become ready.")
         time.sleep(0.1)
-else:
-    raise SystemExit("Django did not become ready.")
 PYREADY
 start_child collaboration env -u AUTH_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET -u EMAIL_HOST_PASSWORD \
   node ${collaboration_heap_mb:+"--max-old-space-size=${collaboration_heap_mb}"} /app/collaboration.mjs
@@ -112,14 +113,15 @@ import os
 import time
 from urllib.request import urlopen
 
-for attempt in range(100):
+deadline = time.monotonic() + 120
+while True:
     try:
         with urlopen(f"http://127.0.0.1:{os.environ['COLLAB_SERVER_PORT']}/ready", timeout=1):
             break
     except OSError:
+        if time.monotonic() > deadline:
+            raise SystemExit("Collaboration did not become ready.")
         time.sleep(0.1)
-else:
-    raise SystemExit("Collaboration did not become ready.")
 PYREADY
 start_child caddy env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u GOOGLE_CLIENT_SECRET -u EMAIL_HOST_PASSWORD \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
