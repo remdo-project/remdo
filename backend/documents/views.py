@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from .models import Document, DocumentGrant
 from .notices import document_audience, notify_document_list_changed
+from .operations import create_document, rename_document
 from .serializers import (
     ConfigSerializer,
     CurrentUserSerializer,
@@ -48,8 +49,7 @@ class DocumentListCreateView(generics.ListCreateAPIView):
         )
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-        notify_document_list_changed({self.request.user.pk})
+        create_document(serializer, self.request.user)
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -68,8 +68,7 @@ class DocumentView(generics.UpdateAPIView, generics.DestroyAPIView):
         return super().get_permissions()
 
     def perform_update(self, serializer):
-        serializer.save()
-        notify_document_list_changed(document_audience(serializer.instance))
+        rename_document(serializer)
 
     def perform_destroy(self, document):
         audience = document_audience(document)

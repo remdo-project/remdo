@@ -1,4 +1,4 @@
-import type { NewNote, NoteId } from '#note-sdk';
+import type { NewNote, NoteId, NoteListType } from '#note-sdk';
 import { withHeadlessOpenDocument } from './open-document';
 import { renderOutline } from './outline';
 
@@ -25,4 +25,15 @@ export function appendChildren(
 ): Promise<NoteId[]> {
   return withHeadlessOpenDocument(documentId, authorization, (openDocument) =>
     (noteId ? openDocument.noteRef(noteId) : openDocument.root.content).appendChildren(notes), { signal });
+}
+
+export function setChildListType(
+  documentId: string,
+  authorization: string,
+  noteId: NoteId,
+  listType: NoteListType,
+  { signal }: { signal?: AbortSignal } = {},
+): Promise<void> {
+  return withHeadlessOpenDocument(documentId, authorization, (document) =>
+    document.noteRef(noteId).setChildListType(listType), { signal });
 }

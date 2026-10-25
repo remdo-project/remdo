@@ -45,7 +45,7 @@ export async function startRemdoApiServer(): Promise<StopRemdoApiServer> {
 
   prepareManagedProcessLog(LOG_PATH);
   const child = spawn(
-    './tools/env.sh', ['./tools/django-serve.sh', '--noreload'],
+    './tools/env.sh', ['./tools/django-serve.sh'],
     {
       env: {
         // eslint-disable-next-line node/no-process-env -- inherit the resolved stack environment

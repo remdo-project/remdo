@@ -13,7 +13,7 @@ import { isPortOpen } from '#tools/net';
 const roots: string[] = [];
 const children: ChildProcess[] = [];
 const fixture = path.resolve('tests/unit/_support/dev-service-fixture.mjs');
-const roles = ['api', 'collab', 'mcp', 'web'] as const;
+const roles = ['api', 'collab', 'web'] as const;
 type Role = typeof roles[number];
 interface Listener { pid: number; port: number; group: number }
 
@@ -55,7 +55,7 @@ function setup() {
     PATH: `${bin}:${process.env.PATH}`,
     HOST: '127.0.0.1', NODE_ENV: 'development',
     // Ephemeral fixture ports are isolated from every development port block.
-    PORT: '0', API_SERVER_PORT: '0', COLLAB_SERVER_PORT: '0', MCP_SERVER_PORT: '0',
+    PORT: '0', API_SERVER_PORT: '0', COLLAB_SERVER_PORT: '0',
     REMDO_DEV_FIXTURE_DIR: directory,
   };
   return { root, directory, env };
@@ -85,7 +85,7 @@ async function listeners(directory: string): Promise<Record<Role, Listener>> {
 function ports(values: Record<Role, Listener>) {
   return {
     PORT: String(values.web.port), API_SERVER_PORT: String(values.api.port),
-    COLLAB_SERVER_PORT: String(values.collab.port), MCP_SERVER_PORT: String(values.mcp.port),
+    COLLAB_SERVER_PORT: String(values.collab.port),
   };
 }
 
@@ -163,7 +163,7 @@ it('cleans up siblings when a service fails during startup', async () => {
   const context = setup();
   const run = launch({ ...context.env, REMDO_DEV_FIXTURE_FAIL: 'web' });
   expect((await run.exit)[0], run.stderr()).toBe(7);
-  for (const role of ['api', 'collab', 'mcp']) {
+  for (const role of ['api', 'collab']) {
     const value = JSON.parse(fs.readFileSync(path.join(context.directory, `${role}.json`), 'utf8')) as Listener;
     expect(await isPortOpen('127.0.0.1', value.port)).toBe(false);
   }

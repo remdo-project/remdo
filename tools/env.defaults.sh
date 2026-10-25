@@ -49,7 +49,6 @@ remdo_configure_environment() {
     VITEST_PORT="$((PORT_BASE + 2))"
     COLLAB_SERVER_PORT="$((PORT_BASE + 4))"
     API_SERVER_PORT="$((PORT_BASE + 11))"
-    MCP_SERVER_PORT="$((PORT_BASE + 13))"
 
     if [ -z "${PUBLIC_HOST:-}" ] && [ "${HOST}" = "0.0.0.0" ]; then
       PUBLIC_HOST="$(hostname)"
@@ -75,7 +74,7 @@ remdo_configure_environment() {
   : "${COLLAB_ENABLED:=true}"
   : "${DEV_DOCUMENT_ID:=devDoc}"
   : "${CI:=false}"
-  # The production entrypoint replaces it with a count sized from MCP's memory.
+  # The production entrypoint sizes headless capacity within the Node heap.
   : "${MCP_DOCUMENT_SLOTS:=2}"
   : "${DATA_DIR:=${REMDO_ROOT%/}/data}"
   case "${DATA_DIR}" in
@@ -100,7 +99,7 @@ remdo_configure_environment() {
   fi
 
   export NODE_ENV HOST PUBLIC_HOST PORT_BASE PORT DATA_DIR COLLAB_ENABLED DEV_DOCUMENT_ID CI TMPDIR MCP_DOCUMENT_SLOTS
-  export VITEST_PORT COLLAB_SERVER_PORT API_SERVER_PORT MCP_SERVER_PORT
+  export VITEST_PORT COLLAB_SERVER_PORT API_SERVER_PORT
   export AUTH_SECRET COLLAB_INTERNAL_SECRET APP_ORIGIN
   if [ "$1" = production ]; then
     DJANGO_SETTINGS_MODULE=remdo.settings

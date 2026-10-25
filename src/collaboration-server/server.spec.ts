@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { createServer } from 'node:http';
+import { createServer, request as httpRequest } from 'node:http';
 import { connect as connectSocket } from 'node:net';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
@@ -13,16 +13,17 @@ import { requestPersistence } from '../collaboration/persistence-barrier';
 import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '../collaboration/runtime';
 import { withHeadlessOpenDocument } from '../headless/open-document';
 import { CollabSession } from '../collaboration/session';
-import { createMcpServer } from '../mcp/server';
 import * as origins from '#platform/net/origins';
+import { config } from '#config';
 import { createDeferred } from '../../tests/unit/_support/deferred';
 
-const secret = 'test-internal-secret';
+const secret = config.env.COLLAB_INTERNAL_SECRET;
 let authorizeStatus: number;
-let mcpAuthorizationChecks: number;
 let sessionStatus: number | 'reset';
 let authorizeHeaders: Array<Record<string, string | string[] | undefined>>;
 let loadStatus: number | 'dropped';
+let holdLoad: Promise<void> | undefined;
+let releaseLoad: (() => void) | undefined;
 let storeStatus: number;
 let failedDocument: string | undefined;
 let deletedDocument: string | undefined;
@@ -42,11 +43,7 @@ let runtime: ReturnType<typeof createCollaborationServer>;
 const backend = createServer((request, response) => {
   void (async () => {
     expect(request.headers.host).toBe('remdo.test');
-    if (request.url === '/api/mcp/current-user') {
-      mcpAuthorizationChecks++;
-      response.writeHead(200).end('{}');
-      return;
-    }
+
     expect(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()]).toBe(secret);
     if (request.url === '/internal/collaboration/session') {
       sessionHeaders.push(request.headers);
@@ -75,6 +72,7 @@ const backend = createServer((request, response) => {
       response.writeHead(authorizeStatus).end('{}');
     } else if (request.method === 'GET') {
       loaded++;
+      await holdLoad;
       if (loadStatus === 'dropped') request.socket.destroy();
       else response.writeHead(loadStatus).end(persisted);
     } else {
@@ -92,10 +90,11 @@ const backend = createServer((request, response) => {
 
 beforeEach(async () => {
   authorizeStatus = 200;
-  mcpAuthorizationChecks = 0;
   sessionStatus = 200;
   authorizeHeaders = [];
   loadStatus = 200;
+  holdLoad = undefined;
+  releaseLoad = undefined;
   storeStatus = 204;
   failedDocument = undefined;
   deletedDocument = undefined;
@@ -121,6 +120,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  releaseLoad?.();
   releaseStore?.();
   storeStatus = 204;
   failedDocument = undefined;
@@ -185,6 +185,13 @@ it('authorizes a bearer connection through Django without a browser origin', asy
   expect(authorizeHeaders).toHaveLength(1);
   expect(authorizeHeaders[0]!.authorization).toBe('bearer delegated-token');
   expect(authorizeHeaders[0]!.cookie).toBeUndefined();
+  expect(authorizeHeaders[0]!['x-remdo-collaboration-operator']).toBeUndefined();
+});
+
+it('keeps bearer authorization when an internal connection also carries the service secret', async () => {
+  const provider = connect('document', { Authorization: 'Bearer delegated-token', [INTERNAL_SECRET_HEADER]: secret });
+  await expect.poll(() => provider.synced).toBe(true);
+  expect(authorizeHeaders[0]!.authorization).toBe('Bearer delegated-token');
   expect(authorizeHeaders[0]!['x-remdo-collaboration-operator']).toBeUndefined();
 });
 
@@ -396,97 +403,145 @@ it('keeps writing after opening even when the acquisition deadline expires', asy
 });
 
 it.each([
-  [401, 'read_document', { target: 'document' }],
-  [401, 'append_children', { parent: 'document', notes: [{ text: 'Note' }] }],
-  [401, 'set_child_list_type', { noteAddress: 'document_note', listType: 'check' }],
-  [403, 'read_document', { target: 'document' }],
-])('preserves authorization status %s when MCP %s opens a document', async (status, name, args) => {
+  {},
+  { Authorization: 'Bearer delegated-token' },
+  { [INTERNAL_SECRET_HEADER]: secret },
+  { Authorization: 'Bearer delegated-token', [INTERNAL_SECRET_HEADER]: 'wrong-secret' },
+] as Array<Record<string, string>>)('requires both internal credentials and a user bearer before dispatching editor work (%s)', async (headers) => {
+  const response = await fetch(`${origin}/internal/editor`, {
+    method: 'POST', headers, body: JSON.stringify({ operation: 'read', documentId: 'document' }),
+  });
+  expect(response.status).toBe(403);
+  expect(authorizations).toBe(0);
+  expect(loaded).toBe(0);
+});
+
+it.each([
+  [401, 'read', {}],
+  [401, 'append', { notes: [{ text: 'Note' }] }],
+  [401, 'setChildListType', { noteId: 'note', listType: 'check' }],
+  [403, 'read', {}],
+])('preserves authorization status %s when the private editor %s opens a document', async (status, operation, args) => {
   const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
   runtimeCleanup.push(() => resolveOrigin.mockRestore());
   authorizeStatus = status;
-  const mcp = createMcpServer({
-    origin: 'http://127.0.0.1:0',
-    apiOrigin: `http://127.0.0.1:${(backend.address() as AddressInfo).port}`,
-    appOrigin: 'http://remdo.test',
-    documentSlots: 1,
+  const response = await fetch(`${origin}/internal/editor`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer delegated-token', [INTERNAL_SECRET_HEADER]: secret },
+    body: JSON.stringify({ operation, documentId: 'document', ...args }),
   });
-  const address = await mcp.listen();
+  expect(await response.json()).toEqual({ error: {
+    code: status === 401 ? 'UNAUTHENTICATED' : 'NOT_FOUND',
+    message: status === 401
+      ? 'RemDo no longer accepts this authorization. Reconnect RemDo.'
+      : 'The document is not available. Check list_documents for the documents the user can access.',
+    reconnect: status === 401,
+  } });
+  expect(loaded).toBe(0);
+  expectDiagnostics(['[onAuthenticate]']);
+});
+
+it.each(['held', 'refused'] as const)('preserves the persistence barrier across the private editor when SQL is %s', async (condition) => {
+  const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
+  runtimeCleanup.push(() => resolveOrigin.mockRestore());
+  const barrier = createDeferred();
+  if (condition === 'held') {
+    holdStore = barrier.promise;
+    releaseStore = barrier.resolve;
+  } else storeStatus = 503;
+  let returned = false;
+  const append = fetch(`${origin}/internal/editor`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer delegated-token', [INTERNAL_SECRET_HEADER]: secret },
+    body: JSON.stringify({ operation: 'append', documentId: 'document', notes: [{ text: 'saved after recovery' }] }),
+  }).then(async response => {
+    const value = await response.json();
+    returned = true;
+    return value;
+  });
   try {
-    const response = await fetch(`http://127.0.0.1:${address.port}/mcp`, {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer delegated-token',
-        Accept: 'application/json, text/event-stream',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
-    });
-    const data = (await response.text()).split('\n').find((line) => line.startsWith('data: '))!;
-    const { result } = JSON.parse(data.slice(6)) as { result: unknown };
-    const failure = {
-      isError: true,
-      content: [{
-        type: 'text',
-        text: status === 401
-          ? 'UNAUTHENTICATED: RemDo no longer accepts this authorization. Reconnect RemDo.'
-          : 'NOT_FOUND: The document is not available. Check list_documents for the documents the user can access.',
-      }],
-    };
-    expect(result).toEqual(status === 401 ? {
-      ...failure,
-      _meta: {
-        'mcp/www_authenticate': [
-          'Bearer resource_metadata="http://remdo.test/.well-known/oauth-protected-resource/mcp", '
-            + 'error="invalid_token", error_description="Reconnect RemDo."',
-        ],
-      },
-    } : failure);
-    expect(mcpAuthorizationChecks).toBe(1);
-    expect(loaded).toBe(0);
-    expectDiagnostics(['[onAuthenticate]']);
+    if (condition === 'held') {
+      await expect.poll(() => stores.length).toBeGreaterThan(0);
+      expect(persisted).toHaveLength(0);
+      expect(returned).toBe(false);
+      barrier.resolve();
+      expect(await append).toEqual({ result: [expect.any(String)] });
+    } else {
+      expect(await append).toMatchObject({ error: { code: 'OUTCOME_UNCONFIRMED', reconnect: false } });
+      expect(persisted).toHaveLength(0);
+      storeStatus = 204;
+      await expect.poll(() => persisted.length, { timeout: 3000 }).toBeGreaterThan(0);
+    }
+    const stored = new Y.Doc();
+    try {
+      Y.applyUpdate(stored, persisted);
+      expect(stored.get('root-v2', Y.XmlElement).toString().match(/saved after recovery/gu)).toHaveLength(1);
+    } finally { stored.destroy(); }
   } finally {
-    await mcp.stop();
+    barrier.resolve();
+    storeStatus = 204;
+    await append;
   }
 });
 
-it('reports an MCP append as unconfirmed when persistence fails and the hub saves it after recovery', async () => {
+it('finishes active and queued editor work before stopping collaboration', async () => {
   const resolveOrigin = vi.spyOn(origins, 'resolveCollabServerOrigin').mockReturnValue(origin);
   runtimeCleanup.push(() => resolveOrigin.mockRestore());
-  const mcp = createMcpServer({
-    origin: 'http://127.0.0.1:0',
-    apiOrigin: `http://127.0.0.1:${(backend.address() as AddressInfo).port}`,
-    appOrigin: 'http://remdo.test',
-    documentSlots: 1,
-  });
-  const address = await mcp.listen();
-  const mcpOrigin = `http://127.0.0.1:${address.port}`;
-  async function call(name: string, args: Record<string, unknown>) {
-    const response = await fetch(`${mcpOrigin}/mcp`, {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer delegated-token',
-        Accept: 'application/json, text/event-stream',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
-    });
-    const data = (await response.text()).split('\n').find((line) => line.startsWith('data: '))!;
-    return (JSON.parse(data.slice(6)) as { result: { isError?: boolean; content: Array<{ text: string }> } }).result;
-  }
+  const barrier = createDeferred();
+  holdLoad = barrier.promise;
+  releaseLoad = barrier.resolve;
+  const append = fetch(`${origin}/internal/editor`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer delegated-token', [INTERNAL_SECRET_HEADER]: secret },
+    body: JSON.stringify({ operation: 'append', documentId: 'document', notes: [{ text: 'finished during shutdown' }] }),
+  }).then(response => response.json());
   try {
-    storeStatus = 503;
-    const result = await call('append_children', { parent: 'document', notes: [{ text: 'saved after recovery' }] });
-    expect(result).toEqual({ isError: true, content: [{ type: 'text', text:
-      'OUTCOME_UNCONFIRMED: Document changes are unconfirmed and may still be saved. Check the document before retrying to avoid duplicate changes. '
-      + 'Collaboration persistence failed.' }] });
-    expect(persisted).toHaveLength(0);
-    storeStatus = 204;
-    await expect.poll(() => persisted.length, { timeout: 3000 }).toBeGreaterThan(0);
-    const read = await call('read_document', { target: 'document' });
-    expect(read.isError).toBeUndefined();
-    expect(read.content[0]!.text.match(/saved after recovery/gu)).toHaveLength(1);
+    await expect.poll(() => loaded).toBeGreaterThan(0);
+    // Header acceptance happens before the second request waits for the occupied slot.
+    const queued = httpRequest(`${origin}/internal/editor`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer delegated-token', [INTERNAL_SECRET_HEADER]: secret, Expect: '100-continue' },
+    });
+    const accepted = once(queued, 'continue');
+    const queuedResult = new Promise<unknown>((resolve, reject) => {
+      queued.on('error', reject);
+      queued.on('response', response => {
+        const chunks: Buffer[] = [];
+        response.on('data', chunk => chunks.push(Buffer.from(chunk)));
+        response.on('end', () => resolve(JSON.parse(Buffer.concat(chunks).toString())));
+      });
+    });
+    await accepted;
+    queued.end(JSON.stringify({ operation: 'append', documentId: 'document', notes: [{ text: 'queued during shutdown' }] }));
+    let stopped = false;
+    const stopping = runtime.stop().then(() => { stopped = true; });
+    expect((await fetch(`${origin}/ready`)).status).toBe(503);
+    expect(stopped).toBe(false);
+    for (const headers of [
+      { Authorization: 'Bearer delegated-token' },
+      { [INTERNAL_SECRET_HEADER]: secret },
+      { Origin: 'http://remdo.test', Cookie: 'user=owner' },
+    ]) {
+      const socket = new WebSocket(`${origin.replace('http:', 'ws:')}/collaboration`, { headers });
+      const rejected = once(socket, 'unexpected-response');
+      socket.on('error', () => {});
+      const [, response] = await rejected;
+      expect(response.statusCode).toBe(403);
+      socket.terminate();
+    }
+    barrier.resolve();
+    expect(await append).toEqual({ result: [expect.any(String)] });
+    expect(await queuedResult).toEqual({ result: [expect.any(String)] });
+    await stopping;
+    const stored = new Y.Doc();
+    try {
+      Y.applyUpdate(stored, persisted);
+      expect(stored.get('root-v2', Y.XmlElement).toString()).toContain('finished during shutdown');
+      expect(stored.get('root-v2', Y.XmlElement).toString()).toContain('queued during shutdown');
+    } finally { stored.destroy(); }
   } finally {
-    await mcp.stop();
+    barrier.resolve();
+    await append;
   }
 });
 

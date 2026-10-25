@@ -11,6 +11,7 @@ const collaboration = createCollaborationServer({
   apiOrigin: resolveApiServerOrigin(),
   secret: config.env.COLLAB_INTERNAL_SECRET,
   appOrigin: config.env.APP_ORIGIN,
+  documentSlots: config.env.MCP_DOCUMENT_SLOTS,
 });
 await collaboration.server.listen();
 let stopping = false;

@@ -8,6 +8,7 @@ import { Database } from '@hocuspocus/extension-database';
 import * as Y from 'yjs';
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
+import { createEditorHandler } from '../headless/editor-handler';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { decodePersistenceMessage, encodePersistenceMessage } from '#platform/net/persistence-barrier';
 import { COLLABORATION_AUTHORIZATION_REJECTED } from '#platform/net/authorization-error';
@@ -25,6 +26,7 @@ interface ServerOptions {
   apiOrigin: string;
   secret: string;
   appOrigin: string;
+  documentSlots?: number;
 }
 
 class CollaborationUnavailable extends Error {
@@ -41,8 +43,10 @@ class DocumentDeleted extends Error {
   constructor() { super('collaboration.document-deleted'); }
 }
 
-export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }: ServerOptions) {
+export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, documentSlots = 1 }: ServerOptions) {
   if (!secret) throw new Error('COLLAB_INTERNAL_SECRET is required.');
+  const editorRequests = new Set<Promise<void>>();
+  const handleEditor = createEditorHandler(appOrigin, documentSlots);
   const dirty = new Map<Document, number>();
   const deleted = new WeakSet<Document>();
   const retries = new Map<Document, ReturnType<typeof setTimeout>>();
@@ -230,7 +234,10 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
         // eslint-disable-next-line no-throw-literal
         throw null;
       }
-      if (stopping || request.url !== '/collaboration'
+      // Accepted editor requests can acquire their document after shutdown starts.
+      const drainingEditor = editorRequests.size > 0 && isBearer(request.headers.authorization)
+        && authorizedOperator(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()] as string | undefined);
+      if ((stopping && !drainingEditor) || request.url !== '/collaboration'
         || (!request.headers.origin && !isBearer(request.headers.authorization)
           && !authorizedOperator(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()] as string | undefined))) {
         socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
@@ -240,9 +247,10 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
       }
     },
     async onAuthenticate({ documentName, requestHeaders }) {
-      const operator = authorizedOperator(requestHeaders.get(INTERNAL_SECRET_HEADER) ?? undefined);
-      const headers: Record<string, string> = { ...internalHeaders };
       const authorization = requestHeaders.get('authorization');
+      const operator = !isBearer(authorization)
+        && authorizedOperator(requestHeaders.get(INTERNAL_SECRET_HEADER) ?? undefined);
+      const headers: Record<string, string> = { ...internalHeaders };
       if (operator) headers['X-Remdo-Collaboration-Operator'] = '1';
       else if (isBearer(authorization)) headers.Authorization = authorization!;
       else {
@@ -286,6 +294,15 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
         response.writeHead(stopping ? 503 : 200).end();
       } else if (request.url === '/internal/document-list-changed' && request.method === 'POST') {
         await relayDocumentListNotice(request, response);
+      } else if (request.url === '/internal/editor' && request.method === 'POST') {
+        if (stopping) response.writeHead(503).end();
+        else if (!authorizedOperator(request.headers[INTERNAL_SECRET_HEADER.toLowerCase()] as string | undefined)
+          || !isBearer(request.headers.authorization ?? '')) response.writeHead(403).end();
+        else {
+          const work = handleEditor(request, response);
+          editorRequests.add(work);
+          try { await work; } finally { editorRequests.delete(work); }
+        }
       } else response.writeHead(404).end();
       // eslint-disable-next-line no-throw-literal
       throw null;
@@ -296,6 +313,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin }
     server,
     async stop() {
       stopping = true;
+      await Promise.allSettled(editorRequests);
       for (const timer of retries.values()) clearTimeout(timer);
       retries.clear();
       clearInterval(documentListKeepalive);

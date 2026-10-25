@@ -21,9 +21,10 @@ Unit tests run in-process without a service stack.
 
 ## Collaboration Tests
 
-Each collaboration-test invocation starts fresh loopback-only Hocuspocus, RemDo
-API, and MCP services. One collaboration-test invocation runs in a working
-directory at a time. Full and filtered invocations use the same lifecycle.
+Each collaboration-test invocation starts fresh loopback-only Hocuspocus and
+Python HTTP services, including the RemDo API and MCP endpoint. One
+collaboration-test invocation runs in a working directory at a time. Full and
+filtered invocations use the same lifecycle.
 Occupied required ports cause startup to fail and preserve the previous
 diagnostic runtime.
 

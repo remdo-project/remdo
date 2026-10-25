@@ -8,11 +8,15 @@ dependencies = [
     "django-allauth[headless,idp-oidc,socialaccount]>=65.19.4",
     "djangorestframework>=3.18.1",
     "drf-spectacular>=0.30.0",
-    "gunicorn>=26.2.0",
+    "httpx2>=2.13.1",
+    "jsonschema>=4.26",
     "markdown>=3.11",
-    "psycopg[binary]>=3.3.6",
+    "mcp>=2.3.0",
+    "psycopg[binary,pool]>=3.3.6",
     "pyyaml>=6.0.3",
     "sentry-sdk>=2.70.0",
+    "starlette>=1.8",
+    "uvicorn>=0.54",
 ]
 
 [tool.uv]

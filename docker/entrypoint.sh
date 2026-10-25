@@ -62,16 +62,17 @@ stop_children() {
   child_signal="$1"
   trap - INT TERM
 
-  # Keep Django alive until collaboration has finished its SQL persistence.
-  for stopping_name in caddy mcp collaboration api; do
+  # Drain public requests, then keep Django alive for collaboration's final saves.
+  for stopping_name in caddy collaboration api; do
     for managed_child in $managed_children; do
       child_name="${managed_child%%:*}"
       child_pid="${managed_child#*:}"
       [ "$child_name" = "$stopping_name" ] || continue
       kill "-${child_signal}" "$child_pid" 2>/dev/null || true
       shutdown_attempts=100
-      # Collaboration allows an in-flight request, a final save, and cleanup.
-      [ "$child_name" != collaboration ] || shutdown_attempts=300
+      [ "$child_name" != caddy ] || shutdown_attempts=850
+      # Drain accepted editor work, then pending/final SQL saves and cleanup.
+      [ "$child_name" != collaboration ] || shutdown_attempts=950
       while kill -0 "$child_pid" 2>/dev/null && [ "$shutdown_attempts" -gt 0 ]; do
         sleep 0.1
         shutdown_attempts="$((shutdown_attempts - 1))"
@@ -88,7 +89,8 @@ stop_children() {
 trap 'stop_children INT; exit 130' INT
 trap 'stop_children TERM; exit 143' TERM
 
-start_child api gunicorn remdo.wsgi --bind "127.0.0.1:${API_SERVER_PORT}" --threads 4 --graceful-timeout 8
+start_child api uvicorn remdo.asgi:application --host 127.0.0.1 --port "${API_SERVER_PORT}" \
+  --no-access-log --no-proxy-headers --timeout-graceful-shutdown 8
 python - <<'PYREADY' || { stop_children TERM; exit 1; }
 import os
 import time
@@ -105,8 +107,20 @@ else:
 PYREADY
 start_child collaboration env -u AUTH_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET -u EMAIL_HOST_PASSWORD \
   node ${collaboration_heap_mb:+"--max-old-space-size=${collaboration_heap_mb}"} /app/collaboration.mjs
-start_child mcp env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u DATABASE_URL -u GOOGLE_CLIENT_SECRET -u EMAIL_HOST_PASSWORD \
-  node ${mcp_heap_mb:+"--max-old-space-size=${mcp_heap_mb}"} /app/mcp.mjs
+python - <<'PYREADY' || { stop_children TERM; exit 1; }
+import os
+import time
+from urllib.request import urlopen
+
+for attempt in range(100):
+    try:
+        with urlopen(f"http://127.0.0.1:{os.environ['COLLAB_SERVER_PORT']}/ready", timeout=1):
+            break
+    except OSError:
+        time.sleep(0.1)
+else:
+    raise SystemExit("Collaboration did not become ready.")
+PYREADY
 start_child caddy env -u AUTH_SECRET -u COLLAB_INTERNAL_SECRET -u GOOGLE_CLIENT_SECRET -u EMAIL_HOST_PASSWORD \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 

@@ -35,9 +35,8 @@ RUN attempt=1 \
     attempt=$((attempt + 1)); \
   done
 
-RUN for entry in collaboration-server/main.ts:collaboration.mjs mcp/main.ts:mcp.mjs; do \
-    pnpm exec esbuild "src/${entry%%:*}" --bundle --platform=node --target=node24 --format=esm --banner:js="const require = process.getBuiltinModule('module').createRequire(import.meta.url);" --outfile="${entry#*:}" || exit 1; \
-  done
+RUN pnpm exec esbuild src/collaboration-server/main.ts --bundle --platform=node --target=node24 --format=esm \
+    --banner:js="const require = process.getBuiltinModule('module').createRequire(import.meta.url);" --outfile=collaboration.mjs
 
 ARG BUILD_REVISION
 RUN BUILD_REVISION="${BUILD_REVISION}" NODE_ENV=production ./tools/env.sh --production pnpm run build
@@ -70,7 +69,7 @@ COPY content /app/content
 COPY --from=builder /app/dist /srv/remdo
 COPY --from=builder /app/dist/.vite/manifest.json /app/dist/.vite/manifest.json
 COPY --from=builder /usr/local/bin/node /usr/local/bin/node
-COPY --from=builder /app/collaboration.mjs /app/mcp.mjs /app/
+COPY --from=builder /app/collaboration.mjs /app/
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh

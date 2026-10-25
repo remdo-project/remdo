@@ -107,7 +107,7 @@ export class ClaudeConversation {
     // Claude explains a failed tool call in prose, so the run would otherwise
     // fail later on a missing note without saying why.
     if (toolFailures.length > 0) {
-      throw new Error(`RemDo's MCP server failed a tool call: ${toolFailures.join('; ')}\nIf pnpm run dev started before your latest pull, restart it: its MCP server does not reload.`);
+      throw new Error(`RemDo's MCP server failed a tool call: ${toolFailures.join('; ')}\nCheck that pnpm run dev is running the current code.`);
     }
     return tools;
   }

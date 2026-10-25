@@ -6,15 +6,16 @@ import { describe, expect, it, onTestFinished } from 'vitest';
 import WebSocket from 'ws';
 import * as Y from 'yjs';
 import { config } from '#config';
+import type { NewNote } from '#note-sdk';
 import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '#collaboration/runtime';
 import { createTestAuthAccount, TEST_AUTH_ACCOUNT } from '#tests-common/auth-account';
-import { resolveApiServerOrigin, resolveCollabServerOrigin, resolveMcpServerOrigin } from '#platform/net/origins';
+import { INTERNAL_SERVICE_HOST, resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
 import { ensureCollabTestUser } from './_support/auth';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 const execute = promisify(execFile);
 const fetchHttp = globalThis.fetch.bind(globalThis);
-const endpoint = new URL('/mcp', resolveMcpServerOrigin());
+const endpoint = new URL(`http://${INTERNAL_SERVICE_HOST}:${config.env.API_SERVER_PORT}/mcp`);
 
 async function delegatedToken(email: string = TEST_AUTH_ACCOUNT.email): Promise<string> {
   await ensureCollabTestUser();
@@ -133,9 +134,9 @@ describe('mcp server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
   it('creates a document, appends an outline, and has it stored when the tool returns', async () => {
     const client = await connect(await delegatedToken());
-    const created = await call(client, 'create_document', { title: 'Conversation' });
+    const created = await call(client, 'create_document', { title: '  Conversation  ' });
     const { documentId } = created.value as { documentId: string };
-    expect(created).toEqual({ isError: false, value: { documentId, title: 'Conversation', url: noteUrl(documentId) } });
+    expect(created).toEqual({ isError: false, value: { documentId, title: '  Conversation  ', url: noteUrl(documentId) } });
     const appended = await call(client, 'append_children', {
       parent: documentId,
       notes: [{ text: 'Plan', children: [{ text: 'Scope' }, { text: 'Schedule' }] }],
@@ -164,7 +165,7 @@ describe('mcp server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     expect(await storedText(documentId)).toBe(stored);
 
     const listed = (await call(client, 'list_documents')).value as Array<{ documentId: string }>;
-    expect(listed).toContainEqual({ documentId, title: 'Conversation', url: noteUrl(documentId) });
+    expect(listed).toContainEqual({ documentId, title: '  Conversation  ', url: noteUrl(documentId) });
   });
 
   it('appends again to a document that already has notes', async () => {
@@ -175,6 +176,24 @@ describe('mcp server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const second = await call(client, 'append_children', { parent: note!.noteAddress, notes: [{ text: 'Second' }] });
     expect(second).toMatchObject({ isError: false });
     expect(await storedText(documentId)).toContain('Second');
+  });
+
+  it('keeps notes readable when collaboration normalizes lone UTF-16 surrogates', async () => {
+    const client = await connect(await delegatedToken());
+    const { documentId } = (await call(client, 'create_document', { title: 'Unicode' })).value as { documentId: string };
+    expect((await call(client, 'append_children', { parent: documentId, notes: [{ text: 'a\uD800b 🌱' }] })).isError).toBe(false);
+    expect(await storedText(documentId)).toContain('a\uFFFDb 🌱');
+    expect(await read(client, documentId)).toContain('a\uFFFDb 🌱');
+  });
+
+  it('keeps deeply nested outlines working through Python, Node, and SQL', async () => {
+    const client = await connect(await delegatedToken());
+    const { documentId } = (await call(client, 'create_document', { title: 'Deep outline' })).value as { documentId: string };
+    let note: NewNote = { text: 'Deep leaf' };
+    for (let index = 0; index < 199; index++) note = { text: 'Parent', children: [note] };
+    expect((await call(client, 'append_children', { parent: documentId, notes: [note] })).isError).toBe(false);
+    expect(await storedText(documentId)).toContain('Deep leaf');
+    expect(await read(client, documentId, 1)).toContain('*(1 child not shown)*');
   });
 
   it('appends while another session has its cursor in the document', async () => {
@@ -194,6 +213,18 @@ describe('mcp server', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const { documentId } = (await call(client, 'create_document', { title: 'Untouched' })).value as { documentId: string };
     expect(await read(client, documentId)).toBe(`Document: ${noteUrl(documentId)}\n\n- `);
     expect(await storedText(documentId)).toBe('');
+  });
+
+  it('leaves Django workers available for editor callbacks during concurrent MCP calls', async () => {
+    const client = await connect(await delegatedToken());
+    const documents: string[] = [];
+    for (let index = 0; index < 8; index++) {
+      const created = await call(client, 'create_document', { title: `Concurrent ${index}` });
+      documents.push((created.value as { documentId: string }).documentId);
+    }
+    const reads = documents.map(documentId => read(client, documentId));
+    expect((await call(client, 'list_documents')).isError).toBe(false);
+    expect(await Promise.all(reads)).toEqual(documents.map(documentId => `Document: ${noteUrl(documentId)}\n\n- `));
   });
 
   it('reads one note with its descendants and cuts a read off at the depth limit', async () => {
