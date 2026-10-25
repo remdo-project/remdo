@@ -6,6 +6,7 @@ from allauth.account.internal.stagekit import clear_login
 from allauth.account.utils import filter_users_by_email
 from allauth.account.views import LoginView as AllauthLoginView
 from allauth.decorators import rate_limit
+from allauth.socialaccount.internal.statekit import MAX_STATES
 from allauth.socialaccount.providers.google.views import oauth2_callback
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
@@ -15,6 +16,8 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_POST
+
+from .adapters import COMPLETED_STATES_SESSION_KEY
 
 
 def email_signup_only(view):
@@ -30,15 +33,12 @@ def email_signup_only(view):
 def completes_login(view):
     @wraps(view)
     def wrapper(request, *args, **kwargs):
-        # The handoff clears the pending-sign-out marker, so only an actual
-        # authentication may render it. allauth redirects a visitor who already has a
-        # session without asking for credentials, which must not supersede a pending
-        # logout on this device.
-        authenticated_before = request.user.is_authenticated
+        # Only an actual authentication supersedes a pending logout; redirecting
+        # an existing session must not clear it.
         response = view(request, *args, **kwargs)
         if (
             request.user.is_authenticated
-            and not authenticated_before
+            and getattr(request, "login_completed", False)
             and isinstance(response, HttpResponseRedirect)
         ):
             return render(request, "accounts/login_complete.html", {"next_url": response.url})
@@ -109,7 +109,22 @@ class LoginView(AllauthLoginView):
         return context
 
 
-google_callback = never_cache(completes_login(oauth2_callback))
+def remembers_completed_state(view):
+    # allauth discards a state when its callback is used, leaving a repeated
+    # callback indistinguishable from a lost one. Recording it after the login
+    # keeps it in the session an account switch replaces.
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        response = view(request, *args, **kwargs)
+        if getattr(request, "login_completed", False) and (state := request.GET.get("state")):
+            completed = request.session.get(COMPLETED_STATES_SESSION_KEY, [])
+            request.session[COMPLETED_STATES_SESSION_KEY] = [*completed, state][-MAX_STATES:]
+        return response
+
+    return wrapper
+
+
+google_callback = never_cache(remembers_completed_state(completes_login(oauth2_callback)))
 
 
 @redirects_signed_in

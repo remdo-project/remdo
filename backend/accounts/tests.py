@@ -488,6 +488,18 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
 
         self.assertEqual(self.session_email(), "bob@example.test")
 
+    def test_google_reauthentication_completes_the_browser_handoff(self):
+        for email in ("alice@example.test", "bob@example.test"):
+            with self.subTest(email=email):
+                self.client = Client(enforce_csrf_checks=True)
+                self.google_login("alice@example.test")
+
+                response = self.google_login(email, next_url="/n/exampleDoc")
+
+                self.assertTemplateUsed(response, "accounts/login_complete.html")
+                self.assertEqual(response.context["next_url"], "/n/exampleDoc")
+                self.assertEqual(self.session_email(), email)
+
     def test_matching_verified_email_signs_in_to_the_existing_account(self):
         user = User.objects.create_user("alice@example.test", "alice-password-1234")
 
@@ -621,6 +633,39 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
                     },
                 )
 
+    def test_replayed_callback_returns_to_home_with_the_existing_session(self):
+        completed = self.google_login("alice@example.test")
+        state = completed.wsgi_request.GET["state"]
+        session_cookie = self.client.cookies[settings.SESSION_COOKIE_NAME].value
+
+        with patch.object(
+            GoogleOAuth2Adapter,
+            "get_access_token_data",
+            side_effect=AssertionError("A stale callback must not authenticate again"),
+        ):
+            response = self.client.get(
+                "/accounts/google/login/callback/",
+                {"code": "code", "state": state, "next": "https://unrelated.example/"},
+            )
+
+        self.assertRedirects(response, "/", fetch_redirect_response=False)
+        self.assertTemplateNotUsed(response, "accounts/login_complete.html")
+        self.assertEqual(self.session_email(), "alice@example.test")
+        self.assertEqual(self.client.cookies[settings.SESSION_COOKIE_NAME].value, session_cookie)
+        self.assertIn("no-store", response["Cache-Control"])
+
+    def test_replay_after_an_account_switch_returns_to_home_as_the_new_account(self):
+        self.google_login("alice@example.test")
+        switched = self.google_login("bob@example.test")
+
+        response = self.client.get(
+            "/accounts/google/login/callback/",
+            {"code": "code", "state": switched.wsgi_request.GET["state"]},
+        )
+
+        self.assertRedirects(response, "/", fetch_redirect_response=False)
+        self.assertEqual(self.session_email(), "bob@example.test")
+
     def test_callback_diagnostics_record_a_signed_in_visitor(self):
         self.google_login("alice@example.test")
 
@@ -639,6 +684,7 @@ class GoogleLoginTests(SessionEmailMixin, TestCase):
                 "auth.signed_in": "true",
             },
         )
+        self.assertEqual(self.session_email(), "alice@example.test")
 
     def test_callback_provider_errors_are_allowlisted(self):
         for provider_error, category in (
