@@ -7,7 +7,7 @@ from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.headless.adapter import DefaultHeadlessAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 
 GOOGLE_AUTH_ERRORS = {
@@ -24,6 +24,9 @@ GOOGLE_AUTH_ERRORS = {
     "unauthorized_client",
     "unsupported_response_type",
 }
+
+
+COMPLETED_STATES_SESSION_KEY = "google_completed_states"
 
 
 def password_authenticated(request, user):
@@ -51,6 +54,7 @@ class AccountAdapter(DefaultAccountAdapter):
             )
             raise ImmediateHttpResponse(response)
         super().login(request, user)
+        request.login_completed = True
 
     # allauth's notice points to a password reset, which this app does not route.
     def send_account_already_exists_mail(self, email):
@@ -74,6 +78,10 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         if exception is not None:
             cause = type(exception).__name__
         elif "state" not in (extra_context or {}):
+            # Browser history can revisit an attempt already completed in this
+            # session. Keep that session without completing another login.
+            if request.GET.get("state") in request.session.get(COMPLETED_STATES_SESSION_KEY, []):
+                raise ImmediateHttpResponse(redirect(settings.LOGIN_REDIRECT_URL))
             cause = "state-lost"
         elif "error" in request.GET:
             cause = "provider-error"
