@@ -3,17 +3,35 @@
   "extends": [
     "config:recommended",
     "group:allNonMajor",
+    "schedule:weekly",
+    ":maintainLockFilesWeekly",
     "security:minimumReleaseAgeNpm",
     "security:minimumReleaseAgePypi",
   ],
   "timezone": "Europe/Warsaw",
-  "schedule": ["* 0-8 * * 1"],
-  "lockFileMaintenance": { "enabled": true, "schedule": ["* 0-8 * * 1"] },
+  // A rate limit would hold an update back without a PR to show for it.
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^package\\.json$/", "/^docs/guides/mobile-devices\\.md$/"],
+      "matchStrings": ["(?<depName>ghcr\\.io/hadolint/hadolint|testingbot/tunnel):(?<currentValue>[\\w.-]+)"],
+      "datasourceTemplate": "docker",
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^pnpm-workspace\\.yaml$/"],
+      "matchStrings": ["(?<depName>caniuse-lite): (?<currentValue>\\d[\\w.]*)"],
+      "datasourceTemplate": "npm",
+    },
+  ],
   "packageRules": [
     {
-      "description": "Overrides are dependency repairs, reviewed with their owning update.",
+      "description": "An override holds a transitive dependency at its owner's major, so only minors and patches are proposed.",
       "matchManagers": ["npm"],
       "matchDepTypes": ["overrides", "pnpm.overrides", "pnpm-workspace.overrides"],
+      "matchUpdateTypes": ["major"],
       "enabled": false,
     },
     {
@@ -48,7 +66,7 @@
       // TODO(deps): retry TypeScript; typescript-eslint rejects 7.0 and tracks 7.1+ in typescript-eslint#10940.
       // Probe: rebase the draft PR and run typecheck and lint:code against its generated lockfile.
       "matchPackageNames": ["typescript"],
-      "groupName": null,
+      "matchUpdateTypes": ["major"],
       "draftPR": true,
     },
     {

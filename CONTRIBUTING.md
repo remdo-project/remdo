@@ -87,8 +87,11 @@ Dependency changes preserve workspace catalogs, applicable trust and
 build-approval policy, package-manager integrity, and locked runtime and project
 dependencies.
 
-Every update reaches review as a pull request rather than waiting on dashboard
-approval; one that cannot merge yet stays open as a draft.
+Every available update reaches review as a pull request rather than waiting on
+dashboard approval; one that cannot merge yet stays open as a draft. The developer
+merges or fixes each pull request as it arrives, and a red one is acceptable.
+Commits added to a Renovate branch stop Renovate from updating it, so finish that
+pull request by merging or closing it.
 
 Dependency-specific workarounds and updater holds follow the
 [tracked-comment policy](#code-comments). Remove an affected existing hold only when the

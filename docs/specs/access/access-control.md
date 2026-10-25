@@ -35,6 +35,11 @@ account linked before its promotion, and its email match creates no account.
 RemDo requests only basic identity and does not store Google access or refresh
 tokens.
 
+A Google callback repeating a sign-in its session already completed returns the
+visitor to [Home](../outliner/home.md) using the existing session. This does not complete a new sign-in
+or supersede a pending local logout. Any other callback without a valid pending
+sign-in fails, and the visitor must start a new attempt.
+
 Email sign-in asks first only for an email address. An address that matches an
 active account with a password continues to the email/password form with that
 address filled in. That form offers a one-time code by email to the address it
