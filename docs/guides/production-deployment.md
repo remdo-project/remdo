@@ -201,10 +201,9 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
 3. Set [`SENTRY_DSN`](../specs/runtime/configuration.md#error-reporting) in the
    service's **Environment** view on Render or in `.env` for the self-hosted
    launcher, then redeploy.
-4. To resolve browser reports to source, give the build a Telemetry API token as
-   [`SENTRY_AUTH_TOKEN`](../specs/runtime/configuration.md#error-reporting): on
-   Render, a secret file named `.env` in the service's settings, containing
-   `SENTRY_AUTH_TOKEN=<token>`.
+4. To resolve browser reports to source, also set a Telemetry API token as
+   [`SENTRY_AUTH_TOKEN`](../specs/runtime/configuration.md#error-reporting) in
+   the Render service's **Environment** view, then redeploy.
 
 ## Enable Analytics
 

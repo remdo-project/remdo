@@ -41,9 +41,9 @@ RUN for entry in collaboration-server/main.ts:collaboration.mjs mcp/main.ts:mcp.
 
 ARG BUILD_REVISION
 ARG SENTRY_DSN
-# Render mounts its .env secret file here, carrying the source-map upload token.
-RUN --mount=type=secret,id=_env,dst=/app/.env \
-  BUILD_REVISION="${BUILD_REVISION}" SENTRY_DSN="${SENTRY_DSN}" NODE_ENV=production ./tools/env.sh --production pnpm run build
+# Declared only: RUN sees it, and Render logs the expanded command line.
+ARG SENTRY_AUTH_TOKEN
+RUN BUILD_REVISION="${BUILD_REVISION}" SENTRY_DSN="${SENTRY_DSN}" NODE_ENV=production ./tools/env.sh --production pnpm run build
 
 ############################
 # Python dependencies      #
