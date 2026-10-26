@@ -212,9 +212,11 @@ without tracing, profiling, or session tracking.
 
 A production build with `SENTRY_DSN` and `SENTRY_AUTH_TOKEN` uploads its source
 maps to the Better Stack application of that DSN, so that browser reports to it
-resolve to source; otherwise it uploads nothing and reports still work. The
-container build receives both only as build arguments, which Render supplies
-and the self-hosted launcher does not. **Deterministic.**
+resolve to source, and fails if the lookup or upload fails; otherwise it uploads
+nothing and reports still work. The container build receives both only as build
+arguments, which Render supplies and the self-hosted launcher does not.
+Container startup removes the token from the environment it passes to the
+long-running services. **Deterministic.**
 
 ## Managed analytics
 

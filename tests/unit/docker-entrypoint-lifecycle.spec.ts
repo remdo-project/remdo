@@ -36,7 +36,7 @@ finish() {
 trap 'finish INT' INT
 trap 'finish TERM' TERM
 printf '%s start\\n' "$child_name" >> "$events"
-printf '%s credentials auth=%s database=%s collaboration=%s admin=%s user=%s google=%s mail=%s\\n' "$child_name" "\${AUTH_SECRET+x}" "\${DATABASE_URL+x}" "\${COLLAB_INTERNAL_SECRET+x}" "\${REMDO_ADMIN_PASSWORD+x}" "\${REMDO_USER_PASSWORD+x}" "\${GOOGLE_CLIENT_SECRET+x}" "\${EMAIL_HOST_PASSWORD+x}" >> "$events"
+printf '%s credentials auth=%s database=%s collaboration=%s admin=%s user=%s google=%s mail=%s upload=%s\\n' "$child_name" "\${AUTH_SECRET+x}" "\${DATABASE_URL+x}" "\${COLLAB_INTERNAL_SECRET+x}" "\${REMDO_ADMIN_PASSWORD+x}" "\${REMDO_USER_PASSWORD+x}" "\${GOOGLE_CLIENT_SECRET+x}" "\${EMAIL_HOST_PASSWORD+x}" "\${SENTRY_AUTH_TOKEN+x}" >> "$events"
 while :; do
   if [ "\${REMDO_FAKE_EXIT_CHILD:-}" = "$child_name" ] && [ -e "\${REMDO_FAKE_EXIT_TRIGGER:-}" ]; then
     exit_status="\${REMDO_FAKE_EXIT_STATUS:-0}"
@@ -179,6 +179,7 @@ fi
       REMDO_ADMIN_PASSWORD: 'admin-password',
       REMDO_DEV_CONTAINER: 'false',
       REMDO_USER_PASSWORD: 'user-password',
+      SENTRY_AUTH_TOKEN: 'upload-token',
       REMDO_ROOT: process.cwd(),
     },
     stdio: ['ignore', 'ignore', 'pipe'],
@@ -195,10 +196,10 @@ fi
       .toEqual(expect.arrayContaining(services.map(name => `${name} start`)));
     await expect.poll(() => readEvents(eventsPath)).toEqual(expect.arrayContaining([
       'django setup_configured_users admin=x user=x',
-      'api credentials auth=x database=x collaboration=x admin= user= google=x mail=x',
-      'collaboration credentials auth= database= collaboration=x admin= user= google= mail=',
-      'mcp credentials auth= database= collaboration= admin= user= google= mail=',
-      'caddy credentials auth= database=x collaboration= admin= user= google= mail=',
+      'api credentials auth=x database=x collaboration=x admin= user= google=x mail=x upload=',
+      'collaboration credentials auth= database= collaboration=x admin= user= google= mail= upload=',
+      'mcp credentials auth= database= collaboration= admin= user= google= mail= upload=',
+      'caddy credentials auth= database=x collaboration= admin= user= google= mail= upload=',
     ]));
     expect(child.exitCode, stderr).toBeNull();
 

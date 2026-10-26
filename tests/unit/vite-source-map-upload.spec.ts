@@ -1,8 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 
-vi.mock('@sentry/vite-plugin', () => ({
-  sentryVitePlugin: (options: unknown) => ({ name: 'source-map-upload', options }),
-}));
+const sentryVitePlugin = vi.hoisted(() => vi.fn((options: { errorHandler: (error: Error) => void }) => ({ name: 'source-map-upload', options })));
+vi.mock('@sentry/vite-plugin', () => ({ sentryVitePlugin }));
 
 const DSN = 'https://public@s7.us-west-2a.betterstackdata.com/42';
 
@@ -26,6 +25,7 @@ it('uploads source maps to the DSN application, found through the token\'s accou
 
   expect(fetchMock).toHaveBeenCalledWith('https://errors.betterstack.com/api/v2/applications/42', {
     headers: { Authorization: 'Bearer secret' },
+    signal: expect.any(AbortSignal),
   });
   expect(plugins).toEqual([{
     name: 'source-map-upload',
@@ -37,6 +37,15 @@ it('uploads source maps to the DSN application, found through the token\'s accou
       release: expect.objectContaining({ name: 'abc123' }),
     }),
   }]);
+});
+
+it('fails the build when the plugin reports an upload error', async () => {
+  vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(Response.json({ data: { attributes: { team_id: 9, data_region: 'eu-test-1' } } }))));
+
+  expect(await runUpload('build', { SENTRY_AUTH_TOKEN: 'secret', SENTRY_DSN: DSN })).toHaveLength(1);
+
+  const options = sentryVitePlugin.mock.lastCall?.[0];
+  expect(() => options?.errorHandler(new Error('upload rejected'))).toThrow('upload rejected');
 });
 
 it.each([
