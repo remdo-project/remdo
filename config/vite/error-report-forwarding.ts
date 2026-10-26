@@ -4,11 +4,13 @@ import type { Plugin } from 'vite';
 const RATE_LIMIT_HEADERS = ['retry-after', 'x-sentry-rate-limits'];
 
 // <scheme>://<key>@<host>[/<prefix>]/<project> → the project's envelope endpoint.
+// The public key travels as a query parameter because some ingest endpoints
+// accept no envelope that authenticates only through its own header.
 function envelopeUrl(dsn: string): string {
   const url = new URL(dsn);
   const segments = url.pathname.split('/');
   const project = segments.pop()!;
-  return `${url.origin}${segments.join('/')}/api/${project}/envelope/`;
+  return `${url.origin}${segments.join('/')}/api/${project}/envelope/?sentry_version=7&sentry_key=${url.username}`;
 }
 
 // Development counterpart of the production gateway's forwarding: only the

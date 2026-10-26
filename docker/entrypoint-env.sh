@@ -65,16 +65,20 @@ remdo_configure_caddy_env() {
 
 # Browsers report through the gateway, which forwards to the envelope endpoint
 # of the SENTRY_DSN project: <scheme>://<key>@<host>[/<prefix>]/<project>.
+# The public key travels as a query parameter because some ingest endpoints
+# accept no envelope that authenticates only through its own header.
 remdo_configure_error_report_forwarding() {
   SENTRY_ENVELOPE_ORIGIN=""
   SENTRY_ENVELOPE_PATH=""
   if [ -n "${SENTRY_DSN:-}" ]; then
+    dsn_key="${SENTRY_DSN#*://}"
+    dsn_key="${dsn_key%%@*}"
     dsn_location="${SENTRY_DSN#*://}"
     dsn_location="${dsn_location#*@}"
     dsn_location="${dsn_location%%[?#]*}"
     dsn_path="/${dsn_location#*/}"
     SENTRY_ENVELOPE_ORIGIN="${SENTRY_DSN%%://*}://${dsn_location%%/*}"
-    SENTRY_ENVELOPE_PATH="${dsn_path%/*}/api/${dsn_path##*/}/envelope/"
+    SENTRY_ENVELOPE_PATH="${dsn_path%/*}/api/${dsn_path##*/}/envelope/?sentry_version=7&sentry_key=${dsn_key}"
   fi
   export SENTRY_ENVELOPE_ORIGIN SENTRY_ENVELOPE_PATH
 }
