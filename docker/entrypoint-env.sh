@@ -71,9 +71,8 @@ remdo_configure_error_report_forwarding() {
   SENTRY_ENVELOPE_ORIGIN=""
   SENTRY_ENVELOPE_PATH=""
   if [ -n "${SENTRY_DSN:-}" ]; then
-    dsn_key="${SENTRY_DSN#*://}"
-    dsn_key="${dsn_key%%@*}"
     dsn_location="${SENTRY_DSN#*://}"
+    dsn_key="${dsn_location%%@*}"
     dsn_location="${dsn_location#*@}"
     dsn_location="${dsn_location%%[?#]*}"
     dsn_path="/${dsn_location#*/}"

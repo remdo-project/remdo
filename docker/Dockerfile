@@ -40,10 +40,10 @@ RUN for entry in collaboration-server/main.ts:collaboration.mjs mcp/main.ts:mcp.
   done
 
 ARG BUILD_REVISION
+# Declared only: RUN sees them, and Render logs the expanded command line.
 ARG SENTRY_DSN
-# Declared only: RUN sees it, and Render logs the expanded command line.
 ARG SENTRY_AUTH_TOKEN
-RUN BUILD_REVISION="${BUILD_REVISION}" SENTRY_DSN="${SENTRY_DSN}" NODE_ENV=production ./tools/env.sh --production pnpm run build
+RUN BUILD_REVISION="${BUILD_REVISION}" NODE_ENV=production ./tools/env.sh --production pnpm run build
 
 ############################
 # Python dependencies      #
