@@ -210,10 +210,11 @@ headers other than the user agent, query strings and fragments of reported
 URLs, and command lines. **Deterministic.** Reporting covers failures only,
 without tracing, profiling, or session tracking.
 
-A production build with `SENTRY_AUTH_TOKEN` uploads its source maps to the
-Better Stack application of `SENTRY_DSN`, so that browser reports resolve to
-source; a build without a token uploads nothing and still reports.
-**Deterministic.**
+A production build with `SENTRY_DSN` and `SENTRY_AUTH_TOKEN` uploads its source
+maps to the Better Stack application of that DSN, so that browser reports to it
+resolve to source; otherwise it uploads nothing and reports still work. The
+container build receives both only as build arguments, which Render supplies
+and the self-hosted launcher does not. **Deterministic.**
 
 ## Managed analytics
 

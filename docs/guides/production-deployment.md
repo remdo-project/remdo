@@ -83,11 +83,14 @@ Deploy the Render environments from [the repository blueprint](../../render.yaml
    `REMDO_ADMIN_PASSWORD` and `REMDO_USER_PASSWORD` into the password
    manager. Render preserves these generated values
    across later Blueprint syncs.
-3. Point DNS at each service as Render's domain settings instruct and wait for
+3. Supply the test service's [`DATABASE_URL`](../specs/runtime/configuration.md#database),
+   an external PostgreSQL database; without it the sandbox uses SQLite and
+   loses its data on each deploy.
+4. Point DNS at each service as Render's domain settings instruct and wait for
    its certificate.
-4. For each service, set **Settings > Edge Caching > Cacheable file types** to
+5. For each service, set **Settings > Edge Caching > Cacheable file types** to
    **None**, preserving the [application freshness policy](../architecture.md#application-freshness).
-5. For each service, complete
+6. For each service, complete
    [Verify and Complete First Access](#verify-and-complete-first-access).
 
 Production tracks `main` and deploys automatically after its CI checks pass.

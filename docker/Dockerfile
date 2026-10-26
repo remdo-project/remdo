@@ -40,7 +40,8 @@ RUN for entry in collaboration-server/main.ts:collaboration.mjs mcp/main.ts:mcp.
   done
 
 ARG BUILD_REVISION
-# Declared only: RUN sees them, and Render logs the expanded command line.
+# Declared only: RUN reads them from its environment. Naming the token in RUN
+# would put it in Render's build log, which prints the expanded command.
 ARG SENTRY_DSN
 ARG SENTRY_AUTH_TOKEN
 RUN BUILD_REVISION="${BUILD_REVISION}" NODE_ENV=production ./tools/env.sh --production pnpm run build
