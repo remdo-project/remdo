@@ -1,6 +1,7 @@
 /* eslint-disable node/no-process-env */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -49,6 +50,14 @@ done
   fs.chmodSync(childPath, 0o755);
 }
 
+async function unusedPort(): Promise<number> {
+  const server = net.createServer();
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as net.AddressInfo;
+  await new Promise(resolve => server.close(resolve));
+  return port;
+}
+
 function killIfRunning(pid: number): void {
   try {
     process.kill(pid, 'SIGKILL');
@@ -80,6 +89,13 @@ const lifecycleCases = [
     exitCode: 1,
     title: 'stops started services when collaboration readiness fails before the gateway opens',
     type: 'readiness',
+  },
+  {
+    exitCode: 1,
+    failedService: 'collaboration',
+    failedStatus: 42,
+    title: 'stops started services when collaboration exits before it becomes ready',
+    type: 'early-exit',
   },
   {
     exitCode: 1,
@@ -136,6 +152,11 @@ it.each(lifecycleCases)('$title', async (lifecycleCase) => {
     sleep 0.02
   done
   if [ "$service" = collaboration ] && [ "\${REMDO_FAKE_READINESS_FAIL:-}" = 1 ]; then exit 1; fi
+  if [ "$service" = collaboration ] && [ "\${REMDO_FAKE_REAL_READINESS:-}" = 1 ]; then
+    shift
+    printf '%s' "$script" | COLLAB_SERVER_PORT="\${REMDO_FAKE_DEAD_PORT:?}" python3 -I - "$@"
+    exit $?
+  fi
   exit 0
 fi
 if [ "\${1:-}" = manage.py ]; then
@@ -167,6 +188,11 @@ fi
     .replace('shutdown_attempts=950', 'shutdown_attempts=30');
   fs.writeFileSync(entrypointPath, entrypoint);
 
+  if (lifecycleCase.type === 'early-exit') {
+    fs.writeFileSync(exitTriggerPath, '');
+  }
+  const deadPort = lifecycleCase.type === 'early-exit' ? await unusedPort() : 0;
+
   const child = spawn('/usr/bin/env', ['--default-signal=INT', 'bash', entrypointPath], {
     env: {
       ...process.env,
@@ -180,12 +206,14 @@ fi
       PORT_BASE: '4100',
       REMDO_FAKE_CHILD: childPath,
       REMDO_FAKE_EVENTS: eventsPath,
-      REMDO_FAKE_EXIT_CHILD: lifecycleCase.type === 'exit' ? lifecycleCase.failedService : '',
-      REMDO_FAKE_EXIT_STATUS: lifecycleCase.type === 'exit' ? String(lifecycleCase.failedStatus) : '0',
+      REMDO_FAKE_EXIT_CHILD: 'failedService' in lifecycleCase ? lifecycleCase.failedService : '',
+      REMDO_FAKE_EXIT_STATUS: 'failedStatus' in lifecycleCase ? String(lifecycleCase.failedStatus) : '0',
       REMDO_FAKE_EXIT_TRIGGER: exitTriggerPath,
       REMDO_FAKE_PID_DIR: pidDir,
       REMDO_FAKE_RELEASE: releasePath,
       REMDO_FAKE_READINESS_FAIL: lifecycleCase.type === 'readiness' ? '1' : '',
+      REMDO_FAKE_DEAD_PORT: String(deadPort),
+      REMDO_FAKE_REAL_READINESS: lifecycleCase.type === 'early-exit' ? '1' : '',
       GOOGLE_CLIENT_SECRET: 'google-secret',
       EMAIL_HOST_PASSWORD: 'mail-secret',
       REMDO_ADMIN_PASSWORD: 'admin-password',
@@ -205,6 +233,15 @@ fi
       await expect.poll(() => child.exitCode, { timeout: 6_000 }).toBe(1);
       const events = readEvents(eventsPath);
       expect(events).toEqual(expect.arrayContaining(['api exit', 'collaboration exit']));
+      expect(events).not.toContain('caddy start');
+      return;
+    }
+    if (lifecycleCase.type === 'early-exit') {
+      fs.writeFileSync(releasePath, '');
+      await expect.poll(() => child.exitCode, { timeout: 6_000 }).toBe(1);
+      expect(stderr).toContain('Production service collaboration exited before it became ready.');
+      const events = readEvents(eventsPath);
+      expect(events).toContain('api exit');
       expect(events).not.toContain('caddy start');
       return;
     }

@@ -16,6 +16,7 @@ from documents.models import Document
 from documents.operations import create_document, rename_document
 from documents.serializers import DocumentSerializer, RenameDocumentSerializer
 from jsonschema import Draft7Validator
+from mcp import types
 from mcp.server import streamable_http
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
@@ -24,8 +25,6 @@ from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Route
-
-from mcp import types
 
 from .definitions import INSTRUCTIONS, TOOLS
 from .errors import DOCUMENT_NOT_FOUND, UNCONFIRMED, failure, result
