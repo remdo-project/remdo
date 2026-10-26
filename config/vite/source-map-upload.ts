@@ -1,5 +1,5 @@
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import type { PluginOption } from 'vite';
+import type { ConfigEnv, PluginOption } from 'vite';
 import { config } from '../index.ts';
 
 interface ApplicationReply {
@@ -8,9 +8,9 @@ interface ApplicationReply {
 
 // Better Stack resolves browser frames only from uploaded maps. The DSN names
 // the application; the token's own account supplies the team and data region.
-export async function sourceMapUpload(): Promise<PluginOption[]> {
+export async function sourceMapUpload(command: ConfigEnv['command']): Promise<PluginOption[]> {
   const { SENTRY_AUTH_TOKEN: authToken, SENTRY_DSN: dsn, BUILD_REVISION: release } = config.env;
-  if (!authToken || !dsn) return [];
+  if (command !== 'build' || !authToken || !dsn) return [];
   const project = new URL(dsn).pathname.split('/').pop();
   const reply = await fetch(`https://errors.betterstack.com/api/v2/applications/${project}`, {
     headers: { Authorization: `Bearer ${authToken}` },

@@ -24,7 +24,7 @@ it('uploads source maps to the DSN application, found through the token\'s accou
   const fetchMock = vi.fn(() => Promise.resolve(Response.json({ data: { attributes: { team_id: 9, data_region: 'eu-test-1' } } })));
   vi.stubGlobal('fetch', fetchMock);
 
-  const plugins = await (await loadHelper({ SENTRY_AUTH_TOKEN: 'secret', SENTRY_DSN: DSN, BUILD_REVISION: 'abc123' }))();
+  const plugins = await (await loadHelper({ SENTRY_AUTH_TOKEN: 'secret', SENTRY_DSN: DSN, BUILD_REVISION: 'abc123' }))('build');
 
   expect(plugins).toHaveLength(1);
   expect(fetchMock).toHaveBeenCalledWith('https://errors.betterstack.com/api/v2/applications/42', {
@@ -40,19 +40,20 @@ it('uploads source maps to the DSN application, found through the token\'s accou
 });
 
 it.each([
-  ['a token', { SENTRY_DSN: DSN, SENTRY_AUTH_TOKEN: '' }],
-  ['a DSN', { SENTRY_AUTH_TOKEN: 'secret', SENTRY_DSN: '' }],
-])('skips the upload without %s', async (_name, env) => {
+  ['without a token', 'build', { SENTRY_DSN: DSN, SENTRY_AUTH_TOKEN: '' }],
+  ['without a DSN', 'build', { SENTRY_AUTH_TOKEN: 'secret', SENTRY_DSN: '' }],
+  ['outside a build', 'serve', { SENTRY_AUTH_TOKEN: 'secret', SENTRY_DSN: DSN }],
+] as const)('skips the upload %s', async (_name, command, env) => {
   const fetchMock = vi.fn();
   vi.stubGlobal('fetch', fetchMock);
 
-  expect(await (await loadHelper(env))()).toEqual([]);
+  expect(await (await loadHelper(env))(command)).toEqual([]);
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
 it('fails the build when the application lookup is rejected', async () => {
   vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(null, { status: 401 }))));
 
-  await expect((await loadHelper({ SENTRY_AUTH_TOKEN: 'bad', SENTRY_DSN: DSN }))())
+  await expect((await loadHelper({ SENTRY_AUTH_TOKEN: 'bad', SENTRY_DSN: DSN }))('build'))
     .rejects.toThrow('Better Stack application 42 lookup failed with status 401');
 });
