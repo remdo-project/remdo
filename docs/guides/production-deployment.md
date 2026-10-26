@@ -213,8 +213,8 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
 
 ## Enable Log Streaming
 
-1. Stream Render's logs to a Better Stack source in the services' hosting
-   region, following [Better Stack's instructions](https://betterstack.com/docs/logs/render/).
+1. Stream Render's logs to a Better Stack source, following
+   [Better Stack's instructions](https://betterstack.com/docs/logs/render/).
    The workspace-wide [log stream](https://render.com/docs/log-streams) includes
    the test sandbox.
 2. For AI-driven analysis, create a
