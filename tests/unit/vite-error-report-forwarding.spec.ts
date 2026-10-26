@@ -44,7 +44,7 @@ it('forwards development error reports to the project envelope endpoint without 
     expect(response.headers.get('x-sentry-rate-limits')).toBe('60:error');
     const [forwarded] = received as [typeof received[number]];
     expect(received).toHaveLength(1);
-    expect(forwarded.path).toBe('/prefix/api/7/envelope/');
+    expect(forwarded.path).toBe('/prefix/api/7/envelope/?sentry_version=7&sentry_key=publickey');
     expect(forwarded.body).toBe('{}\n{"type":"event"}\n{}\n');
     expect(forwarded.headers['content-type']).toBe('application/x-sentry-envelope');
     expect(forwarded.headers).not.toHaveProperty('cookie');

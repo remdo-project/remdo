@@ -55,16 +55,14 @@ projects:
           sync: false
         - key: SENTRY_DSN
           sync: false
+        - key: SENTRY_AUTH_TOKEN
+          sync: false
         - key: UMAMI_WEBSITE_ID
           sync: false
         - key: OPENAI_APPS_CHALLENGE
           sync: false
 
   - name: test
-    databases:
-    - name: remdo-test-db
-      plan: free
-      region: frankfurt
     services:
     - type: web
       name: remdo-test
@@ -88,9 +86,7 @@ projects:
         - key: REMDO_USER_PASSWORD
           generateValue: true
         - key: DATABASE_URL
-          fromDatabase:
-            name: remdo-test-db
-            property: connectionString
+          sync: false
         - key: APP_ORIGIN
           value: https://test.remdo.com
         - key: HOME_VIDEO_URL
@@ -100,6 +96,8 @@ projects:
         - key: GOOGLE_CLIENT_SECRET
           sync: false
         - key: SENTRY_DSN
+          sync: false
+        - key: SENTRY_AUTH_TOKEN
           sync: false
         - key: OPENAI_APPS_CHALLENGE
           sync: false

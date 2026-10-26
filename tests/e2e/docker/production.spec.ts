@@ -690,7 +690,7 @@ print(json.dumps({'status': status, 'limits': limits, 'received': received}))
     status: 429,
     limits: '60:error',
     received: [{
-      path: '/api/7/envelope/',
+      path: '/api/7/envelope/?sentry_version=7&sentry_key=publickey',
       headers: ['Accept-Encoding', 'Content-Length', 'Content-Type', 'Host', 'User-Agent'],
       body: '{}\n{"type":"event"}\n{}\n',
     }],

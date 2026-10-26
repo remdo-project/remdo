@@ -39,6 +39,11 @@ RUN pnpm exec esbuild src/collaboration-server/main.ts --bundle --platform=node 
     --banner:js="const require = process.getBuiltinModule('module').createRequire(import.meta.url);" --outfile=collaboration.mjs
 
 ARG BUILD_REVISION
+# Declared only: RUN reads them from its environment. Naming the token in RUN
+# would put it in Render's build log, which prints the expanded command.
+ARG SENTRY_DSN
+# hadolint ignore=DL3064
+ARG SENTRY_AUTH_TOKEN
 RUN BUILD_REVISION="${BUILD_REVISION}" NODE_ENV=production ./tools/env.sh --production pnpm run build
 
 ############################

@@ -83,11 +83,14 @@ Deploy the Render environments from [the repository blueprint](../../render.yaml
    `REMDO_ADMIN_PASSWORD` and `REMDO_USER_PASSWORD` into the password
    manager. Render preserves these generated values
    across later Blueprint syncs.
-3. Point DNS at each service as Render's domain settings instruct and wait for
+3. Supply the test service's [`DATABASE_URL`](../specs/runtime/configuration.md#database),
+   an external PostgreSQL database; without it the sandbox uses SQLite and
+   loses its data on each deploy.
+4. Point DNS at each service as Render's domain settings instruct and wait for
    its certificate.
-4. For each service, set **Settings > Edge Caching > Cacheable file types** to
+5. For each service, set **Settings > Edge Caching > Cacheable file types** to
    **None**, preserving the [application freshness policy](../architecture.md#application-freshness).
-5. For each service, complete
+6. For each service, complete
    [Verify and Complete First Access](#verify-and-complete-first-access).
 
 Production tracks `main` and deploys automatically after its CI checks pass.
@@ -109,10 +112,9 @@ overwriting it. Render starts the deployment automatically.
 
 ### Reset the Test Sandbox
 
-Test data is disposable and its free database expires. To reset it, stop the
-application, delete its database, and sync the blueprint to recreate it and
-redeploy. Metadata and document content reset together. The reset does not
-require shell access.
+Test data is disposable. To reset it, stop the application, recreate its
+external PostgreSQL database, and redeploy. Metadata and document content reset
+together. The reset does not require shell access.
 
 ### Reset the Demo Account
 
@@ -193,14 +195,18 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
 
 ## Enable Error Reporting
 
-1. In Sentry, create a project and copy its DSN. Choose an organization in the
-   data region matching the instance's hosting region, so reports stay where
-   its data lives.
-2. Because the DSN is public, set a
-   [rate limit on its key](https://docs.sentry.io/pricing/quotas/manage-event-stream-guide/#rate-limiting).
+1. In Better Stack, create an Errors application for the service and copy its
+   DSN from the **Ingest** tab, as [Better Stack's Sentry SDK page](https://betterstack.com/docs/errors/collecting-errors/sentry-sdk/)
+   describes.
+2. Because the DSN is public, turn on
+   [spike protection](https://betterstack.com/docs/errors/using-the-product/spike-protection/)
+   in the application's **Advanced settings**.
 3. Set [`SENTRY_DSN`](../specs/runtime/configuration.md#error-reporting) in the
    service's **Environment** view on Render or in `.env` for the self-hosted
    launcher, then redeploy.
+4. To resolve browser reports to source, also set a Telemetry API token as
+   [`SENTRY_AUTH_TOKEN`](../specs/runtime/configuration.md#error-reporting) in
+   the Render service's **Environment** view, then redeploy.
 
 ## Enable Analytics
 
@@ -210,3 +216,13 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
    in the Render service's **Environment** view, then redeploy.
 3. Confirm that the footer offers **Privacy settings** and that page views
    arrive in Umami.
+
+## Enable Log Streaming
+
+1. Stream Render's logs to a Better Stack source, following
+   [Better Stack's instructions](https://betterstack.com/docs/logs/render/).
+   The workspace-wide [log stream](https://render.com/docs/log-streams) includes
+   the test sandbox.
+2. For AI-driven analysis, create a
+   [read-only SQL API connection](https://betterstack.com/docs/logs/query-api/connect-remotely/)
+   and keep its credentials in the password manager.

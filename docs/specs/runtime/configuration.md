@@ -169,10 +169,10 @@ the local recording under [`DATA_DIR`](#persistence), whether or not one exists.
 
 ## Error reporting
 
-`SENTRY_DSN` enables error reporting to that Sentry project; verification
-ignores it. Without reporting, no process loads a reporter. A malformed value,
-or one with a secret key, fails at startup, since browsers receive the DSN.
-**Deterministic.**
+`SENTRY_DSN` enables error reporting to the Sentry-compatible project it
+names; verification ignores it. Without reporting, no process loads a reporter.
+A malformed value, or one with a secret key, fails at startup, since browsers
+receive the DSN. **Deterministic.**
 
 The Python HTTP service, collaboration server, and browser app report unhandled
 failures; the browser app also reports errors that an error boundary or the
@@ -207,10 +207,17 @@ Django remain outside this reporting.
 
 Beyond the [diagnostics principle](../../principles.md#data-and-trust), reports
 and their delivery exclude user identity, client addresses, cookies, request
-headers other than the user agent, URL query strings and fragments, and command
-lines. **Deterministic.** Reporting covers failures only, without tracing,
-profiling, or session tracking. Production frontend source maps are public so
-that browser reports resolve to source.
+headers other than the user agent, query strings and fragments of reported
+URLs, and command lines. **Deterministic.** Reporting covers failures only,
+without tracing, profiling, or session tracking.
+
+A production build with `SENTRY_DSN` and `SENTRY_AUTH_TOKEN` uploads its source
+maps to the Better Stack application of that DSN, so that browser reports to it
+resolve to source, and fails if the lookup or upload fails; otherwise it uploads
+nothing and reports still work. The container build receives both only as build
+arguments, which Render supplies and the self-hosted launcher does not.
+Container startup removes the token from the environment it passes to the
+long-running services. **Deterministic.**
 
 ## Managed analytics
 
