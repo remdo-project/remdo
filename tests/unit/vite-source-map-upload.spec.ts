@@ -7,7 +7,7 @@ vi.mock('@sentry/vite-plugin', () => ({
 const DSN = 'https://public@s7.us-west-2a.betterstackdata.com/42';
 
 async function runUpload(command: 'build' | 'serve', env: Record<string, string>) {
-  for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
+  for (const [key, value] of Object.entries({ NODE_ENV: 'production', ...env })) vi.stubEnv(key, value);
   vi.resetModules();
   const { sourceMapUpload } = await import('../../config/vite/source-map-upload');
   return sourceMapUpload(command);
@@ -43,6 +43,7 @@ it.each([
   ['without a token', 'build', { SENTRY_DSN: DSN, SENTRY_AUTH_TOKEN: '' }],
   ['without a DSN', 'build', { SENTRY_AUTH_TOKEN: 'secret', SENTRY_DSN: '' }],
   ['outside a build', 'serve', { SENTRY_AUTH_TOKEN: 'secret', SENTRY_DSN: DSN }],
+  ['outside production', 'build', { SENTRY_AUTH_TOKEN: 'secret', SENTRY_DSN: DSN, NODE_ENV: 'development' }],
 ] as const)('skips the upload %s', async (_name, command, env) => {
   const fetchMock = vi.fn();
   vi.stubGlobal('fetch', fetchMock);

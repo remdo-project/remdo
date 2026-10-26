@@ -10,7 +10,7 @@ interface ApplicationReply {
 // the application; the token's own account supplies the team and data region.
 export async function sourceMapUpload(command: ConfigEnv['command']): Promise<PluginOption[]> {
   const { SENTRY_AUTH_TOKEN: authToken, SENTRY_DSN: dsn, BUILD_REVISION: release } = config.env;
-  if (command !== 'build' || !authToken || !dsn) return [];
+  if (command !== 'build' || !config.isProd || !authToken || !dsn) return [];
   const project = new URL(dsn).pathname.split('/').pop();
   const reply = await fetch(`https://errors.betterstack.com/api/v2/applications/${project}`, {
     headers: { Authorization: `Bearer ${authToken}` },
