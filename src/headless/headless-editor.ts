@@ -31,9 +31,10 @@ interface SharedRoot {
 }
 
 function createHeadlessProviderFactory(authorization: string | undefined) {
-  const headers = authorization
-    ? { Authorization: authorization }
-    : { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET };
+  const headers = {
+    'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET,
+    ...(authorization ? { Authorization: authorization } : {}),
+  };
   class HeadlessWebSocket extends WebSocket {
     constructor(url: string | URL) {
       super(url, { headers });

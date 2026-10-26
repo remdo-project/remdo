@@ -6,7 +6,6 @@ import { setTimeout as wait } from 'node:timers/promises';
 import { config } from '#config';
 import { COLLABORATION_SHUTDOWN_DEADLINE_MS } from '#platform/net/django-request';
 import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
-import { PERSIST_TIMEOUT_MS } from '#platform/net/persistence-barrier';
 import { terminateProcessGroup } from '../lib/managed-process';
 import { isPortOpen } from '../lib/net';
 import { spawnPnpm } from '../lib/process';
@@ -14,7 +13,6 @@ import { spawnPnpm } from '../lib/process';
 const services = [
   { name: 'api', port: config.env.API_SERVER_PORT, host: INTERNAL_SERVICE_HOST },
   { name: 'collab', port: config.env.COLLAB_SERVER_PORT, host: INTERNAL_SERVICE_HOST },
-  { name: 'mcp', port: config.env.MCP_SERVER_PORT, host: INTERNAL_SERVICE_HOST },
   { name: 'web', port: config.env.PORT, host: config.env.HOST === '0.0.0.0' ? INTERNAL_SERVICE_HOST : config.env.HOST },
 ] as const;
 type Service = typeof services[number];
@@ -23,8 +21,6 @@ let stopping = false;
 
 function gracePeriod({ name }: Service): number {
   if (name === 'collab') return COLLABORATION_SHUTDOWN_DEADLINE_MS + 5000;
-  // A mutation in flight at shutdown can wait out its persistence acknowledgement.
-  if (name === 'mcp') return PERSIST_TIMEOUT_MS + 5000;
   return 10_000;
 }
 
@@ -110,7 +106,7 @@ function shutdown(exitCode: number): void {
   stopping = true;
   process.exitCode = exitCode;
   void (async () => {
-    // Reverse start order keeps Django available until MCP and collaboration finish their persistence work.
+    // Reverse start order keeps Django available until collaboration finishes its persistence work.
     for (const { service, child } of [...started].reverse()) {
       const { name } = service;
       try {

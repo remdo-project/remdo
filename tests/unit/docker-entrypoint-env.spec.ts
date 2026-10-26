@@ -182,21 +182,21 @@ describe('docker entrypoint internal services', () => {
 describe('docker entrypoint Node heaps', () => {
   function heaps(memoryLimit: string) {
     const result = runEntryPointEnv(
-      String.raw`remdo_configure_node_heaps '${memoryLimit}' && printf "%s %s %s" "$collaboration_heap_mb" "$mcp_heap_mb" "$MCP_DOCUMENT_SLOTS"`,
+      String.raw`remdo_configure_node_heaps '${memoryLimit}' && printf "%s %s" "$collaboration_heap_mb" "$MCP_DOCUMENT_SLOTS"`,
       {},
     );
     return { status: result.status, heaps: String(result.stdout), error: String(result.stderr) };
   }
 
-  it('splits the memory the other services leave between collaboration and MCP document slots', () => {
-    expect(heaps(String(512 * 2 ** 20))).toMatchObject({ status: 0, heaps: '192 64 2' });
-    expect(heaps(String(2048 * 2 ** 20))).toMatchObject({ status: 0, heaps: '1344 448 26' });
-    expect(heaps(String(448 * 2 ** 20))).toMatchObject({ status: 0, heaps: '144 48 1' });
+  it('bounds the combined hub/editor heap and headless document capacity', () => {
+    expect(heaps(String(512 * 2 ** 20))).toMatchObject({ status: 0, heaps: '224 2' });
+    expect(heaps(String(2048 * 2 ** 20))).toMatchObject({ status: 0, heaps: '1760 26' });
+    expect(heaps(String(448 * 2 ** 20))).toMatchObject({ status: 0, heaps: '160 1' });
   });
 
   it('leaves Node defaults without a container memory limit', () => {
-    expect(heaps('max')).toMatchObject({ status: 0, heaps: '  ' });
-    expect(heaps('')).toMatchObject({ status: 0, heaps: '  ' });
+    expect(heaps('max')).toMatchObject({ status: 0, heaps: ' ' });
+    expect(heaps('')).toMatchObject({ status: 0, heaps: ' ' });
   });
 
   it('reads the container limit from cgroup v2 or v1', () => {

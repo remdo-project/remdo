@@ -86,8 +86,8 @@ remdo_docker_run() {
   shift 2
   mkdir -p "${data_dir}"
 
-  # Allow the ordered gateway (10s), collaboration (30s), and API (10s) drain.
-  docker run --stop-timeout 55 "$@" \
+  # Allow ordered gateway (85s), collaboration (95s), and Python HTTP (10s) drain.
+  docker run --stop-timeout 200 "$@" \
     -v "${data_dir}:/data" \
     "${image_name}"
 }

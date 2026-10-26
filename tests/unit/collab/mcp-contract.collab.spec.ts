@@ -3,14 +3,14 @@ import { promisify } from 'node:util';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { config } from '#config';
 import reference from '#fixtures/mcp/compatibility.json';
-import { resolveApiServerOrigin, resolveMcpServerOrigin } from '#platform/net/origins';
+import { INTERNAL_SERVICE_HOST, resolveApiServerOrigin } from '#platform/net/origins';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 const execute = promisify(execFile);
 // Bypass the editor fixture's browser-session fetch wrapper: these requests must
 // authenticate only with the supplied MCP credential.
 const fetchHttp = globalThis.fetch.bind(globalThis);
-const endpoint = new URL('/mcp', resolveMcpServerOrigin());
+const endpoint = new URL(`http://${INTERNAL_SERVICE_HOST}:${config.env.API_SERVER_PORT}/mcp`);
 const metadataUrl = new URL('/.well-known/oauth-protected-resource/mcp', config.env.APP_ORIGIN).href;
 const expected = JSON.parse(
   JSON.stringify(reference.results).replaceAll(reference.appOrigin, config.env.APP_ORIGIN),
@@ -77,7 +77,7 @@ describe('mcp compatibility over HTTP', { timeout: COLLAB_LONG_TIMEOUT_MS }, () 
     expect(response.headers.get('mcp-session-id')).toBeNull();
   });
 
-  it.each([undefined, 'Basic synthetic'])('challenges missing bearer credentials (%s)', async (authorization) => {
+  it.each([undefined, 'Basic synthetic', 'Bearer  synthetic'])('challenges missing bearer credentials (%s)', async (authorization) => {
     const response = await post({ jsonrpc: '2.0', id: 7, method: 'tools/list', params: {} }, authorization);
     expect(response.status).toBe(401);
     expect(response.headers.get('www-authenticate')).toBe(`Bearer resource_metadata="${metadataUrl}"`);

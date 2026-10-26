@@ -77,6 +77,17 @@ def delegated_user(authorization_header):
     return token and token.user
 
 
+def mcp_user_from_authorization(authorization_header):
+    token = delegated_token(authorization_header)
+    if (
+        token is None
+        or mcp_resource() not in token.get_resources()
+        or "openid" not in token.get_scopes()
+    ):
+        return None
+    return token.user
+
+
 class DelegatedAccessAuthentication(BaseAuthentication):
     """Bearer requests are authenticated only by their token."""
 
@@ -206,14 +217,10 @@ def protected_resource_metadata(request):
 @require_http_methods(["GET"])
 def mcp_user(request):
     """The user an access token issued for the MCP server (RFC 8707) acts as."""
-    token = delegated_token(request.headers.get("Authorization", ""))
-    if (
-        token is None
-        or mcp_resource() not in token.get_resources()
-        or "openid" not in token.get_scopes()
-    ):
+    user = mcp_user_from_authorization(request.headers.get("Authorization", ""))
+    if user is None:
         return HttpResponse(status=401)
-    return JsonResponse({"userId": str(token.user.pk)})
+    return JsonResponse({"userId": str(user.pk)})
 
 
 def _refuse(request, reason):
