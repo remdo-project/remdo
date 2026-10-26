@@ -109,10 +109,9 @@ overwriting it. Render starts the deployment automatically.
 
 ### Reset the Test Sandbox
 
-Test data is disposable and its free database expires. To reset it, stop the
-application, delete its database, and sync the blueprint to recreate it and
-redeploy. Metadata and document content reset together. The reset does not
-require shell access.
+Test data is disposable. To reset it, stop the application, recreate its
+external PostgreSQL database, and redeploy. Metadata and document content reset
+together. The reset does not require shell access.
 
 ### Reset the Demo Account
 
