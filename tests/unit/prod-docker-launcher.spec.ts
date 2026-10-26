@@ -149,7 +149,7 @@ describe('prod Docker launcher', () => {
 
     expect(dockerOptionValues(runArgs, '--name')).toEqual(['remdo-8443']);
     expect(dockerOptionValues(runArgs, '--restart')).toEqual(['unless-stopped']);
-    expect(dockerOptionValues(runArgs, '--stop-timeout')).toEqual(['55']);
+    expect(dockerOptionValues(runArgs, '--stop-timeout')).toEqual(['200']);
     expect(dockerOptionValues(runArgs, '-p')).toEqual(['127.0.0.1:8443:8443']);
     expect(dockerOptionValues(runArgs, '-v')).toEqual([`${dataDir}:/data`]);
     expect(runArgs).toContain('-d');
@@ -205,7 +205,7 @@ describe('prod Docker launcher', () => {
       'inspect',
       'exec',
     ]);
-    expect(findDockerCall(dockerCalls, 'stop')).toEqual(['stop', '--timeout', '55', 'remdo-8443']);
+    expect(findDockerCall(dockerCalls, 'stop')).toEqual(['stop', 'remdo-8443']);
     expect(findDockerCall(dockerCalls, 'rm')).toEqual(['rm', 'remdo-8443']);
     expect(dockerOptionValues(findDockerCall(dockerCalls, 'run'), '--name')).toEqual(['remdo-8443']);
   });

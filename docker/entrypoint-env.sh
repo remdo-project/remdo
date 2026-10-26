@@ -20,10 +20,9 @@ remdo_configure_internal_services() {
   if [ "${REMDO_DEV_CONTAINER:-false}" != "true" ]; then
     API_SERVER_PORT=4011
     COLLAB_SERVER_PORT=4004
-    MCP_SERVER_PORT=4013
   fi
 
-  export API_SERVER_PORT COLLAB_SERVER_PORT MCP_SERVER_PORT
+  export API_SERVER_PORT COLLAB_SERVER_PORT
 }
 
 remdo_configure_caddy_env() {
@@ -94,25 +93,20 @@ remdo_container_memory_limit() {
   fi
 }
 
-# Node sizes each heap from the container limit on its own, so the two Node
-# services together could claim more memory than the instance has. Split what
-# the Python API and the gateway leave (~256 MB measured under load) instead.
-# MCP gets a slot per open document: ~32 MB baseline, and a 2000-note document
-# measured ~9 MB of MCP heap, allowed 16 MB.
+# Reserve 288 MB for Python API/MCP, the gateway, and native allocations.
+# One Node process holds both hub and headless editor documents. Keep the
+# previous headless concurrency ceiling within its combined heap.
 remdo_configure_node_heaps() {
   memory_limit="$1"
   collaboration_heap_mb=""
-  mcp_heap_mb=""
   case "${memory_limit}" in
     ''|max) return 0 ;;
   esac
-  node_heap_mb=$((memory_limit / 1048576 - 256))
-  if [ "${node_heap_mb}" -lt 192 ]; then
+  collaboration_heap_mb=$((memory_limit / 1048576 - 288))
+  if [ "${collaboration_heap_mb}" -lt 160 ]; then
     echo "RemDo needs a memory limit of at least 448 MB." >&2
     return 1
   fi
-  mcp_heap_mb=$((node_heap_mb / 4))
-  collaboration_heap_mb=$((node_heap_mb - mcp_heap_mb))
-  MCP_DOCUMENT_SLOTS=$(((mcp_heap_mb - 32) / 16))
+  MCP_DOCUMENT_SLOTS=$(((collaboration_heap_mb - 96) / 64))
   export MCP_DOCUMENT_SLOTS
 }

@@ -29,7 +29,7 @@ def google_login_url():
 
 print(json.dumps({
     'database': settings.DATABASES['default']['ENGINE'],
-    'persistent': [settings.DATABASES['default'].get('CONN_MAX_AGE'), settings.DATABASES['default'].get('CONN_HEALTH_CHECKS')],
+    'persistent': [settings.DATABASES['default'].get('CONN_MAX_AGE'), settings.DATABASES['default'].get('CONN_HEALTH_CHECKS'), settings.DATABASES['default'].get('OPTIONS', {}).get('pool')],
     'debug': settings.DEBUG,
     'data': str(settings.DATA_DIR),
     'origin': settings.APP_ORIGIN,
@@ -168,7 +168,7 @@ class ConfigurationTests(SimpleTestCase):
         self.assertEqual(self.settings()["database"], "django.db.backends.sqlite3")
         postgres = self.settings(DATABASE_URL="postgresql://test:testing@localhost/remdo")
         self.assertEqual(postgres["database"], "django.db.backends.postgresql")
-        self.assertEqual(postgres["persistent"], [600, True])
+        self.assertEqual(postgres["persistent"], [0, True, True])
 
     def test_openai_apps_challenge_environment(self):
         report = """
@@ -365,7 +365,10 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         self.assertEqual(event["release"], "reporting-test-revision")
         self.assertEqual(event["environment"], "remdo.example")
         self.assertEqual(event["request"]["url"], "https://remdo.example/fail/<str:document>")
-        self.assertEqual(event["request"]["headers"], {"User-Agent": "reporting-test-agent"})
+        self.assertEqual(
+            {key.lower(): value for key, value in event["request"]["headers"].items()},
+            {"user-agent": "reporting-test-agent"},
+        )
         self.assertNotIn("private-", json.dumps(items))
         self.assertNotIn("198.51.100.7", json.dumps(items))
 
@@ -457,10 +460,28 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         self.assertEqual(
             self.reporting_probe("streaming-failure", SENTRY_DSN=ingest.dsn), ["200 OK"]
         )
-        [(_, event)] = ingest.items()
-        [exception] = event["exception"]["values"]
+        [event] = [item for kind, item in ingest.items() if kind == "event"]
+        exception = event["exception"]["values"][-1]
         self.assertEqual(exception["value"], "reported-streaming-exception")
-        self.assertNotIn("private-", json.dumps(event))
+        self.assertNotIn("private-", json.dumps(ingest.items()))
+
+    def test_mcp_failures_are_reported_without_confidential_request_data(self):
+        ingest = FakeIngest()
+        self.addCleanup(ingest.close)
+        self.assertEqual(
+            self.reporting_probe("mcp-failure", SENTRY_DSN=ingest.dsn),
+            {
+                "auth_status": 500,
+                "tool_status": 200,
+                "tool_error": "INTERNAL: RemDo could not complete the request.",
+            },
+        )
+        events = [item for kind, item in ingest.items() if kind == "event"]
+        self.assertCountEqual(
+            [event["exception"]["values"][-1]["value"] for event in events],
+            ["reported-mcp-exception", "reported-tool-exception"],
+        )
+        self.assertNotIn("private-", json.dumps(events))
 
     def test_http_reporting_is_not_loaded_without_a_dsn(self):
         self.assertEqual(

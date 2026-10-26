@@ -1,5 +1,6 @@
 /* eslint-disable node/no-process-env */
-import { execFileSync, spawnSync } from 'node:child_process';
+import { Buffer } from 'node:buffer';
+import { execFile, execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -8,11 +9,16 @@ import type { APIRequestContext } from '@playwright/test';
 import { waitForHealth } from './_support/helpers';
 import { request } from '@playwright/test';
 import * as Y from 'yjs';
+import { once } from 'node:events';
+import { request as httpRequest } from 'node:http';
+import { promisify } from 'node:util';
+import { setTimeout as delay } from 'node:timers/promises';
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
 import WebSocket from 'ws';
 import { requestPersistence } from '#collaboration/persistence-barrier';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import mcpReference from '../../fixtures/mcp/compatibility.json' with { type: 'json' };
 
 const container = process.env.DOCKER_TEST_CONTAINER!;
 const password = 'production-fixture-password-1234';
@@ -20,6 +26,25 @@ const email = 'admin@production.example.test';
 
 function docker(...args: string[]): string {
   return execFileSync('docker', args, { encoding: 'utf8' }).trim();
+}
+
+function createMcpToken(name: string): string {
+  return docker('exec', name, 'python', 'manage.py', 'shell', '-c', `
+import secrets
+from datetime import timedelta
+from accounts.delegated import mcp_resource
+from accounts.models import User
+from allauth.idp.oidc.models import Token
+from django.utils import timezone
+user, _ = User.objects.get_or_create(email="mcp@production.example.test")
+value = secrets.token_urlsafe(32)
+token = Token(type=Token.Type.ACCESS_TOKEN, user=user, expires_at=timezone.now() + timedelta(hours=1))
+token.set_resources([mcp_resource()])
+token.set_scopes(["openid"])
+token.set_value(value)
+token.save()
+print(value)
+`).split('\n').at(-1)!;
 }
 
 async function openDocument(url: string, docId: string, headers: Record<string, string>) {
@@ -442,24 +467,31 @@ test('MCP saves an outline through the gateway with a delegated token', async ()
     return new Response(new Uint8Array(await response.body()), { status: response.status(), headers: response.headers() });
   };
   await waitForHealth(api);
-  const token = docker('exec', hosted, 'python', 'manage.py', 'shell', '-c', `
-import secrets
-from datetime import timedelta
-from accounts.delegated import mcp_resource
-from accounts.models import User
-from allauth.idp.oidc.models import Token
-from django.utils import timezone
-user, _ = User.objects.get_or_create(email="mcp@production.example.test")
-value = secrets.token_urlsafe(32)
-token = Token(type=Token.Type.ACCESS_TOKEN, user=user, expires_at=timezone.now() + timedelta(hours=1))
-token.set_resources([mcp_resource()])
-token.set_scopes(["openid"])
-token.set_value(value)
-token.save()
-print(value)
-`).split('\n').at(-1)!;
+  const token = createMcpToken(hosted);
   const unauthorized = await gatewayFetch(new URL('/mcp', base), { method: 'POST' });
   expect(unauthorized.status).toBe(401);
+  expect(unauthorized.headers.get('www-authenticate')).toBe('Bearer resource_metadata="https://remdo.onrender.com/.well-known/oauth-protected-resource/mcp"');
+  // Temporary compatibility freeze through the production gateway. Retirement: docs/todo.md#temporary-mcp-compatibility-guards.
+  const expected = JSON.parse(JSON.stringify(mcpReference.results).replaceAll(mcpReference.appOrigin, 'https://remdo.onrender.com')) as typeof mcpReference.results;
+  async function rpc(method: string, params: unknown) {
+    const response = await gatewayFetch(new URL('/mcp', base), {
+      method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json, text/event-stream', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 7, method, params }),
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('mcp-session-id')).toBeNull();
+    const text = await response.text();
+    return JSON.parse(response.headers.get('content-type')!.startsWith('application/json')
+      ? text : text.split('\n').find(line => line.startsWith('data: '))!.slice(6)) as unknown;
+  }
+  expect(await rpc('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'gateway-contract', version: '1' } }))
+    .toEqual({ jsonrpc: '2.0', id: 7, result: expected.initialize });
+  expect(await rpc('tools/list', {})).toEqual({ jsonrpc: '2.0', id: 7, result: expected['tools/list'] });
+  const privateCall = await gatewayFetch(new URL('/internal/editor', base), {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'X-Remdo-Collaboration-Secret': 'forged' },
+    body: JSON.stringify({ operation: 'read', documentId: 'document' }),
+  });
+  expect(privateCall.status).toBe(404);
 
   const client = new Client({ name: 'docker-test', version: '1' });
   await client.connect(new StreamableHTTPClientTransport(new URL('/mcp', base), {
@@ -473,8 +505,16 @@ print(value)
       return JSON.parse((response.content as Array<{ text: string }>)[0]!.text) as unknown;
     };
     const { documentId } = await call('create_document', { title: 'From Claude' }) as { documentId: string };
-    const [saved] = await call('append_children', { parent: documentId, notes: [{ text: 'Summary' }] }) as Array<{ url: string }>;
+    const [saved] = await call('append_children', { parent: documentId, notes: [{ text: 'Summary', children: [{ text: 'Detail' }] }] }) as Array<{ noteAddress: string; url: string }>;
     expect(saved!.url).toMatch(new RegExp(`/n/${documentId}_`));
+    expect(await call('rename_document', { documentId, title: 'Saved outline' })).toEqual({ documentId, title: 'Saved outline', url: `https://remdo.onrender.com/n/${documentId}` });
+    expect(await call('list_documents', {})).toContainEqual({ documentId, title: 'Saved outline', url: `https://remdo.onrender.com/n/${documentId}` });
+    expect(await call('set_child_list_type', { noteAddress: saved!.noteAddress, listType: 'check' })).toMatchObject({ listType: 'check' });
+    const read = await client.callTool({ name: 'read_document', arguments: { target: documentId } });
+    expect(read.isError).not.toBe(true);
+    expect((read.content as Array<{ text: string }>)[0]!.text).toContain('- [ ] [Detail]');
+    const persisted = docker('exec', hosted, 'python', 'manage.py', 'shell', '-c', `from documents.models import DocumentContent; print(len(DocumentContent.objects.get(document_id="${documentId}").state) > 0)`).split('\n').at(-1);
+    expect(persisted).toBe('True');
   }
   finally {
     await client.close();
@@ -655,4 +695,86 @@ print(json.dumps({'status': status, 'limits': limits, 'received': received}))
       body: '{}\n{"type":"event"}\n{}\n',
     }],
   });
+});
+
+
+test('drains an accepted MCP write before stopping Node and Django', async () => {
+  test.slow();
+  const hosted = process.env.DOCKER_HOSTED_CONTAINER!;
+  const base = `http://127.0.0.1:${process.env.DOCKER_HOSTED_PORT!}`;
+  const api = await request.newContext({ baseURL: base, extraHTTPHeaders: { Host: 'remdo.onrender.com' } });
+  await waitForHealth(api);
+  const token = createMcpToken(hosted);
+  const created = await api.post('/mcp', {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json, text/event-stream' },
+    data: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'create_document', arguments: { title: 'Shutdown drain' } } },
+  });
+  const documentId = JSON.parse((await created.json()).result.content[0].text).documentId as string;
+  const body = JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: {
+    name: 'append_children', arguments: { parent: documentId, notes: [{ text: 'Committed during gateway drain' }] },
+  } });
+  const outgoing = httpRequest(new URL('/mcp', base), {
+    method: 'POST', headers: {
+      Host: 'remdo.onrender.com', Authorization: `Bearer ${token}`,
+      Accept: 'application/json, text/event-stream', 'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(body), Expect: '100-continue',
+    },
+  });
+  const accepted = once(outgoing, 'continue');
+  void accepted.catch(() => {});
+  const response = new Promise<{ status: number | undefined; body: string }>((resolve, reject) => {
+    outgoing.on('error', reject);
+    outgoing.on('response', (incoming) => {
+      let text = '';
+      incoming.setEncoding('utf8');
+      incoming.on('data', chunk => { text += chunk; });
+      incoming.on('error', reject);
+      incoming.on('end', () => resolve({ status: incoming.statusCode, body: text }));
+    });
+  });
+  void response.catch(() => {});
+  const events = httpRequest(new URL('/mcp', base), {
+    headers: { Host: 'remdo.onrender.com', Authorization: `Bearer ${token}`, Accept: 'text/event-stream' },
+  });
+  try {
+    const stream = new Promise<{ status: number | undefined; contentType: string | undefined }>((resolve, reject) => {
+      events.on('error', reject);
+      events.on('response', (incoming) => {
+        incoming.on('error', () => {});
+        incoming.resume();
+        resolve({ status: incoming.statusCode, contentType: incoming.headers['content-type'] });
+      });
+    });
+    events.end();
+    expect(await stream).toMatchObject({ status: 200, contentType: expect.stringContaining('text/event-stream') });
+    outgoing.flushHeaders();
+    await accepted;
+    // The accepted request remains active while its body is incomplete.
+    outgoing.write(body.slice(0, 10));
+    docker('kill', '--signal=TERM', hosted);
+    await expect.poll(async () => {
+      try { await api.get('/api/health'); return false; }
+      catch { return true; }
+    }, { timeout: 10_000 }).toBe(true);
+    // A request must survive beyond the old 10-second gateway drain.
+    await delay(12_000);
+    events.destroy();
+    outgoing.end(body.slice(10));
+    const reply = await response;
+    expect(reply.status).toBe(200);
+    expect(JSON.parse(reply.body).result.isError).not.toBe(true);
+    const stopped = await promisify(execFile)('docker', ['wait', hosted], { timeout: 30_000 });
+    expect(stopped.stdout.trim()).toBe('143');
+    docker('start', hosted);
+    await waitForHealth(api);
+    const read = await api.post('/mcp', {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json, text/event-stream' },
+      data: { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'read_document', arguments: { target: documentId } } },
+    });
+    expect((await read.json()).result.content[0].text).toContain('Committed during gateway drain');
+  } finally {
+    outgoing.destroy();
+    events.destroy();
+    await api.dispose();
+  }
 });

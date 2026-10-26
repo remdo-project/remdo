@@ -83,13 +83,15 @@ production bundles, including production bundles run by development and test wor
 
 ## Production Instance Boundary
 
-A production instance treats its gateway, API, collaboration server, and MCP
-server as one failure domain. An unexpected process exit identifies the
-failed service, stops the remaining processes, and ends the instance
-unsuccessfully so its environment can restart the complete instance. Under a
-container memory limit of at least 448 MB, the collaboration and MCP servers
-split what the API and gateway leave into fixed heap budgets, so neither can
-claim the other's memory; a smaller limit fails startup. When selected,
+A production instance treats its gateway, Python HTTP service, and
+collaboration server as one failure domain. An unexpected process exit
+identifies the failed service, stops the remaining processes, and ends the
+instance unsuccessfully so its environment can restart the complete instance. The
+gateway opens after the Python HTTP service, including its MCP endpoint, and
+collaboration server become ready.
+Under a container memory limit of at least 448 MB, the Node heap and headless document
+capacity are bounded after reserving memory for Python and the gateway; a
+smaller limit fails startup. When selected,
 PostgreSQL runs as a separate service with its own lifecycle.
 
 ## Routing and Origin Boundary
@@ -101,16 +103,16 @@ validates browser origins against the [configured trusted origins](specs/access/
 ### Gateway
 
 The gateway explicitly owns frontend assets, Django static assets, health
-probes, collaboration endpoints, the [MCP server](specs/integrations/mcp.md),
-and browser [error report](specs/runtime/configuration.md#error-reporting) forwarding.
-Django owns all other HTTP routes,
+probes, collaboration endpoints, and browser [error report](specs/runtime/configuration.md#error-reporting) forwarding.
+The Python HTTP service serves the native [MCP endpoint](specs/integrations/mcp.md)
+alongside Django, which owns all other HTTP routes,
 including the app routes ([Home](specs/outliner/home.md) at `/`, `/n/*`, and `/sign-out`),
 unknown routes, and their 404 responses. Normal HTTP routes have the
 same owner in development and production; development additionally serves
 frontend tooling and development-only routes.
 
-Development and production server runtimes expose only the gateway. The RemDo
-API, collaboration server, and MCP server remain loopback-only and are reached
+Development and production server runtimes expose only the gateway. The
+Python HTTP service and collaboration server remain loopback-only and are reached
 through it.
 
 ### RemDo API boundary
@@ -130,8 +132,25 @@ ownership and document access decisions.
 ### Backend note processing
 
 Django/Python owns non-editor note processing, including account and document
-metadata and authorization. Backend Node handles operations that depend on
-Lexical/Yjs.
+metadata, authorization, and the [MCP endpoint](specs/integrations/mcp.md). Django
+and the native MCP transport share one asynchronous HTTP service, so waiting
+for editor work leaves Django available for Node's authorization and storage
+calls.
+
+Shutdown stops ingress at the gateway, then collaboration finishes accepted
+editor work and final SQL saves before the Python HTTP service stops.
+
+Backend Node handles operations that depend on Lexical/Yjs. Python calls the
+collaboration host's private editor endpoint with the internal service
+credential and the caller's delegated token; the editor opens the document
+with that token, repeating authorization through the hub. The gateway does not
+expose private editor calls.
+
+Editor writes return only after [durable completion](#hydration-vs-sync). A lost, invalid, or
+timed-out write reply leaves the outcome unconfirmed; Python never retries the
+write automatically. A timeout does not imply cancellation or rollback. Reads
+retain the existing Markdown outline, and failures retain their code, message,
+and reconnection requirement.
 
 ### Document identity
 

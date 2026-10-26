@@ -35,30 +35,30 @@ RUN attempt=1 \
     attempt=$((attempt + 1)); \
   done
 
-RUN for entry in collaboration-server/main.ts:collaboration.mjs mcp/main.ts:mcp.mjs; do \
-    pnpm exec esbuild "src/${entry%%:*}" --bundle --platform=node --target=node24 --format=esm --banner:js="const require = process.getBuiltinModule('module').createRequire(import.meta.url);" --outfile="${entry#*:}" || exit 1; \
-  done
+RUN pnpm exec esbuild src/collaboration-server/main.ts --bundle --platform=node --target=node24 --format=esm \
+    --banner:js="const require = process.getBuiltinModule('module').createRequire(import.meta.url);" --outfile=collaboration.mjs
 
 ARG BUILD_REVISION
 # Declared only: RUN reads them from its environment. Naming the token in RUN
 # would put it in Render's build log, which prints the expanded command.
 ARG SENTRY_DSN
+# hadolint ignore=DL3064
 ARG SENTRY_AUTH_TOKEN
 RUN BUILD_REVISION="${BUILD_REVISION}" NODE_ENV=production ./tools/env.sh --production pnpm run build
 
 ############################
 # Python dependencies      #
 ############################
-FROM python:3.14-alpine AS backend
-COPY --from=ghcr.io/astral-sh/uv:0.12.15 /uv /bin/uv
+FROM python:3.15-alpine AS backend
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /bin/uv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-RUN uv sync --locked --no-dev --no-install-project
+RUN uv sync --locked --no-dev --no-install-project --compile-bytecode
 
 ############################
 # Production runtime       #
 ############################
-FROM python:3.14-alpine AS runner
+FROM python:3.15-alpine AS runner
 ENV DATA_DIR=/data DJANGO_SETTINGS_MODULE=remdo.settings
 # Django settings require the hub port, and `docker exec` commands skip the
 # entrypoint that derives it; entrypoint-env.sh still pins it for services.
@@ -74,7 +74,7 @@ COPY content /app/content
 COPY --from=builder /app/dist /srv/remdo
 COPY --from=builder /app/dist/.vite/manifest.json /app/dist/.vite/manifest.json
 COPY --from=builder /usr/local/bin/node /usr/local/bin/node
-COPY --from=builder /app/collaboration.mjs /app/mcp.mjs /app/
+COPY --from=builder /app/collaboration.mjs /app/
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY tools/env.defaults.sh /usr/local/share/remdo/env.defaults.sh

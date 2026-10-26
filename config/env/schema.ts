@@ -20,7 +20,6 @@ export const envSchema = {
   COLLAB_ENABLED: boolish,
   COLLAB_SERVER_PORT: port,
   API_SERVER_PORT: port,
-  MCP_SERVER_PORT: port,
   MCP_DOCUMENT_SLOTS: count,
   DEV_DOCUMENT_ID: str,
   COLLAB_INTERNAL_SECRET: str,

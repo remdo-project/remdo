@@ -191,7 +191,7 @@ Decisions requiring a contract owner's judgement:
   peak memory per process, CPU, and save latency across document sizes. Use the
   results to size the hosted instance and to decide whether to reduce
   whole-document saves, cache open documents in the headless host, split the
-  collaboration hub, or run the MCP server as a separate service.
+  collaboration hub, or deploy headless editor work separately from the hub.
   Measure cold reads and Yjs/Lexical hydration separately from note resolution
   and output serialization, to inform the [representation decision](#note-representation-and-history).
 
@@ -264,9 +264,18 @@ RemDo document, minimal but useful for real work.
 - Expose [cross-document search](#cross-source-discovery) once server-side search spans a user's documents;
   searching a single document adds little over reading it whole.
 - **Oversized upload regression coverage.** Django closing the connection before
-  reading an over-limit body used to crash the MCP process. The fix in
+  reading an over-limit body used to crash the Node writer. The fix in
   `src/platform/net/django-request.ts` was confirmed only against gunicorn;
-  fakes and the Docker E2E path did not reproduce the crash deterministically.
+  add deterministic coverage against the current ASGI service. Fakes and the
+  Docker E2E path did not reproduce the original crash deterministically.
+- **Very deep appends.** Remove stack-depth dependence from append validation
+  and Lexical/Yjs synchronization. A 1,000-note chain exceeds the existing Node
+  validator's stack; bypassing that validator also overflows Lexical/Yjs. The
+  Python transport must preserve already-working depths without adding its own
+  lower limit. The developer approved, on 2026-10-25, a temporary patch of the
+  MCP SDK's JSON decoder in `backend/mcp_server/server.py`, whose parser stops
+  near 100 nested notes. Remove it when its focused regression passes without
+  it, for example after an upstream fix.
 
 #### Temporary MCP compatibility guards
 
@@ -289,8 +298,12 @@ scan. HTTP assertions normalize only the fixture origin and preserve extension
 fields that client SDK parsing could omit. The [workflow checks](../tests/unit/collab/mcp.collab.spec.ts) normalize generated
 note IDs while preserving document identity and result text. The
 [collaboration harness](specs/testing/test-harness.md#collaboration-tests) starts the current implementation. MCP assertions use
-HTTP and can remain when its launcher changes to Python; account, persisted-state,
+HTTP; account, persisted-state,
 and concurrent-peer fixtures still use Django and Yjs.
+
+After the pending-review compatibility freeze, remove the former Node MCP
+token-probe route `/api/mcp/current-user` and retarget its tests. Python MCP
+resolves credentials in-process; retain the existing public route during review.
 
 Expected baselines are reviewed data, independent of the implementation being
 tested. A failure requires assessing the public change under the pending-review
@@ -364,16 +377,19 @@ Remaining:
   Read/append execution and Markdown rendering are already isolated in the
   [Node editor operations](../src/headless/editor-operations.ts), with direct integration coverage.
 
-  Implement Python MCP handling together with the Node editor connection it
-  needs; the private HTTP prototype was deferred because its only Python
-  callers were tests. Keep public authorization, input policy, and result/error
-  presentation with the MCP host. Preserve caller authorization, errors, limits,
-  and [durable completion](architecture.md#hydration-vs-sync), and extend the [compatibility guards](#temporary-mcp-compatibility-guards) across that
-  connection. Transport and process lifecycle remain to be decided, including
-  concurrency when Node calls Django back for authorization and storage.
+  Python MCP replaces the Node MCP host and uses Django's metadata operations
+  directly. Both share an asynchronous HTTP service, leaving Django available
+  for the collaboration host's authorization and storage callbacks. Private
+  editor HTTP calls run on the existing collaboration host and preserve
+  caller authorization and [durable completion](architecture.md#hydration-vs-sync).
 
-  Assess deployment separately under the [pending-review constraint](#claude-mcp-save-a-conversation-to-remdo). The public
-  MCP host remains Node pending that assessment. Keep [representation research](#note-representation-and-history)
+  Before merge/deployment, complete the [migration verification](#claude-mcp-save-a-conversation-to-remdo) and establish
+  review impact under the pending-review constraint. The frozen local contract
+  is a repository reference, not a saved submission-time tool scan. OpenAI's
+  [review requirements](https://developers.openai.com/plugins/deploy/app-review) allow server-only changes that preserve the published contract;
+  they do not establish either pending submission's queue status. Keep the
+  submitted endpoints, OAuth configuration, tools, and package unchanged and
+  leave uncertain deployment deferred. Keep [representation research](#note-representation-and-history)
   separate; this sequence does not require reducing the existing [offline scope](architecture.md#offline-application-behavior).
 
 - **Simplify SDK consumer types.** Review consumers beyond the mobile toolbar

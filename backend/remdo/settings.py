@@ -7,7 +7,8 @@ from .secrets import load_secrets
 _secrets = load_secrets(base.DATA_DIR)
 SECRET_KEY = _secrets["auth_secret"]
 COLLAB_INTERNAL_SECRET = _secrets["collaboration_secret"]
-# Only the loopback gateway can reach Gunicorn; it replaces forwarding headers.
+# Caddy replaces forwarding headers. Uvicorn's --no-proxy-headers leaves
+# their interpretation to Django.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Caddy replaces untrusted X-Forwarded-For with the connecting address.
 ALLAUTH_TRUSTED_PROXY_COUNT = 1

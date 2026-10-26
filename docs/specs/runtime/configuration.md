@@ -72,7 +72,8 @@ verification retains them.
 
 Django defaults to SQLite under `DATA_DIR`, keeping standalone production and
 local development self-contained. `DATABASE_URL` selects an external PostgreSQL
-database; its connections persist across requests and are checked before reuse.
+database; a shared connection pool reuses connections across requests and
+checks them before reuse.
 
 [Verification](../testing/test-harness.md#database-isolation) owns its databases
 and does not use an operator-supplied database URL.
@@ -173,7 +174,7 @@ names; verification ignores it. Without reporting, no process loads a reporter.
 A malformed value, or one with a secret key, fails at startup, since browsers
 receive the DSN. **Deterministic.**
 
-The API, collaboration server, MCP server, and browser app report unhandled
+The Python HTTP service, collaboration server, and browser app report unhandled
 failures; the browser app also reports errors that an error boundary or the
 editor catches. A failing server process still exits unsuccessfully, after a
 bounded delivery attempt. Reports identify the build revision and the

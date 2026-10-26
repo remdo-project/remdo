@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "packageManager": "pnpm@12.14.0+sha512.c18ba6d87993d3d164cb5e8948f32b2c06ee854487e06cd8d86781342fb3e5bb4634367034711e86802baa9c37bea906ce1929ad08d70884c97d801df13389a6",
+  "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
   "imports": {
     "#config": "./config/index.ts",
     "#config/*": "./config/*"
@@ -8,7 +8,7 @@
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": "24.22.0",
+      "version": "24.22.1",
       "onFail": "download"
     }
   },
@@ -42,7 +42,6 @@
     "dev": "./tools/env.sh node --import tsx ./tools/dev/run.ts",
     "dev:force": "./tools/env.sh node --import tsx ./tools/dev/run.ts --force",
     "dev:collab": "./tools/env.sh tsx ./src/collaboration-server/main.ts",
-    "dev:mcp": "./tools/env.sh tsx ./src/mcp/main.ts",
     "dev:docker": "./tools/env.sh --port-base-offset 40 ./tools/dev/docker.sh",
     "dev:data-reset": "./tools/env.sh tsx ./tools/dev/data-reset.ts",
     "dev:openai-plugin": "uv run --no-project ./plugins/openai/build.py",
@@ -60,7 +59,7 @@
     "lint:css": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:css:stylelint && timeout ${TEST_TIMEOUT:-120}s pnpm run lint:css:syntax",
     "lint:css:stylelint": "stylelint \"src/**/*.css\"",
     "lint:css:syntax": "csstree-validator src",
-    "lint:dockerfile": "timeout ${TEST_TIMEOUT:-120}s docker run --rm -i -v \"$PWD/.hadolint.yaml:/.hadolint.yaml:ro\" ghcr.io/hadolint/hadolint:v2.14.0 hadolint --config /.hadolint.yaml - < docker/Dockerfile",
+    "lint:dockerfile": "timeout ${TEST_TIMEOUT:-120}s docker run --rm -i -v \"$PWD/.hadolint.yaml:/.hadolint.yaml:ro\" ghcr.io/hadolint/hadolint:v2.15.1 hadolint --config /.hadolint.yaml - < docker/Dockerfile",
     "lint:fix": "eslint --max-warnings=0 --fix",
     "lint:md": "timeout ${TEST_TIMEOUT:-120}s pnpm run lint:md:raw",
     "lint:md:raw": "markdownlint-cli2",
@@ -86,7 +85,7 @@
     "typecheck": "timeout ${TEST_TIMEOUT:-120}s tsc",
     "typecheck:watch": "tsc --watch",
     "verify": "pnpm run lint && pnpm run lint:dockerfile && pnpm run audit:policy && pnpm run audit:unused:prod && pnpm run check:dev-boundary && ./tools/check-backend.sh && pnpm run api:check",
-    "dev:api": "./tools/env.sh ./tools/django-serve.sh",
+    "dev:api": "./tools/env.sh ./tools/django-serve.sh --reload --reload-dir backend",
     "api:generate": "./tools/env.sh node --import tsx tools/generate-api-client.ts",
     "api:check": "pnpm run api:generate --check"
   },
@@ -105,7 +104,6 @@
     "@lexical/yjs": "catalog:",
     "@mantine/core": "catalog:",
     "@mantine/hooks": "catalog:",
-    "@modelcontextprotocol/sdk": "catalog:",
     "@sentry/browser": "catalog:",
     "@sentry/core": "catalog:",
     "@sentry/vite-plugin": "catalog:",
@@ -136,6 +134,7 @@
     "@ast-grep/cli": "catalog:",
     "@eslint-react/eslint-plugin": "catalog:",
     "@lexical/eslint-plugin": "catalog:",
+    "@modelcontextprotocol/sdk": "catalog:",
     "@playwright/test": "catalog:",
     "@testing-library/jest-dom": "catalog:",
     "@testing-library/react": "catalog:",

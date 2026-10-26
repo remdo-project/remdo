@@ -48,7 +48,7 @@ IMAGE_NAME="${IMAGE_NAME}" DATA_DIR="${TEST_DATA_DIR}/home" \
   EMAIL_HOST= EMAIL_PORT= EMAIL_HOST_USER= EMAIL_HOST_PASSWORD= DEFAULT_FROM_EMAIL= \
   "${ROOT_DIR}/tools/prod/docker.sh"
 remdo_docker_run "${IMAGE_NAME}" "${TEST_DATA_DIR}/hosted" -d --userns=host \
-  --name "${DOCKER_HOSTED_CONTAINER}" -p "127.0.0.1:${DOCKER_HOSTED_PORT}:8080" \
+  --name "${DOCKER_HOSTED_CONTAINER}" --memory=448m -p "127.0.0.1:${DOCKER_HOSTED_PORT}:8080" \
   -e PORT=8080 -e RENDER=true -e APP_ORIGIN=https://remdo.onrender.com --network "${PG_NETWORK}" \
   -e REMDO_ADMIN_PASSWORD="${DOCKER_TEST_BOOTSTRAP_PASSWORD}" \
   -e DATABASE_URL="${DOCKER_DATABASE_URL%/remdo}/hosted"

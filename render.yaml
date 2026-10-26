@@ -18,7 +18,7 @@ projects:
       dockerfilePath: ./docker/Dockerfile
       autoDeployTrigger: checksPass
       healthCheckPath: /health
-      maxShutdownDelaySeconds: 55
+      maxShutdownDelaySeconds: 200
       numInstances: 1
       domains:
       - remdo.com

@@ -16,7 +16,6 @@
   "entry": [
     "tools/snapshot/cli.ts!",
     "src/collaboration-server/main.ts!",
-    "src/mcp/main.ts!",
     // Django renders the app page that loads this Vite entry.
     "src/client/app/shell/main.tsx!",
     // vite.config.mts loads this helper, which only the production build runs.

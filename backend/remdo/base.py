@@ -100,12 +100,12 @@ DATABASES = {
     }
 }
 if database_url := os.environ.get("DATABASE_URL"):
-    # A connection per request costs PostgreSQL more CPU than the queries do.
     DATABASES["default"] = dj_database_url.parse(
-        database_url, conn_max_age=600, conn_health_checks=True
+        database_url, conn_max_age=0, conn_health_checks=True
     )
     if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":
         raise ImproperlyConfigured("DATABASE_URL must select PostgreSQL.")
+    DATABASES["default"].setdefault("OPTIONS", {})["pool"] = True
 AUTH_USER_MODEL = "accounts.User"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

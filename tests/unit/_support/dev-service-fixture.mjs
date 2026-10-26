@@ -23,7 +23,7 @@ if (!serving) {
   publish(`${name}.launcher.json`, { group: process.pid });
   if (process.env.REMDO_DEV_FIXTURE_FAIL === name) {
     // Fail once the other services listen, so cleanup has listeners to release.
-    const siblings = ['api', 'collab', 'mcp', 'web'].filter(role => role !== name);
+    const siblings = ['api', 'collab', 'web'].filter(role => role !== name);
     setInterval(() => {
       if (siblings.every(role => fs.existsSync(path.join(directory, `${role}.json`)))) process.exit(7);
     }, 20);
@@ -35,7 +35,7 @@ if (!serving) {
     child.on('exit', (code, signal) => process.exit(signal ? 1 : code));
   }
 } else {
-  const portKey = { api: 'API_SERVER_PORT', collab: 'COLLAB_SERVER_PORT', mcp: 'MCP_SERVER_PORT', web: 'PORT' }[name];
+  const portKey = { api: 'API_SERVER_PORT', collab: 'COLLAB_SERVER_PORT', web: 'PORT' }[name];
   const server = http.createServer((request, response) => {
     if (request.url === '/crash') process.exit(7);
     if (request.url === '/exit') process.exit(0);

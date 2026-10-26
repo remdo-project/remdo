@@ -1,6 +1,7 @@
 /* eslint-disable node/no-process-env */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -49,6 +50,14 @@ done
   fs.chmodSync(childPath, 0o755);
 }
 
+async function unusedPort(): Promise<number> {
+  const server = net.createServer();
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as net.AddressInfo;
+  await new Promise(resolve => server.close(resolve));
+  return port;
+}
+
 function killIfRunning(pid: number): void {
   try {
     process.kill(pid, 'SIGKILL');
@@ -60,7 +69,7 @@ function killIfRunning(pid: number): void {
   }
 }
 
-const services = ['api', 'caddy', 'collaboration', 'mcp'] as const;
+const services = ['api', 'caddy', 'collaboration'] as const;
 const lifecycleCases = [
   {
     exitCode: 130,
@@ -75,6 +84,18 @@ const lifecycleCases = [
     signalName: 'TERM',
     title: 'handles SIGTERM, drains collaboration before Django, and waits for every service',
     type: 'signal',
+  },
+  {
+    exitCode: 1,
+    title: 'stops started services when collaboration readiness fails before the gateway opens',
+    type: 'readiness',
+  },
+  {
+    exitCode: 1,
+    failedService: 'collaboration',
+    failedStatus: 42,
+    title: 'stops started services when collaboration exits before it becomes ready',
+    type: 'early-exit',
   },
   {
     exitCode: 1,
@@ -98,13 +119,6 @@ const lifecycleCases = [
     title: 'fails the instance when collaboration exits unexpectedly',
     type: 'exit',
   },
-  {
-    exitCode: 23,
-    failedService: 'mcp',
-    failedStatus: 23,
-    title: 'fails the instance when mcp exits unexpectedly',
-    type: 'exit',
-  },
 ] as const;
 
 it.each(lifecycleCases)('$title', async (lifecycleCase) => {
@@ -125,10 +139,27 @@ it.each(lifecycleCases)('$title', async (lifecycleCase) => {
   for (const name of ['caddy']) {
     writeFakeBin(binDir, name, `exec "\${REMDO_FAKE_CHILD:?}" ${name}\n`);
   }
-  writeFakeBin(binDir, 'node', `case "$*" in *mcp.mjs) service=mcp ;; *) service=collaboration ;; esac
-exec "\${REMDO_FAKE_CHILD:?}" "$service"\n`);
-  writeFakeBin(binDir, 'gunicorn', `exec "\${REMDO_FAKE_CHILD:?}" api\n`);
-  writeFakeBin(binDir, 'python', `if [ "\${1:-}" = manage.py ]; then
+  writeFakeBin(binDir, 'node', `exec "\${REMDO_FAKE_CHILD:?}" collaboration\n`);
+  writeFakeBin(binDir, 'uvicorn', `exec "\${REMDO_FAKE_CHILD:?}" api\n`);
+  writeFakeBin(binDir, 'python', `if [ "\${1:-}" = - ]; then
+  script="$(cat)"
+  case "$script" in
+    */api/health*) service=api ;;
+    */ready*) service=collaboration ;;
+    *) exit 1 ;;
+  esac
+  until [ -f "\${REMDO_FAKE_EVENTS:?}" ] && grep -q "^$service start$" "\${REMDO_FAKE_EVENTS}"; do
+    sleep 0.02
+  done
+  if [ "$service" = collaboration ] && [ "\${REMDO_FAKE_READINESS_FAIL:-}" = 1 ]; then exit 1; fi
+  if [ "$service" = collaboration ] && [ "\${REMDO_FAKE_REAL_READINESS:-}" = 1 ]; then
+    shift
+    printf '%s' "$script" | COLLAB_SERVER_PORT="\${REMDO_FAKE_DEAD_PORT:?}" python3 -I - "$@"
+    exit $?
+  fi
+  exit 0
+fi
+if [ "\${1:-}" = manage.py ]; then
   printf 'django %s admin=%s user=%s\\n' "\${2:-}" "\${REMDO_ADMIN_PASSWORD+x}" "\${REMDO_USER_PASSWORD+x}" >> "\${REMDO_FAKE_EVENTS:?}"
   exit 0
 fi
@@ -153,8 +184,14 @@ fi
     .replace('/usr/local/share/remdo/env.defaults.sh', path.resolve('tools/env.defaults.sh'))
     .replace('/usr/local/share/remdo/entrypoint-env.sh', path.resolve('docker/entrypoint-env.sh'))
     .replace('shutdown_attempts=100', 'shutdown_attempts=10')
-    .replace('shutdown_attempts=300', 'shutdown_attempts=30');
+    .replace('shutdown_attempts=850', 'shutdown_attempts=10')
+    .replace('shutdown_attempts=950', 'shutdown_attempts=30');
   fs.writeFileSync(entrypointPath, entrypoint);
+
+  if (lifecycleCase.type === 'early-exit') {
+    fs.writeFileSync(exitTriggerPath, '');
+  }
+  const deadPort = lifecycleCase.type === 'early-exit' ? await unusedPort() : 0;
 
   const child = spawn('/usr/bin/env', ['--default-signal=INT', 'bash', entrypointPath], {
     env: {
@@ -169,11 +206,14 @@ fi
       PORT_BASE: '4100',
       REMDO_FAKE_CHILD: childPath,
       REMDO_FAKE_EVENTS: eventsPath,
-      REMDO_FAKE_EXIT_CHILD: lifecycleCase.type === 'exit' ? lifecycleCase.failedService : '',
-      REMDO_FAKE_EXIT_STATUS: lifecycleCase.type === 'exit' ? String(lifecycleCase.failedStatus) : '0',
+      REMDO_FAKE_EXIT_CHILD: 'failedService' in lifecycleCase ? lifecycleCase.failedService : '',
+      REMDO_FAKE_EXIT_STATUS: 'failedStatus' in lifecycleCase ? String(lifecycleCase.failedStatus) : '0',
       REMDO_FAKE_EXIT_TRIGGER: exitTriggerPath,
       REMDO_FAKE_PID_DIR: pidDir,
       REMDO_FAKE_RELEASE: releasePath,
+      REMDO_FAKE_READINESS_FAIL: lifecycleCase.type === 'readiness' ? '1' : '',
+      REMDO_FAKE_DEAD_PORT: String(deadPort),
+      REMDO_FAKE_REAL_READINESS: lifecycleCase.type === 'early-exit' ? '1' : '',
       GOOGLE_CLIENT_SECRET: 'google-secret',
       EMAIL_HOST_PASSWORD: 'mail-secret',
       REMDO_ADMIN_PASSWORD: 'admin-password',
@@ -189,6 +229,23 @@ fi
   child.stderr.on('data', chunk => stderr += String(chunk));
 
   try {
+    if (lifecycleCase.type === 'readiness') {
+      fs.writeFileSync(releasePath, '');
+      await expect.poll(() => child.exitCode, { timeout: 6_000 }).toBe(1);
+      const events = readEvents(eventsPath);
+      expect(events).toEqual(expect.arrayContaining(['api exit', 'collaboration exit']));
+      expect(events).not.toContain('caddy start');
+      return;
+    }
+    if (lifecycleCase.type === 'early-exit') {
+      fs.writeFileSync(releasePath, '');
+      await expect.poll(() => child.exitCode, { timeout: 6_000 }).toBe(1);
+      expect(stderr).toContain('Production service collaboration exited before it became ready.');
+      const events = readEvents(eventsPath);
+      expect(events).toContain('api exit');
+      expect(events).not.toContain('caddy start');
+      return;
+    }
     await new Promise(resolve => setTimeout(resolve, 100));
     expect(child.exitCode, stderr).toBeNull();
     expect(stderr).toBe('');
@@ -198,7 +255,6 @@ fi
       'django setup_configured_users admin=x user=x',
       'api credentials auth=x database=x collaboration=x admin= user= google=x mail=x upload=',
       'collaboration credentials auth= database= collaboration=x admin= user= google= mail= upload=',
-      'mcp credentials auth= database= collaboration= admin= user= google= mail= upload=',
       'caddy credentials auth= database=x collaboration= admin= user= google= mail= upload=',
     ]));
     expect(child.exitCode, stderr).toBeNull();
