@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { createViteLogger } from './config/_internal/vite/createViteLogger.ts';
 import { createViteSharedConfig } from './config/vite/shared.ts';
+import { sourceMapUpload } from './config/vite/source-map-upload.ts';
 
 const sharedConfig = createViteSharedConfig();
 
@@ -14,6 +15,7 @@ export default defineConfig({
         createViteLogger(config.logger);
       },
     },
+    ...(await sourceMapUpload()),
   ],
   build: {
     ...sharedConfig.build,

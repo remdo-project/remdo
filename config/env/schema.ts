@@ -29,6 +29,7 @@ export const envSchema = {
   // Canonical public app URL. Derived in development; required in production.
   APP_ORIGIN: str,
   SENTRY_DSN: str,
+  SENTRY_AUTH_TOKEN: str,
   VITEST_PORT: port,
   CI: boolish,
 } as const;

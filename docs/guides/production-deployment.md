@@ -192,14 +192,19 @@ Application backup and recovery tooling is [separate follow-up](../todo.md#opera
 
 ## Enable Error Reporting
 
-1. In Sentry, create a project and copy its DSN. Choose an organization in the
-   data region matching the instance's hosting region, so reports stay where
-   its data lives.
-2. Because the DSN is public, set a
-   [rate limit on its key](https://docs.sentry.io/pricing/quotas/manage-event-stream-guide/#rate-limiting).
+1. In Better Stack, create an Errors application for the service and copy its
+   DSN from the **Ingest** tab, as [Better Stack's Sentry SDK page](https://betterstack.com/docs/errors/collecting-errors/sentry-sdk/)
+   describes.
+2. Because the DSN is public, turn on
+   [spike protection](https://betterstack.com/docs/errors/using-the-product/spike-protection/)
+   in the application's **Advanced settings**.
 3. Set [`SENTRY_DSN`](../specs/runtime/configuration.md#error-reporting) in the
    service's **Environment** view on Render or in `.env` for the self-hosted
    launcher, then redeploy.
+4. To resolve browser reports to source, give the build a Telemetry API token as
+   [`SENTRY_AUTH_TOKEN`](../specs/runtime/configuration.md#error-reporting): on
+   Render, a secret file named `.env` in the service's settings, containing
+   `SENTRY_AUTH_TOKEN=<token>`.
 
 ## Enable Analytics
 
