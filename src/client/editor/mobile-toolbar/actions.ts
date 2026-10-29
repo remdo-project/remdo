@@ -1,4 +1,4 @@
-import type { OpenDocument } from '#note-sdk';
+import type { ToolbarOpenDocument } from './useToolbarCapabilities';
 
 // The toolbar's inventory and display order are surface concerns
 // (docs/specs/outliner/mobile-toolbar.md). Execution delegates to named SDK
@@ -16,7 +16,7 @@ export type MobileActionId =
   | 'menu';
 
 export function runMobileAction(
-  openDocument: Pick<OpenDocument, 'focus' | 'selection' | 'history'>,
+  openDocument: Omit<ToolbarOpenDocument, 'subscribeCapabilities'>,
   id: MobileActionId,
   openNoteMenu: () => void,
 ): void {

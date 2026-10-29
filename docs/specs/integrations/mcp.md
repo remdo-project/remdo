@@ -70,8 +70,9 @@ operation's owner defines its behavior.
   append fails without changing the document.
 - **Open documents:** as many at once as the server's memory allows; a call
   that cannot open its document within 30 seconds fails before changing it.
-- **RemDo API:** a request that gets no answer within 10 seconds fails; for a
-  change, the error states that its outcome is unconfirmed.
+- **Database:** a metadata operation or token check that gets no answer within
+  10 seconds fails; for a change, the error states that its outcome is
+  unconfirmed.
 
 ## References
 

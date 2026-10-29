@@ -195,6 +195,13 @@ Decisions requiring a contract owner's judgement:
   Measure cold reads and Yjs/Lexical hydration separately from note resolution
   and output serialization, to inform the [representation decision](#note-representation-and-history).
 
+  Include concurrent sign-in, document saves, and authorize calls. Under ASGI,
+  Django runs synchronous views one at a time on a single thread: four 0.4 s
+  requests took 1.6 s, against 0.4 s unserialized, and the former gunicorn
+  server ran four threads. This also serializes the collaboration host's
+  authorization and storage callbacks; MCP database calls run on separate
+  threads and are exempt.
+
 ### Operations
 
 - **Expired Django sessions after integration.** Define how supported
@@ -322,6 +329,10 @@ removal; an accepted interface change must still respect every pending review.
   assertions in the [HTTP checks](../tests/unit/collab/mcp-contract.collab.spec.ts). Retire obsolete literal comparisons and their
   [runtime reference](../tests/fixtures/mcp/compatibility.json) together, or update expectations for an accepted interface
   change; keep semantic protocol, authorization, access and persistence coverage.
+- **Workflow accounts.** When the workflow checks are no longer frozen, replace
+  their fixed-address accounts, including `mcp-owner@example.test`, with the
+  isolated [account fixture](../tests/_support/account-fixture.ts) owner, recipient, and private document in the
+  unshared-document check.
 - **Cleanup.** Remove retired assertions' imports, fixture-only setup and local
   markers, and remove this section when no temporary guards remain. Keep
   semantic regression coverage; preserve provenance in Git history.
@@ -355,11 +366,6 @@ Remaining:
 
 ### SDK
 
-- **Account fixture adoption.** Reuse the [account fixture](../tests/_support/account-fixture.ts) in remaining
-  collaboration and browser workflows that use ad hoc accounts and sharing
-  setup. Add roles or documents only when a concrete scenario needs them;
-  preserve per-test isolation.
-
 - **Reusable SDK note shapes.** Reassess remaining user-data, source, and grant
   kinds against shared note structure, typed data, and reusable operations using
   concrete consumers. The shared collection kind does not
@@ -391,11 +397,6 @@ Remaining:
   submitted endpoints, OAuth configuration, tools, and package unchanged and
   leave uncertain deployment deferred. Keep [representation research](#note-representation-and-history)
   separate; this sequence does not require reducing the existing [offline scope](architecture.md#offline-application-behavior).
-
-- **Simplify SDK consumer types.** Review consumers beyond the mobile toolbar
-  for narrowing driven only by test setup and duplicate local types. Prefer
-  existing public types at meaningful boundaries; retain narrower contracts
-  when they provide a concrete benefit, following [SDK design](dev/sdk.md).
 
 - **SDK API validation.** Evaluate query and app-resource reads
   in their own workflows using the [design principles and references](dev/sdk.md). Reassess
