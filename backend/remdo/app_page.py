@@ -33,6 +33,7 @@ def public_home(request, *, subscription_form=None, subscription_saved=False):
         "pages/home.html",
         {
             "canonical": f"{settings.APP_ORIGIN}/",
+            "social_image": f"{settings.APP_ORIGIN}/site-assets/remdo-social-preview.jpg",
             "video": _home_video(settings.HOME_VIDEO_URL),
             "subscription_form": subscription_form or ProductUpdateSubscriptionForm(),
             "subscription_saved": subscription_saved,
