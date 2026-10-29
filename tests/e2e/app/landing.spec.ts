@@ -142,6 +142,17 @@ test('places the wordmark at the same spot on every public page', async ({ page 
   expect(boxes[2]).toEqual(boxes[0]);
 });
 
+test('starts the sign-in story at the wordmark on wide screens', async ({ page }) => {
+  await page.goto('/accounts/login/');
+  const wordmark = page.getByRole('link', { name: 'RemDo home', exact: true });
+  const story = page.getByText('A place for your next thought.', { exact: true });
+
+  for (const width of [1024, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(Math.abs((await story.boundingBox())!.x - (await wordmark.boundingBox())!.x)).toBeLessThan(1);
+  }
+});
+
 test.describe('story text', () => {
   const colorOf = (paragraph: Locator) => paragraph.evaluate((element) => getComputedStyle(element).color);
   const brightnessOf = (color: string) => color.match(/\d+/gu)!.slice(0, 3).map(Number).reduce((sum, channel) => sum + channel, 0);
