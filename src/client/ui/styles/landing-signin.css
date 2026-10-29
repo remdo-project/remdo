@@ -1,5 +1,4 @@
 .landing-signin {
-  --signin-story-inset: 64px;
   position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -16,7 +15,10 @@
   flex-direction: column;
   justify-content: flex-end;
   gap: 20px;
-  padding: var(--signin-story-inset);
+  padding: 64px;
+  /* 200% of the half-width column is the page width, so the text starts at
+     the shared header container's left edge, where the wordmark sits. */
+  padding-inline-start: max(var(--remdo-gutter), calc((200% - 80rem) / 2));
   overflow: hidden;
   background: #27252f;
 }
@@ -91,12 +93,6 @@
   flex: 1;
   height: 1px;
   background: var(--landing-dark-outline);
-}
-@media (min-width: 64em) {
-  .landing-signin .site-wordmark {
-    position: absolute;
-    left: var(--signin-story-inset);
-  }
 }
 @media (max-width: 63.99em) {
   .landing-signin {
