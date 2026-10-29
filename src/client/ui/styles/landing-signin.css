@@ -16,8 +16,9 @@
   justify-content: flex-end;
   gap: 20px;
   padding: 64px;
-  /* 200% of the half-width column is the page width, so the text starts at
-     the shared header container's left edge, where the wordmark sits. */
+  /* 200% of the half-width column is the page width, so the text starts at the
+     left edge of `.site-container` (chrome.css; 80rem is its max-width), where
+     the wordmark sits. */
   padding-inline-start: max(var(--remdo-gutter), calc((200% - 80rem) / 2));
   overflow: hidden;
   background: #27252f;
