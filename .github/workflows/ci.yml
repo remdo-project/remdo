@@ -1,13 +1,20 @@
 name: CI
+
+# Validate proposed merges (including fork PRs) without duplicate branch-push CI.
+# Verify main after integration and allow explicit pre-PR checks.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
 permissions:
   contents: read
-  actions: write
-
-on: push
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   static:
