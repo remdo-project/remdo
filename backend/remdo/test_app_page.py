@@ -135,6 +135,14 @@ class HomePageTests(TestCase):
         self.assertContains(
             response, f'<meta property="og:description" content="{description}">', html=True
         )
+        self.assertContains(
+            response,
+            f'<meta property="og:image" content="{settings.APP_ORIGIN}/site-assets/remdo-social-preview.jpg">',
+            html=True,
+        )
+        self.assertContains(
+            response, '<meta name="twitter:card" content="summary_large_image">', html=True
+        )
         self.assertContains(response, 'href="/accounts/login/"')
         self.assertNotContains(response, 'id="root"')
         self.assertNotContains(response, "data-slot=")
