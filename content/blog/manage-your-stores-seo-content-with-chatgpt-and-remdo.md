@@ -3,7 +3,7 @@ title: Manage your store’s SEO content with ChatGPT and RemDo
 description: Prepare SEO drafts with ChatGPT and keep keywords, titles and descriptions organised by category and product in RemDo.
 date: 2026-10-27
 topic: Case study
-image: /site-assets/blog/seo-cover.png
+image: /site-assets/blog/seo-cover.webp
 ---
 
 <!-- markdownlint-disable relative-links -->
@@ -19,7 +19,7 @@ subcategories and products in the store.
 
 <figure>
   <video controls playsinline preload="none" width="1920" height="1080"
-    poster="/site-assets/blog/seo-video-poster.png">
+    poster="/site-assets/blog/seo-video-poster.webp">
     <source src="https://share.remdo.com/blog/seo-workflow.mp4" type="video/mp4">
   </video>
   <figcaption>SEO drafts from ChatGPT, organised in RemDo and copied into

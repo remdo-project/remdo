@@ -48,7 +48,7 @@ Use raw HTML for a caption or a video, keeping blank lines out of the block:
 <figure>
   <video controls playsinline preload="none" width="1280" height="720"
     poster="/site-assets/blog/clip-poster.webp">
-    <source src="/site-assets/blog/clip.mp4" type="video/mp4">
+    <source src="https://share.remdo.com/blog/clip.mp4" type="video/mp4">
   </video>
   <figcaption>What the clip shows.</figcaption>
 </figure>
@@ -59,8 +59,13 @@ until the reader presses play. Add `class="landing-blog-float-right"` to the
 `<figure>` to float it into the top-right corner at 40% of the column, with
 text wrapping on the left; narrow screens show it full width above the text.
 
-Files in the repository ship in every image, so compress clips and keep them
-short. Embed only media this site serves: a third-party player sends readers'
-data to that service, which the
+Files in the repository ship in every image, so keep video out of it. Keep the
+clip short, encode it as H.264 MP4 with `-movflags +faststart`, and add it as
+`public/blog/<name>.mp4` in the
+[remdo-share](https://github.com/remdo-project/remdo-share) repository. Once
+pushed, it is served at `https://share.remdo.com/blog/<name>.mp4`; confirm that
+URL loads before merging the post. Keep the poster under
+`public/site-assets/blog/`. Embed only media this site or `share.remdo.com`
+serves: a third-party player sends readers' data to that service, which the
 [project principles](../principles.md#data-and-trust) allow only when the
 operator configures it.
