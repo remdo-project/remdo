@@ -1,31 +1,11 @@
-import type {
-  DocumentAccessNote,
-  DocumentSourceNote,
-  DocumentNote,
-  UserDataNote,
-} from './documents';
-import type {
-  Note,
-  CollectionNote,
-  NoteId,
-  NoteKind,
-} from './notes';
-import type { OpenDocumentNote } from './open-document';
+import type { Note, NoteId, NoteKind, NoteKinds } from './notes';
 
 export function createNoteAs(noteId: NoteId, kind: () => NoteKind, self: () => Note): Note['as'] {
-  function asNote(kindToMatch: 'user-data'): UserDataNote;
-  function asNote(kindToMatch: 'document'): DocumentNote;
-  function asNote(kindToMatch: 'editor-note'): OpenDocumentNote;
-  function asNote(kindToMatch: 'document-access'): DocumentAccessNote;
-  function asNote(kindToMatch: 'document-source'): DocumentSourceNote;
-  function asNote(kindToMatch: 'collection'): CollectionNote;
-  function asNote(kindToMatch: NoteKind): Note;
-  function asNote(kindToMatch: NoteKind): Note {
+  return <Kind extends NoteKind>(kindToMatch: Kind) => {
     const actualKind = kind();
     if (actualKind !== kindToMatch) {
       throw new Error(`Note "${noteId}" is "${actualKind}", expected "${kindToMatch}".`);
     }
-    return self();
-  }
-  return asNote;
+    return self() as NoteKinds[Kind];
+  };
 }

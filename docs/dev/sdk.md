@@ -47,8 +47,8 @@ shared note implementation, which owns identity, kind narrowing, the
 availability check before text and structure reads, and default collection
 lookup. Each kind keeps its named public interface under the
 [API conventions](#api-conventions). A new kind using existing abilities adds
-only that supply and interface; the SDK grows only for a new category of
-ability, which later kinds reuse.
+only that supply, its interface, and its entry in the kind map; the SDK grows
+only for a new category of ability, which later kinds reuse.
 
 ## References
 
