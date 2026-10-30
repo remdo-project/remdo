@@ -7,14 +7,16 @@ import type {
 import type { OpenDocumentNote } from './open-document';
 
 export type NoteId = string;
-/** Runtime kinds in document content and the user-data resource graph. */
-export type NoteKind =
-  | 'user-data'
-  | 'document'
-  | 'editor-note'
-  | 'document-access'
-  | 'document-source'
-  | 'collection';
+/** Each runtime kind and its public interface. */
+export interface NoteKinds {
+  'user-data': UserDataNote;
+  document: DocumentNote;
+  'editor-note': OpenDocumentNote;
+  'document-access': DocumentAccessNote;
+  'document-source': DocumentSourceNote;
+  collection: CollectionNote;
+}
+export type NoteKind = keyof NoteKinds;
 
 export interface Note<K extends NoteKind = NoteKind> {
   /** Runtime discriminator for note shape/role. */
@@ -26,15 +28,7 @@ export interface Note<K extends NoteKind = NoteKind> {
   /** Lists direct notes, including results of a collection, without changing their parents. */
   getChildren: () => readonly Note[];
   /** Narrows the note by runtime kind; throws when the expected kind does not match. */
-  as: {
-    (kind: 'user-data'): UserDataNote;
-    (kind: 'document'): DocumentNote;
-    (kind: 'editor-note'): OpenDocumentNote;
-    (kind: 'document-access'): DocumentAccessNote;
-    (kind: 'document-source'): DocumentSourceNote;
-    (kind: 'collection'): CollectionNote;
-    (kind: NoteKind): Note;
-  };
+  as: <Kind extends NoteKind>(kind: Kind) => NoteKinds[Kind];
 }
 
 /** A note kind that carries a stable, unique id within its tree. */

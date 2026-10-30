@@ -60,6 +60,11 @@ implementation.
   availability, and kind-specific capabilities before generalizing the SDK;
   connecting a source need not convert its content into an editable RemDo
   document.
+  A calendar spike fit the note contract with no new availability state: an
+  unreachable source is unavailable and a removed event is known absent. It
+  stood alone as its own root, so a real connector still settles identity,
+  navigation, and placement under [User Data](specs/outliner/user-data.md#hierarchy), whose children and source
+  shape are fixed to documents.
 
 ### Document exposure
 
@@ -85,7 +90,9 @@ checked against the viewer's own access, as in Notion and Confluence, cannot.
   copies, and the specification states this.
 - **Open.** Proxy note design, live versus pinned content, audience choice per
   proxy, consent when the two documents have different owners, identities for
-  exposed notes, moves out of the scope, and [public audiences](specs/access/access-control.md#future).
+  exposed notes, moves out of the scope, whether a read reports that it resolved
+  through the record rather than the viewer's own access, and
+  [public audiences](specs/access/access-control.md#future).
 
 ### Note representation and history
 
@@ -408,8 +415,7 @@ Remaining:
 ### SDK
 
 - **Shared note implementation.** The non-editor kinds use the
-  [shared note implementation](dev/sdk.md#note-kinds); editor notes stay with their adapter. Test the
-  contract with a read-only [external-source example](#cross-source-discovery) in a test-only provider.
+  [shared note implementation](dev/sdk.md#note-kinds); editor notes stay with their adapter.
   Avoid a runtime descriptor framework and a generic property API; add untyped
   properties only if user-defined types become a product feature.
 
