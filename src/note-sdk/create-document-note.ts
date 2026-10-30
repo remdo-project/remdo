@@ -1,5 +1,5 @@
 import type { DocumentAccessNote, DocumentNote } from './documents';
-import { createNoteAs } from './handle-utils';
+import { createCollectionNote, createNote } from './create-note';
 import { NoteUnavailableError } from './note-unavailable-error';
 
 type GrantSource = Pick<DocumentAccessNote, 'getId' | 'getText' | 'getEmail' | 'getName' | 'getGranteeUserId'>;
@@ -29,9 +29,7 @@ export function createDocumentNote(
   documentId: string,
   { metadata, content: sourceContent, isActive = () => true, signal }: DocumentSources = {},
 ): DocumentNote {
-  const kind = () => 'document' as const;
-  const collectionKind = () => 'collection' as const;
-  const active = () => !signal?.aborted && isActive();
+  const active =() => !signal?.aborted && isActive();
   const requireActive = () => {
     if (!active()) throw new NoteUnavailableError(documentId);
   };
@@ -71,20 +69,16 @@ export function createDocumentNote(
     };
   }
 
-  const contentId = `${documentId}/content`;
-  const content: DocumentNote['content'] = {
-    getId: () => contentId,
-    getKind: collectionKind,
-    getText: () => { requireActive(); return 'Content'; },
+  const content: DocumentNote['content'] = createCollectionNote(`${documentId}/content`, {
+    read: requireActive,
+    getText: () => 'Content',
     getParent: documentParent,
     getChildren: () => requireSource(sourceContent).getChildren(),
-    getById: (noteId) => content.getChildren().find(note => note.getId() === noteId) ?? null,
+    subscribe: observe([sourceContent]),
+  }, {
     getChildListType: () => requireSource(sourceContent).getChildListType(),
     appendChildren: async (notes) => requireSource(sourceContent).appendChildren(notes),
-    subscribe: observe([sourceContent]),
-    as: createNoteAs(contentId, collectionKind, () => content),
-  };
-  const accessId = `${documentId}/access`;
+  });
   // The content adapter also signals host start/stop. Access observes those
   // transitions without publishing unrelated editor-content changes.
   const hostActivity = sourceContent && {
@@ -104,36 +98,30 @@ export function createDocumentNote(
       if (!grant) throw new NoteUnavailableError(id);
       return grant;
     };
-    const grantKind = () => 'document-access' as const;
-    const grant: DocumentAccessNote = {
-      getId: () => id,
-      getKind: grantKind,
-      getParent: () => { read(); return accessCollection(); },
-      getText: () => read().getText(),
-      getChildren: () => { read(); return []; },
+    return createNote(id, 'document-access', {
+      read,
+      getText: grant => grant.getText(),
+      getParent: accessCollection,
+      getChildren: () => [],
+    }, {
       getEmail: () => read().getEmail(),
       getName: () => read().getName(),
       getGranteeUserId: () => read().getGranteeUserId(),
-      as: createNoteAs(id, grantKind, () => grant),
-    };
-    return grant;
+    });
   };
-  const access: DocumentNote['access'] = {
-    getId: () => accessId,
-    getKind: collectionKind,
-    getText: () => { requireActive(); return 'Access'; },
+  const access: DocumentNote['access'] = createCollectionNote(`${documentId}/access`, {
+    read: requireActive,
+    getText: () => 'Access',
     getParent: documentParent,
     getChildren: () => requireSource(metadata).access.getChildren().map(grant => grantRef(grant.getId())),
-    getById: (id) => requireSource(metadata).access.getById(id) ? grantRef(id) : null,
     subscribe: observe([metadata, hostActivity]),
-    as: createNoteAs(accessId, collectionKind, () => access),
-  };
-  const handle: DocumentNote = {
-    getId: () => documentId,
-    getKind: kind,
-    getParent: () => requireSource(metadata).getParent(),
+  }, {});
+  const handle: DocumentNote = createNote(documentId, 'document', {
+    read: requireActive,
     getText: () => requireSource(metadata).getText(),
-    getChildren: () => { requireActive(); return [content, access]; },
+    getParent: () => requireSource(metadata).getParent(),
+    getChildren: () => [content, access],
+  }, {
     content,
     access,
     getSharingSuggestions: () => requireSource(metadata).getSharingSuggestions(),
@@ -147,9 +135,8 @@ export function createDocumentNote(
     canDelete: () => active() && (metadata?.canDelete() ?? false),
     delete: async () => requireSource(metadata).delete(),
     subscribe: observe([metadata, sourceContent]),
-    as: createNoteAs(documentId, kind, () => handle),
-  };
-  function documentParent() { requireActive(); return handle; }
+  });
+  function documentParent() { return handle; }
   function accessCollection() { return access; }
   return handle;
 }

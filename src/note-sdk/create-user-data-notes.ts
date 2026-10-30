@@ -6,8 +6,8 @@ import type {
   UserDataNote,
   UserDocumentsNote,
 } from './documents';
-import type { CollectionNote, Note, NoteId } from './notes';
-import { createNoteAs } from './handle-utils';
+import type { AddressableNote, CollectionNote, Note, NoteId } from './notes';
+import { createCollectionNote, createNote } from './create-note';
 import { NoteUnavailableError } from './note-unavailable-error';
 import { createDocumentNote } from './create-document-note';
 
@@ -167,7 +167,7 @@ function createDocumentHandle(
   });
 }
 
-function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends Note, Parent extends Note | null>({
+function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends AddressableNote, Parent extends Note | null>({
   createItemNote,
   items,
   noteId,
@@ -180,10 +180,7 @@ function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends No
   text: string;
   parent: () => Parent;
 }): CollectionNote<ItemNote> & { getParent: () => Parent } {
-  const kind = () => 'collection' as const;
-  const handle: CollectionNote<ItemNote> & { getParent: () => Parent } = {
-    getId: () => noteId,
-    getKind: kind,
+  return createCollectionNote(noteId, {
     getText: () => text,
     getParent: parent,
     getChildren: () => items.getChildren().map((item) => createItemNote(item)),
@@ -192,10 +189,7 @@ function createCollectionHandle<Item extends { id: NoteId }, ItemNote extends No
       return item ? createItemNote(item) : null;
     },
     subscribe: (listener) => items.subscribe?.(listener) ?? unsubscribeNothing,
-    as: createNoteAs(noteId, kind, () => handle),
-  };
-
-  return handle;
+  }, {});
 }
 
 function eligible(read: () => boolean): boolean {
@@ -209,8 +203,6 @@ export function createUserDataRootNote(
   documents: CollectionSourceInput<UserDocument>,
   actions: UserDataNoteActions = {},
 ): UserDataNote {
-  const noteId = USER_DATA_ROOT_ID;
-  const kind = () => 'user-data' as const;
   const localDocuments = resolveCollectionSource(documents);
   const sources = actions.documentSources ?? createArrayCollectionSource([{
     baseUrl: null,
@@ -313,7 +305,6 @@ export function createUserDataRootNote(
     const retained = sourceRefs.get(sourceId);
     if (retained) return retained;
     const read = () => readSource(sourceId);
-    const sourceKind = () => 'document-source' as const;
     const sourceDocuments = createCollectionHandle({
       noteId: `${sourceId}/documents`,
       text: USER_DOCUMENTS_TITLE,
@@ -325,17 +316,16 @@ export function createUserDataRootNote(
       },
       createItemNote: document => documentRef(document.id),
     });
-    const source: DocumentSourceNote = {
-      getId: () => sourceId,
-      getKind: sourceKind,
-      getText: () => read().label,
-      getParent: () => { read(); return sourcesParent(); },
-      getChildren: () => { read(); return [sourceDocuments]; },
+    const source: DocumentSourceNote = createNote(sourceId, 'document-source', {
+      read,
+      getText: ({ label }) => label,
+      getParent: sourcesParent,
+      getChildren: () => [sourceDocuments],
+    }, {
       documents: sourceDocuments,
       getBaseUrl: () => read().baseUrl,
       getLocal: () => read().local,
-      as: createNoteAs(sourceId, sourceKind, () => source),
-    };
+    });
     function sourceParent() { read(); return source; }
     sourceRefs.set(sourceId, source);
     return source;
@@ -349,14 +339,13 @@ export function createUserDataRootNote(
     createItemNote: source => sourceRef(source.id),
   });
   function sourcesParent() { return sourceCollection; }
-  const collectionKind = () => 'collection' as const;
-  const userDocuments: UserDocumentsNote = {
-    getId: () => USER_DOCUMENTS_ID,
-    getKind: collectionKind,
+  const userDocuments: UserDocumentsNote = createCollectionNote(USER_DOCUMENTS_ID, {
     getText: () => USER_DOCUMENTS_TITLE,
     getParent: userDataRef,
     getChildren: () => sourceCollection.getChildren().flatMap(source => source.documents.getChildren()),
     getById: documentId => (sourceFor(documentId) ? documentRef(documentId) : null),
+    subscribe: observeSources,
+  }, {
     create: async text => {
       if (!actions.createDocument) {
         throw new Error('Document creation is not available for this user data.');
@@ -367,20 +356,16 @@ export function createUserDataRootNote(
       const created = await actions.createDocument(text);
       return documentRef(created.id);
     },
-    subscribe: observeSources,
-    as: createNoteAs(USER_DOCUMENTS_ID, collectionKind, () => userDocuments),
-  };
-  const handle: UserDataNote = {
-    getId: () => noteId,
-    getKind: kind,
+  });
+  const handle: UserDataNote = createNote(USER_DATA_ROOT_ID, 'user-data', {
     getText: () => USER_DATA_TITLE,
     getParent: () => null,
     getChildren: () => [sourceCollection, userDocuments],
+  }, {
     sources: sourceCollection,
     documents: userDocuments,
     documentRef,
-    as: createNoteAs(noteId, kind, () => handle),
-  };
+  });
   function userDataRef() { return handle; }
   return handle;
 }

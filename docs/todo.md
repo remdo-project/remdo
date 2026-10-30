@@ -407,13 +407,11 @@ Remaining:
 
 ### SDK
 
-- **Shared note implementation.** Move the non-editor kinds onto the
-  [shared note implementation](dev/sdk.md#note-kinds), one at a time: collections, grants, sources,
-  the User Data root, then documents. Public interfaces and behavior stay
-  unchanged; editor notes stay with their adapter. Then test the contract with a
-  read-only [external-source example](#cross-source-discovery) in a test-only provider. Avoid a runtime
-  descriptor framework and a generic property API; add untyped properties only if
-  user-defined types become a product feature.
+- **Shared note implementation.** The non-editor kinds use the
+  [shared note implementation](dev/sdk.md#note-kinds); editor notes stay with their adapter. Test the
+  contract with a read-only [external-source example](#cross-source-discovery) in a test-only provider.
+  Avoid a runtime descriptor framework and a generic property API; add untyped
+  properties only if user-defined types become a product feature.
 
 - **Non-editor document support.** [Account documents](specs/outliner/note-model.md#definitions) keep their `user-data`
   kind, and no consumer reads ownership yet. Use the [external-source examples](#cross-source-discovery) to
