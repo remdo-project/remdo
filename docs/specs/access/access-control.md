@@ -127,7 +127,8 @@ The following rules apply to each user authenticated by the server.
 
 Every document has one owner. A document may have zero or more direct
 grants; a new one has none. Its URL only locates it; ownership or a grant
-authorizes access.
+authorizes access. An [account document](../outliner/note-model.md#definitions) takes no direct grants and
+cannot be renamed or deleted.
 
 Only the owner can grant a document to another local user. Sharing
 identifies the grantee by email; a grant is created only when that email matches
