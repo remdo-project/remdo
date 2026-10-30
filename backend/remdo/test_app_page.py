@@ -117,9 +117,7 @@ class HomePageTests(TestCase):
         self.assertContains(
             response, f'<link rel="canonical" href="{settings.APP_ORIGIN}/">', html=True
         )
-        self.assertContains(
-            response, "<title>RemDo — Start from what you remember</title>", html=True
-        )
+        self.assertContains(response, "<title>RemDo</title>", html=True)
         description = (
             "Reconnect the notes, conversations and files around your work — "
             "without moving everything into one place."
@@ -129,7 +127,7 @@ class HomePageTests(TestCase):
         )
         self.assertContains(
             response,
-            '<meta property="og:title" content="RemDo — Start from what you remember">',
+            '<meta property="og:title" content="RemDo">',
             html=True,
         )
         self.assertContains(
