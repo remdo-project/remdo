@@ -19,7 +19,7 @@ structure.
 Adapters preserve these guarantees whenever they create, import, or export notes:
 
 - Addressability is kind-specific. An editor note carries a unique
-  [`noteId`](./note-ids.md) within its tree. A document carries its separate
+  [`noteId`](./note-ids.md) within its tree. An editor document carries its separate
   [`docId`](../../architecture.md#document-identity); a [body](./body.md) is identified
   through its owning editor note rather than by its own identifier.
 - A contained note has exactly one canonical parent, independent of the route
@@ -39,6 +39,9 @@ Adapters preserve these guarantees whenever they create, import, or export notes
 - **Document:** a note that owns an [authorization boundary](../access/access-control.md#document-access), independently of
   editor or storage representation.
 - **Editor document:** a document containing an editor outline.
+- **Account document:** a document without an editor outline, owned by one
+  account and backed by its account record. The [User Data root](./user-data.md#hierarchy) is the
+  signed-in account's account document.
 - **Document order:** the depth-first, pre-order traversal of editor notes in
   the structural tree.
 - **Previous note / next note:** adjacent editor notes in document order. View

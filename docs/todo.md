@@ -61,6 +61,32 @@ implementation.
   connecting a source need not convert its content into an editable RemDo
   document.
 
+### Document exposure
+
+Design the mechanism for [exposing data through another document](specs/access/access-control.md#document-access): a proxy
+note in shared document B showing part of private document A, an aggregate over
+A's notes, or a public profile built as an ordinary public document. Research on
+2026-10-30 found that only source-authorized designs deliver this; references
+checked against the viewer's own access, as in Notion and Confluence, cannot.
+[BigQuery authorized views](https://docs.cloud.google.com/bigquery/docs/authorized-views) are the closest precedent.
+
+- **Direction.** The source document's owner creates an exposure record, stored
+  in the document registry and scoped to a note or subtree of the source for one
+  receiving document. Any document can be a source, including an account
+  document. A proxy note stores only the record's identity.
+- **Reads.** Each read checks the viewer against the receiving document and
+  rechecks the record, including that its grantor still owns the source. The
+  server resolves a read-only projection from the record; no path accepts a
+  client-supplied source note. Proxied content never enters the receiving
+  document's Yjs state, where it would outlive revocation.
+- **Derived data.** MCP, search, and aggregates read through the record and only
+  over its scope. Titles, parents, counts, backlinks, and search hits of
+  unexposed notes stay hidden. Revocation stops future reads, not existing
+  copies, and the specification states this.
+- **Open.** Proxy note design, live versus pinned content, audience choice per
+  proxy, consent when the two documents have different owners, identities for
+  exposed notes, moves out of the scope, and [public audiences](specs/access/access-control.md#future).
+
 ### Note representation and history
 
 Assess whether the current [Lexical representation](specs/editor/lexical-outline.md) can support efficient note
@@ -70,6 +96,19 @@ would be simpler overall. Compare measured
 Lexical editor server-side, against the costs of preserving rich text, stable
 identity, collaboration, offline merging, and undo. Keep these alternatives open
 while delivering bounded SDK improvements.
+
+A read model derived from collaborative state is the candidate first step: on
+each persistence callback the headless editor emits note rows to Django, serving
+[cross-document search](#cross-source-discovery), unopened-document reads, and [exposures](#document-exposure) without
+hydrating an editor. It stays rebuildable from its documents, and reads recheck
+current access.
+
+Moving to Yjs 14 and `@lexical/y` needs a one-time migration, because their
+document layout is incompatible with `@lexical/yjs`. Treat that as the decision
+point for this assessment, including Jazz 2 and Loro, since a migration cost is
+paid either way. As of 2026-10-30, Yjs 14 is a release candidate, `@lexical/y`
+is experimental, Jazz 2 is alpha with no collaborative text type found, and Loro
+has no official Lexical binding.
 
 Clarify the desired history and interoperability workflows: undo, recoverable
 versions, readable Git diffs, and editing through other tools. Compare Markdown
@@ -195,6 +234,13 @@ Decisions requiring a contract owner's judgement:
   Measure cold reads and Yjs/Lexical hydration separately from note resolution
   and output serialization, to inform the [representation decision](#note-representation-and-history).
 
+  Include concurrent sign-in, document saves, and authorize calls. Under ASGI,
+  Django runs synchronous views one at a time on a single thread: four 0.4 s
+  requests took 1.6 s, against 0.4 s unserialized, and the former gunicorn
+  server ran four threads. This also serializes the collaboration host's
+  authorization and storage callbacks; MCP database calls run on separate
+  threads and are exempt.
+
 ### Operations
 
 - **Expired Django sessions after integration.** Define how supported
@@ -247,15 +293,17 @@ RemDo document, minimal but useful for real work.
   submitted baseline and check current provider requirements; defer the
   affected part when its impact remains uncertain.
   [Production deploys from `main` after CI](guides/production-deployment.md#deploy-on-render), so assess review impact before
-  merging affected changes. Do not withdraw or resubmit a pending application.
+  merging affected changes. OpenAI's [review requirements](https://developers.openai.com/plugins/deploy/app-review)
+  allow server-only changes that preserve the published contract; they do not
+  establish either pending submission's queue status. Do not withdraw or
+  resubmit a pending application.
   Revisit each platform's constraint when its review finishes or the developer
   changes this direction.
-- **MCP migration verification.** Before replacing the public MCP
-  implementation, extend the [compatibility checks](#temporary-mcp-compatibility-guards) through the
-  production gateway and the new Python-to-Node boundary, including reconnect
-  and failed-write/durability outcomes. Obtain saved submission-time tool
-  definitions and detailed OAuth configuration for both platforms where
-  available. Assistant tool-selection cases remain live client checks.
+- **Submission baseline.** Obtain saved submission-time tool definitions and
+  detailed OAuth configuration for both platforms where available, so a later
+  change is compared with what was submitted rather than with the repository's
+  [compatibility reference](#temporary-mcp-compatibility-guards). Assistant
+  tool-selection cases remain live client checks.
 
 - Let the [MCP server](specs/integrations/mcp.md) set a note's content text
   and delete a note, which first need [open document](specs/outliner/open-document.md)
@@ -322,6 +370,10 @@ removal; an accepted interface change must still respect every pending review.
   assertions in the [HTTP checks](../tests/unit/collab/mcp-contract.collab.spec.ts). Retire obsolete literal comparisons and their
   [runtime reference](../tests/fixtures/mcp/compatibility.json) together, or update expectations for an accepted interface
   change; keep semantic protocol, authorization, access and persistence coverage.
+- **Workflow accounts.** When the workflow checks are no longer frozen, replace
+  their fixed-address accounts, including `mcp-owner@example.test`, with the
+  isolated [account fixture](../tests/_support/account-fixture.ts) owner, recipient, and private document in the
+  unshared-document check.
 - **Cleanup.** Remove retired assertions' imports, fixture-only setup and local
   markers, and remove this section when no temporary guards remain. Keep
   semantic regression coverage; preserve provenance in Git history.
@@ -355,53 +407,21 @@ Remaining:
 
 ### SDK
 
-- **Account fixture adoption.** Reuse the [account fixture](../tests/_support/account-fixture.ts) in remaining
-  collaboration and browser workflows that use ad hoc accounts and sharing
-  setup. Add roles or documents only when a concrete scenario needs them;
-  preserve per-test isolation.
+- **Shared note implementation.** The non-editor kinds use the
+  [shared note implementation](dev/sdk.md#note-kinds); editor notes stay with their adapter. Test the
+  contract with a read-only [external-source example](#cross-source-discovery) in a test-only provider.
+  Avoid a runtime descriptor framework and a generic property API; add untyped
+  properties only if user-defined types become a product feature.
 
-- **Reusable SDK note shapes.** Reassess remaining user-data, source, and grant
-  kinds against shared note structure, typed data, and reusable operations using
-  concrete consumers. The shared collection kind does not
-  settle that broader taxonomy. Follow [SDK design](dev/sdk.md) and the [external-source examples](#cross-source-discovery)
-  before introducing another kind or a runtime descriptor framework.
+- **Non-editor document support.** [Account documents](specs/outliner/note-model.md#definitions) keep their `user-data`
+  kind, and no consumer reads ownership yet. Use the [external-source examples](#cross-source-discovery) to
+  test the same role for a scope such as a mailbox or calendar. Settle which
+  account document owns an aggregate across servers, and the owner under the
+  [no-login mode](specs/access/access-control.md#future). Additional runtime kinds remain undecided.
 
-- **Non-editor document support.** The [document model](specs/outliner/note-model.md#definitions) is broader than the current
-  editor-specific `DocumentNote` implementation. Establish account/source notes'
-  owning documents through a concrete non-editor workflow. Cross-document
-  exposure mechanisms, identities for exposed notes, and additional runtime kinds
-  remain undecided.
-
-- **Backend note ownership — next SDK slice.** Move remaining non-editor
-  handling, including MCP handling, to Python under [backend note processing](architecture.md#backend-note-processing).
-  Read/append execution and Markdown rendering are already isolated in the
-  [Node editor operations](../src/headless/editor-operations.ts), with direct integration coverage.
-
-  Python MCP replaces the Node MCP host and uses Django's metadata operations
-  directly. Both share an asynchronous HTTP service, leaving Django available
-  for the collaboration host's authorization and storage callbacks. Private
-  editor HTTP calls run on the existing collaboration host and preserve
-  caller authorization and [durable completion](architecture.md#hydration-vs-sync).
-
-  Before merge/deployment, complete the [migration verification](#claude-mcp-save-a-conversation-to-remdo) and establish
-  review impact under the pending-review constraint. The frozen local contract
-  is a repository reference, not a saved submission-time tool scan. OpenAI's
-  [review requirements](https://developers.openai.com/plugins/deploy/app-review) allow server-only changes that preserve the published contract;
-  they do not establish either pending submission's queue status. Keep the
-  submitted endpoints, OAuth configuration, tools, and package unchanged and
-  leave uncertain deployment deferred. Keep [representation research](#note-representation-and-history)
-  separate; this sequence does not require reducing the existing [offline scope](architecture.md#offline-application-behavior).
-
-- **Simplify SDK consumer types.** Review consumers beyond the mobile toolbar
-  for narrowing driven only by test setup and duplicate local types. Prefer
-  existing public types at meaningful boundaries; retain narrower contracts
-  when they provide a concrete benefit, following [SDK design](dev/sdk.md).
-
-- **SDK API validation.** Evaluate query and app-resource reads
-  in their own workflows using the [design principles and references](dev/sdk.md). Reassess
-  generated record/query APIs versus [user data notes](specs/outliner/user-data.md)
-  with Home and Sharing consumers as Home, offline, and source requirements
-  become clearer; the cache library does not settle the public SDK shape.
+- **SDK API validation.** Evaluate query and app-resource reads in their own
+  workflows, including Home and Sharing, using the [design principles and references](dev/sdk.md);
+  the cache library does not settle the public SDK shape.
 
   Keep model and API choices open to revision throughout this SDK initiative.
   Revisit them when consumer evidence reveals friction or a better fit, and

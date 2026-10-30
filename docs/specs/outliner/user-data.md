@@ -24,6 +24,10 @@ produces the unavailable-note error rather than a null parent. Source
 parentage describes containment in the account context, not document ownership
 or [access authority](../access/access-control.md#document-access).
 
+The User Data root is an [account document](./note-model.md#definitions) and the
+[owning document](../access/access-control.md#document-access) of Sources, source notes, and the Documents collections. Each
+listed document remains its own owning document.
+
 ## State and observation
 
 A document note is a live reference to one document by its

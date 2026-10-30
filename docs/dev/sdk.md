@@ -40,6 +40,16 @@ properties; fallible state reads remain methods on those references.
 Direct reads of locally available note state are synchronous. Asynchronous
 operations have an explicit completion contract.
 
+## Note kinds
+
+A note kind supplies its reads, structure, observation, and operations to one
+shared note implementation, which owns identity, kind narrowing, the
+availability check before text and structure reads, and default collection
+lookup. Each kind keeps its named public interface under the
+[API conventions](#api-conventions). A new kind using existing abilities adds
+only that supply and interface; the SDK grows only for a new category of
+ability, which later kinds reuse.
+
 ## References
 
 - [Parnas: On the Criteria To Be Used in Decomposing Systems into Modules](https://www.cs.lafayette.edu/~gexia/cs301/resources/parnas.html)

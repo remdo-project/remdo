@@ -121,7 +121,9 @@ Account workflows reuse the [account fixture](../../tests/_support/account-fixtu
 accounts, known editor fixtures, and preset sharing. Each test gets an isolated
 copy and explicitly chooses which user signs in and which document opens. Use
 the shared document for read examples and the private document when exercising
-sharing. The [account showcase](../../tests/unit/collab/note-sdk-showcase.collab.spec.ts) demonstrates setup.
+sharing. The [account showcase](../../tests/unit/collab/note-sdk-showcase.collab.spec.ts) demonstrates setup. Add a role or document
+to the fixture only when a concrete scenario needs it; a scenario whose
+assertions the preset data would disturb creates its own account.
 
 ## References
 
