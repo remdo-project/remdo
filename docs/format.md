@@ -14,11 +14,11 @@ Other sources, such as email or calendars, keep their native storage.
 In decreasing priority:
 
 <!-- markdownlint-disable MD029 -->
-1. Stable:: a document has one canonical text, and an edit changes only the
-   affected lines.
-1. Readable and minimal:: the text carries little markup, so people and agents
-   can read and write it comfortably without tooling.
-1. Simple to parse:: the grammar is unambiguous and has few special cases.
+1. Stable:: one canonical text per document
+   > An edit changes only the affected lines, so diffs and merges stay clean.
+1. Readable and minimal:: little markup
+   > People and agents can read and write the text comfortably without tooling.
+1. Simple to parse:: an unambiguous grammar with few special cases
 
 ## Non-goals
 
@@ -29,9 +29,12 @@ In decreasing priority:
 A note holds:
 
 - Marker:: bullet, number, open checkbox or checked checkbox
-- Name:: optional plain text, written as `name:: text` at the start of a note
+- Name:: optional plain text at the start of a note, written as `name:: text`
+  > - `::` must be followed by a space or the end of the line
+  > - May contain spaces
+  > - Only a note that would otherwise look named needs escaping: `Foo\:: bar`
 - Text:: one line of inline rich text, including links
-- Body:: optional multi-line inline rich text
+- Body:: optional Markdown subdocument in `>` lines right after the note line
 - Children:: an ordered list of notes
 
 ## Proposed decisions
