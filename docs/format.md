@@ -19,6 +19,19 @@ In decreasing priority:
    can read and write it comfortably without tooling.
 3. **Simple to parse:** the grammar is unambiguous and has few special cases.
 
+## Non-goals
+
+- Storing folding state
+
+## Note model
+
+A note holds:
+
+- **Text:** one line of inline rich text, including links
+- **Body:** optional multi-line inline rich text
+- **Children:** an ordered list of notes
+- **Properties:** named values, such as checked state or ID
+
 ## Proposed decisions
 
 - Based on an existing format or a combination of formats
