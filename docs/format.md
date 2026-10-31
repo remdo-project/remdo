@@ -13,11 +13,11 @@ Other sources, such as email or calendars, keep their native storage.
 
 In decreasing priority:
 
-1. **Stable:** a document has one canonical text, and an edit changes only the
+1. Stable:: a document has one canonical text, and an edit changes only the
    affected lines.
-2. **Readable and minimal:** the text carries little markup, so people and agents
+2. Readable and minimal:: the text carries little markup, so people and agents
    can read and write it comfortably without tooling.
-3. **Simple to parse:** the grammar is unambiguous and has few special cases.
+3. Simple to parse:: the grammar is unambiguous and has few special cases.
 
 ## Non-goals
 
@@ -27,10 +27,10 @@ In decreasing priority:
 
 A note holds:
 
-- **Text:** one line of inline rich text, including links
-- **Body:** optional multi-line inline rich text
-- **Children:** an ordered list of notes
-- **Properties:** named values, such as checked state or ID
+- Name:: optional plain text, written as `name:: text` at the start of a note
+- Text:: one line of inline rich text, including links
+- Body:: optional multi-line inline rich text
+- Children:: an ordered list of notes
 
 ## Proposed decisions
 
