@@ -28,6 +28,7 @@ In decreasing priority:
 
 A note holds:
 
+- Marker:: bullet, number, open checkbox or checked checkbox
 - Name:: optional plain text, written as `name:: text` at the start of a note
 - Text:: one line of inline rich text, including links
 - Body:: optional multi-line inline rich text
