@@ -70,3 +70,4 @@ Tools write:
 
 - Align lint with numbering and indentation, then drop this file's exceptions
 - Decide how to read YAML front matter
+- Design live collaboration as a merge layer over the text
