@@ -15,9 +15,9 @@ In decreasing priority:
 
 <!-- markdownlint-disable MD029 -->
 1. Stable:: one canonical text per document
-   > An edit changes only the affected lines, so diffs and merges stay clean.
+    > An edit changes only the affected lines, so diffs and merges stay clean.
 1. Readable and minimal:: little markup
-   > People and agents can read and write the text comfortably without tooling.
+    > People and agents read and write the text comfortably without tooling.
 1. Simple to parse:: an unambiguous grammar with few special cases
 
 ## Non-goals
@@ -30,12 +30,12 @@ A note holds:
 
 - Marker:: bullet, number, open checkbox or checked checkbox
 - Name:: optional plain text at the start of a note, written as `name:: text`
-  > - `::` must be followed by a space or the end of the line
-  > - May contain spaces
-  > - Only a note that would otherwise look named needs escaping: `Foo\:: bar`
+    > - `::` must be followed by a space or the end of the line
+    > - May contain spaces
+    > - Only a note that would otherwise look named needs escaping: `Foo\:: bar`
 - Text:: one line of inline rich text, including links
 - Body:: optional Markdown subdocument in `>` lines right after the note line
-- Children:: an ordered list of notes
+- Children:: an ordered list of notes, indented by 4 spaces per level
 
 ## Proposed decisions
 
