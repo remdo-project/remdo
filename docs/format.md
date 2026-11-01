@@ -8,6 +8,7 @@ adapts once the format settles.
 This format is the source of truth for content people create in RemDo,
 including their connections to information stored elsewhere.
 Other sources, such as email or calendars, keep their native storage.
+It is based on CommonMark plus GFM.
 
 ## Goals
 
@@ -45,6 +46,9 @@ An outline note holds:
 - Children:: an ordered list of Markdown blocks and outline notes
     > - Tools indent children under a list item by 4 spaces per level
     > - Tools write a Markdown block under a list item in `>` lines
+- ID:: optional and added lazily, such as when a note is first referenced
+    > An ID is a named note, such as the one below
+    - id:: k3x9
 
 ## Canonical spelling
 
@@ -54,17 +58,12 @@ Tools write:
 - Heading:: `## Title`
 - Bold, italic:: `**x**`, `*x*`
 - Strikethrough:: `~~x~~`
+- Underline:: `<u>x</u>`
+- Date:: `[1 Nov](date:2026-11-01)`
 - Code block:: backtick fence
 - Hard line break:: trailing `\`
 - Rule:: `---`
 - File:: LF endings, one final newline
-
-## Proposed decisions
-
-- Based on CommonMark plus GFM
-- Note IDs are optional and added lazily, such as when a note is first referenced
-    > An ID is a named note, such as the one below
-    - id:: k3x9
 
 ## Follow-up
 
