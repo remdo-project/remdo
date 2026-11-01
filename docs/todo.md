@@ -124,7 +124,8 @@ establish round-trip and merge behavior before choosing. Coordinate recoverable
 versions with [backup and recovery](#operations).
 
 The [RemDo text format](format.md) draft proposes Markdown as authoritative; its
-Follow-up section tracks the remaining work.
+Follow-up section and [adoption plan](text-format-plan.md) track the remaining
+work.
 
 ### Post-Hocuspocus simplification proposals
 
