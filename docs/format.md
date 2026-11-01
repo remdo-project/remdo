@@ -40,9 +40,10 @@ An outline note holds:
     > - May contain spaces
     > - Only a note that would otherwise look named needs escaping: `Foo\:: bar`
 - Text:: one line of inline rich text, including links
+    > Tools write one line; continuation lines in a paragraph join into Text
 - Children:: an ordered list of Markdown blocks and outline notes
-    > - Under a list item, children are indented by 4 spaces per level
-    > - Under a list item, a Markdown block is written in `>` lines
+    > - Tools indent children under a list item by 4 spaces per level
+    > - Tools write a Markdown block under a list item in `>` lines
 
 ## Proposed decisions
 
@@ -52,3 +53,4 @@ An outline note holds:
 ## Follow-up
 
 - Allow repeated list numbers in lint, then drop this file's `MD029` exception
+- Decide how to read YAML front matter
