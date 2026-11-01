@@ -43,9 +43,12 @@ An outline note holds:
 - Text:: one line of inline rich text, including links
     > - Tools write one line; continuation lines in a paragraph join into Text
     > - Links use Markdown syntax with a URI target, as in [note IDs](note:k3x9)
+    > - Tools escape Text that would otherwise read as Markdown structure
 - Children:: an ordered list of Markdown blocks and outline notes
     > - Tools indent children under a list item by 4 spaces per level
     > - Tools write a Markdown block under a list item in `>` lines
+    > - Under a heading, a block holding a list or heading keeps its `>` lines
+    > - Adjacent blocks form one Markdown block
 - ID:: optional and added lazily, such as when a note is first referenced
     > An ID is a named note, such as the one below
     - id:: k3x9
