@@ -47,6 +47,7 @@ An outline note holds:
     > - Tools escape Text that would otherwise read as Markdown structure
 - Children:: an ordered list of Markdown blocks and outline notes
     > - Tools indent children under a list item by 4 spaces per level
+    > - Tools write `1.` where another number could not interrupt a paragraph
     > - Tools wrap a Markdown block under a list item in `>` lines
     > - Under a heading, a block holding a list or heading keeps its `>` lines
     > - Adjacent blocks form one Markdown block
@@ -71,6 +72,14 @@ Tools write:
 
 ## Follow-up
 
+- Align notes with the last saved text on write; editor state holds no spelling
+- Give the editor headings, top-level Markdown blocks and per-note markers
+- Reconcile note ID assignment with lazy IDs
+- Keep inline HTML when its note is edited
+- Align the note model, body, note ID and folding specs with this format
+- Serialize documents to this format, with Yjs state as a rebuildable cache
+- Update MCP and clipboard to read and write this format
+- Remove the fresh-start note and move remaining follow-up to `docs/todo.md`
 - Align lint with numbering and indentation, then drop this file's exceptions
 - Decide how to read YAML front matter
 - Design live collaboration as a merge layer over the text
