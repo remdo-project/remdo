@@ -46,6 +46,19 @@ An outline note holds:
     > - Tools indent children under a list item by 4 spaces per level
     > - Tools write a Markdown block under a list item in `>` lines
 
+## Canonical spelling
+
+Tools write:
+
+- Bullet:: `-`
+- Heading:: `## Title`
+- Bold, italic:: `**x**`, `*x*`
+- Strikethrough:: `~~x~~`
+- Code block:: backtick fence
+- Hard line break:: trailing `\`
+- Rule:: `---`
+- File:: LF endings, one final newline
+
 ## Proposed decisions
 
 - Based on CommonMark plus GFM
