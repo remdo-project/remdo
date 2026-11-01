@@ -13,7 +13,7 @@ Other sources, such as email or calendars, keep their native storage.
 
 In decreasing priority:
 
-<!-- markdownlint-disable MD029 -->
+<!-- markdownlint-disable MD007 MD029 -->
 1. Stable:: tools write one canonical spelling
     > Untouched text stays byte-identical, so diffs and merges stay clean.
 1. Readable and minimal:: little markup
@@ -40,17 +40,20 @@ An outline note holds:
     > - May contain spaces
     > - Only a note that would otherwise look named needs escaping: `Foo\:: bar`
 - Text:: one line of inline rich text, including links
-    > Tools write one line; continuation lines in a paragraph join into Text
+    > - Tools write one line; continuation lines in a paragraph join into Text
+    > - Links use Markdown syntax with a URI target, as in [note IDs](note:k3x9)
 - Children:: an ordered list of Markdown blocks and outline notes
     > - Tools indent children under a list item by 4 spaces per level
     > - Tools write a Markdown block under a list item in `>` lines
 
 ## Proposed decisions
 
-- Based on an existing format or a combination of formats
+- Based on CommonMark plus GFM
 - Note IDs are optional and added lazily, such as when a note is first referenced
+    > An ID is a named note, such as the one below
+    - id:: k3x9
 
 ## Follow-up
 
-- Allow repeated list numbers in lint, then drop this file's `MD029` exception
+- Align lint with numbering and indentation, then drop this file's exceptions
 - Decide how to read YAML front matter
