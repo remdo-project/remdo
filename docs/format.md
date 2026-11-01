@@ -1,7 +1,7 @@
 # RemDo text format
 
-Self-contained fresh-start draft: it overrides the rest of the repository, which
-adapts once the format settles.
+Informative draft: current specs stay authoritative until this format is
+adopted.
 
 ## Purpose
 
@@ -81,7 +81,7 @@ Tools write:
 - Align the note model, body, note ID and folding specs with this format
 - Serialize documents to this format, with Yjs state as a rebuildable cache
 - Update MCP and clipboard to read and write this format
-- Remove the fresh-start note and move remaining follow-up to `docs/todo.md`
+- Remove the draft note and move remaining follow-up to `docs/todo.md`
 - Align lint with numbering and indentation, then drop this file's exceptions
 - Decide how to read YAML front matter
 - Design live collaboration as a merge layer over the text
