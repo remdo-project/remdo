@@ -14,8 +14,8 @@ Other sources, such as email or calendars, keep their native storage.
 In decreasing priority:
 
 <!-- markdownlint-disable MD029 -->
-1. Stable:: one canonical text per document
-    > An edit changes only the affected lines, so diffs and merges stay clean.
+1. Stable:: tools write one canonical spelling
+    > Untouched text stays byte-identical, so diffs and merges stay clean.
 1. Readable and minimal:: little markup
     > People and agents read and write the text comfortably without tooling.
 1. Simple to parse:: an unambiguous grammar with few special cases
@@ -26,16 +26,23 @@ In decreasing priority:
 
 ## Note model
 
-A note holds:
+A document is a note whose children are Markdown blocks and outline notes, in
+file order; its name is held outside the text.
 
-- Marker:: bullet, number, open checkbox or checked checkbox
+A Markdown block is a note holding any Markdown other than a heading or list
+item; headings and list items inside it are plain content.
+
+An outline note holds:
+
+- Marker:: heading level, bullet, number, open checkbox or checked checkbox
 - Name:: optional plain text at the start of a note, written as `name:: text`
     > - `::` must be followed by a space or the end of the line
     > - May contain spaces
     > - Only a note that would otherwise look named needs escaping: `Foo\:: bar`
 - Text:: one line of inline rich text, including links
-- Body:: optional Markdown subdocument in `>` lines right after the note line
-- Children:: an ordered list of notes, indented by 4 spaces per level
+- Children:: an ordered list of Markdown blocks and outline notes
+    > - Under a list item, children are indented by 4 spaces per level
+    > - Under a list item, a Markdown block is written in `>` lines
 
 ## Proposed decisions
 
