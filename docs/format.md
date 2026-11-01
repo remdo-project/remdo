@@ -73,6 +73,8 @@ Tools write:
 ## Follow-up
 
 - Align notes with the last saved text on write; editor state holds no spelling
+- Apply external text as a Yjs update from the last saved state
+- Keep concurrent edits on moved notes
 - Give the editor headings, top-level Markdown blocks and per-note markers
 - Reconcile note ID assignment with lazy IDs
 - Keep inline HTML when its note is edited
