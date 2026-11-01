@@ -123,6 +123,9 @@ as an authoritative format with readable exports from collaborative state;
 establish round-trip and merge behavior before choosing. Coordinate recoverable
 versions with [backup and recovery](#operations).
 
+The [RemDo text format](format.md) draft proposes Markdown as authoritative; its
+Follow-up section tracks the remaining work.
+
 ### Post-Hocuspocus simplification proposals
 
 Proposals from a read-only assessment of what the Hocuspocus migration leaves
