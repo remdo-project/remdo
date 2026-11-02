@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "accounts",
     "documents",
+    "workspaces",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
