@@ -14,8 +14,8 @@ without selecting or expanding its intended behavior.
 An uncommitted scope stays uncommitted. For a commit range, the skill commits
 each validated step's edits as one
 [conventional commit](../../../CONTRIBUTING.md#git-workflow) under
-[repository authority](../../../AGENTS.md#repository-authority). On `main` or a
-detached `HEAD`, a commit range returns `stopped` before editing.
+[repository authority](../../../AGENTS.md#repository-authority). On a detached
+`HEAD`, a commit range returns `stopped` before editing.
 
 ## Steps
 
@@ -27,14 +27,15 @@ Wait for each invoked skill's result before continuing.
    [display](../../../docs/specs/agents/change-scope.md#caller-visible-display)
    as a standalone `Scope:` line. If the
    state is `no-change`, then return `converged`; if it is `failed`, then
-   return `stopped`. The target is the selection for a commit range, or the
-   space-separated `FILES` for an uncommitted scope.
+   return `stopped`. The target is `<BASE>..HEAD` with the resolved `BASE` for
+   a commit range, or the space-separated `FILES` for an uncommitted scope.
 2. **Simplify.** Run `/simplify <target>`, then [validate](#validate) its edits.
 3. **Review.** Run `/code-review high --fix <target>`, then
    [validate](#validate) its edits.
 4. **Probe.** Run `/code-review high <target>` and leave its findings
-   unapplied. Classify each as actionable or not, and as introduced by steps
-   2–3 or missed by step 3.
+   unapplied. Classify each as actionable or not, and by origin: `introduced`
+   by steps 2–3, `deferred` when step 3 reported it but left it unapplied, or
+   `missed` otherwise.
 5. **Handoff checks.** Run the testing policy's
    [handoff verification](../../../docs/dev/testing.md#verification-lifecycle)
    for the complete scope, plus `pnpm run audit:cleanup` when the scope
@@ -48,22 +49,24 @@ Wait for each invoked skill's result before continuing.
 Skip validation when the step made no edits. Otherwise run the testing
 policy's [pre-commit checks](../../../docs/dev/testing.md#verification-lifecycle).
 Repair or revert edits those checks fail; if a failure remains, then return
-`stopped`. Persist the edits under [Authority](#authority). For an uncommitted
-scope, replace the target with the `FILES` of a resolver rerun with
-`uncommitted`, so later steps cover files the edits added.
+`stopped`; a commit range leaves its uncommitted edits in place. Persist the
+edits under [Authority](#authority), then rerun the resolver with `uncommitted`
+or the commit-range target and refresh `scope` under the
+[change-scope refresh rule](../../../docs/specs/agents/change-scope.md#result-type).
+If it reports `no-change`, then return `converged`. For an uncommitted scope,
+the refreshed `FILES` become the target.
 
 ## Result
 
-Refresh `scope` under the
-[change-scope refresh rule](../../../docs/specs/agents/change-scope.md#result-type)
-by rerunning the resolver with the step-1 selection. Report
-under the shared [Reports](../../../docs/specs/agents/protocol.md#reports)
+`scope` is the latest refreshed result. Report under the shared [Reports](../../../docs/specs/agents/protocol.md#reports)
 contract, with the shared [result fields](../../../docs/specs/agents/protocol.md#results)
 and the [`ChangeScopeResult`](../../../docs/specs/agents/change-scope.md#result-type) type:
 
 ```yaml
 outcome: <converged | stopped>
 scope: <ChangeScopeResult>
+uncommitted: # commit range stopped with edits left in place, if any
+  - <repository-relative path>
 edits: # if any
   - step: <simplify | review | handoff>
     summary: <applied change>
@@ -74,7 +77,7 @@ skipped: # findings from steps 2–3 left unapplied, if any
 probe: # if step 4 ran
   - summary: <finding>
     actionable: <true | false>
-    origin: <introduced | missed>
+    origin: <introduced | deferred | missed>
 handoff_checks: # if step 5 ran
   - command: <command>
     status: <passed | failed>
