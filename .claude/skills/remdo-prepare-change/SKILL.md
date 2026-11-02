@@ -19,8 +19,8 @@ authority in step 5.
 1. **Frame.** Discuss the change with the developer until its direction is
    clear, grounding questions in repository evidence and the
    [accepted contracts](../../../docs/documentation.md#target-behavior). Use a
-   fresh-context subagent only for an independent question, and give it the
-   question without a proposed answer. Continue when the developer asks to
+   read-only fresh-context subagent only for an independent question, and give
+   it the question without a proposed answer. Continue when the developer asks to
    proceed or the request already frames the change sufficiently.
 2. **Branch.** Run `git fetch origin main`. If switching would carry
    uncommitted work, or the owning branch holds commits, that the framed change
@@ -36,10 +36,13 @@ authority in step 5.
    the behavior. Feedback revises the edits, or returns to step 1 when it
    changes the direction.
 4. **Implement.** Commit the approved contract edits, then realize the
-   established behavior. If the work would change established behavior, then
-   return to step 3; if it invalidates the direction, then return to step 1.
-5. **Converge.** Invoke `/remdo-converge-change`. If it returns `stopped`, then
-   report why and ask whether to retry.
+   established behavior and commit it. If the work would change established
+   behavior, then return to step 3; if it invalidates the direction, then
+   return to step 1.
+5. **Converge.** Invoke `/remdo-converge-change <base>...HEAD`, where `<base>`
+   is `origin/main` or the developer-named base. If it returns `stopped`, then
+   report why and ask whether to retry from this step or from the earliest step
+   its reason invalidates.
 6. **Hand off.** Report under the shared
    [Reports](../../../docs/specs/agents/protocol.md#reports) contract: the
    change, the established behavior and its owners, the convergence result,
