@@ -28,7 +28,7 @@ Each durable statement lives with the owner of the question it answers.
 - **`docs/guides/` — Task guides.** Each guide explains how to accomplish a
   task. Its steps derive from and link to the applicable contract and mechanism
   owners.
-- **Agent skills — [Skill contracts](#agent-skill-boundary).**
+- **Agent skills — [Skill contracts](#skill-contracts).**
 - **`AGENTS.md` and `CLAUDE.md` — Agent instruction surfaces.**
   The surfaces own their directly loaded rules; [Agent instructions](specs/agents/instructions.md)
   owns their design, responsibilities, and deterministic structural contracts.
@@ -70,14 +70,12 @@ gaps. Its entries are informative and may identify implementation that does not
 yet satisfy target behavior. Entries range from decided work to unresolved
 questions and preserve only the context useful for returning to the work.
 
-### Agent skill boundary
+### Skill contracts
 
-Each skill's `SKILL.md` owns its accepted behavior and its procedure. A skill
-shared across providers lives in `.agents/skills/`, is exposed to Claude by
-symlink, and relies only on capabilities every supported provider offers. A
-single-provider skill lives in its provider's skill directory. Establish a new
-behavioral choice in the `SKILL.md` or the shared owner it links before
-implementing it.
+Each skill's `SKILL.md` owns its whole contract. A skill shared across
+providers lives in `.agents/skills/`, is exposed to Claude by symlink, and
+relies only on capabilities every supported provider offers. A single-provider
+skill lives in its provider's skill directory.
 
 ### Minimality
 

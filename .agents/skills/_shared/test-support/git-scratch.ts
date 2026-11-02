@@ -1,8 +1,8 @@
 /* eslint-disable node/no-process-env */
 // Scratch git-repo harness for the skill-script specs. Each script is
 // spawned (`sh <script>`) against a throwaway repo built here: real commits,
-// branches, and a bare `origin` remote so `origin/main` and `git fetch` behave
-// as in production.
+// branches, and a bare `origin` remote so `origin/main` behaves as in
+// production.
 import { spawnSync } from 'node:child_process';
 import type { SpawnSyncReturns } from 'node:child_process';
 import fs from 'node:fs';
@@ -64,14 +64,8 @@ export function commitAll(dir: string, message: string): string {
 }
 
 // A work repo cloned from a bare `origin` whose default branch is `main`, so
-// `origin/main` is a genuine remote-tracking ref and `git fetch` reaches a real
-// remote. Returns both paths; `origin` is where you push to advance main.
-export interface Scratch {
-  work: string;
-  origin: string;
-}
-
-export function makeScratchWithOrigin(files: Record<string, string>): Scratch {
+// `origin/main` is a genuine remote-tracking ref.
+export function makeScratchWithOrigin(files: Record<string, string>): string {
   const origin = makeDir('skills-origin-');
   gitOk(origin, 'init', '--quiet', '--bare', '--initial-branch=main');
 
@@ -86,7 +80,7 @@ export function makeScratchWithOrigin(files: Record<string, string>): Scratch {
 
   const work = makeDir('skills-work-');
   gitOk(work, 'clone', '--quiet', origin, '.');
-  return { work, origin };
+  return work;
 }
 
 // A throwaway directory that is not a git repository — for the scripts'

@@ -5,10 +5,6 @@ description: Create an interactive HTML playground for visual configuration, imm
 
 # Playground
 
-Adapt the installed official playground skill to create an interactive HTML
-explorer as ignored RemDo development scratch, without adding an application
-route.
-
 ## Load the dependency
 
 Read `~/.claude/plugins/installed_plugins.json` and resolve exactly one
@@ -40,10 +36,9 @@ ignored file the development server serves. It does not change tracked files or
 manage a [developer-owned process](../../../AGENTS.md#isolation), and it leaves
 other playground files untouched.
 
-1. From the repository root, resolve the artifact URL through the
-   [shared environment launcher](../../../tools/env.sh). It appends
-   `/playground/index.html` to the working directory's development
-   [`APP_ORIGIN`](../../../docs/specs/runtime/configuration.md#network-addressing):
+1. From the repository root, resolve the artifact
+   [URL](../../../docs/specs/runtime/configuration.md#network-addressing)
+   through the [shared environment launcher](../../../tools/env.sh):
 
    ```sh
    ./tools/env.sh sh -c 'printf "%s/playground/index.html\n" "$APP_ORIGIN"'
@@ -52,8 +47,7 @@ other playground files untouched.
    Share the URL so the developer can preview the playground as it takes shape.
 2. Following the official skill and template, build the HTML directly in
    `public/playground/index.html`, creating the directory if needed. Skip the
-   official skill's `open` step; the skill neither opens the URL nor verifies
-   the developer-owned server.
+   official skill's `open` step.
 
 ## Report
 

@@ -38,7 +38,7 @@ exec git "$@"
 
 // A task branch: cloned from origin (main), branched, with one commit ahead.
 function taskBranch(): string {
-  const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+  const work = makeScratchWithOrigin({ 'a.md': '# A\n' });
   git(work, 'switch', '--quiet', '-c', 'feat/x');
   writeFile(work, 'b.md', '# B\n');
   commitAll(work, 'add b');
@@ -182,7 +182,7 @@ describe('resolve-scope.sh (shared tool)', () => {
   });
 
   it('returns no-change for the default on main aligned with origin/main', () => {
-    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const work = makeScratchWithOrigin({ 'a.md': '# A\n' });
     const result = run(work);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('STATE=no-change');
@@ -191,7 +191,7 @@ describe('resolve-scope.sh (shared tool)', () => {
   });
 
   it('uses the default normally on a dev branch', () => {
-    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const work = makeScratchWithOrigin({ 'a.md': '# A\n' });
     git(work, 'switch', '--quiet', '-c', 'dev');
     writeFile(work, 'dev.md', '# Dev\n');
     commitAll(work, 'advance dev');
@@ -206,7 +206,7 @@ describe('resolve-scope.sh (shared tool)', () => {
   });
 
   it('refuses when there is no merge-base with origin/main', () => {
-    const { work } = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    const work = makeScratchWithOrigin({ 'a.md': '# A\n' });
     // Orphan branch shares no history with origin/main.
     git(work, 'switch', '--quiet', '--orphan', 'feat/orphan');
     writeFile(work, 'z.md', '# Z\n');
