@@ -89,35 +89,12 @@ export function makeScratchWithOrigin(files: Record<string, string>): Scratch {
   return { work, origin };
 }
 
-// Advance origin/main by one commit, made from a throwaway second clone so a
-// primary work repo cloned earlier stays behind until it fetches.
-export function advanceOrigin(origin: string): void {
-  const pusher = makeDir('skills-pusher-');
-  gitOk(pusher, 'clone', '--quiet', origin, '.');
-  writeFile(pusher, 'upstream.md', '# upstream\n');
-  commitAll(pusher, 'upstream commit');
-  gitOk(pusher, 'push', '--quiet', 'origin', 'main');
-  fs.rmSync(pusher, { recursive: true, force: true });
-}
-
 // A throwaway directory that is not a git repository — for the scripts'
 // "not a git repository" refusal. Rides the tracked-temp-dir cleanup like
 // every other scratch dir (GIT_CEILING_DIRECTORIES stops git walking up into
 // the real repo).
 export function makeNonRepoDir(): string {
   return makeDir('skills-nogit-');
-}
-
-// A minimal repo with one commit on `main` and no `origin` remote — for the
-// scripts' "not a task branch / origin/main missing" refusals.
-export function makeBareMain(files: Record<string, string>): string {
-  const dir = makeDir('skills-main-');
-  gitOk(dir, 'init', '--quiet', '--initial-branch=main');
-  for (const [file, content] of Object.entries(files)) {
-    writeFile(dir, file, content);
-  }
-  commitAll(dir, 'initial');
-  return dir;
 }
 
 export function runScript(

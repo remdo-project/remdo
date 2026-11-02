@@ -1,55 +1,44 @@
 ---
 name: remdo-merge-main
-description: Merge the latest fetched origin/main into the current attached branch from a clean working tree, resolving determined conflicts and verifying non-fast-forward integration without rebasing or remote mutation. Use when the user asks to merge, sync, or update the current RemDo branch from main.
+description: Merge the latest fetched origin/main into the current attached branch from a clean working tree, resolving determined conflicts and verifying the merge before committing it, without rebasing or remote mutation. Use when the user asks to merge, sync, or update the current RemDo branch from main.
 ---
 
 # RemDo Merge Main
 
-Implement the authoritative [`remdo-merge-main`](../../../docs/specs/agents/skills/remdo-merge-main.md) contract.
+## Authority
 
-## Start
+Under [repository authority](../../../AGENTS.md#repository-authority),
+invocation authorizes updating `origin/main`, fast-forwarding the current
+branch or committing one merge of the fetched target, and staging conflict
+resolutions and integration fixes. Rebasing, remote mutation, and concurrent
+repository mutation are outside the skill.
 
-Set `runner` to `.agents/skills/remdo-merge-main/tools/merge-main.sh`. Run
-`sh "$runner" start`.
+## Steps
 
-Retain `TARGET` from the runner output for this run:
-
-- `up-to-date` and `fast-forwarded` are complete.
-- `conflicted` continues under [Merge conflicts](#merge-conflicts).
-- `merge-ready` continues under [Verification](#verification).
-- Any failure is terminal. Report its output.
-
-Concurrent repository mutation and recovery after an unexpected interruption
-are unsupported. Do not construct a parallel run journal or infer a resumable
-skill phase.
-
-## Merge conflicts
-
-Resolve a merge conflict only when intended behavior and repository evidence
-determine the result. Inspect both sides and their authoritative contracts.
-Stage every determined resolution.
-
-When no unmerged path remains, continue under [Verification](#verification).
-Otherwise leave the Git merge state unchanged, and report
-`conflicted` for manual recovery.
-
-## Verification
-
-Run focused tests and applicable static checks for the pending integration.
-
-When it fails, wait for the complete result and correct only failures determined
-to have been caused by integrating `TARGET`. Check every correction against its
-authoritative contracts, stage it, and repeat the applicable focused checks.
-Repeat only after a correction changes repository state.
-
-When no integration correction can be determined, retain the failure as the
-verification outcome without changing unrelated code. Leave the pending merge
-unchanged and report `verification-failed`; do not continue it.
-
-After verification passes, run `sh "$runner" continue "$TARGET"` and report
-`merged` when it succeeds.
+1. **Check.** If `HEAD` is detached or `git status --porcelain` reports
+   anything, then return `stopped`.
+2. **Fetch.** Run `git fetch origin main` and pin the target with
+   `T=$(git rev-parse origin/main)`. If `T` is an ancestor of `HEAD`, then
+   return `up-to-date`.
+3. **Merge.** Run `git merge --no-commit "$T"`. If it fast-forwarded, then
+   return `fast-forwarded`. If it failed without starting a merge, then return
+   `stopped` with its output.
+4. **Conflicts.** Resolve a conflict only when intended behavior and repository
+   evidence determine the result: inspect both sides and their contracts, and
+   stage each resolution. If a conflict remains, then leave the merge state
+   unchanged and return `conflicted`.
+5. **Verify.** Run the testing policy's
+   [pre-commit checks](../../../docs/dev/testing.md#verification-lifecycle) on
+   the pending merge. Fix and stage failures the merge caused, then rerun the
+   affected checks. If a failure has no determined integration fix, then leave
+   the merge pending and return `verification-failed`.
+6. **Commit.** If unstaged changes or untracked files remain, then return
+   `stopped`. Otherwise commit with Git's default merge message, appending one
+   line per integration fix, and with hooks enabled; a hook failure is a
+   verification failure. Return `merged`.
 
 ## Report
 
-Return the authoritative specification's [`Result`](../../../docs/specs/agents/skills/remdo-merge-main.md#result). When
-addressing a human, render it under the shared [`Reports`](../../../docs/specs/agents/protocol.md#reports) contract.
+Report under the shared [Reports](../../../docs/specs/agents/protocol.md#reports)
+contract: the outcome, branch, pinned target, incoming commit count, resolved
+and unresolved conflicts, integration fixes, and checks run.
