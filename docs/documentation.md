@@ -73,7 +73,8 @@ questions and preserve only the context useful for returning to the work.
 ### Agent skill boundary
 
 A skill shared across providers lives in `.agents/skills/`, is exposed to
-Claude by symlink, and has a specification. A single-provider skill lives in
+Claude by symlink, and has a specification under `docs/specs/agents/skills/`.
+A single-provider skill lives in
 its provider's skill directory, and its `SKILL.md` is the sole owner, filling
 both roles below. A skill specification
 is sufficient without its procedure and owns choices that

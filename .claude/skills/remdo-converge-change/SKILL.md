@@ -14,8 +14,7 @@ without selecting or expanding its intended behavior.
 An uncommitted scope stays uncommitted. For a commit range, the skill commits
 each validated step's edits as one
 [conventional commit](../../../CONTRIBUTING.md#git-workflow) under
-[repository authority](../../../AGENTS.md#repository-authority). On a detached
-`HEAD`, a commit range returns `stopped` before editing.
+[repository authority](../../../AGENTS.md#repository-authority).
 
 ## Steps
 
@@ -26,10 +25,10 @@ Wait for each invoked skill's result before continuing.
    scope, if any. Report its
    [display](../../../docs/specs/agents/change-scope.md#caller-visible-display)
    as a standalone `Scope:` line. If the
-   state is `no-change`, then return `converged`; if it is `failed`, then
-   return `stopped`. The target is `<BASE>..HEAD` with the resolved `BASE` for
-   a commit range, or each `FILES` path as a quoted argument for an
-   uncommitted scope.
+   state is `no-change`, then return `converged`; if it is `failed`, or a
+   commit range on a detached `HEAD`, then return `stopped`. The target is
+   `<BASE>..HEAD` with the resolved `BASE` for a commit range, or each `FILES`
+   path as a quoted argument for an uncommitted scope.
 2. **Simplify.** Run `/simplify <target>`, then [validate](#validate) its edits.
 3. **Review.** Run `/code-review high --fix <target>`, then
    [validate](#validate) its edits.
@@ -48,9 +47,8 @@ Wait for each invoked skill's result before continuing.
 
 Skip validation when the step made no edits. Otherwise run the testing
 policy's [pre-commit checks](../../../docs/dev/testing.md#verification-lifecycle).
-Repair or revert edits those checks fail, reverting only the step's own edits
-so an uncommitted scope keeps its earlier work; if a failure remains, then return
-`stopped`; a commit range leaves its uncommitted edits in place. Persist the
+Repair edits those checks fail; if a failure remains, then return `stopped`
+with the edits left in place. Persist the
 edits under [Authority](#authority), then rerun the resolver with `uncommitted`
 or the commit-range target and refresh `scope` under the
 [change-scope refresh rule](../../../docs/specs/agents/change-scope.md#result-type).

@@ -1,5 +1,6 @@
 ---
 name: remdo-prepare-change
+disable-model-invocation: true
 description: Coordinate an explicitly requested RemDo repository change through interactive framing, owning-branch setup, target-behavior establishment, execution, convergence, and handoff. Use when the developer invokes /remdo-prepare-change for a new or existing change.
 ---
 
