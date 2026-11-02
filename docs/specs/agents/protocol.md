@@ -1,8 +1,6 @@
 # Capability protocol
 
-Capabilities return structured results. The capability addressing a human
-renders its result as a report. Each capability owns its outcomes and result
-fields.
+Each capability owns its outcomes and result fields.
 
 ## Results
 
@@ -18,15 +16,15 @@ concerns: <Concern[]> # if any
 The shared [`Concern`](#concerns) type is defined below. Angle-bracket names
 refer to linked shared types; `Type[]` is a list of that type. A capability
 that applies the
-[decision rule](../../../AGENTS.md#execution-and-evidence) or aggregates
-participant decisions includes `decisions: <Decision[]> # if any`. Capability
+[decision rule](../../../AGENTS.md#execution-and-evidence) includes
+`decisions: <Decision[]> # if any`. Capability
 contracts define additional fields that add detail without replacing
 `concerns`. In examples, `# if ...` marks a conditional field. Results explain
 omitted work when its absence affects the caller's interpretation. A capability
 addressing a human renders the result as its report instead of also returning
 the YAML.
 
-After an operation or participant reports failure, a capability advances only
+After an operation reports failure, a capability advances only
 through handling defined by its contract. Otherwise it ends, preserves
 completed evidence, and reports the reason. When `stopped` is among its
 outcomes, it is the fallback unless another outcome applies.
@@ -43,7 +41,7 @@ definition below.
 A `Decision` has this shape:
 
 ```yaml
-source: <originating capability or participant>
+source: <originating capability>
 summary: <selected alternative, decisive reason, and material tradeoff>
 ```
 
@@ -59,7 +57,7 @@ equivalent unit when naming only the capability would discard provenance.
 A `Concern` has this shape:
 
 ```yaml
-source: <originating capability, participant, or capability-owned source>
+source: <originating capability or capability-owned source>
 summary: <condition>
 ```
 

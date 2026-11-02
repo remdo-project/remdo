@@ -7,9 +7,6 @@ argument-hint: "[change description]"
 
 # RemDo Prepare Change
 
-Take one change from an idea to a converged topic branch ready for developer
-review.
-
 ## Authority
 
 Under [repository authority](../../../AGENTS.md#repository-authority), the skill
@@ -39,15 +36,12 @@ authority in step 5.
    the behavior. Feedback revises the edits, or returns to step 1 when it
    changes the direction.
 4. **Implement.** Commit the approved contract edits, then realize the
-   established behavior in coherent commits. Track a specification that lands
-   ahead of its implementation in [RemDo TODO](../../../docs/todo.md). If the
-   work would change established behavior, then return to step 3; if it
-   invalidates the direction, then return to step 1.
+   established behavior. If the work would change established behavior, then
+   return to step 3; if it invalidates the direction, then return to step 1.
 5. **Converge.** Invoke `/remdo-converge-change`. If it returns `stopped`, then
    report why and ask whether to retry.
 6. **Hand off.** Report under the shared
    [Reports](../../../docs/specs/agents/protocol.md#reports) contract: the
    change, the established behavior and its owners, the convergence result,
    tracked gaps, and needed manual review. Behavior feedback returns to step 3
-   and implementation feedback to step 4; new edits converge again before the
-   next handoff.
+   and implementation feedback to step 4.
