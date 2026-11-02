@@ -40,7 +40,7 @@ class InvalidContent(StoreError):
 WINDOWS_RESERVED_NAMES = {"con", "prn", "aux", "nul"} | {
     f"{device}{number}"
     for device in ("com", "lpt")
-    for number in [*"123456789", *"\u00b9\u00b2\u00b3"]
+    for number in [*"0123456789", *"\u00b9\u00b2\u00b3"]
 }
 SEGMENT_MAX_BYTES = 255
 WINDOWS_FORBIDDEN_CHARS = set('<>:"|?*\\')
@@ -64,9 +64,9 @@ def normalize_path(path):
     path = unicodedata.normalize("NFC", path)
     if not path or len(path) > PATH_MAX_LENGTH:
         raise InvalidPath(f"Path must have 1 to {PATH_MAX_LENGTH} characters.")
-    if any(
-        ord(char) < 0x20 or ord(char) == 0x7F or char in WINDOWS_FORBIDDEN_CHARS for char in path
-    ):
+    if any(unicodedata.category(char) == "Cs" for char in path):
+        raise InvalidPath("Path must be valid Unicode text.")
+    if any(unicodedata.category(char) == "Cc" or char in WINDOWS_FORBIDDEN_CHARS for char in path):
         raise InvalidPath("Path can't contain control characters or any of <>:\"|?*\\.")
     for segment in path.split("/"):
         if segment in ("", ".", ".."):

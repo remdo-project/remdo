@@ -136,6 +136,9 @@ class WorkspaceStoreTests(TestCase):
             "CON.md",
             "docs/lpt1.txt",
             "COM¹.md",
+            "lpt0.md",
+            "a\x85b.md",
+            "a\ud800b.md",
             "x" * 256 + ".md",
         ):
             with self.subTest(path=path), self.assertRaises(store.InvalidPath):
