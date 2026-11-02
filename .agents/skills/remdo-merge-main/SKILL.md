@@ -14,12 +14,13 @@ fixes. Concurrent repository mutation is unsupported.
 
 ## Steps
 
-1. **Check.** If `HEAD` is detached or `git status --porcelain` reports
-   anything, then return `stopped`.
+1. **Check.** If `HEAD` is detached or
+   `git status --porcelain --untracked-files=normal` reports anything, then
+   return `stopped`.
 2. **Fetch.** Run `git fetch --no-tags origin main`, pin the target with
    `T=$(git rev-parse FETCH_HEAD)`, and count incoming commits with
-   `N=$(git rev-list --count HEAD.."$T")`. If `N` is 0, then return
-   `up-to-date`.
+   `N=$(git rev-list --count HEAD.."$T")`. If the fetch or either command
+   fails, then return `stopped`. If `N` is 0, then return `up-to-date`.
 3. **Merge.** Run `git merge --no-commit --ff --no-squash "$T"`, overriding
    any configured squash or no-fast-forward default. If it fast-forwarded, then
    return `fast-forwarded`. If it failed without starting a merge, then return
@@ -34,11 +35,18 @@ fixes. Concurrent repository mutation is unsupported.
    and stage failures the merge caused, then rerun the
    affected checks. If a failure has no determined integration fix, then leave
    the merge pending and return `verification-failed`.
-6. **Commit.** If unstaged changes or untracked files remain, then return
-   `stopped`. Otherwise commit the whole index, since a merge rejects path
-   arguments, without opening an editor: use Git's default merge message,
-   appending one line per integration fix, and keep hooks enabled; a hook
-   failure is a verification failure. Return `merged`.
+6. **Commit.** If `git status --porcelain --untracked-files=normal` shows
+   unstaged changes or untracked files, then return `stopped`. Otherwise
+   commit the whole index, since a merge rejects path arguments, with hooks
+   enabled; a hook failure is a verification failure. Pipe Git's default merge
+   message plus one line per integration fix into `git commit`:
+
+   ```sh
+   { cat "$(git rev-parse --git-path MERGE_MSG)"; printf '%s\n' "$FIXES"; } \
+     | git commit --cleanup=strip -F -
+   ```
+
+   Return `merged`.
 
 ## Report
 
