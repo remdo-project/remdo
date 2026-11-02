@@ -18,7 +18,12 @@ class WorkspaceStoreTests(TestCase):
         """Commit, expecting each changed file as it currently is unless told otherwise."""
         if expected is None:
             expected = {path: store.read(self.workspace, path).blob_hash for path in changes}
-        return store.commit(self.workspace, self.owner, message, changes, expected)
+        return store.commit(
+            self.workspace,
+            self.owner,
+            message,
+            {path: (expected[path], content) for path, content in changes.items()},
+        )
 
     def content(self, path):
         return store.read(self.workspace, path).content
@@ -82,10 +87,6 @@ class WorkspaceStoreTests(TestCase):
 
         self.assertEqual(mine.parent, other)
         self.assertEqual(store.files_at(mine), {"a.md": b"mine\n", "b.md": b"other\n"})
-
-    def test_every_changed_file_needs_expected_content(self):
-        with self.assertRaises(store.StaleFile):
-            self.commit({"a.md": b"x\n", "b.md": b"y\n"}, expected={"a.md": None})
 
     def test_delete_keeps_history(self):
         first = self.commit({"a.md": b"kept in history\n"})

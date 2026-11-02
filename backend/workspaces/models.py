@@ -31,18 +31,6 @@ class Workspace(models.Model):
         ordering = ["created_at", "id"]
 
 
-class WorkspaceMember(models.Model):
-    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="members")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["workspace", "user"], name="one_member_per_workspace_user"
-            )
-        ]
-
-
 class Blob(models.Model):
     hash = models.CharField(primary_key=True, max_length=64)
     content = models.BinaryField()
@@ -76,17 +64,11 @@ class RevisionChange(models.Model):
 class WorkspaceFile(models.Model):
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="files")
     path = models.CharField(max_length=PATH_MAX_LENGTH)
-    # Hash of the case-folded path, so two files a case-insensitive filesystem would merge
-    # can't coexist. Hashed because case folding can grow a path past index size limits.
-    path_key = models.CharField(max_length=64)
     blob = models.ForeignKey(Blob, on_delete=models.PROTECT)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=["workspace", "path"], name="one_file_per_workspace_path"
-            ),
-            models.UniqueConstraint(
-                fields=["workspace", "path_key"], name="one_file_per_workspace_path_key"
             ),
         ]
