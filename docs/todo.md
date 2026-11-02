@@ -202,12 +202,12 @@ Decisions requiring a contract owner's judgement:
 
 - **Remaining agent skill alignment.** Apply the adopted
   [specification/procedure boundary](documentation.md#agent-skill-boundary) to
-  the remaining skills, including folding the Claude-only `playground`
-  specification into its `SKILL.md`. Reconsider custom scripts and state
-  machines that encode adaptive work without enough robustness to justify
-  their maintenance. Prefer concise intent plus deterministic checks of stable
-  repository invariants, then align each affected specification, procedure,
-  implementation, and coverage.
+  the remaining skills, including folding the Claude-only `playground` and
+  `remdo-prepare-change` specifications into their `SKILL.md`. Reconsider
+  custom scripts and state machines that encode adaptive work without enough
+  robustness to justify their maintenance. Prefer concise intent plus
+  deterministic checks of stable repository invariants, then align each
+  affected specification, procedure, implementation, and coverage.
 
 - **Large-scope documentation alignment.** Evaluate the structured finding
   schema and parallel specialist-reviewer layout from the Upkeep skill

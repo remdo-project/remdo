@@ -74,8 +74,9 @@ questions and preserve only the context useful for returning to the work.
 
 ### Agent skill boundary
 
-A skill gets a specification only when more than one provider uses it;
-otherwise its `SKILL.md` is the sole owner. A skill specification
+A skill shared across providers lives in `.agents/skills/`, is exposed to
+Claude by symlink, and has a specification. A single-provider skill lives in
+its provider's skill directory, and its `SKILL.md` is the sole owner. A skill specification
 is sufficient without its procedure and owns choices that
 change promised capability behavior. Its procedure owns replaceable execution
 details such as owner loading, commands, paths, tool calls, output decoding, and

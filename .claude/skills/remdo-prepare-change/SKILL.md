@@ -1,6 +1,6 @@
 ---
 name: remdo-prepare-change
-description: Coordinate an explicitly requested RemDo repository change through interactive framing, owning-branch setup, target-behavior establishment, execution, convergence, and handoff. Use when the developer invokes $remdo-prepare-change for a new or existing change.
+description: Coordinate an explicitly requested RemDo repository change through interactive framing, owning-branch setup, target-behavior establishment, execution, convergence, and handoff. Use when the developer invokes /remdo-prepare-change for a new or existing change.
 ---
 
 # RemDo Prepare Change
@@ -24,7 +24,7 @@ fresh subagent as specified.
 
 Before creating or editing a durable specification, read [`Documentation`](../../../docs/documentation.md).
 
-At **Converge the change**, invoke `$remdo-converge-change` with the formed scope.
+At **Converge the change**, invoke `/remdo-converge-change` with the formed scope.
 
 ## Report
 
