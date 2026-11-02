@@ -202,8 +202,8 @@ Decisions requiring a contract owner's judgement:
 
 - **Remaining agent skill alignment.** Apply the adopted
   [specification/procedure boundary](documentation.md#agent-skill-boundary) to
-  the remaining skills, including folding the Claude-only `playground` and
-  `remdo-prepare-change` specifications into their `SKILL.md`. Reconsider
+  the remaining skills, including folding the Claude-only `playground`
+  specification into its `SKILL.md`. Reconsider
   custom scripts and state machines that encode adaptive work without enough
   robustness to justify their maintenance. Prefer concise intent plus
   deterministic checks of stable repository invariants, then align each
@@ -562,11 +562,6 @@ concrete unmet need.
   search.
 
 ### Agents
-
-- **Capability protocol adoption.** Identify agent capabilities used as
-  composable participants, give their specifications explicit `Call` and
-  `Result` sections conforming to the [capability protocol](specs/agents/protocol.md), then align their execution
-  procedures. Do not invent calls for developer-facing entry points.
 
 - **Post-skill retrospectives.** Make an on-demand retrospective available
   after skill runs, using saved session logs to explain elapsed time, repeated

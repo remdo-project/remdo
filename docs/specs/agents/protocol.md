@@ -1,25 +1,8 @@
 # Capability protocol
 
-Capabilities exchange structured calls and results. The capability addressing
-a human renders its result as a report. Each capability owns its call fields,
-outcomes, and result fields.
-
-## Calls
-
-Before invocation, a caller establishes the required guarantees, holds the
-declared authority, and passes the capability's call as literal YAML:
-
-```yaml
-guarantees:
-  <capability-owned guarantees>
-authority:
-  <capability-owned authority>
-```
-
-Each capability contract defines its exact call and rejection result. The
-capability validates the declaration, trusts its guarantees rather than
-re-establishing them, and rejects it before mutation when a required field is
-absent or incompatible.
+Capabilities return structured results. The capability addressing a human
+renders its result as a report. Each capability owns its outcomes and result
+fields.
 
 ## Results
 
@@ -79,12 +62,6 @@ A `Concern` has this shape:
 source: <originating capability, participant, or capability-owned source>
 summary: <condition>
 ```
-
-## Aggregation
-
-A caller preserves decisions, unhandled non-success statuses, and concerns with
-their provenance. It may consolidate them as its contract permits without
-changing their meaning.
 
 ## Reports
 

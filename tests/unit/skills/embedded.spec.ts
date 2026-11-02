@@ -9,7 +9,6 @@ import process from 'node:process';
 import { describe, expect, it, vi } from 'vitest';
 import { SUBPROCESS_TEST_TIMEOUT_MS } from '../_support/timeouts';
 
-import '../../../.agents/skills/_shared/tests/create-branch-from-base.spec';
 import '../../../.agents/skills/_shared/tests/resolve-scope.spec';
 import '../../../.agents/skills/remdo-merge-main/tests/merge-main.spec';
 
