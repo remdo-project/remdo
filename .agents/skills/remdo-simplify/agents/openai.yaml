@@ -1,6 +1,0 @@
-interface:
-  display_name: "RemDo Simplify"
-  short_description: "Assess RemDo targets for simpler code and tests"
-  default_prompt: "Use $remdo-simplify to report behavior-preserving code and test simplifications for the selected RemDo assessment target."
-policy:
-  allow_implicit_invocation: false

@@ -200,12 +200,6 @@ Decisions requiring a contract owner's judgement:
 
 ### Documentation
 
-- **Remaining agent-flow specification alignment.** Reassess [`remdo-verify-change`](specs/agents/skills/remdo-verify-change.md)
-  under the structured-algorithm guidance.
-  Align each specification as a whole contract with one clear behavioral account
-  while preserving accepted behavior and material edge paths; avoid mechanical
-  notation-only conversions.
-
 - **Remaining agent skill alignment.** Apply the adopted
   [specification/procedure boundary](documentation.md#agent-skill-boundary) to
   the remaining skills. Reconsider custom scripts and state machines that encode
@@ -567,14 +561,14 @@ concrete unmet need.
 
 ### Agents
 
+- **Playground specification.** The Claude-only `playground` skill still has a
+  [specification](specs/agents/skills/playground.md), contrary to the
+  [skill boundary](documentation.md#agent-skill-boundary); fold it into its `SKILL.md`.
+
 - **Capability protocol adoption.** Identify agent capabilities used as
   composable participants, give their specifications explicit `Call` and
   `Result` sections conforming to the [capability protocol](specs/agents/protocol.md), then align their execution
   procedures. Do not invent calls for developer-facing entry points.
-
-- **Structured reviewer results.** Evaluate provider-supported structured
-  findings, such as JSON Schema output, without weakening native review or
-  evidence. If viable, define verifier normalization into the shared [agent result](specs/agents/protocol.md#results).
 
 - **Post-skill retrospectives.** Make an on-demand retrospective available
   after skill runs, using saved session logs to explain elapsed time, repeated
