@@ -48,14 +48,14 @@ change. Do not add update-tracking sections to durable documents.
 ## Repository authority
 
 - Inspect and edit within the requested scope without separate permission.
-- Commit only when the user explicitly authorizes it or an invoked skill grants
-  it in its specification; that authority includes staging only the authorized
+- Commit only when the user explicitly authorizes it or an invoked skill's
+  [owning contract](docs/documentation.md#agent-skill-boundary) grants it; that authority includes staging only the authorized
   commit. A plain change request grants neither commit nor push authority.
 - Never commit on `main`; it is push-protected. When commit authority applies
   on `main`, first create and switch to a new topic branch named per
   [Git workflow](CONTRIBUTING.md#git-workflow), carrying the uncommitted work,
   and commit there. Commit authority includes that branch creation.
-- A skill specification may grant autonomous repository authority only by
+- A skill's owning contract may grant autonomous repository authority only by
   declaring its permitted effects, scope, and lifecycle.
   Undeclared branch or ref changes, stashing, and resets require an explicit
   user request.

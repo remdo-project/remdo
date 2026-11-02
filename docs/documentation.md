@@ -29,8 +29,6 @@ Each durable statement lives with the owner of the question it answers.
   task. Its steps derive from and link to the applicable contract and mechanism
   owners.
 - **Agent skills — [Specifications and procedures](#agent-skill-boundary).**
-  Accepted behavior lives under `docs/specs/agents/skills/`; execution
-  procedures live in each `SKILL.md`.
 - **`AGENTS.md` and `CLAUDE.md` — Agent instruction surfaces.**
   The surfaces own their directly loaded rules; [Agent instructions](specs/agents/instructions.md)
   owns their design, responsibilities, and deterministic structural contracts.
@@ -74,7 +72,12 @@ questions and preserve only the context useful for returning to the work.
 
 ### Agent skill boundary
 
-A skill specification is sufficient without its procedure and owns choices that
+A skill shared across providers lives in `.agents/skills/`, is exposed to
+Claude by symlink, and has a specification under `docs/specs/agents/skills/`.
+A single-provider skill lives in
+its provider's skill directory, and its `SKILL.md` is the sole owner, filling
+both roles below. A skill specification
+is sufficient without its procedure and owns choices that
 change promised capability behavior. Its procedure owns replaceable execution
 details such as owner loading, commands, paths, tool calls, output decoding, and
 dispatch. It loads the complete capability specification before work and links

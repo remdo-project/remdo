@@ -1,6 +1,6 @@
 ---
 name: playground
-description: Create an interactive HTML playground for visual configuration, immediate preview, and a copyable prompt. Use when the user asks for a playground, explorer, or interactive tool. This Claude-only RemDo adapter publishes ignored scratch through the development server.
+description: Create an interactive HTML playground for visual configuration, immediate preview, and a copyable prompt. Use when the user asks for a playground, explorer, or interactive tool. This Claude-only RemDo skill publishes ignored scratch through the development server.
 ---
 
 # Playground

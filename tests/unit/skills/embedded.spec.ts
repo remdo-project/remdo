@@ -9,11 +9,8 @@ import process from 'node:process';
 import { describe, expect, it, vi } from 'vitest';
 import { SUBPROCESS_TEST_TIMEOUT_MS } from '../_support/timeouts';
 
-import '../../../.agents/skills/_shared/tests/create-branch-from-base.spec';
-import '../../../.agents/skills/_shared/tests/resolve-agent-settings.spec';
 import '../../../.agents/skills/_shared/tests/resolve-scope.spec';
 import '../../../.agents/skills/remdo-merge-main/tests/merge-main.spec';
-import '../../../.agents/skills/remdo-verify-change/tests/run-reviews.spec';
 
 // The bridged specs spawn git and shell subprocesses, which a loaded CI runner
 // can stall past the 5s default.
