@@ -28,13 +28,14 @@ Wait for each invoked skill's result before continuing.
    as a standalone `Scope:` line. If the
    state is `no-change`, then return `converged`; if it is `failed`, then
    return `stopped`. The target is `<BASE>..HEAD` with the resolved `BASE` for
-   a commit range, or the space-separated `FILES` for an uncommitted scope.
+   a commit range, or each `FILES` path as a quoted argument for an
+   uncommitted scope.
 2. **Simplify.** Run `/simplify <target>`, then [validate](#validate) its edits.
 3. **Review.** Run `/code-review high --fix <target>`, then
    [validate](#validate) its edits.
 4. **Probe.** Run `/code-review high <target>` and leave its findings
    unapplied. Classify each as actionable or not, and by origin: `introduced`
-   by steps 2–3, `deferred` when step 3 reported it but left it unapplied, or
+   by steps 2–3, `deferred` when step 2 or 3 left it unapplied, or
    `missed` otherwise.
 5. **Handoff checks.** Run the testing policy's
    [handoff verification](../../../docs/dev/testing.md#verification-lifecycle),
@@ -47,12 +48,14 @@ Wait for each invoked skill's result before continuing.
 
 Skip validation when the step made no edits. Otherwise run the testing
 policy's [pre-commit checks](../../../docs/dev/testing.md#verification-lifecycle).
-Repair or revert edits those checks fail; if a failure remains, then return
+Repair or revert edits those checks fail, reverting only the step's own edits
+so an uncommitted scope keeps its earlier work; if a failure remains, then return
 `stopped`; a commit range leaves its uncommitted edits in place. Persist the
 edits under [Authority](#authority), then rerun the resolver with `uncommitted`
 or the commit-range target and refresh `scope` under the
 [change-scope refresh rule](../../../docs/specs/agents/change-scope.md#result-type).
-If it reports `no-change`, then return `converged`. For an uncommitted scope,
+If it reports `no-change`, then return `converged`; if it reports `failed`,
+then return `stopped`. For an uncommitted scope,
 the refreshed `FILES` become the target.
 
 ## Result
