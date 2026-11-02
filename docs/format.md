@@ -36,7 +36,8 @@ headings and lists inside it are plain content.
 
 An outline note holds:
 
-- Marker:: heading level, bullet, number, open checkbox or checked checkbox
+- Marker:: heading level, bullet or number
+- Checkbox:: optional open or checked state after any marker, as in `1. [x]`
 - Name:: optional plain text at the start of a note, written as `name:: text`
     > - `::` must be followed by a space or the end of the line
     > - May contain spaces
@@ -45,14 +46,23 @@ An outline note holds:
     > - Tools write one line; continuation lines in a paragraph join into Text
     > - Links use Markdown syntax with a URI target, as in [note IDs](note:k3x9)
     > - Tools escape Text that would otherwise read as Markdown structure
+    > - Tools trim whitespace at the start and end of Text
 - Children:: an ordered list of Markdown blocks and outline notes
     > - Tools indent children under a list item by 4 spaces per level
     > - Tools write `1.` where another number could not interrupt a paragraph
+    > - Tools write a blank line before an empty first child after parent text
     > - Tools wrap a Markdown block under a list item in `>` lines
     > - Under a heading, a block holding a list or heading keeps its `>` lines
+    > - That `>` is a wrapper, so each element inside is one editor line
+    > - Any other quote keeps `>` as content and stays one editor line
     > - Adjacent blocks form one Markdown block
+    > - One top-level element in a block is one editor line
+    > - A soft-wrapped paragraph is one editor line holding breaks
+    > - Tools separate lines they move or write with a blank line or `>`
 - ID:: optional and added lazily, such as when a note is first referenced
-    > An ID is a named note, such as the one below
+    > - An ID is a named note, such as the one below
+    > - Tools write it after any first block and before outline children
+    > - A document's ID is a top-level note before its first heading
     - id:: k3x9
 
 ## Canonical spelling
@@ -61,10 +71,12 @@ Tools write:
 
 - Bullet:: `-`
 - Heading:: `#` markers for its level, as in `## Title`
-- Bold, italic:: `**x**`, `*x*`
-- Strikethrough:: `~~x~~`
+- Bold, italic:: `**x**`, `*x*`, with marks moved off surrounding whitespace
+- Strikethrough:: `~~x~~`, with marks moved off surrounding whitespace
 - Underline:: `<u>x</u>`
 - Date:: `[1 Nov](date:2026-11-01)`
+- Note or document link:: `[x](note:k3x9)`
+- Other file link:: relative path, as in `[x](../assets/chart.png)`
 - Code block:: backtick fence
 - Hard line break:: trailing `\`
 - Rule:: `---`
@@ -72,19 +84,13 @@ Tools write:
 
 ## Follow-up
 
-- Align notes with the last saved text on write; editor state holds no spelling
-- Apply external text as a Yjs update from the last saved state
-- Keep concurrent edits on moved notes
-- Give the editor headings, top-level Markdown blocks and per-note markers
-- Reconcile note ID assignment with lazy IDs
-- Keep inline HTML when its note is edited
-- Align the note model, body, note ID and folding specs with this format
-- Serialize documents to this format, with Yjs state as a rebuildable cache
-- Update MCP and clipboard to read and write this format
-- Remove the draft note and move remaining follow-up to `docs/todo.md`
+The [adoption plan](text-format-plan.md) tracks repository integration.
+
 - Align lint with numbering and indentation, then drop this file's exceptions
 - Decide how to read YAML front matter
-- Design live collaboration as a merge layer over the text
 - Keep link reference definitions when writing a document
 - Indent children past wide markers such as `100.`
 - Insert a blank line before a list that follows an HTML block
+- Keep inline HTML when its note is edited
+- Define spellings for autolinks, flanking cases and an empty document
+- Reconcile date labels with the dates specification
