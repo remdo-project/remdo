@@ -20,31 +20,31 @@ authority in step 5.
    clear, grounding questions in repository evidence and the
    [accepted contracts](../../../docs/documentation.md#target-behavior). Use a
    read-only fresh-context subagent only for an independent question, and give
-   it the question without a proposed answer. Continue when the developer asks to
-   proceed or the request already frames the change sufficiently.
+   it the question without a proposed answer. Continue when the developer asks
+   to proceed or the request already frames the change sufficiently.
 2. **Branch.** Run `git fetch origin main`. If switching would carry
-   uncommitted work, or the owning branch holds commits, that the framed change
-   does not adopt, then ask. Otherwise switch to the owning
+   uncommitted work the framed change does not adopt, or the owning branch holds
+   commits it does not adopt, then ask. Otherwise switch to the owning
    [topic branch](../../../CONTRIBUTING.md#git-workflow), creating it with
    `git switch -c <branch> --no-track origin/main` unless the developer named
-   another base.
+   another base. Record the commit the branch forks from as its base.
 3. **Contracts.** Identify the
    [contract owners](../../../docs/documentation.md#ownership) of the change's
    behavior. If accepted behavior does not change, then say so and continue.
    Otherwise edit only the owners whose behavior changes, leave the edits
    uncommitted, and ask the developer to review the diff. Approval establishes
-   the behavior. Feedback revises the edits, or returns to step 1 when it
+   the behavior. Feedback revises the edits, or returns to **Frame** when it
    changes the direction.
 4. **Implement.** Commit the approved contract edits, then realize the
    established behavior and commit it. If the work would change established
-   behavior, then return to step 3; if it invalidates the direction, then
-   return to step 1.
-5. **Converge.** Invoke `/remdo-converge-change <base>...HEAD`, where `<base>`
-   is `origin/main` or the developer-named base. If it returns `stopped`, then
-   report why and ask whether to retry from this step or from the earliest step
-   its reason invalidates.
+   behavior, then return to **Contracts**; if it invalidates the direction,
+   then return to **Frame**.
+5. **Converge.** Invoke `/remdo-converge-change <base>..HEAD` with the recorded
+   base. If it returns `stopped`, then report why and ask whether to retry from
+   **Converge** or from the earliest step its reason invalidates.
 6. **Hand off.** Report under the shared
    [Reports](../../../docs/specs/agents/protocol.md#reports) contract: the
-   change, the established behavior and its owners, the convergence result,
-   tracked gaps, and needed manual review. Behavior feedback returns to step 3
-   and implementation feedback to step 4.
+   change, the established behavior and its owners, the convergence result
+   with its decisions and concerns, tracked gaps, and needed manual review.
+   Direction feedback returns to **Frame**, behavior feedback to
+   **Contracts**, and implementation feedback to **Implement**.
