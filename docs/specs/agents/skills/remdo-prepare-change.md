@@ -10,7 +10,7 @@ participating capabilities retain their contracts.
 create or switch to its owning branch during **Ready the owning branch** and
 create commits during **Execute the established change**, itself or through
 participating capabilities. During **Converge the change**,
-`remdo-converge-change` retains its declared repository authority.
+[`remdo-converge-change`](../../../../.claude/skills/remdo-converge-change/SKILL.md) retains its declared repository authority.
 
 ## Lifecycle
 
@@ -84,10 +84,10 @@ to the next numbered phase.
 5. **Converge the change.**
    - **Convergence:** Autonomous. Make all adopted work representable by one
      supported [change-scope input](../change-scope.md#resolution) and invoke
-     [`remdo-converge-change`](remdo-converge-change.md).
+     `remdo-converge-change`.
    - **Scope failure:** If one supported scope cannot be formed within held
      authority, retain a [concern](../protocol.md#concerns) and return `stopped`.
-   - **Non-convergence:** If convergence returns `stopped` or `not-converged`,
+   - **Non-convergence:** If convergence returns `stopped`,
      retain the complete nested result. The retry step is **Converge the change**
      unless the reported condition invalidates an earlier phase's outcome; in
      that case use the earliest invalidated phase. Ask the developer whether to
