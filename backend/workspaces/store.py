@@ -1,4 +1,4 @@
-"""Workspace text and history: the only module that writes workspace files."""
+"""Workspace files and history: the only module that writes workspace files."""
 
 import hashlib
 import unicodedata
@@ -6,15 +6,23 @@ from dataclasses import dataclass
 
 from django.db import transaction
 
-from .models import PATH_MAX_LENGTH, Blob, Revision, RevisionChange, Workspace, WorkspaceFile
+from .models import (
+    FILE_MAX_BYTES,
+    PATH_MAX_LENGTH,
+    Blob,
+    Revision,
+    RevisionChange,
+    Workspace,
+    WorkspaceFile,
+)
 
 
 class StoreError(ValueError):
     pass
 
 
-class StaleBase(StoreError):
-    """The caller's base revision is no longer the workspace head."""
+class StaleFile(StoreError):
+    """A file changed since the caller read it."""
 
 
 class NoChanges(StoreError):
@@ -25,7 +33,7 @@ class InvalidPath(StoreError):
     pass
 
 
-class InvalidText(StoreError):
+class InvalidContent(StoreError):
     pass
 
 
@@ -40,11 +48,13 @@ WINDOWS_FORBIDDEN_CHARS = set('<>:"|?*\\')
 
 @dataclass(frozen=True)
 class File:
-    """A file as of `base`; `text` and `blob_hash` are None when the path doesn't exist."""
+    """A file's content and content hash; both are None when the path doesn't exist.
+
+    Pass `blob_hash` back to `commit` as the content expected for this path.
+    """
 
     path: str
-    base: int | None
-    text: str | None
+    content: bytes | None
     blob_hash: str | None
 
 
@@ -73,28 +83,22 @@ def path_key(path):
     return hashlib.sha256(path.casefold().encode()).hexdigest()
 
 
-def blob_hash(text):
-    if not isinstance(text, str) or "\x00" in text:
-        raise InvalidText("Text must be a string without NUL characters.")
-    try:
-        data = text.encode()
-    except UnicodeEncodeError as error:
-        raise InvalidText("Text must be valid Unicode.") from error
-    return hashlib.sha256(data).hexdigest()
+def blob_hash(content):
+    if not isinstance(content, bytes):
+        raise InvalidContent("Content must be bytes.")
+    if len(content) > FILE_MAX_BYTES:
+        raise InvalidContent(f"Files are limited to {FILE_MAX_BYTES} bytes.")
+    return hashlib.sha256(content).hexdigest()
 
 
 def read(workspace, path):
-    """Read a file with the head to pass as `base` when committing a change to it."""
     path = normalize_path(path)
-    # Head first: if a commit lands between the two queries, the file is newer than `base`,
-    # so a commit based on it fails as stale instead of overwriting.
-    base = Workspace.objects.filter(pk=workspace.pk).values_list("head_id", flat=True).get()
     row = (
         WorkspaceFile.objects.select_related("blob").filter(workspace=workspace, path=path).first()
     )
     if row is None:
-        return File(path, base, None, None)
-    return File(path, base, row.blob.text, row.blob_id)
+        return File(path, None, None)
+    return File(path, bytes(row.blob.content), row.blob_id)
 
 
 def list_paths(workspace):
@@ -106,26 +110,34 @@ def list_paths(workspace):
 
 
 @transaction.atomic
-def commit(workspace, author, message, changes, base):
-    """Apply `changes` ({path: text or None}) on top of `base` as one new revision.
+def commit(workspace, author, message, changes, expected):
+    """Apply `changes` ({path: content bytes or None}) as one new revision on top of the head.
 
-    Raises StaleBase, writing nothing, when `base` is not the current head.
+    `expected` maps every changed path to the blob hash the caller read, or None for a file
+    the caller saw missing. Raises StaleFile, writing nothing, when any of them differs.
     """
+    # Serializes commits per workspace: a row lock on PostgreSQL, and SQLite's IMMEDIATE
+    # transactions already allow one writer at a time.
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
-    base_id = base.pk if isinstance(base, Revision) else base
-    if locked.head_id != base_id:
-        raise StaleBase(f"Base {base_id} is not head {locked.head_id}.")
 
+    expected_hashes = {normalize_path(path): hash_ for path, hash_ in expected.items()}
     requested = {}
-    for path, text in changes.items():
+    for path, content in changes.items():
         path = normalize_path(path)
         if path in requested:
             raise InvalidPath(f"Path {path!r} appears twice.")
-        requested[path] = None if text is None else (text, blob_hash(text))
+        if path not in expected_hashes:
+            raise StaleFile(f"No expected content given for {path!r}.")
+        requested[path] = None if content is None else (content, blob_hash(content))
 
     current = {
         row.path: row for row in WorkspaceFile.objects.filter(workspace=locked, path__in=requested)
     }
+    for path in requested:
+        existing, hash_ = current.get(path), expected_hashes[path]
+        if (existing and existing.blob_id) != hash_:
+            raise StaleFile(f"{path!r} changed since it was read.")
+
     effective = {}
     for path, value in requested.items():
         existing = current.get(path)
@@ -141,13 +153,13 @@ def commit(workspace, author, message, changes, base):
     _check_namespace(locked, effective)
 
     # Sorted, so commits sharing new blobs insert them in the same order and can't deadlock.
-    new_blobs = {hash_: text for text, hash_ in filter(None, effective.values())}
+    new_blobs = {hash_: content for content, hash_ in filter(None, effective.values())}
     Blob.objects.bulk_create(
-        [Blob(hash=hash_, text=new_blobs[hash_]) for hash_ in sorted(new_blobs)],
+        [Blob(hash=hash_, content=new_blobs[hash_]) for hash_ in sorted(new_blobs)],
         ignore_conflicts=True,
     )
     revision = Revision.objects.create(
-        workspace=locked, parent_id=base_id, author=author, message=message
+        workspace=locked, parent_id=locked.head_id, author=author, message=message
     )
     RevisionChange.objects.bulk_create(
         [
@@ -165,9 +177,9 @@ def commit(workspace, author, message, changes, base):
                 defaults={"blob_id": value[1], "path_key": path_key(path)},
             )
 
-    # The conditional update is the compare-and-set; the row lock above only avoids wasted work.
-    if not Workspace.objects.filter(pk=locked.pk, head_id=base_id).update(head=revision):
-        raise StaleBase(f"Base {base_id} changed during the commit.")
+    # Keeps history a single line even if the lock above were ever weakened.
+    if not Workspace.objects.filter(pk=locked.pk, head_id=locked.head_id).update(head=revision):
+        raise StaleFile("Another commit landed during this one.")
     workspace.head = revision
     return revision
 
@@ -207,15 +219,15 @@ def files_at(revision):
             change
             for change in RevisionChange.objects.filter(
                 revision__workspace_id=revision.workspace_id
-            ).values_list("revision_id", "path", "blob_id", "blob__text")
+            ).values_list("revision_id", "path", "blob_id", "blob__content")
             if change[0] in position
         ),
         key=lambda change: position[change[0]],
     )
     files = {}
-    for _revision_id, path, blob_id, text in changes:
+    for _revision_id, path, blob_id, content in changes:
         if blob_id is None:
             files.pop(path, None)
         else:
-            files[path] = text
+            files[path] = bytes(content)
     return files

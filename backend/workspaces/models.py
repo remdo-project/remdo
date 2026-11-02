@@ -6,6 +6,7 @@ from django.db import models
 
 WORKSPACE_NAME_MAX_LENGTH = 200
 PATH_MAX_LENGTH = 500
+FILE_MAX_BYTES = 10 * 1024 * 1024
 # Mirrors createUniqueNoteId in src/domain/notes/ids.ts.
 WORKSPACE_ID_ALPHABET = "".join(
     char for char in string.ascii_letters + string.digits if char not in "0OIl"
@@ -44,7 +45,7 @@ class WorkspaceMember(models.Model):
 
 class Blob(models.Model):
     hash = models.CharField(primary_key=True, max_length=64)
-    text = models.TextField()
+    content = models.BinaryField()
 
 
 class Revision(models.Model):

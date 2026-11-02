@@ -11,18 +11,21 @@ stage can merge to `main` without affecting existing documents.
 
 ### Storage
 
-- A workspace's Markdown files and their history live in the database, Postgres
-  in production and SQLite locally, and that text is the source of truth. One
-  database backup covers everything.
-- History uses three tables: `blob` holds text keyed by content hash, `revision`
+- A workspace's files and their history live in the database, Postgres in
+  production and SQLite locally, and that content is the source of truth.
+  Markdown documents are one kind of file; the store holds any kind as bytes.
+- One database backup covers everything while file content stays in the
+  database, which suits Markdown and reasonably sized images. Large files can
+  later move to an object store under the same content hash. Its objects never
+  change once written, so the object store needs only versioning, and unused
+  objects are deleted only after backups expire.
+- History uses three tables: `blob` holds content keyed by hash, `revision`
   holds the workspace, parent, author, time and message, and `revision_change`
   holds the paths each revision added, changed or deleted. `workspace_file`
   holds current state, so only history views and Git export replay changes.
   The Git adapter adds stored commit IDs in stage 5.
-- Paths are NFC Unicode and must work on case-insensitive filesystems and
-  Windows: no case-only or file-versus-folder clashes, no reserved names.
-- A commit names the revision it was based on and fails as stale, writing
-  nothing, if another commit landed first.
+- The [workspace store](specs/workspaces/store.md) owns the file, path, commit
+  and read rules.
 - Git is a rebuildable projection and sync channel. `git fast-import` builds a
   repository from the tables, and stored commit IDs keep hashes stable, so
   clones never diverge. The same adapter serves clone, export, a user's own
