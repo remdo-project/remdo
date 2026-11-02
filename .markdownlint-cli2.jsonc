@@ -25,8 +25,7 @@
     // their own SKILL.md and must stay linted.
     // Kept in sync by tests/unit/skills/embedded.spec.ts (fails if a symlink is
     // missing here).
-    ".claude/skills/remdo-merge-main",
-    ".claude/skills/spec-complexity"
+    ".claude/skills/remdo-merge-main"
   ],
   // Link/anchor validation rides markdownlint's own parser:
   // relative-link existence + `#fragment` heading match (MD051-style),
