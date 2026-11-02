@@ -48,7 +48,9 @@ Wait for each invoked skill's result before continuing.
 Skip validation when the step made no edits. Otherwise run the testing
 policy's [pre-commit checks](../../../docs/dev/testing.md#verification-lifecycle).
 Repair or revert edits those checks fail; if a failure remains, then return
-`stopped`. Persist the edits under [Authority](#authority).
+`stopped`. Persist the edits under [Authority](#authority). For an uncommitted
+scope, replace the target with the `FILES` of a resolver rerun with
+`uncommitted`, so later steps cover files the edits added.
 
 ## Result
 
