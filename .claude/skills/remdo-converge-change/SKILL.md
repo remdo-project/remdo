@@ -1,6 +1,6 @@
 ---
 name: remdo-converge-change
-description: Simplify, review, and verify one RemDo change scope (uncommitted work, otherwise the branch against origin/main) with Claude Code's /simplify and /code-review. Use only when the caller explicitly invokes remdo-converge-change.
+description: Simplify, review, and verify one RemDo change scope with Claude Code's /simplify and /code-review. Use only when the caller explicitly invokes remdo-converge-change.
 argument-hint: "[uncommitted | <base>..HEAD | <base>...HEAD]"
 ---
 
@@ -37,11 +37,10 @@ Wait for each invoked skill's result before continuing.
    by steps 2–3, `deferred` when step 3 reported it but left it unapplied, or
    `missed` otherwise.
 5. **Handoff checks.** Run the testing policy's
-   [handoff verification](../../../docs/dev/testing.md#verification-lifecycle)
-   for the complete scope, plus `pnpm run audit:cleanup` when the scope
-   contains code or tests. Handle failures under that policy: fix those the
-   change caused, [validate](#validate) the fixes, and rerun the failed checks.
-   If a failure the change caused remains, then return `stopped`.
+   [handoff verification](../../../docs/dev/testing.md#verification-lifecycle),
+   plus `pnpm run audit:cleanup` when the scope contains code or tests, and
+   handle failures under that policy. [Validate](#validate) any fixes; if a
+   failure the change caused remains, then return `stopped`.
 6. Return `converged`.
 
 ### Validate
@@ -58,7 +57,7 @@ the refreshed `FILES` become the target.
 
 ## Result
 
-`scope` is the latest refreshed result. Report under the shared [Reports](../../../docs/specs/agents/protocol.md#reports)
+Report under the shared [Reports](../../../docs/specs/agents/protocol.md#reports)
 contract, with the shared [result fields](../../../docs/specs/agents/protocol.md#results)
 and the [`ChangeScopeResult`](../../../docs/specs/agents/change-scope.md#result-type) type:
 
