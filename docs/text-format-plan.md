@@ -11,29 +11,59 @@ stage can merge to `main` without affecting existing documents.
 
 ### Storage
 
-- A workspace is a Git repository of Markdown files, and that text is the
-  source of truth. A Django record holds its stable ID and members.
+- A workspace's Markdown files and their history live in the database, Postgres
+  in production and SQLite locally, and that text is the source of truth. One
+  database backup covers everything.
+- History uses three tables: `blob` holds text keyed by content hash, `revision`
+  holds the workspace, parent, author, time, message and Git commit ID, and
+  `revision_change` holds the paths each revision added, changed or deleted,
+  with periodic full snapshots.
+- Git is a rebuildable projection and sync channel. `git fast-import` builds a
+  repository from the tables, and stored commit IDs keep hashes stable, so
+  clones never diverge. The same adapter serves clone, export, a user's own
+  remote and a local folder of plain files.
 - Each document's cache row holds its cache ID, path, generation, Yjs state,
-  saved text and hash.
+  saved text and hash. A save writes text and Yjs state in one transaction.
 - A hash mismatch runs the external-edit sync. Rebuilding Yjs state from text is
   rare recovery, because it can duplicate or strand offline work.
-- A save writes text first, then Yjs state with a copy of that text as the merge
-  base. An unreferenced Git blob can be pruned, so it can't hold the base.
 - Each Yjs lineage has a generation ID. A stale client never syncs Yjs state:
   its last synced text goes through a three-way merge.
-- Saves follow edits going quiet. Commits are batched per session or idle
-  period, and each text-door edit gets its own commit and author.
+- Saves follow edits going quiet. Revisions are batched per session or idle
+  period, and each text-door edit gets its own revision and author.
+- If Yjs write volume inflates the change log, Yjs state can move to disk. Saves
+  then write text first and recover through the hash check.
+
+### Search
+
+- `document_text` holds each document's current text, and `note_index` holds
+  one row per note with its path, position, parent path, ID, text and links.
+  Both are rebuilt from the text in the save transaction.
+- `note_index` also serves the `note:` resolver, backlinks and MCP `search`.
+- Postgres matches with full-text search in the `simple` configuration plus
+  `pg_trgm`; SQLite uses FTS5. Every query filters by workspace membership.
+- Django parses with `markdown-it-py`, because closed documents never reach
+  Node. The index only reads, so a parser disagreement misplaces a hit at worst.
+
+### Storage alternatives
+
+- Repositories on disk need two systems backed up consistently.
+- Git objects inside Postgres exist only as experimental libgit2 backends that
+  need a custom extension.
+- Doltgres and Lix version data out of the box but are young. Revisit them if
+  the history tables grow beyond this design.
+- Wiki.js keeps pages in a database with Git sync, and its two-way sync is
+  reported as fragile, so two-way sync comes last.
 
 ### Writers
 
-- Django is the one writer per workspace. It owns the repository, MCP, commits
-  and write order.
+- Django is the one writer per workspace. It owns the workspace tables, MCP,
+  revisions and saves.
 - The live door is the browser through Yjs. The text door is MCP, Git and any
   API.
 - Node shrinks to the Yjs relay and Yjs-to-text conversion, behind three calls:
   save, apply and read live text.
-- A closed document needs no Node: match, write text, commit. The next load
-  syncs through the hash check.
+- A closed document needs no Node: match, write text, record a revision. The
+  next load syncs through the hash check.
 - An open document is saved first, then edited through the fork path, so online
   peers have nothing unsaved.
 - MCP copies the filesystem server's `edit_file` shape. An ambiguous match is an
@@ -75,8 +105,9 @@ Stages 2 and 4 can run in parallel once stage 1 lands. So can stages 3 and 5
 once stage 2 lands.
 
 1. **Foundations**
-   - Add the experimental flag, workspace record and server-managed repository.
-   - Give each flagged user a personal workspace, with documents as files.
+   - Add the experimental flag, workspace record, history tables and
+     `document_text` search.
+   - Give each flagged user a personal workspace of Markdown documents.
    - Add the text door for closed documents through new MCP tools. Existing
      tools stay for old documents.
    - Exit: an agent can list, read, search, edit and create flagged documents.
@@ -85,7 +116,8 @@ once stage 2 lands.
      to the saved text.
    - Extend the editor schema with headings, `block` lines, per-note markers and
      independent checkboxes. Use `line` or `group` storage with no body wrapper.
-   - Add Node's three calls, the cache row, the save order and hash recovery.
+   - Add Node's three calls, the cache row, the one-transaction save and hash
+     recovery.
    - Add cache IDs on RemDo's own node state, with three sync steps: transfer to
      a recreated identical note, repair duplicates, and clear a holder when a
      text `id::` claims its value.
@@ -97,16 +129,17 @@ once stage 2 lands.
    - Keep each client's last synced text, and add the stale-client merge.
    - Show same-word and delete-versus-edit conflicts to the user.
    - Add agent change review: a note-level diff with per-hunk revert.
-   - Exit: two editors, an agent and a `git pull` work together with no silent
-     loss outside the known move limit.
+   - Exit: two editors and an agent work together with no silent loss outside
+     the known move limit.
 4. **Note layer**
-   - Add the `id::` and link indexes, `resolve(uri)` and the new URL routes.
+   - Add `note_index`, `resolve(uri)` and the new URL routes.
    - Add `useNote`, backlinks, search and the workspace source.
    - Check the contract with one read-only external source spike.
    - Exit: the UI and MCP read closed documents' notes without an editor.
 5. **Sharing and Git**
    - Add shared workspaces and members.
-   - Add clone or export, then bring-your-own remote with divergence handling.
+   - Add the Git adapter for clone and export, then a user's own remote and a
+     local folder, with divergence handling through the note-level merge.
    - Add link rewriting on rename and the broken-link check.
    - Exit: a flagged team shares a workspace, and a user clones it.
 6. **Migration**
@@ -118,7 +151,7 @@ once stage 2 lands.
      document in its own workspace. Access never widens.
    - Keep every old ID as a cache ID, promote referenced ones, reapply fold
      flags and redirect old `/n/` URLs.
-   - Start history with one import commit per workspace. Undo resets.
+   - Start history with one import revision per workspace. Undo resets.
    - Keep old Yjs state read-only for a grace period. Late offline clients sync
      into it, and the server applies the difference through the text door.
    - Exit: every document has moved or is reported.
@@ -168,3 +201,5 @@ Switch new documents by reseeding from text once all of these hold:
 - Bold, `@` links and dates in source lines must insert Markdown or stay off.
 - Email rendering, late offline migration and Yjs undo across a reseed are
   untested.
+- The history tables, the Git adapter and search were designed from research,
+  not spikes. The real-server tests stored text in a Git repository.
