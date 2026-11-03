@@ -1,8 +1,8 @@
 /* eslint-disable node/no-process-env */
 // Scratch git-repo harness for the skill-script specs. Each script is
 // spawned (`sh <script>`) against a throwaway repo built here: real commits,
-// branches, and a bare `origin` remote so `origin/main` and `git fetch` behave
-// as in production.
+// branches, and a bare `origin` remote so `origin/main` behaves as in
+// production.
 import { spawnSync } from 'node:child_process';
 import type { SpawnSyncReturns } from 'node:child_process';
 import fs from 'node:fs';
@@ -64,14 +64,8 @@ export function commitAll(dir: string, message: string): string {
 }
 
 // A work repo cloned from a bare `origin` whose default branch is `main`, so
-// `origin/main` is a genuine remote-tracking ref and `git fetch` reaches a real
-// remote. Returns both paths; `origin` is where you push to advance main.
-export interface Scratch {
-  work: string;
-  origin: string;
-}
-
-export function makeScratchWithOrigin(files: Record<string, string>): Scratch {
+// `origin/main` is a genuine remote-tracking ref.
+export function makeScratchWithOrigin(files: Record<string, string>): string {
   const origin = makeDir('skills-origin-');
   gitOk(origin, 'init', '--quiet', '--bare', '--initial-branch=main');
 
@@ -86,18 +80,7 @@ export function makeScratchWithOrigin(files: Record<string, string>): Scratch {
 
   const work = makeDir('skills-work-');
   gitOk(work, 'clone', '--quiet', origin, '.');
-  return { work, origin };
-}
-
-// Advance origin/main by one commit, made from a throwaway second clone so a
-// primary work repo cloned earlier stays behind until it fetches.
-export function advanceOrigin(origin: string): void {
-  const pusher = makeDir('skills-pusher-');
-  gitOk(pusher, 'clone', '--quiet', origin, '.');
-  writeFile(pusher, 'upstream.md', '# upstream\n');
-  commitAll(pusher, 'upstream commit');
-  gitOk(pusher, 'push', '--quiet', 'origin', 'main');
-  fs.rmSync(pusher, { recursive: true, force: true });
+  return work;
 }
 
 // A throwaway directory that is not a git repository — for the scripts'
@@ -106,18 +89,6 @@ export function advanceOrigin(origin: string): void {
 // the real repo).
 export function makeNonRepoDir(): string {
   return makeDir('skills-nogit-');
-}
-
-// A minimal repo with one commit on `main` and no `origin` remote — for the
-// scripts' "not a task branch / origin/main missing" refusals.
-export function makeBareMain(files: Record<string, string>): string {
-  const dir = makeDir('skills-main-');
-  gitOk(dir, 'init', '--quiet', '--initial-branch=main');
-  for (const [file, content] of Object.entries(files)) {
-    writeFile(dir, file, content);
-  }
-  commitAll(dir, 'initial');
-  return dir;
 }
 
 export function runScript(
