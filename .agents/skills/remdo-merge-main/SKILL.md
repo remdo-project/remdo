@@ -21,10 +21,17 @@ fixes. Concurrent repository mutation is unsupported.
    `T=$(git rev-parse FETCH_HEAD)`, and count incoming commits with
    `N=$(git rev-list --count HEAD.."$T")`. If the fetch or either command
    fails, then return `stopped`. If `N` is 0, then return `up-to-date`.
-3. **Merge.** Run `git merge --no-commit --ff --no-squash "$T"`, overriding
-   any configured squash or no-fast-forward default. If it fast-forwarded, then
-   return `fast-forwarded`. If it failed without starting a merge, then return
-   `stopped` with its output.
+3. **Merge.** Run the merge with configured merge options cleared and
+   squash or no-fast-forward defaults overridden, so a branch setting such as
+   `--strategy=ours` cannot drop incoming changes:
+
+   ```sh
+   git -c "branch.$(git symbolic-ref --short HEAD).mergeOptions=" \
+     merge --no-commit --ff --no-squash "$T"
+   ```
+
+   If it fast-forwarded, then return `fast-forwarded`. If it failed without
+   starting a merge, then return `stopped` with its output.
 4. **Conflicts.** Resolve a conflict only when intended behavior and repository
    evidence determine the result: inspect both sides and their contracts, and
    stage each resolution. If a conflict remains, then leave the merge state
