@@ -12,6 +12,7 @@
     </p>
   </header>
   <div class="landing-blog-body">{{ body|safe }}</div>
+  {% include "pages/blog/cta.html" %}
   <footer class="landing-blog-article-footer">
     <a class="landing-blog-link" href="/blog/"><span aria-hidden="true">←</span> All posts</a>
     {% if next_post %}

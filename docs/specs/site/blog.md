@@ -39,8 +39,11 @@ A post page shows, in order:
 
 1. An **All posts** link to `/blog/`.
 2. The title, the author, and the date followed by the reading time.
-3. The body; a paragraph that opens it is the lede and stands out from the rest.
-4. The **All posts** link again and, unless the post is last in the index, a
+3. The body; the lede stands out from the rest and can span multiple opening
+   paragraphs.
+4. A **Try RemDo now.** call to action using the site's sign-in entry and the
+   note **Free and open source. Self-host if you prefer.**
+5. The **All posts** link again and, unless the post is last in the index, a
    **Next post** teaser linking the entry that follows it in the index.
 
 The reading time is the body's word count divided by 200, rounded up and at
