@@ -1,9 +1,10 @@
 import tempfile
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.test import SimpleTestCase, override_settings
+from django.test import Client, SimpleTestCase, TestCase, override_settings
 
 
 class BlogTests(SimpleTestCase):
@@ -190,3 +191,35 @@ class BlogTests(SimpleTestCase):
         self.write_post("Not_A_Slug")
         with self.assertRaisesMessage(ImproperlyConfigured, "Not_A_Slug.md"):
             self.client.get("/blog/")
+
+
+class BlogSignInTests(TestCase):
+    def test_reader_can_start_google_sign_in_from_the_end_of_a_post(self):
+        with tempfile.TemporaryDirectory() as directory:
+            posts = Path(directory)
+            (posts / "example.md").write_text(
+                "---\ntitle: Example\ndescription: Example post\ndate: 2026-10-07\n"
+                "topic: Case study\nimage: /site-assets/blog/seo-cover.webp\n---\n\n"
+                "The end of the post.\n",
+                encoding="utf-8",
+            )
+            with override_settings(BLOG_DIR=posts):
+                client = Client(enforce_csrf_checks=True)
+                response = client.get("/blog/example/")
+
+        content = response.content.decode()
+        self.assertLess(content.index("The end of the post."), content.index("Try RemDo now."))
+        self.assertLess(content.index("Try RemDo now."), content.rindex("All posts"))
+        self.assertContains(response, 'method="post" action="/accounts/google/login/"')
+        self.assertContains(response, "Sign in with Google")
+        self.assertNotContains(response, "Waiting for something?")
+        start = client.post(
+            "/accounts/google/login/",
+            {"csrfmiddlewaretoken": client.cookies[settings.CSRF_COOKIE_NAME].value},
+        )
+        self.assertEqual(start.status_code, 302)
+        destination = urlsplit(start["Location"])
+        self.assertEqual(destination.hostname, "accounts.google.com")
+        self.assertEqual(
+            set(parse_qs(destination.query)["scope"][0].split()), {"email", "profile", "openid"}
+        )
