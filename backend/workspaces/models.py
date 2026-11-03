@@ -3,9 +3,12 @@ import string
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Exists, OuterRef
+from django.db.models.signals import post_delete, pre_delete
+from django.dispatch import receiver
 
 WORKSPACE_NAME_MAX_LENGTH = 200
-PATH_MAX_LENGTH = 500
+PATH_MAX_LENGTH = 200
 FILE_MAX_BYTES = 10 * 1024 * 1024
 # Mirrors createUniqueNoteId in src/domain/notes/ids.ts.
 WORKSPACE_ID_ALPHABET = "".join(
@@ -72,3 +75,24 @@ class WorkspaceFile(models.Model):
                 fields=["workspace", "path"], name="one_file_per_workspace_path"
             ),
         ]
+
+
+@receiver(pre_delete, sender=Workspace)
+def _remember_workspace_blobs(sender, instance, **kwargs):
+    instance._blob_hashes = set(
+        RevisionChange.objects.filter(revision__workspace=instance)
+        .exclude(blob=None)
+        .values_list("blob_id", flat=True)
+    )
+
+
+@receiver(post_delete, sender=Workspace)
+def _delete_orphaned_blobs(sender, instance, **kwargs):
+    """Delete the content a deleted workspace held that no other workspace references.
+
+    Blobs are shared across workspaces, so deleting a workspace's rows alone leaves its
+    content behind. Its revisions and files are already gone when this runs.
+    """
+    Blob.objects.filter(hash__in=getattr(instance, "_blob_hashes", ())).exclude(
+        Exists(RevisionChange.objects.filter(blob=OuterRef("pk")))
+    ).exclude(Exists(WorkspaceFile.objects.filter(blob=OuterRef("pk")))).delete()

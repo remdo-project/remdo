@@ -37,11 +37,12 @@ class InvalidContent(StoreError):
     pass
 
 
-WINDOWS_RESERVED_NAMES = {"con", "prn", "aux", "nul"} | {
+WINDOWS_RESERVED_NAMES = {"con", "prn", "aux", "nul", "conin$", "conout$"} | {
     f"{device}{number}"
     for device in ("com", "lpt")
     for number in [*"0123456789", *"\u00b9\u00b2\u00b3"]
 }
+GIT_RESERVED_NAMES = {".git", "git~1"}
 SEGMENT_MAX_BYTES = 255
 WINDOWS_FORBIDDEN_CHARS = set('<>:"|?*\\')
 
@@ -62,10 +63,12 @@ def normalize_path(path):
     if not isinstance(path, str):
         raise InvalidPath("Path must be text.")
     path = unicodedata.normalize("NFC", path)
-    if not path or len(path) > PATH_MAX_LENGTH:
-        raise InvalidPath(f"Path must have 1 to {PATH_MAX_LENGTH} characters.")
     if any(unicodedata.category(char) == "Cs" for char in path):
         raise InvalidPath("Path must be valid Unicode text.")
+    # Windows measures paths in UTF-16 units; the limit leaves room within its default
+    # 260-unit maximum for the folder a workspace is cloned into.
+    if not path or len(path.encode("utf-16-le")) // 2 > PATH_MAX_LENGTH:
+        raise InvalidPath(f"Path must have 1 to {PATH_MAX_LENGTH} characters.")
     if any(unicodedata.category(char) == "Cc" or char in WINDOWS_FORBIDDEN_CHARS for char in path):
         raise InvalidPath("Path can't contain control characters or any of <>:\"|?*\\.")
     for segment in path.split("/"):
@@ -74,8 +77,13 @@ def normalize_path(path):
         if len(segment.encode()) > SEGMENT_MAX_BYTES:
             raise InvalidPath(f"Path segment {segment[:40]!r}... is longer than filesystems allow.")
         # Windows can't check out these names, so a clone there would fail.
-        if segment[-1] in ". " or segment.split(".")[0].casefold() in WINDOWS_RESERVED_NAMES:
+        device = segment.split(".")[0].rstrip(" ").casefold()
+        if segment[-1] in ". " or device in WINDOWS_RESERVED_NAMES:
             raise InvalidPath(f"Path segment {segment!r} isn't valid on Windows.")
+        # Git refuses these on checkout, ignoring case and the invisible characters macOS drops.
+        visible = "".join(char for char in segment if unicodedata.category(char) != "Cf")
+        if visible.casefold() in GIT_RESERVED_NAMES:
+            raise InvalidPath(f"Path segment {segment!r} is reserved by Git.")
     return path
 
 
@@ -181,31 +189,43 @@ def _apply(workspace, author, message, prepared):
     return revision
 
 
-def _folders(folded_path):
-    segments = folded_path.split("/")
+def _folders(path):
+    segments = path.split("/")
     return ["/".join(segments[:depth]) for depth in range(1, len(segments))]
 
 
 def _check_namespace(workspace, added, deleted):
     """Reject added paths that a case-insensitive filesystem couldn't hold beside the rest."""
-    files = {
-        path.casefold(): path
-        for path in WorkspaceFile.objects.filter(workspace=workspace)
+    files, folders = {}, {}
+
+    def place(path):
+        files[path.casefold()] = path
+        for folder in _folders(path):
+            folders.setdefault(folder.casefold(), folder)
+
+    for path in (
+        WorkspaceFile.objects.filter(workspace=workspace)
         .exclude(path__in=deleted)
         .values_list("path", flat=True)
-    }
-    folders = {folder for key in files for folder in _folders(key)}
+    ):
+        place(path)
     for path in added:
         key = path.casefold()
         if key in files:
             raise InvalidPath(f"Paths {files[key]!r} and {path!r} differ only by case.")
         if key in folders:
             raise InvalidPath(f"{path!r} is a folder, so it can't also be a file.")
-        for folder in _folders(key):
-            if folder in files:
-                raise InvalidPath(f"{files[folder]!r} is a file, so {path!r} can't be inside it.")
-        files[key] = path
-        folders.update(_folders(key))
+        for folder in _folders(path):
+            folder_key = folder.casefold()
+            if folder_key in files:
+                raise InvalidPath(
+                    f"{files[folder_key]!r} is a file, so {path!r} can't be inside it."
+                )
+            if folders.get(folder_key, folder) != folder:
+                raise InvalidPath(
+                    f"Folder {folder!r} differs only by case from {folders[folder_key]!r}."
+                )
+        place(path)
 
 
 def files_at(revision):

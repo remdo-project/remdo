@@ -140,6 +140,13 @@ class WorkspaceStoreTests(TestCase):
             "a\x85b.md",
             "a\ud800b.md",
             "x" * 256 + ".md",
+            "dir/" + "x" * 197,
+            ".git/config",
+            ".GIT/hooks/post-checkout",
+            ".g\u200cit/config",
+            "git~1/config",
+            "CONIN$.md",
+            "NUL .txt",
         ):
             with self.subTest(path=path), self.assertRaises(store.InvalidPath):
                 self.commit({path: b"x\n"})
@@ -149,13 +156,21 @@ class WorkspaceStoreTests(TestCase):
             self.commit({"Notes.md": b"a\n", "notes.md": b"b\n"})
 
         self.commit({"Notes.md": b"a\n", "dir/x.md": b"x\n"})
-        for changes in ({"NOTES.md": b"b\n"}, {"notes.md/y.md": b"y\n"}, {"DIR": b"file\n"}):
+        for changes in (
+            {"NOTES.md": b"b\n"},
+            {"notes.md/y.md": b"y\n"},
+            {"DIR": b"file\n"},
+            {"Dir/y.md": b"y\n"},
+        ):
             with self.subTest(changes=changes), self.assertRaises(store.InvalidPath):
                 self.commit(changes)
 
         renamed = self.commit({"Notes.md": None, "notes.md": b"a\n"})
         self.assertEqual(store.list_paths(self.workspace), ["dir/x.md", "notes.md"])
         self.assertEqual(store.files_at(renamed), {"dir/x.md": b"x\n", "notes.md": b"a\n"})
+
+    def test_longest_portable_path_is_accepted(self):
+        self.commit({"dir/" + "x" * 196: b"x\n"})
 
     def test_unicode_paths_are_normalized(self):
         decomposed = "café.md"
@@ -172,6 +187,25 @@ class WorkspaceStoreTests(TestCase):
 
         self.workspace.delete()
         self.assertFalse(Revision.objects.exists())
+
+    def test_deleting_a_workspace_deletes_content_no_other_workspace_holds(self):
+        other = Workspace.objects.create(name="Other", owner=self.owner)
+        store.commit(other, self.owner, "", {"shared.md": (None, b"shared\n")})
+        self.commit({"shared.md": b"shared\n", "own.md": b"own\n"})
+        self.commit({"own.md": b"edited\n"})
+
+        self.workspace.delete()
+
+        self.assertEqual(
+            {bytes(c) for c in Blob.objects.values_list("content", flat=True)}, {b"shared\n"}
+        )
+
+    def test_deleting_an_account_deletes_its_workspaces_content(self):
+        self.commit({"a.md": b"private\n"})
+
+        self.owner.delete()
+
+        self.assertFalse(Blob.objects.exists())
 
     def test_unchanged_or_invalid_changes_are_rejected(self):
         self.commit({"a.md": b"same\n"})
