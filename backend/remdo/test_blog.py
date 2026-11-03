@@ -87,6 +87,12 @@ class BlogTests(SimpleTestCase):
         self.assertContains(response, "October 7, 2026</time> | 1 min read")
         self.assertContains(response, "<p>Lede.</p>", html=True)
         self.assertContains(response, "<h2>Section</h2>", html=True)
+        content = response.content.decode()
+        self.assertLess(content.index("<p>Text.</p>"), content.index("Try RemDo now."))
+        self.assertLess(content.index("Try RemDo now."), content.rindex("All posts"))
+        self.assertContains(response, 'method="post" action="/accounts/google/login/"')
+        self.assertContains(response, 'name="csrfmiddlewaretoken"')
+        self.assertContains(response, "Free and open source. Self-host if you prefer.")
         self.assertContains(
             response,
             '<a class="landing-blog-link" href="/blog/"><span aria-hidden="true">←</span> All posts</a>',
