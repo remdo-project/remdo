@@ -28,7 +28,7 @@ REQUIRED_FIELDS = {
     "setContent": ("target",),
 }
 # The text format's ID note, as in `- id:: k3x9`; the format parser replaces this.
-ID_NOTE = re.compile(r"^[ \t>]*[-*+][ \t]+id::[ \t]*(\S+)[ \t]*$", re.MULTILINE)
+ID_NOTE = re.compile(r"^[ \t>]*[-*+][ \t]+id::[ \t]*(\S+)[ \t]*\r?$", re.MULTILINE)
 
 
 class Refusal(Exception):
@@ -218,6 +218,7 @@ class Call:
         self.expected_folders = self.normalized(expected.get("folders", {}))
         self.used_folders = {}
         self.first_use = {}
+        self.folder_first_use = {}
         self.name = workspace.name
         self.index = 0
 
@@ -247,10 +248,13 @@ class Call:
 
     def vouch(self, path, kind):
         """Check the caller read what this operation changes, as it is now."""
+        # A folder's listing version, not its files' versions, catches a file added under it.
+        if kind == "folder" and any(_under(file, path) for file in self.tree.initial):
+            self.vouch_listing(path, kind)
         for file in self.tree.files_of(path, kind):
             if file in self.first_use:
                 continue
-            if file in self.expected_files and file in self.tree.initial:
+            if file in self.expected_files:
                 if self.expected_files[file] != self.tree.initial[file]:
                     self.refuse(
                         "FAILED_PRECONDITION",
@@ -259,30 +263,35 @@ class Call:
                     )
                 self.use(file)
                 continue
-            folder = next(
-                (
-                    folder
-                    for folder in self.expected_folders
-                    if _under(file, folder) and file in self.tree.initial
-                ),
-                None,
+            self.vouch_listing(file, kind)
+
+    def vouch_listing(self, path, kind):
+        folder = max(
+            (
+                folder
+                for folder in self.expected_folders
+                if _under(path, folder) or (kind == "folder" and folder == path)
+            ),
+            key=len,
+            default=None,
+        )
+        if folder is None:
+            self.refuse(
+                "INVALID_ARGUMENT",
+                f"State the version of {path!r}, or of a folder holding it, as read.",
             )
-            if folder is None:
-                self.refuse(
-                    "INVALID_ARGUMENT",
-                    f"State the version of {file!r}, or of a folder holding it, as read.",
-                )
-            current = self.tree.initial_version(folder)
-            if self.expected_folders[folder] != current:
-                self.refuse(
-                    "FAILED_PRECONDITION",
-                    f"The files under {folder!r} changed since they were read.",
-                    {"folders": {folder: current}},
-                )
-            self.used_folders[folder] = current
-            for initial in self.tree.initial:
-                if _under(initial, folder):
-                    self.use(initial)
+        current = self.tree.initial_version(folder)
+        if self.expected_folders[folder] != current:
+            self.refuse(
+                "FAILED_PRECONDITION",
+                f"The files under {folder!r} changed since they were read.",
+                {"folders": {folder: current}},
+            )
+        self.used_folders[folder] = current
+        self.folder_first_use.setdefault(folder, self.index)
+        for initial in self.tree.initial:
+            if _under(initial, folder):
+                self.use(initial)
 
     def use(self, path):
         self.first_use.setdefault(path, self.index)
@@ -326,7 +335,13 @@ class Call:
                 return base64.b64decode(value, validate=True)
             except ValueError:
                 self.refuse("INVALID_ARGUMENT", "content is not valid base64.")
-        return value.encode()
+        return self.encoded(value, "content")
+
+    def encoded(self, text, field):
+        try:
+            return text.encode()
+        except UnicodeEncodeError:
+            self.refuse("INVALID_ARGUMENT", f"{field}: the text isn't valid Unicode.")
 
     def insert(self, operation):
         parent, _ = self.note(operation.get("parent"), "parent", ("workspace", "folder"))
@@ -403,6 +418,7 @@ class Call:
         if text == current:
             self.refuse("INVALID_ARGUMENT", "The text is unchanged.")
         if kind == "workspace":
+            self.encoded(text, "text")
             if not text.strip() or len(text) > WORKSPACE_NAME_MAX_LENGTH:
                 self.refuse(
                     "INVALID_ARGUMENT",
@@ -424,9 +440,11 @@ class Call:
                 text = current.decode()
             except UnicodeDecodeError:
                 self.refuse("INVALID_ARGUMENT", "Replacements apply only to text.")
-            content = self.replaced(text, operation, "content").encode()
-        else:
+            content = self.encoded(self.replaced(text, operation, "content"), "content")
+        elif "content" in operation:
             content = self.content_argument(operation)
+        else:
+            self.refuse("INVALID_ARGUMENT", "Give content or replacements.")
         if content == current:
             self.refuse("INVALID_ARGUMENT", "The content is unchanged.")
         if kind == "document" and sorted(ids_in(content)) != sorted(ids_in(current)):
@@ -469,7 +487,7 @@ def change(workspace, author, operations, expected=None, dry_run=False):
                 raise Refusal(
                     "FAILED_PRECONDITION",
                     str(error),
-                    call.first_use.get(error.path),
+                    (call.folder_first_use if error.folder else call.first_use).get(error.path),
                     {"folders" if error.folder else "files": {error.path: error.current}},
                 ) from error
             except store.StoreError as error:
@@ -492,14 +510,16 @@ def change(workspace, author, operations, expected=None, dry_run=False):
 
 
 def _describe(path, before, content, tree, dry_run):
-    after = None if content is None else store.blob_hash(content)
+    after = tree.files.get(path)
     description = {
         "ref": {"path": path},
         "change": "added" if before is None else "deleted" if after is None else "changed",
         "version": after,
     }
     if dry_run and before is not None and content is not None:
-        old = tree.contents.get(before) or store.contents([before])[before]
+        if before not in tree.contents:
+            tree.contents.update(store.contents([before]))
+        old = tree.contents[before]
         try:
             description["diff"] = "".join(
                 difflib.unified_diff(

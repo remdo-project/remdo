@@ -154,6 +154,37 @@ CASES = {
         ops=[{"op": "delete", "target": {"path": "a"}, "withChildren": True}],
         after={"b.txt": "b\n"},
     ),
+    "a folder change needs its listing version, not only its files' versions": dict(
+        before={"a/x.md": "x\n"},
+        read=["a/x.md"],
+        ops=[{"op": "setText", "target": {"path": "a"}, "text": "c"}],
+        refused=("INVALID_ARGUMENT", 0),
+    ),
+    "the deepest folder read vouches for its files": dict(
+        before={"a/x.md": "- x\n", "b.md": "b\n"},
+        read=["", "a/"],
+        changed_after_read={"b.md": "theirs\n"},
+        ops=[{"op": "delete", "target": {"path": "a"}, "withChildren": True}],
+        after={"b.md": "theirs\n"},
+    ),
+    "set content without content or replacements": dict(
+        before={"a.txt": "a\n"},
+        read=["a.txt"],
+        ops=[{"op": "setContent", "target": {"path": "a.txt"}}],
+        refused=("INVALID_ARGUMENT", 0),
+    ),
+    "set content with text that isn't valid Unicode": dict(
+        before={"a.txt": "a\n"},
+        read=["a.txt"],
+        ops=[{"op": "setContent", "target": {"path": "a.txt"}, "content": "\ud800"}],
+        refused=("INVALID_ARGUMENT", 0),
+    ),
+    "set content removing an ID on a CRLF line": dict(
+        before={"a.md": "- a\r\n  - id:: k3x9\r\n"},
+        read=["a.md"],
+        ops=[{"op": "setContent", "target": {"path": "a.md"}, "content": "- a\r\n"}],
+        refused=("INVALID_ARGUMENT", 0),
+    ),
     "a change without the version read": dict(
         before={"a.md": "a\n"},
         ops=[{"op": "setContent", "target": {"path": "a.md"}, "content": "b\n"}],

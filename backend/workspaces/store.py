@@ -262,6 +262,8 @@ class Namespace:
     def conflict(self, path):
         """Why `path` can't be added beside the current files, or None."""
         key = path.casefold()
+        if self.files.get(key) == path:
+            return f"{path!r} already exists."
         if key in self.files:
             return f"Paths {self.files[key]!r} and {path!r} differ only by case."
         if key in self.folders:
