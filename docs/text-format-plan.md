@@ -232,6 +232,8 @@ Switch new documents by reseeding from text once all of these hold:
   document since its read; stage 3's live merge reduces that.
 - Until stage 2, Read returns a document's content but not its children, and
   Insert into a document and Ensure ID are refused.
+- Note operations can't create a folder: a folder exists only while it holds a
+  file, and Insert has no way to add one with its first file.
 
 - An edit concurrent with a move can vanish or land on the wrong note. Indent
   needs `@lexical/y`, and reorder needs the unmerged PR. Don't build this on V2.
