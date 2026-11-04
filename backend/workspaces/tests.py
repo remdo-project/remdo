@@ -41,7 +41,7 @@ class WorkspaceStoreTests(TestCase):
         for path, content in files.items():
             with self.subTest(path=path):
                 self.assertEqual(self.content(path), content)
-        self.assertEqual(store.list_paths(self.workspace).paths, sorted(files))
+        self.assertEqual(list(store.list_paths(self.workspace).files), sorted(files))
 
     def test_identical_content_is_stored_once(self):
         self.commit({"a.md": b"same\n", "b.md": b"same\n"})
@@ -93,7 +93,7 @@ class WorkspaceStoreTests(TestCase):
         listed = store.list_paths(self.workspace, "notes")
         self.commit({"notesbook.md": b"changed\n"})
         self.assertEqual(store.list_paths(self.workspace, "notes"), listed)
-        self.assertEqual(listed.paths, ["notes/a.md"])
+        self.assertEqual(list(listed.files), ["notes/a.md"])
 
         for change in ({"notes/b.md": b"added\n"}, {"notes/a.md": b"changed\n"}):
             with self.subTest(change=change):
@@ -138,7 +138,8 @@ class WorkspaceStoreTests(TestCase):
             with self.subTest(revision=revision.pk):
                 self.assertEqual(store.files_at(revision), files)
         self.assertEqual(
-            {path: self.content(path) for path in store.list_paths(self.workspace).paths}, expected
+            {path: self.content(path) for path in list(store.list_paths(self.workspace).files)},
+            expected,
         )
 
     def test_invalid_paths_are_rejected(self):
@@ -187,7 +188,7 @@ class WorkspaceStoreTests(TestCase):
                 self.commit(changes)
 
         renamed = self.commit({"Notes.md": None, "notes.md": b"a\n"})
-        self.assertEqual(store.list_paths(self.workspace).paths, ["dir/x.md", "notes.md"])
+        self.assertEqual(list(store.list_paths(self.workspace).files), ["dir/x.md", "notes.md"])
         self.assertEqual(store.files_at(renamed), {"dir/x.md": b"x\n", "notes.md": b"a\n"})
 
     def test_longest_portable_path_is_accepted(self):
@@ -197,7 +198,7 @@ class WorkspaceStoreTests(TestCase):
         decomposed = "café.md"
         self.commit({decomposed: b"x\n"})
 
-        self.assertEqual(store.list_paths(self.workspace).paths, ["café.md"])
+        self.assertEqual(list(store.list_paths(self.workspace).files), ["café.md"])
         self.assertEqual(self.content(decomposed), b"x\n")
 
     def test_history_survives_until_its_workspace_is_deleted(self):

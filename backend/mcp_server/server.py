@@ -104,7 +104,6 @@ def metadata_tool(name, arguments, user):
 
 
 def workspace_tool(name, arguments, user):
-    writes = name == "change_workspace" and not arguments.get("dryRun", False)
     try:
         if name == "list_workspaces":
             return [
@@ -124,7 +123,7 @@ def workspace_tool(name, arguments, user):
             user,
             arguments["operations"],
             arguments.get("expected"),
-            dry_run=not writes,
+            dry_run=arguments.get("dryRun", False),
         )
     except notes.Refusal as error:
         message = str(error)
@@ -133,11 +132,6 @@ def workspace_tool(name, arguments, user):
         if error.versions:
             message += f" Current versions: {json.dumps(error.versions, ensure_ascii=False)}"
         raise OperationError(error.code, message) from error
-    except DatabaseError as error:
-        raise OperationError(
-            "OUTCOME_UNCONFIRMED" if writes else "UNAVAILABLE",
-            WORKSPACE_UNCONFIRMED if writes else UNAVAILABLE,
-        ) from error
 
 
 def can_use_workspaces(user):
@@ -228,7 +222,8 @@ def create_app():
                         database_call(workspace_tool, name, arguments, request.state.mcp_user),
                         DATABASE_TIMEOUT_SECONDS,
                     )
-                except TimeoutError as error:
+                except (DatabaseError, TimeoutError) as error:
+                    # Cancellation cannot stop the ORM worker or roll back a commit.
                     raise OperationError(
                         "OUTCOME_UNCONFIRMED" if writes else "UNAVAILABLE",
                         WORKSPACE_UNCONFIRMED if writes else UNAVAILABLE,

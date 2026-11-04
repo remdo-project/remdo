@@ -22,11 +22,16 @@ class StoreError(ValueError):
 
 
 class StaleFile(StoreError):
-    """A file, or the paths under a folder, changed since the caller read them."""
+    """A file, or the files under a folder, changed since the caller read them.
 
-    def __init__(self, message, path):
+    `current` is the file's blob hash or the folder's listing version, as it is now.
+    """
+
+    def __init__(self, message, path, current, folder=False):
         super().__init__(message)
         self.path = path
+        self.current = current
+        self.folder = folder
 
 
 class NoChanges(StoreError):
@@ -91,6 +96,11 @@ def normalize_path(path):
     return path
 
 
+def normalize_folder(path):
+    """Normalize a folder path, where "" is the whole workspace."""
+    return normalize_path(path) if path else ""
+
+
 def blob_hash(content):
     if not isinstance(content, bytes):
         raise InvalidContent("Content must be bytes.")
@@ -109,21 +119,25 @@ def read(workspace, path):
     return File(path, bytes(row.blob.content), row.blob_id)
 
 
+def contents(hashes):
+    """The content of each blob hash. Blobs never change, so these can't be stale."""
+    return {
+        hash_: bytes(content)
+        for hash_, content in Blob.objects.filter(hash__in=set(hashes)).values_list(
+            "hash", "content"
+        )
+    }
+
+
 @dataclass(frozen=True)
 class Listing:
-    """The files under a folder, or under the whole workspace when the folder is "".
+    """The files under a folder, mapped to their blob hashes.
 
-    `files` maps each path to its blob hash. Pass `version` back to `commit` as the listing
-    expected under this folder.
+    Pass `version` back to `commit` as the listing expected under this folder.
     """
 
-    folder: str
     files: dict[str, str]
     version: str
-
-    @property
-    def paths(self):
-        return list(self.files)
 
 
 def _files_under(workspace, folder):
@@ -140,9 +154,8 @@ def listing_version(files):
 
 
 def list_paths(workspace, folder=""):
-    folder = normalize_path(folder) if folder else ""
-    files = _files_under(workspace, folder)
-    return Listing(folder, files, listing_version(files))
+    files = _files_under(workspace, normalize_folder(folder))
+    return Listing(files, listing_version(files))
 
 
 def commit(workspace, author, message, changes, folders=None):
@@ -159,7 +172,7 @@ def commit(workspace, author, message, changes, folders=None):
         if path in prepared:
             raise InvalidPath(f"Path {path!r} appears twice.")
         prepared[path] = (expected, None if content is None else blob_hash(content), content)
-    folders = {normalize_path(folder): version for folder, version in (folders or {}).items()}
+    folders = {normalize_folder(folder): version for folder, version in (folders or {}).items()}
     return _apply(workspace, author, message, prepared, folders)
 
 
@@ -169,8 +182,14 @@ def _apply(workspace, author, message, prepared, folders):
     # transactions already allow one writer at a time.
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
     for folder, expected in folders.items():
-        if listing_version(_files_under(locked, folder)) != expected:
-            raise StaleFile(f"The files under {folder!r} changed since they were listed.", folder)
+        current = listing_version(_files_under(locked, folder))
+        if current != expected:
+            raise StaleFile(
+                f"The files under {folder!r} changed since they were listed.",
+                folder,
+                current,
+                folder=True,
+            )
     current = dict(
         WorkspaceFile.objects.filter(workspace=locked, path__in=prepared).values_list(
             "path", "blob_id"
@@ -180,7 +199,7 @@ def _apply(workspace, author, message, prepared, folders):
     for path, (expected, hash_, content) in prepared.items():
         existing = current.get(path)
         if existing != expected:
-            raise StaleFile(f"{path!r} changed since it was read.", path)
+            raise StaleFile(f"{path!r} changed since it was read.", path, existing)
         if hash_ is None:
             if existing is None:
                 raise InvalidPath(f"Can't delete missing path {path!r}.")
@@ -231,38 +250,61 @@ def _folders(path):
     return ["/".join(segments[:depth]) for depth in range(1, len(segments))]
 
 
+class Namespace:
+    """Files and folders as a case-insensitive filesystem sees them."""
+
+    def __init__(self, paths=()):
+        self.files = {}
+        self.folders = {}
+        for path in paths:
+            self.add(path)
+
+    def conflict(self, path):
+        """Why `path` can't be added beside the current files, or None."""
+        key = path.casefold()
+        if key in self.files:
+            return f"Paths {self.files[key]!r} and {path!r} differ only by case."
+        if key in self.folders:
+            return f"{path!r} is a folder, so it can't also be a file."
+        for folder in _folders(path):
+            folder_key = folder.casefold()
+            if folder_key in self.files:
+                return f"{self.files[folder_key]!r} is a file, so {path!r} can't be inside it."
+            existing = self.folders.get(folder_key)
+            if existing and existing[0] != folder:
+                return f"Folder {folder!r} differs only by case from {existing[0]!r}."
+        return None
+
+    def is_folder(self, path):
+        existing = self.folders.get(path.casefold())
+        return existing is not None and existing[0] == path
+
+    def add(self, path):
+        self.files[path.casefold()] = path
+        for folder in _folders(path):
+            self.folders.setdefault(folder.casefold(), [folder, 0])[1] += 1
+
+    def remove(self, path):
+        del self.files[path.casefold()]
+        for folder in _folders(path):
+            existing = self.folders[folder.casefold()]
+            existing[1] -= 1
+            if not existing[1]:
+                del self.folders[folder.casefold()]
+
+
 def _check_namespace(workspace, added, deleted):
     """Reject added paths that a case-insensitive filesystem couldn't hold beside the rest."""
-    files, folders = {}, {}
-
-    def place(path):
-        files[path.casefold()] = path
-        for folder in _folders(path):
-            folders.setdefault(folder.casefold(), folder)
-
-    for path in (
+    namespace = Namespace(
         WorkspaceFile.objects.filter(workspace=workspace)
         .exclude(path__in=deleted)
         .values_list("path", flat=True)
-    ):
-        place(path)
+    )
     for path in added:
-        key = path.casefold()
-        if key in files:
-            raise InvalidPath(f"Paths {files[key]!r} and {path!r} differ only by case.")
-        if key in folders:
-            raise InvalidPath(f"{path!r} is a folder, so it can't also be a file.")
-        for folder in _folders(path):
-            folder_key = folder.casefold()
-            if folder_key in files:
-                raise InvalidPath(
-                    f"{files[folder_key]!r} is a file, so {path!r} can't be inside it."
-                )
-            if folders.get(folder_key, folder) != folder:
-                raise InvalidPath(
-                    f"Folder {folder!r} differs only by case from {folders[folder_key]!r}."
-                )
-        place(path)
+        reason = namespace.conflict(path)
+        if reason:
+            raise InvalidPath(reason)
+        namespace.add(path)
 
 
 def files_at(revision):

@@ -41,6 +41,9 @@ class Refusal(Exception):
 
 def workspaces_of(user):
     """The user's workspaces, creating their personal workspace on first use."""
+    workspaces = list(Workspace.objects.filter(owner=user))
+    if workspaces:
+        return workspaces
     with transaction.atomic():
         type(user).objects.select_for_update().filter(pk=user.pk).first()
         workspaces = list(Workspace.objects.filter(owner=user))
@@ -101,6 +104,7 @@ class Tree:
         self.workspace = workspace
         self.initial = store.list_paths(workspace).files
         self.files = dict(self.initial)
+        self.namespace = store.Namespace(self.initial)
         self.contents = {}
 
     def kind(self, path):
@@ -108,12 +112,17 @@ class Tree:
             return "workspace"
         if path in self.files:
             return "document" if path.endswith(DOCUMENT_SUFFIX) else "file"
-        if any(_under(other, path) for other in self.files):
-            return "folder"
-        return None
+        return "folder" if self.namespace.is_folder(path) else None
 
-    def under(self, folder):
-        return sorted(path for path in self.files if _under(path, folder))
+    def files_of(self, path, kind):
+        if kind in ("document", "file"):
+            return [path]
+        return sorted(file for file in self.files if _under(file, path))
+
+    def has_children(self, path, kind):
+        if kind in ("workspace", "folder"):
+            return bool(self.files_of(path, kind))
+        return kind == "document" and document_has_children(self.content(path))
 
     def initial_version(self, folder):
         return store.listing_version(
@@ -121,56 +130,33 @@ class Tree:
         )
 
     def children(self, folder):
-        names = {}
-        for path in self.under(folder):
-            rest = path[len(folder) + 1 :] if folder else path
-            name, _, deeper = rest.partition("/")
-            child = _join(folder, name)
-            names[name] = child if not deeper else names.get(name, child)
-        return [names[name] for name in sorted(names)]
+        start = len(folder) + 1 if folder else 0
+        return sorted(
+            {
+                _join(folder, path[start:].partition("/")[0])
+                for path in self.files_of(folder, "folder")
+            }
+        )
+
+    def load(self, paths):
+        missing = {self.files[path] for path in paths} - self.contents.keys()
+        if missing:
+            self.contents.update(store.contents(missing))
 
     def content(self, path):
-        hash_ = self.files[path]
-        if hash_ not in self.contents:
-            origin = next(p for p, h in self.initial.items() if h == hash_)
-            file = store.read(self.workspace, origin)
-            if file.blob_hash != hash_:
-                raise Refusal(
-                    "FAILED_PRECONDITION",
-                    f"{origin!r} changed during the call.",
-                    versions={"files": {origin: file.blob_hash}},
-                )
-            self.contents[hash_] = file.content
-        return self.contents[hash_]
+        self.load([path])
+        return self.contents[self.files[path]]
 
     def put(self, path, content):
         hash_ = store.blob_hash(content)
         self.contents[hash_] = content
+        if path not in self.files:
+            self.namespace.add(path)
         self.files[path] = hash_
 
-    def taken(self, path):
-        """Why `path` can't be added beside the current files, or None."""
-        key = path.casefold()
-        folders = {}
-        for other in self.files:
-            if other.casefold() == key:
-                return f"{other!r} is already taken."
-            segments = other.split("/")
-            for depth in range(1, len(segments)):
-                folder = "/".join(segments[:depth])
-                folders.setdefault(folder.casefold(), folder)
-        if key in folders:
-            return f"{folders[key]!r} is a folder."
-        segments = path.split("/")
-        for depth in range(1, len(segments)):
-            folder = "/".join(segments[:depth])
-            if folder.casefold() in {other.casefold() for other in self.files}:
-                return f"{folder!r} is a file."
-            if folders.get(folder.casefold(), folder) != folder:
-                return (
-                    f"Folder {folder!r} differs only by case from {folders[folder.casefold()]!r}."
-                )
-        return None
+    def remove(self, path):
+        self.namespace.remove(path)
+        return self.files.pop(path)
 
 
 def text_of(workspace, path, kind):
@@ -182,20 +168,24 @@ def text_of(workspace, path, kind):
 
 def read(workspace, path="", depth=1, content=False):
     try:
-        path = store.normalize_path(path) if path else ""
+        path = store.normalize_folder(path)
     except store.InvalidPath as error:
         raise Refusal("INVALID_ARGUMENT", f"ref: {error}") from error
     tree = Tree(workspace)
-    if tree.kind(path) is None:
+    kind = tree.kind(path)
+    if kind is None:
         raise Refusal("NOT_FOUND", f"No note at {path!r}.")
-    node = _read_node(workspace, tree, path, depth)
-    if content and node["kind"] in ("document", "file"):
+    documents = []
+    node = _read_node(workspace, tree, path, kind, depth, documents)
+    tree.load(path for path, _ in documents)
+    for path, document in documents:
+        document["hasChildren"] = tree.has_children(path, "document")
+    if content and kind in ("document", "file"):
         node.update(decode(tree.content(path)))
     return node
 
 
-def _read_node(workspace, tree, path, depth):
-    kind = tree.kind(path)
+def _read_node(workspace, tree, path, kind, depth, documents):
     node = {
         "ref": {"path": path},
         "kind": kind,
@@ -206,12 +196,17 @@ def _read_node(workspace, tree, path, depth):
         node["version"] = tree.initial_version(path)
         children = tree.children(path)
         if depth > 0:
-            node["children"] = [_read_node(workspace, tree, child, depth - 1) for child in children]
+            node["children"] = [
+                _read_node(workspace, tree, child, tree.kind(child), depth - 1, documents)
+                for child in children
+            ]
         else:
             node["hasChildren"] = bool(children)
     else:
         node["version"] = tree.files[path]
-        node["hasChildren"] = kind == "document" and document_has_children(tree.content(path))
+        node["hasChildren"] = False
+        if kind == "document":
+            documents.append((path, node))
     return node
 
 
@@ -222,32 +217,27 @@ class Call:
         self.expected_files = self.normalized(expected.get("files", {}))
         self.expected_folders = self.normalized(expected.get("folders", {}))
         self.used_folders = {}
-        self.vouched = set()
         self.first_use = {}
         self.name = workspace.name
         self.index = 0
 
     def normalized(self, versions):
         try:
-            return {
-                store.normalize_path(path) if path else "": version
-                for path, version in versions.items()
-            }
+            return {store.normalize_folder(path): version for path, version in versions.items()}
         except store.InvalidPath as error:
             raise Refusal("INVALID_ARGUMENT", f"expected: {error}") from error
 
     def refuse(self, code, message, versions=None):
         raise Refusal(code, message, self.index, versions)
 
-    def path(self, ref, field="target"):
-        path = (ref or {}).get("path", "")
+    def path(self, path, field):
         try:
-            return store.normalize_path(path) if path else ""
+            return store.normalize_folder(path)
         except store.InvalidPath as error:
             self.refuse("INVALID_ARGUMENT", f"{field}: {error}")
 
     def note(self, ref, field="target", kinds=None):
-        path = self.path(ref, field)
+        path = self.path((ref or {}).get("path", ""), field)
         kind = self.tree.kind(path)
         if kind is None:
             self.refuse("NOT_FOUND", f"{field}: no note at {path!r}.")
@@ -257,13 +247,11 @@ class Call:
 
     def vouch(self, path, kind):
         """Check the caller read what this operation changes, as it is now."""
-        paths = [path] if kind in ("document", "file") else self.tree.under(path)
-        for file in paths:
-            if file in self.vouched:
+        for file in self.tree.files_of(path, kind):
+            if file in self.first_use:
                 continue
             if file in self.expected_files and file in self.tree.initial:
-                expected = self.expected_files[file]
-                if expected != self.tree.initial[file]:
+                if self.expected_files[file] != self.tree.initial[file]:
                     self.refuse(
                         "FAILED_PRECONDITION",
                         f"{file!r} changed since it was read.",
@@ -297,24 +285,22 @@ class Call:
                     self.use(initial)
 
     def use(self, path):
-        self.vouched.add(path)
         self.first_use.setdefault(path, self.index)
 
     def produce(self, path):
-        reason = self.tree.taken(path)
+        reason = self.tree.namespace.conflict(path)
         if reason:
             self.refuse("FAILED_PRECONDITION", f"Can't place {path!r}: {reason}")
-        self.vouched.add(path)
-        self.first_use.setdefault(path, self.index)
+        self.use(path)
 
     def relocate(self, path, kind, new_path):
-        moving = [path] if kind in ("document", "file") else self.tree.under(path)
-        moved = {old: new_path + old[len(path) :] for old in moving}
-        hashes = {old: self.tree.files.pop(old) for old in moving}
-        for old, new in moved.items():
-            self.path({"path": new}, "text")
+        moving = self.tree.files_of(path, kind)
+        hashes = {old: self.tree.remove(old) for old in moving}
+        for old in moving:
+            new = self.path(new_path + old[len(path) :], "text")
             self.produce(new)
             self.tree.files[new] = hashes[old]
+            self.tree.namespace.add(new)
 
     def apply(self, operation):
         op = operation["op"]
@@ -345,8 +331,7 @@ class Call:
     def insert(self, operation):
         parent, _ = self.note(operation.get("parent"), "parent", ("workspace", "folder"))
         kind = operation["kind"]
-        name = self.file_name(operation["text"], kind)
-        path = self.path({"path": _join(parent, name)}, "text")
+        path = self.path(_join(parent, self.file_name(operation["text"], kind)), "text")
         content = self.content_argument(operation)
         if kind == "document" and ids_in(content):
             self.refuse("INVALID_ARGUMENT", "content: a new document can't carry IDs.")
@@ -382,11 +367,9 @@ class Call:
     def delete(self, operation):
         path, kind = self.note(operation.get("target"), kinds=("folder", "document", "file"))
         self.vouch(path, kind)
-        files = [path] if kind in ("document", "file") else self.tree.under(path)
-        has_children = kind == "folder" or (
-            kind == "document" and document_has_children(self.tree.content(path))
-        )
-        if has_children and not operation.get("withChildren"):
+        files = self.tree.files_of(path, kind)
+        self.tree.load(file for file in files if file.endswith(DOCUMENT_SUFFIX))
+        if self.tree.has_children(path, kind) and not operation.get("withChildren"):
             self.refuse(
                 "INVALID_ARGUMENT", f"{path!r} has children; set withChildren to delete them too."
             )
@@ -394,7 +377,7 @@ class Call:
         for file in files:
             if file.endswith(DOCUMENT_SUFFIX):
                 removed += ids_in(self.tree.content(file))
-            del self.tree.files[file]
+            self.tree.remove(file)
         return {"removedIds": removed}
 
     def replaced(self, value, operation, field):
@@ -414,10 +397,8 @@ class Call:
         return value
 
     def set_text(self, operation):
-        path, kind = self.note(
-            operation.get("target"), kinds=("workspace", "folder", "document", "file")
-        )
-        current = text_of(self.workspace, path, kind) if kind != "workspace" else self.name
+        path, kind = self.note(operation.get("target"))
+        current = self.name if kind == "workspace" else text_of(self.workspace, path, kind)
         text = self.replaced(current, operation, "text")
         if text == current:
             self.refuse("INVALID_ARGUMENT", "The text is unchanged.")
@@ -429,8 +410,7 @@ class Call:
                 )
             self.name = text
             return {"ref": {"path": ""}}
-        name = self.file_name(text, kind)
-        new_path = self.path({"path": _join(_parent(path), name)}, "text")
+        new_path = self.path(_join(_parent(path), self.file_name(text, kind)), "text")
         self.vouch(path, kind)
         self.relocate(path, kind, new_path)
         return {"ref": {"path": new_path}}
@@ -456,12 +436,16 @@ class Call:
 
     def changes(self):
         tree = self.tree
-        changes = {}
-        for path in sorted(tree.initial.keys() | tree.files.keys()):
-            before, after = tree.initial.get(path), tree.files.get(path)
-            if before != after:
-                changes[path] = (before, None if after is None else tree.content(path))
-        return changes
+        changed = [
+            path
+            for path in sorted(tree.initial.keys() | tree.files.keys())
+            if tree.initial.get(path) != tree.files.get(path)
+        ]
+        tree.load(path for path in changed if path in tree.files)
+        return {
+            path: (tree.initial.get(path), tree.content(path) if path in tree.files else None)
+            for path in changed
+        }
 
 
 def change(workspace, author, operations, expected=None, dry_run=False):
@@ -471,9 +455,7 @@ def change(workspace, author, operations, expected=None, dry_run=False):
     for index, operation in enumerate(operations):
         call.index = index
         results.append(call.apply(operation))
-    call.index = None
     changes = call.changes()
-    before = {path: call.tree.initial.get(path) for path in changes}
     with transaction.atomic():
         if call.name != workspace.name:
             Workspace.objects.filter(pk=workspace.pk).update(name=call.name)
@@ -484,13 +466,11 @@ def change(workspace, author, operations, expected=None, dry_run=False):
                     workspace, author, _message(operations), changes, folders=call.used_folders
                 )
             except store.StaleFile as error:
-                versions = (
-                    {"folders": {error.path: store.list_paths(workspace, error.path).version}}
-                    if error.path in call.used_folders
-                    else {"files": {error.path: store.read(workspace, error.path).blob_hash}}
-                )
                 raise Refusal(
-                    "FAILED_PRECONDITION", str(error), call.first_use.get(error.path), versions
+                    "FAILED_PRECONDITION",
+                    str(error),
+                    call.first_use.get(error.path),
+                    {"folders" if error.folder else "files": {error.path: error.current}},
                 ) from error
             except store.StoreError as error:
                 raise Refusal("INVALID_ARGUMENT", str(error)) from error
@@ -503,15 +483,15 @@ def change(workspace, author, operations, expected=None, dry_run=False):
     return {
         "results": results,
         "changes": [
-            _describe(path, before[path], content, call, dry_run)
-            for path, (_, content) in changes.items()
+            _describe(path, before, content, call.tree, dry_run)
+            for path, (before, content) in changes.items()
         ],
-        "revision": None if dry_run or revision is None else revision.pk,
+        "revision": None if revision is None or dry_run else revision.pk,
         "dryRun": dry_run,
     }
 
 
-def _describe(path, before, content, call, dry_run):
+def _describe(path, before, content, tree, dry_run):
     after = None if content is None else store.blob_hash(content)
     description = {
         "ref": {"path": path},
@@ -519,14 +499,12 @@ def _describe(path, before, content, call, dry_run):
         "version": after,
     }
     if dry_run and before is not None and content is not None:
-        old, new = call.tree.contents.get(before), content
-        if old is None:
-            old = store.read(call.workspace, path).content
+        old = tree.contents.get(before) or store.contents([before])[before]
         try:
             description["diff"] = "".join(
                 difflib.unified_diff(
                     old.decode().splitlines(keepends=True),
-                    new.decode().splitlines(keepends=True),
+                    content.decode().splitlines(keepends=True),
                     path,
                     path,
                 )

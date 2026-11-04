@@ -148,6 +148,12 @@ CASES = {
         ops=[{"op": "delete", "target": {"path": "a"}, "withChildren": True}],
         refused=("FAILED_PRECONDITION", 0),
     ),
+    "the workspace's version covers every file": dict(
+        before={"a/x.md": "- x\n", "b.txt": "b\n"},
+        read=[""],
+        ops=[{"op": "delete", "target": {"path": "a"}, "withChildren": True}],
+        after={"b.txt": "b\n"},
+    ),
     "a change without the version read": dict(
         before={"a.md": "a\n"},
         ops=[{"op": "setContent", "target": {"path": "a.md"}, "content": "b\n"}],
@@ -198,7 +204,7 @@ class NoteOperationTests(TestCase):
     def files(self):
         return {
             path: store.read(self.workspace, path).content.decode()
-            for path in store.list_paths(self.workspace).paths
+            for path in store.list_paths(self.workspace).files
         }
 
     def versions(self, reads):
