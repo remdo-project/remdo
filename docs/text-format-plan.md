@@ -147,8 +147,10 @@ once stage 2 lands.
      a recreated identical note, repair duplicates, and clear a holder when a
      text `id::` claims its value.
    - Update note content by splicing text, never `clear()` plus `append()`.
-   - Add note operations for outline notes on the shared format module, run in
-     Django through embedded V8, and their MCP tools.
+   - Add note operations on the shared format module for every workspace kind,
+     run in Django through embedded V8, and their MCP tools. Python keeps
+     storage, versions and permissions, and the module's kind map is the one
+     the SDK uses.
    - Move the open document's semantic operations into note operations, as a
      complete contract migration once the pending MCP reviews allow it.
      Consider the [note range](specs/outliner/selection.md#note-ranges) as the
