@@ -4,8 +4,11 @@ Informative temporary ledger for adopting the [RemDo text format](format.md).
 Current specifications stay authoritative until each stage moves its contract.
 Remove this file when migration finishes.
 
-New documents use this design behind an admin-set experimental flag, so each
-stage can merge to `main` without affecting existing documents.
+New documents use this design behind an experimental flag, a Django permission
+that administrators grant, so each stage can merge to `main` without affecting
+existing documents. Users without the flag, including directory reviewers, see
+the submitted [MCP surface](todo.md#temporary-mcp-compatibility-guards)
+unchanged.
 
 ## Design
 
@@ -119,7 +122,8 @@ once stage 2 lands.
 1. **Foundations**
    - Add the experimental flag, workspace record, history tables and
      `document_text` search.
-   - Give each flagged user a personal workspace of Markdown documents.
+   - Give each flagged user a personal workspace of Markdown documents on first
+     use.
    - Add note operations for workspaces, folders, documents and files, without
      outline notes, through new MCP tools. Existing tools stay for old
      documents.
@@ -188,6 +192,10 @@ once stage 2 lands.
 7. **Cleanup**
    - Remove `DocumentContent`, `DocumentGrant`, the body wrapper, per-call
      headless editors, old MCP tools and old routes.
+   - Remove the experimental flag and every mention of it, so workspaces are how
+     everyone creates and edits notes.
+   - Before changing the MCP surface for everyone, check the published OpenAI
+     plugin and any pending directory review for updates they need.
    - Move this design into its owning specifications, and remove the format's
      note on existing documents.
    - Give the remaining existing kinds, such as account roots and user data
@@ -222,6 +230,8 @@ Switch new documents by reseeding from text once all of these hold:
   checks; duplicate IDs it brings are reported, not repaired.
 - Per-file versions refuse an agent's call whenever someone saved the same
   document since its read; stage 3's live merge reduces that.
+- Until stage 2, Read returns a document's content but not its children, and
+  Insert into a document and Ensure ID are refused.
 
 - An edit concurrent with a move can vanish or land on the wrong note. Indent
   needs `@lexical/y`, and reorder needs the unmerged PR. Don't build this on V2.

@@ -266,9 +266,9 @@ Decisions requiring a contract owner's judgement:
 Goal: a Claude web custom connector that saves a conversation outline into a
 RemDo document, minimal but useful for real work.
 
-- **Progress during pending app reviews.** The developer reported on 2026-10-16
-  that RemDo submissions to Claude.ai (2026-09-28) and ChatGPT (2026-10-12) are
-  awaiting review, with no
+- **Progress during pending app reviews.** The ChatGPT plugin (submitted
+  2026-10-12) is approved and published, as the developer reported on
+  2026-11-04. The Claude.ai submission (2026-09-28) still awaits review, with no
   known completion date. Protect both queue positions and reviewer workflows
   while continuing independently useful SDK development, compatible fixes,
   tests, and research. Split new SDK capabilities from their MCP exposure;

@@ -10,6 +10,7 @@ agents and integrations use them alike.
 1. **Read** returns a note's text and, to a requested depth, its children, with
    each note's reference, kind and the operations it offers, and the version of
    every file read. A note at the depth limit reports whether it has children.
+   When asked, it also returns a document's or plain file's content.
    **Deterministic.**
 2. **Insert** adds new notes under a parent: outline notes and Markdown blocks
    from a Markdown fragment nested as deep as needed, or documents and files,
@@ -51,9 +52,9 @@ operations.
    none as one [commit](../workspaces/store.md#commits). A later operation can
    name a note an earlier one created. **Deterministic.**
 2. A call states the expected content of every file it changes, as the store
-   requires. A Move, Delete or Set text of a folder also states the paths it
-   expects under the folder, so a file added under it since makes the call
-   stale. **Deterministic.**
+   requires. A Move, Delete or Set text of a folder also states the version of
+   its [listing](../workspaces/store.md#reads), so a file added or changed under
+   it since makes the call stale. **Deterministic.**
 3. An operation is refused when its target path is taken, or when it would put
    a note somewhere the [text format](../../format.md) can't hold it, such as a
    heading under a deeper heading. **Deterministic.**
