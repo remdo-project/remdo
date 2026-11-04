@@ -170,6 +170,10 @@ once stage 2 lands.
 4. **Note layer**
    - Add `note_index`, `resolve(uri)` and the new URL routes.
    - Add `useNote`, backlinks, search and the workspace source.
+   - List workspaces as notes in the account's
+     [user-data hierarchy](specs/outliner/user-data.md#hierarchy), so listing
+     and resolving workspaces are note operations and the personal workspace
+     comes from Insert there. Fold `list_workspaces` into `read_note`.
    - Check the contract with one read-only external source spike.
    - Exit: the UI and MCP read closed documents' notes without an editor.
 5. **Sharing and Git**
