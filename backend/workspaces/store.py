@@ -245,7 +245,7 @@ def _apply(workspace, author, message, prepared, folders):
     return revision
 
 
-def _folders(path):
+def folders_of(path):
     segments = path.split("/")
     return ["/".join(segments[:depth]) for depth in range(1, len(segments))]
 
@@ -268,7 +268,7 @@ class Namespace:
             return f"Paths {self.files[key]!r} and {path!r} differ only by case."
         if key in self.folders:
             return f"{path!r} is a folder, so it can't also be a file."
-        for folder in _folders(path):
+        for folder in folders_of(path):
             folder_key = folder.casefold()
             if folder_key in self.files:
                 return f"{self.files[folder_key]!r} is a file, so {path!r} can't be inside it."
@@ -283,12 +283,12 @@ class Namespace:
 
     def add(self, path):
         self.files[path.casefold()] = path
-        for folder in _folders(path):
+        for folder in folders_of(path):
             self.folders.setdefault(folder.casefold(), [folder, 0])[1] += 1
 
     def remove(self, path):
         del self.files[path.casefold()]
-        for folder in _folders(path):
+        for folder in folders_of(path):
             existing = self.folders[folder.casefold()]
             existing[1] -= 1
             if not existing[1]:

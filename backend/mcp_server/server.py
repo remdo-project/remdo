@@ -256,9 +256,10 @@ def create_app():
                 )
                 return result(f"Document: {document_url(doc_id)}\n\n{outline}")
             if name == "append_children":
-                notes = []
+                outline = []
                 pending = [
-                    (note, f"notes.{index}", notes) for index, note in enumerate(arguments["notes"])
+                    (note, f"notes.{index}", outline)
+                    for index, note in enumerate(arguments["notes"])
                 ]
                 pending.reverse()
                 count = 0
@@ -296,7 +297,7 @@ def create_app():
                     arguments["parent"], "The parent is not a documentId or a noteAddress."
                 )
                 ids = await call_editor(
-                    "append", doc_id, authorization, noteId=note_id, notes=notes
+                    "append", doc_id, authorization, noteId=note_id, notes=outline
                 )
                 return result(
                     [

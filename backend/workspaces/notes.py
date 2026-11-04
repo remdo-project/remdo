@@ -177,9 +177,9 @@ def read(workspace, path="", depth=1, content=False):
         raise Refusal("NOT_FOUND", f"No note at {path!r}.")
     documents = []
     node = _read_node(workspace, tree, path, kind, depth, documents)
-    tree.load(path for path, _ in documents)
-    for path, document in documents:
-        document["hasChildren"] = tree.has_children(path, "document")
+    tree.load(document_path for document_path, _ in documents)
+    for document_path, document in documents:
+        document["hasChildren"] = tree.has_children(document_path, "document")
     if content and kind in ("document", "file"):
         node.update(decode(tree.content(path)))
     return node
@@ -299,14 +299,28 @@ class Call:
     def produce(self, path):
         reason = self.tree.namespace.conflict(path)
         if reason:
-            self.refuse("FAILED_PRECONDITION", f"Can't place {path!r}: {reason}")
+            self.refuse("FAILED_PRECONDITION", f"Can't place {path!r}: {reason}", self.taken(path))
         self.use(path)
 
-    def relocate(self, path, kind, new_path):
+    def taken(self, path):
+        """The stored versions of what occupies `path`, ignoring case."""
+        namespace, initial = self.tree.namespace, self.tree.initial
+        files = {}
+        for key in [path, *store.folders_of(path)]:
+            existing = namespace.files.get(key.casefold())
+            if existing in initial:
+                files[existing] = initial[existing]
+        folder = namespace.folders.get(path.casefold())
+        versions = {"files": files} if files else {}
+        if folder and any(_under(stored, folder[0]) for stored in initial):
+            versions["folders"] = {folder[0]: self.tree.initial_version(folder[0])}
+        return versions
+
+    def relocate(self, path, kind, new_path, field):
         moving = self.tree.files_of(path, kind)
         hashes = {old: self.tree.remove(old) for old in moving}
         for old in moving:
-            new = self.path(new_path + old[len(path) :], "text")
+            new = self.path(new_path + old[len(path) :], field)
             self.produce(new)
             self.tree.files[new] = hashes[old]
             self.tree.namespace.add(new)
@@ -376,7 +390,7 @@ class Call:
         new_path = _join(parent, _name(path))
         if new_path != path:
             self.vouch(path, kind)
-            self.relocate(path, kind, new_path)
+            self.relocate(path, kind, new_path, "parent")
         return {"ref": {"path": new_path}}
 
     def delete(self, operation):
@@ -428,7 +442,7 @@ class Call:
             return {"ref": {"path": ""}}
         new_path = self.path(_join(_parent(path), self.file_name(text, kind)), "text")
         self.vouch(path, kind)
-        self.relocate(path, kind, new_path)
+        self.relocate(path, kind, new_path, "text")
         return {"ref": {"path": new_path}}
 
     def set_content(self, operation):
@@ -473,6 +487,11 @@ def change(workspace, author, operations, expected=None, dry_run=False):
     for index, operation in enumerate(operations):
         call.index = index
         results.append(call.apply(operation))
+    renamed = (
+        [{"ref": {"path": ""}, "change": "renamed", "text": call.name}]
+        if call.name != workspace.name
+        else []
+    )
     changes = call.changes()
     with transaction.atomic():
         if call.name != workspace.name:
@@ -500,7 +519,8 @@ def change(workspace, author, operations, expected=None, dry_run=False):
         workspace.name = call.name
     return {
         "results": results,
-        "changes": [
+        "changes": renamed
+        + [
             _describe(path, before, content, call.tree, dry_run)
             for path, (before, content) in changes.items()
         ],

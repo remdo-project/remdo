@@ -334,14 +334,47 @@ class NoteOperationTests(TestCase):
         self.assertEqual(Workspace.objects.get(pk=self.workspace.pk).head_id, head)
 
     def test_renaming_the_workspace_changes_no_files(self):
-        notes.change(
-            self.workspace,
-            self.owner,
-            [{"op": "setText", "target": {"path": ""}, "text": "Work"}],
-        )
+        rename = [{"op": "setText", "target": {"path": ""}, "text": "Work"}]
+        renamed = [{"ref": {"path": ""}, "change": "renamed", "text": "Work"}]
 
+        preview = notes.change(self.workspace, self.owner, rename, dry_run=True)
+        self.assertEqual(preview["changes"], renamed)
+        self.assertEqual(Workspace.objects.get(pk=self.workspace.pk).name, "Personal")
+
+        result = notes.change(self.workspace, self.owner, rename)
+        self.assertEqual(result["changes"], renamed)
         self.assertEqual(Workspace.objects.get(pk=self.workspace.pk).name, "Work")
         self.assertIsNone(self.workspace.head_id)
+
+    def test_a_taken_path_refusal_returns_what_occupies_it(self):
+        self.write({"Plan.md": "- a\n", "notes/x.md": "x\n"})
+
+        for text, versions in (
+            ("plan", {"files": {"Plan.md": store.read(self.workspace, "Plan.md").blob_hash}}),
+            ("notes", {"folders": {"notes": store.list_paths(self.workspace, "notes").version}}),
+        ):
+            with self.subTest(text=text), self.assertRaises(notes.Refusal) as refusal:
+                kind = "document" if text == "plan" else "file"
+                notes.change(
+                    self.workspace,
+                    self.owner,
+                    [{"op": "insert", "kind": kind, "text": text}],
+                )
+            self.assertEqual(refusal.exception.versions, versions)
+
+    def test_a_move_past_the_path_limit_blames_the_parent(self):
+        deep = "/".join(["d" * 40] * 4)
+        self.write({f"{deep}/x.md": "x\n", "long/" + "n" * 60 + ".md": "n\n"})
+
+        with self.assertRaises(notes.Refusal) as refusal:
+            notes.change(
+                self.workspace,
+                self.owner,
+                [{"op": "move", "target": {"path": "long"}, "parent": {"path": deep}}],
+                {"folders": {"long": store.list_paths(self.workspace, "long").version}},
+            )
+
+        self.assertTrue(str(refusal.exception).startswith("parent: "), refusal.exception)
 
     def test_read_lists_children_by_name_with_versions(self):
         self.write({"b.md": "- b\n", "a/x.png": "x", "c.txt": "", "empty.md": ""})
