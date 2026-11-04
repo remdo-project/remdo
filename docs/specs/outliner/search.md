@@ -121,7 +121,7 @@ same text. Every row uses the same layout regardless of highlight.
 ## Document scope
 
 On [Home](./home.md), search covers the user's
-[accessible documents](../access/access-control.md#document-access) and is
+[accessible documents](../access/access-control.md#access-roots) and is
 labeled **Search documents**. The document list is its result list, shown whether
 or not the search box has focus, so Search Mode does not apply.
 

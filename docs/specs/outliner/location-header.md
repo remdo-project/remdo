@@ -36,7 +36,7 @@ carries no sharing badge.
 
 ## Document rename
 
-Rename follows [Document Access](../access/access-control.md#document-access) and changes only the document name.
+Rename follows [Access Roots](../access/access-control.md#access-roots) and changes only the document name.
 
 - **Draft.** **Rename…** opens a dialog with the current name selected in a
   plain-text input. Edits stay local; remote changes leave the draft intact.

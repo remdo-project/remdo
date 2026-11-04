@@ -3,7 +3,7 @@
 User data notes expose the signed-in account's
 [document list](../../architecture.md#document-registry) to consumers: its
 documents and each document's direct grants, under
-[Document Access](../access/access-control.md#document-access). The
+[Access Roots](../access/access-control.md#access-roots). The
 [open document](./open-document.md) owns editor content.
 
 ## Hierarchy
@@ -22,11 +22,11 @@ collection currently listing it. An unlisted document, or one without available
 account context such as an open document on a host without account metadata,
 produces the unavailable-note error rather than a null parent. Source
 parentage describes containment in the account context, not document ownership
-or [access authority](../access/access-control.md#document-access).
+or [access authority](../access/access-control.md#access-roots).
 
-The User Data root is an [account document](./note-model.md#definitions) and the
-[owning document](../access/access-control.md#document-access) of Sources, source notes, and the Documents collections. Each
-listed document remains its own owning document.
+The User Data root is an [account root](./note-model.md#definitions) and the
+[access root](../access/access-control.md#access-roots) of Sources, source notes, and the Documents collections. Each
+listed document remains its own access root.
 
 ## State and observation
 

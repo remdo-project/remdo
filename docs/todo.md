@@ -41,7 +41,8 @@ implementation.
   including documents on connected servers. Settle query coverage, freshness,
   access changes, and unavailable sources before choosing direct document
   loading or a derived search index. Coordinate the UI, [note-link picker](specs/outliner/links.md#future), and
-  [MCP](#claude-mcp-save-a-conversation-to-remdo) through shared SDK operations.
+  [MCP](#claude-mcp-save-a-conversation-to-remdo) through shared SDK operations. For documents in workspaces, the
+  [adoption plan](text-format-plan.md)'s Note layer stage covers the index.
 - **Unopened documents.** Settle host-owned acquisition of non-current documents,
   content retention, and offline availability under the [open-document read boundary](specs/outliner/open-document.md#state-and-observation).
   Reassess persisted user-data handles and document-specific kinds
@@ -68,7 +69,7 @@ implementation.
 
 ### Document exposure
 
-Design the mechanism for [exposing data through another document](specs/access/access-control.md#document-access): a proxy
+Design the mechanism for [exposing data through another access root](specs/access/access-control.md#access-roots): a proxy
 note in shared document B showing part of private document A, an aggregate over
 A's notes, or a public profile built as an ordinary public document. Research on
 2026-10-30 found that only source-authorized designs deliver this; references
@@ -78,7 +79,7 @@ checked against the viewer's own access, as in Notion and Confluence, cannot.
 - **Direction.** The source document's owner creates an exposure record, stored
   in the document registry and scoped to a note or subtree of the source for one
   receiving document. Any document can be a source, including an account
-  document. A proxy note stores only the record's identity.
+  root. A proxy note stores only the record's identity.
 - **Reads.** Each read checks the viewer against the receiving document and
   rechecks the record, including that its grantor still owns the source. The
   server resolves a read-only projection from the record; no path accepts a
@@ -96,36 +97,12 @@ checked against the viewer's own access, as in Notion and Confluence, cannot.
 
 ### Note representation and history
 
-Assess whether the current [Lexical representation](specs/editor/lexical-outline.md) can support efficient note
-access and discovery, or whether a note-owned representation or another editor
-would be simpler overall. Compare measured
-[read, search, and headless loading costs](#performance), including the need to hydrate a
-Lexical editor server-side, against the costs of preserving rich text, stable
-identity, collaboration, offline merging, and undo. Keep these alternatives open
-while delivering bounded SDK improvements.
-
-A read model derived from collaborative state is the candidate first step: on
-each persistence callback the headless editor emits note rows to Django, serving
-[cross-document search](#cross-source-discovery), unopened-document reads, and [exposures](#document-exposure) without
-hydrating an editor. It stays rebuildable from its documents, and reads recheck
-current access.
-
-Moving to Yjs 14 and `@lexical/y` needs a one-time migration, because their
-document layout is incompatible with `@lexical/yjs`. Treat that as the decision
-point for this assessment, including Jazz 2 and Loro, since a migration cost is
-paid either way. As of 2026-10-30, Yjs 14 is a release candidate, `@lexical/y`
-is experimental, Jazz 2 is alpha with no collaborative text type found, and Loro
-has no official Lexical binding.
-
-Clarify the desired history and interoperability workflows: undo, recoverable
-versions, readable Git diffs, and editing through other tools. Compare Markdown
-as an authoritative format with readable exports from collaborative state;
-establish round-trip and merge behavior before choosing. Coordinate recoverable
-versions with [backup and recovery](#operations).
-
-The [RemDo text format](format.md) draft proposes Markdown as authoritative; its
-Follow-up section and [adoption plan](text-format-plan.md) track the remaining
-work.
+Decided: Markdown in the [RemDo text format](format.md) becomes the source of
+truth, with Yjs state as a cache and history kept in the database. The
+[adoption plan](text-format-plan.md) tracks the work, including search, note
+reads without an editor, history, backups and the `@lexical/y` move; its
+Cleanup stage folds the remaining items into their owners and removes this
+entry.
 
 ### Post-Hocuspocus simplification proposals
 
@@ -213,6 +190,12 @@ Decisions requiring a contract owner's judgement:
   schema and parallel specialist-reviewer layout from the Upkeep skill
   (wei18/Upkeep) as a way to speed alignment over large scopes.
 
+- **Format levels and repository Markdown.** Separate in the
+  [text format](format.md) what RemDo reads (every CommonMark and GFM file),
+  the [canonical spelling](format.md#canonical-spelling) tools write, and
+  authoring guidelines for structure. Then align the repository's Markdown and
+  its lint with the canonical spelling, including the format's lint follow-up.
+
 - **Skill-prose pressure testing.** Evaluate superpowers `writing-skills`
   adversarial subagent trials as an additional check for skill-file prose.
 
@@ -239,7 +222,7 @@ Decisions requiring a contract owner's judgement:
   whole-document saves, cache open documents in the headless host, split the
   collaboration hub, or deploy headless editor work separately from the hub.
   Measure cold reads and Yjs/Lexical hydration separately from note resolution
-  and output serialization, to inform the [representation decision](#note-representation-and-history).
+  and output serialization.
 
   Include concurrent sign-in, document saves, and authorize calls. Under ASGI,
   Django runs synchronous views one at a time on a single thread: four 0.4 s
@@ -315,7 +298,8 @@ RemDo document, minimal but useful for real work.
 - Let the [MCP server](specs/integrations/mcp.md) set a note's content text
   and delete a note, which first need [open document](specs/outliner/open-document.md)
   operations addressing a note. Appending cannot add a body, although reading
-  returns bodies.
+  returns bodies. For documents in workspaces, [note operations](specs/outliner/note-operations.md)
+  cover this in the [adoption plan](text-format-plan.md)'s Editor on text stage.
 - Expose [cross-document search](#cross-source-discovery) once server-side search spans a user's documents;
   searching a single document adds little over reading it whole.
 - **Oversized upload regression coverage.** Django closing the connection before
@@ -419,10 +403,10 @@ Remaining:
   Avoid a runtime descriptor framework and a generic property API; add untyped
   properties only if user-defined types become a product feature.
 
-- **Non-editor document support.** [Account documents](specs/outliner/note-model.md#definitions) keep their `user-data`
+- **Non-editor access roots.** [Account roots](specs/outliner/note-model.md#definitions) keep their `user-data`
   kind, and no consumer reads ownership yet. Use the [external-source examples](#cross-source-discovery) to
   test the same role for a scope such as a mailbox or calendar. Settle which
-  account document owns an aggregate across servers, and the owner under the
+  account root owns an aggregate across servers, and the owner under the
   [no-login mode](specs/access/access-control.md#future). Additional runtime kinds remain undecided.
 
 - **SDK API validation.** Evaluate query and app-resource reads in their own
@@ -477,6 +461,11 @@ Remaining:
   useful.
 
 ### Outliner
+
+- **Early editor operations.** After the [text format migration](text-format-plan.md),
+  revisit the editor's structural operations against
+  [note operations](specs/outliner/note-operations.md) and adjust those that
+  diverge.
 
 - **Touch and menu entry for note bodies.** [Body](specs/outliner/body.md#core-behavior)
   creation is reachable only through `Shift+Enter`, so touch devices cannot add

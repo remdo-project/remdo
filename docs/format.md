@@ -1,7 +1,7 @@
 # RemDo text format
 
-Informative draft: current specs stay authoritative until this format is
-adopted.
+Normative for [documents in workspaces](specs/outliner/note-model.md#note-kinds).
+Current specs stay authoritative for existing documents until they migrate.
 
 ## Purpose
 

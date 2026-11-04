@@ -49,8 +49,8 @@ stage can merge to `main` without affecting existing documents.
 - `note_index` also serves the `note:` resolver, backlinks and MCP `search`.
 - Postgres matches with full-text search in the `simple` configuration plus
   `pg_trgm`; SQLite uses FTS5. Every query filters by workspace membership.
-- Django parses with `markdown-it-py`, because closed documents never reach
-  Node. The index only reads, so a parser disagreement misplaces a hit at worst.
+- Django parses through the shared format module, so search and the editor read
+  documents the same way.
 
 ### Storage alternatives
 
@@ -68,15 +68,22 @@ stage can merge to `main` without affecting existing documents.
   revisions and saves.
 - The live door is the browser through Yjs. The text door is MCP, Git and any
   API.
+- Format logic (parse, check, write and note operations) is one TypeScript
+  module, shared by the browser and Django. Django runs it in embedded V8
+  (`mini-racer`), at about 60 MB per process; PythonMonkey is the fallback.
 - Node shrinks to the Yjs relay and Yjs-to-text conversion, behind three calls:
-  save, apply and read live text.
-- A closed document needs no Node: match, write text, record a revision. The
-  next load syncs through the hash check.
+  save, apply and read live text. Retiring Node later means replacing the relay.
+- A closed document needs no Node: Django applies the operation, checks it and
+  records a revision. The next load syncs through the hash check.
 - An open document is saved first, then edited through the fork path, so online
   peers have nothing unsaved.
-- MCP copies the filesystem server's `edit_file` shape. An ambiguous match is an
-  error listing the matches, with no numbered occurrences. `write` replaces a
-  document against a stated version.
+- [Note operations](specs/outliner/note-operations.md) own how any caller reads
+  and changes notes of every kind, through the text door or the editor. They
+  follow Roam's MCP write set, with Anytype's batch guards and a check of the
+  whole tree.
+- The open document's semantic operations move into note operations, leaving
+  the open document as the live editor session: focus, selection, view, history
+  and the capabilities that depend on them.
 
 ### References and notes
 
@@ -87,10 +94,9 @@ stage can merge to `main` without affecting existing documents.
   documents with no text ID.
 - Every note has a cache ID in Yjs node state. A reference promotes that value
   to `id::` in the text, and text always overrides the cache.
-- Resolution tries the same document, then the workspace. Several matches
-  elsewhere are shown as ambiguous, never picked silently.
-- All kinds share the outline note shape: `ref`, `kind`, `name`, `text`,
-  `children` and `capabilities`. Source fields are read-only named children.
+- [Note operations](specs/outliner/note-operations.md) and
+  [note IDs](specs/outliner/note-ids.md#ids-in-workspaces) own the note shape
+  and resolution. Source fields are read-only named children.
 - A source provides `read`, `list`, `search`, `subscribe` and `invoke`, shaped
   like MCP resources and tools. Subscriptions carry no data.
 - The browser uses TanStack Query keyed by URI behind `useNote(uri)`. Open
@@ -98,14 +104,12 @@ stage can merge to `main` without affecting existing documents.
 
 ### Documents and bodies
 
-- A document is a `.md` file, and its name is the file name. Folders are notes.
 - Permissions belong to the workspace: an owner and members with full access.
 - A body is the first run of Markdown block lines before any outline child. It
   is stored as ordinary children and behaves as its own editing region.
 - Body lines start as Markdown source, rendered per line when not being edited.
   Rich paragraph lines can follow if users ask, with no text change.
-- `folded` stays in Yjs node state. `id::` notes are hidden and don't count as
-  children for leaf and fold rules.
+- `folded` stays in Yjs node state.
 
 ## Stages
 
@@ -116,12 +120,21 @@ once stage 2 lands.
    - Add the experimental flag, workspace record, history tables and
      `document_text` search.
    - Give each flagged user a personal workspace of Markdown documents.
-   - Add the text door for closed documents through new MCP tools. Existing
-     tools stay for old documents.
-   - Exit: an agent can list, read, search, edit and create flagged documents.
+   - Add note operations for workspaces, folders, documents and files, without
+     outline notes, through new MCP tools. Existing tools stay for old
+     documents.
+   - Exit: an agent can list, read, search, create, move, rename and delete
+     flagged documents and files.
 2. **Editor on text**
    - Add the JavaScript parser and canonical writer, with write-time alignment
      to the saved text.
+   - Express editor test fixtures and expected outlines in the text format
+     before changing editor internals, so the same tests check behavior before
+     and after.
+   - Write operation cases once, as text before, operations, and text after or
+     the refusal. Test them on the shared format module, and check each other
+     surface, such as MCP or the editor, with only a few of the same cases. Add
+     this rule to the [testing policy](dev/testing.md) once it has worked.
    - Extend the editor schema with headings, `block` lines, per-note markers and
      independent checkboxes. Use `line` or `group` storage with no body wrapper.
    - Add Node's three calls, the cache row, the one-transaction save and hash
@@ -130,8 +143,17 @@ once stage 2 lands.
      a recreated identical note, repair duplicates, and clear a holder when a
      text `id::` claims its value.
    - Update note content by splicing text, never `clear()` plus `append()`.
+   - Add note operations for outline notes on the shared format module, run in
+     Django through embedded V8, and their MCP tools.
+   - Move the open document's semantic operations into note operations, as a
+     complete contract migration once the pending MCP reviews allow it.
+     Consider the [note range](specs/outliner/selection.md#note-ranges) as the
+     operand of Move and Delete.
+   - Test that each editor action changes the document as some sequence of
+     note operations would.
    - Exit: a flagged document edits and saves byte-stably in the real editor,
-     passing the randomized test and a real process kill.
+     passing the randomized test and a real process kill, and an agent changes
+     it through note operations without disturbing other notes or IDs.
 3. **Live safety**
    - Add the text door for open documents and generation IDs.
    - Keep each client's last synced text, and add the stale-client merge.
@@ -166,8 +188,14 @@ once stage 2 lands.
 7. **Cleanup**
    - Remove `DocumentContent`, `DocumentGrant`, the body wrapper, per-call
      headless editors, old MCP tools and old routes.
-   - Move this design into its owning specifications, and remove the draft note
-     from the format.
+   - Move this design into its owning specifications, and remove the format's
+     note on existing documents.
+   - Give the remaining existing kinds, such as account roots and user data
+     notes, note operations or retire them.
+   - Drop editor documents from the access roots and their sharing rules.
+   - Rename what remains of the open document to the editor session.
+   - Fold the remaining `docs/todo.md`, legacy backlog and format Follow-up
+     items into their owners, then delete this plan.
 
 ## Independent work
 
@@ -187,6 +215,13 @@ Switch new documents by reseeding from text once all of these hold:
 - RemDo's collaboration suite and the randomized test pass.
 
 ## Known limits
+
+- Moves and renames keep `note:` links working but don't rewrite relative
+  links, which can break until stage 5's link rewriting.
+- Text changed outside note operations, such as a Git push, skips their
+  checks; duplicate IDs it brings are reported, not repaired.
+- Per-file versions refuse an agent's call whenever someone saved the same
+  document since its read; stage 3's live merge reduces that.
 
 - An edit concurrent with a move can vanish or land on the wrong note. Indent
   needs `@lexical/y`, and reorder needs the unmerged PR. Don't build this on V2.

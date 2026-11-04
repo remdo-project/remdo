@@ -76,7 +76,10 @@ The [open document](specs/outliner/open-document.md) defines the opened-document
    across the API.
 2. Consumer-facing concepts and operation semantics should stay stable as
    implementation choices change.
-3. Ordinary consumers should not have to manage adapter transactions, indexing,
+3. An operation that several note kinds can support has one definition across
+   them; a kind differs only in which operations it offers. A kind-specific
+   variant needs a concrete reason.
+4. Ordinary consumers should not have to manage adapter transactions, indexing,
    or storage machinery.
 
 ## Architecture test

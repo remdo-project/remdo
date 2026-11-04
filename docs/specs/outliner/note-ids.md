@@ -3,6 +3,8 @@
 Addressable [editor notes](./note-model.md#note-kinds) have stable identity
 within a document; a global `noteAddress` combines document and note identity.
 [Links](./links.md) defines note-link runtime and persistence boundaries.
+[IDs in workspaces](#ids-in-workspaces) cover outline notes and documents in a
+workspace; the other sections cover editor notes.
 
 ## Definitions
 
@@ -114,3 +116,20 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
 - All document roots use `/n/<documentId>`. [Home](./home.md) uses `/`.
 - A `noteAddress` is valid only while the referenced note exists in the referenced
   document.
+
+## IDs in workspaces
+
+1. An outline note or [document](./note-model.md#note-kinds) in a workspace has
+   an ID only once something references it or a caller ensures one; the ID is
+   written into its document's text, as the [text format](../../format.md)
+   spells it.
+2. An ID is unique across its workspace and resolves there as a `note:` link. A
+   note keeps its ID through every [note operation](./note-operations.md)
+   except Delete, including a move to another document. **Deterministic.**
+3. Inserted or copied notes start without an ID; a fragment carrying one is
+   refused. **Deterministic.**
+4. A note's [ID note](../../format.md) belongs to the note, not to its children: Read reports it
+   as the note's ID, Set text leaves it, and leaf and fold rules ignore it. Set
+   content can't add an ID the document lacked. **Deterministic.**
+5. When text written outside RemDo gives two notes one ID, reads report both,
+   and a reference to that ID resolves to neither.

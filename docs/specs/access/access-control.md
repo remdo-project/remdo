@@ -1,14 +1,13 @@
 # Access Control
 
 Access control combines authenticated identity, administrative authority, and
-document ownership or grants. These boundaries determine which app state and
-collaborative document state a user can access.
+the ownership or grants of access roots. These boundaries determine which app
+state and collaborative document state a user can access.
 
 ## Access Scope
 
-User-facing document access is authenticated by a session, or a
-[delegated access](#delegated-access) token, on the server that owns the
-document.
+User-facing access to an access root is authenticated by a session, or a
+[delegated access](#delegated-access) token, on the server that owns it.
 RemDo does not expose anonymous documents, public documents, document-access
 links carrying bearer credentials, or a local-only no-login mode.
 
@@ -111,24 +110,30 @@ handling and may clear a newer login, requiring the user to sign in again.
 Signing out of one browser tab signs out every tab sharing its storage, which
 stops using the local data it is losing.
 
-## Document Access
+## Access Roots
 
-Each [document](../outliner/note-model.md#definitions) owns the authorization policy for itself and the notes belonging
-to it. Every note has one owning document. A document is its own owning document.
+Each [access root](../outliner/note-model.md#definitions) owns the authorization policy for itself and the notes under
+it, down to the next access root. Every note has one access root. An access
+root is its own access root.
 Listing or linking a note alone grants no additional authority over it and does
-not change its owning document.
+not change its access root.
 
-Exposing data or performing operations through another document requires the
-source document's authorization. The receiving document controls access to that
+Exposing data or performing operations through another access root requires the
+source root's authorization. The receiving root controls access to that
 exposure within the source's permitted data and operations. The receiving
-document's users need not have direct access to the source document.
+root's users need not have direct access to the source root.
 
 The following rules apply to each user authenticated by the server.
 
-Every document has one owner. A document may have zero or more direct
-grants; a new one has none. Its URL only locates it; ownership or a grant
-authorizes access. An [account document](../outliner/note-model.md#definitions) takes no direct grants and
-cannot be renamed or deleted.
+Every access root has one owner. An editor document may have zero or more
+direct grants; a new one has none. Its URL only locates it; ownership or a grant
+authorizes access. An [account root](../outliner/note-model.md#definitions) takes no direct grants and
+cannot be renamed or deleted. A [workspace](../workspaces/store.md#definitions)
+takes no direct grants; only its owner can read, change or delete it through the
+app and its integrations, and other users are refused as if it didn't exist.
+**Deterministic.**
+
+The rest of this section and its subsections apply to editor documents.
 
 Only the owner can grant a document to another local user. Sharing
 identifies the grantee by email; a grant is created only when that email matches
@@ -243,7 +248,7 @@ delegated access, including a grant made before promotion.
 
 A delegated access token authenticates as its user on the RemDo API and on
 [collaboration connections](../../architecture.md#collaboration-credentials-and-paths),
-under that user's current [document access](#document-access), without a
+under that user's current [access](#access-roots), without a
 browser origin. The [MCP server](../integrations/mcp.md) accepts only tokens
 with the `openid` scope and issued for it as their target resource
 ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)); the API and
