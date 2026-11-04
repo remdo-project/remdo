@@ -18,6 +18,9 @@ Front matter supplies:
 - **date:** The `YYYY-MM-DD` calendar date the post displays and is ordered by.
 - **topic:** A free-text label shown beside the date.
 - **image:** A site path to the post's decorative index image.
+- **social_image:** Optional site path for link previews; defaults to **image**.
+- **social_image_alt:** Optional description of the preview artwork; defaults
+  to **title**.
 - **author:** Optional; defaults to **RemDo team**.
 
 A missing or invalid field, or a post file whose name is not a slug, fails the
@@ -48,6 +51,14 @@ A post page shows, in order:
 
 The reading time is the body's word count divided by 200, rounded up and at
 least one, shown as **N min read**.
+
+## Link previews
+
+Each post supplies Open Graph article metadata and a Twitter large-image card
+in its server-rendered HTML. Both use the post's title, description, preview
+image and alternative text. Open Graph uses the canonical post URL and the
+site name **RemDo**. Canonical and image URLs use the configured public origin,
+independently of the request's host or query string.
 
 ## Future
 

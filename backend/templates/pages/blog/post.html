@@ -1,6 +1,21 @@
 {% extends "pages/blog/base.html" %}
 {% block head_title %}{{ post.title }} · RemDo{% endblock %}
 {% block description %}{{ post.description }}{% endblock %}
+{% block extra_head %}
+  {{ block.super }}
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="RemDo">
+  <meta property="og:title" content="{{ post.title }}">
+  <meta property="og:description" content="{{ post.description }}">
+  <meta property="og:url" content="{{ canonical }}">
+  <meta property="og:image" content="{{ social_image }}">
+  <meta property="og:image:alt" content="{{ post.social_image_alt }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ post.title }}">
+  <meta name="twitter:description" content="{{ post.description }}">
+  <meta name="twitter:image" content="{{ social_image }}">
+  <meta name="twitter:image:alt" content="{{ post.social_image_alt }}">
+{% endblock %}
 {% block blog_content %}
 <article class="landing-blog-article">
   <header class="landing-blog-article-heading">
