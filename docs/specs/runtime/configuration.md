@@ -176,8 +176,10 @@ receive the DSN. **Deterministic.**
 
 The Python HTTP service, collaboration server, and browser app report unhandled
 failures; the browser app also reports errors that an error boundary or the
-editor catches. A failing server process still exits unsuccessfully, after a
-bounded delivery attempt. Reports identify the build revision and the
+editor catches. The [MCP server](../integrations/mcp.md#tools) also reports a
+tool call that fails as `UNAVAILABLE`, `OUTCOME_UNCONFIRMED`, or `INTERNAL`. A
+failing server process still exits unsuccessfully, after a bounded delivery
+attempt. Reports identify the build revision and the
 [`APP_ORIGIN`](#network-addressing) host. **Deterministic.**
 
 The browser app sends reports through the instance's gateway.

@@ -31,6 +31,8 @@ from .definitions import INSTRUCTIONS, TOOLS, WORKSPACE_TOOLS
 from .errors import DOCUMENT_NOT_FOUND, UNCONFIRMED, WORKSPACE_UNCONFIRMED, failure, result
 
 DATABASE_TIMEOUT_SECONDS = 10
+# Failures RemDo caused, as opposed to calls the client can correct.
+REPORTED_FAILURES = {"UNAVAILABLE", "OUTCOME_UNCONFIRMED"}
 # Match String.trim() in the SDK's document/note address normalization.
 ADDRESS_WHITESPACE = (
     "\t\n\v\f\r \u00a0\u1680"
@@ -132,6 +134,13 @@ def workspace_tool(name, arguments, user):
         if error.versions:
             message += f" Current versions: {json.dumps(error.versions, ensure_ascii=False)}"
         raise OperationError(error.code, message) from error
+
+
+def report(error):
+    if settings.SENTRY_DSN:
+        import sentry_sdk
+
+        sentry_sdk.capture_exception(error)
 
 
 def can_use_workspaces(user):
@@ -325,12 +334,11 @@ def create_app():
                 }
             )
         except OperationError as error:
+            if error.code in REPORTED_FAILURES:
+                report(error)
             return failure(error, app_origin)
         except Exception as error:
-            if settings.SENTRY_DSN:
-                import sentry_sdk
-
-                sentry_sdk.capture_exception(error)
+            report(error)
             return failure(
                 OperationError("INTERNAL", "RemDo could not complete the request."), app_origin
             )

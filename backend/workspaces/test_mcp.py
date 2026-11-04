@@ -1,9 +1,11 @@
 import json
+from unittest.mock import patch
 
 from accounts.models import User
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import Permission
-from django.test import TransactionTestCase
+from django.db import DatabaseError
+from django.test import TransactionTestCase, override_settings
 from documents.test_mcp import McpClient
 
 from . import store
@@ -81,6 +83,21 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
         result = await self.call("read_note", {"workspace": workspace.pk})
 
         self.assertTrue(self.error_text(result).startswith("NOT_FOUND: "))
+
+    @override_settings(SENTRY_DSN="https://public@errors.example.test/1")
+    async def test_failures_remdo_caused_are_reported_and_client_errors_are_not(self):
+        await sync_to_async(self.allow_workspaces)()
+
+        with patch("sentry_sdk.capture_exception") as capture:
+            with patch("workspaces.notes.workspaces_of", side_effect=DatabaseError):
+                unavailable = await self.call("list_workspaces", {})
+            invalid = await self.call("read_note", {"workspace": "missing"})
+
+        self.assertTrue(self.error_text(unavailable).startswith("UNAVAILABLE: "))
+        self.assertTrue(self.error_text(invalid).startswith("NOT_FOUND: "))
+        [[reported], _] = capture.call_args
+        self.assertEqual(capture.call_count, 1)
+        self.assertIsInstance(reported.__cause__, DatabaseError)
 
     def read(self, workspace_id, path):
         return store.read(Workspace.objects.get(pk=workspace_id), path)

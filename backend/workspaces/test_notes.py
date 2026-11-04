@@ -386,14 +386,14 @@ class NoteOperationTests(TestCase):
         self.assertEqual(node["version"], store.list_paths(self.workspace).version)
         self.assertEqual(
             [
-                (child["ref"]["path"], child["kind"], child["text"], child["hasChildren"])
+                (child["ref"]["path"], child["kind"], child["text"], child.get("hasChildren"))
                 for child in node["children"]
             ],
             [
                 ("a", "folder", "a", True),
-                ("b.md", "document", "b", True),
+                ("b.md", "document", "b", None),
                 ("c.txt", "file", "c.txt", False),
-                ("empty.md", "document", "empty", False),
+                ("empty.md", "document", "empty", None),
             ],
         )
         self.assertEqual(

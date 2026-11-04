@@ -175,17 +175,13 @@ def read(workspace, path="", depth=1, content=False):
     kind = tree.kind(path)
     if kind is None:
         raise Refusal("NOT_FOUND", f"No note at {path!r}.")
-    documents = []
-    node = _read_node(workspace, tree, path, kind, depth, documents)
-    tree.load(document_path for document_path, _ in documents)
-    for document_path, document in documents:
-        document["hasChildren"] = tree.has_children(document_path, "document")
+    node = _read_node(workspace, tree, path, kind, depth)
     if content and kind in ("document", "file"):
         node.update(decode(tree.content(path)))
     return node
 
 
-def _read_node(workspace, tree, path, kind, depth, documents):
+def _read_node(workspace, tree, path, kind, depth):
     node = {
         "ref": {"path": path},
         "kind": kind,
@@ -197,16 +193,15 @@ def _read_node(workspace, tree, path, kind, depth, documents):
         children = tree.children(path)
         if depth > 0:
             node["children"] = [
-                _read_node(workspace, tree, child, tree.kind(child), depth - 1, documents)
+                _read_node(workspace, tree, child, tree.kind(child), depth - 1)
                 for child in children
             ]
         else:
             node["hasChildren"] = bool(children)
     else:
         node["version"] = tree.files[path]
-        node["hasChildren"] = False
-        if kind == "document":
-            documents.append((path, node))
+        if kind == "file":
+            node["hasChildren"] = False
     return node
 
 

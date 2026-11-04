@@ -230,8 +230,8 @@ Switch new documents by reseeding from text once all of these hold:
   checks; duplicate IDs it brings are reported, not repaired.
 - Per-file versions refuse an agent's call whenever someone saved the same
   document since its read; stage 3's live merge reduces that.
-- Until stage 2, Read returns a document's content but not its children, and
-  Insert into a document and Ensure ID are refused.
+- Until stage 2, Read returns a document's content but not its children, nor
+  whether it has any, and Insert into a document and Ensure ID are refused.
 - Note operations can't create a folder: a folder exists only while it holds a
   file, and Insert has no way to add one with its first file.
 
