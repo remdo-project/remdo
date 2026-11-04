@@ -22,7 +22,11 @@ class StoreError(ValueError):
 
 
 class StaleFile(StoreError):
-    """A file changed since the caller read it."""
+    """A file, or the paths under a folder, changed since the caller read them."""
+
+    def __init__(self, message, path):
+        super().__init__(message)
+        self.path = path
 
 
 class NoChanges(StoreError):
@@ -105,20 +109,49 @@ def read(workspace, path):
     return File(path, bytes(row.blob.content), row.blob_id)
 
 
-def list_paths(workspace):
-    return list(
-        WorkspaceFile.objects.filter(workspace=workspace)
-        .order_by("path")
-        .values_list("path", flat=True)
-    )
+@dataclass(frozen=True)
+class Listing:
+    """The files under a folder, or under the whole workspace when the folder is "".
+
+    `files` maps each path to its blob hash. Pass `version` back to `commit` as the listing
+    expected under this folder.
+    """
+
+    folder: str
+    files: dict[str, str]
+    version: str
+
+    @property
+    def paths(self):
+        return list(self.files)
 
 
-def commit(workspace, author, message, changes):
+def _files_under(workspace, folder):
+    files = WorkspaceFile.objects.filter(workspace=workspace)
+    if folder:
+        files = files.filter(path__startswith=f"{folder}/")
+    return dict(files.order_by("path").values_list("path", "blob_id"))
+
+
+def listing_version(files):
+    """The version of a listing whose `files` map each path to its blob hash."""
+    lines = "".join(f"{hash_} {path}\n" for path, hash_ in sorted(files.items()))
+    return hashlib.sha256(lines.encode()).hexdigest()
+
+
+def list_paths(workspace, folder=""):
+    folder = normalize_path(folder) if folder else ""
+    files = _files_under(workspace, folder)
+    return Listing(folder, files, listing_version(files))
+
+
+def commit(workspace, author, message, changes, folders=None):
     """Apply `changes` as one new revision on top of the head.
 
     `changes` maps each path to `(expected, content)`: `expected` is the blob hash the caller
     read, or None for a file it saw missing, and `content` is the new bytes, or None to delete
-    the file. Raises StaleFile, writing nothing, when any of those files differs from `expected`.
+    the file. `folders` maps a folder to the listing version the caller read. Raises StaleFile,
+    writing nothing, when any of those files or listings differs from what the caller expects.
     """
     prepared = {}
     for path, (expected, content) in changes.items():
@@ -126,14 +159,18 @@ def commit(workspace, author, message, changes):
         if path in prepared:
             raise InvalidPath(f"Path {path!r} appears twice.")
         prepared[path] = (expected, None if content is None else blob_hash(content), content)
-    return _apply(workspace, author, message, prepared)
+    folders = {normalize_path(folder): version for folder, version in (folders or {}).items()}
+    return _apply(workspace, author, message, prepared, folders)
 
 
 @transaction.atomic
-def _apply(workspace, author, message, prepared):
+def _apply(workspace, author, message, prepared, folders):
     # Serializes commits per workspace: a row lock on PostgreSQL, and SQLite's IMMEDIATE
     # transactions already allow one writer at a time.
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
+    for folder, expected in folders.items():
+        if listing_version(_files_under(locked, folder)) != expected:
+            raise StaleFile(f"The files under {folder!r} changed since they were listed.", folder)
     current = dict(
         WorkspaceFile.objects.filter(workspace=locked, path__in=prepared).values_list(
             "path", "blob_id"
@@ -143,7 +180,7 @@ def _apply(workspace, author, message, prepared):
     for path, (expected, hash_, content) in prepared.items():
         existing = current.get(path)
         if existing != expected:
-            raise StaleFile(f"{path!r} changed since it was read.")
+            raise StaleFile(f"{path!r} changed since it was read.", path)
         if hash_ is None:
             if existing is None:
                 raise InvalidPath(f"Can't delete missing path {path!r}.")
