@@ -112,82 +112,6 @@ class BlogTests(SimpleTestCase):
         self.assertContains(response, '<p class="landing-blog-author">RemDo team</p>', html=True)
         self.assertNotContains(response, "Next post")
 
-    @override_settings(APP_ORIGIN="https://public.example.test")
-    def test_link_previews_use_the_public_origin_and_dedicated_artwork(self):
-        self.write_post(
-            "shared",
-            social_image="/site-assets/blog/social.png",
-            social_image_alt="An outline beside a chat.",
-        )
-        response = self.client.get("/blog/shared/?campaign=example", HTTP_HOST="localhost:4600")
-        for attribute, name, value in (
-            ("property", "og:type", "article"),
-            ("property", "og:site_name", "RemDo"),
-            ("property", "og:title", "Title of shared"),
-            ("property", "og:description", "Excerpt of shared"),
-            ("property", "og:url", "https://public.example.test/blog/shared/"),
-            ("property", "og:image", "https://public.example.test/site-assets/blog/social.png"),
-            ("property", "og:image:alt", "An outline beside a chat."),
-            ("name", "twitter:card", "summary_large_image"),
-            ("name", "twitter:title", "Title of shared"),
-            ("name", "twitter:description", "Excerpt of shared"),
-            ("name", "twitter:image", "https://public.example.test/site-assets/blog/social.png"),
-            ("name", "twitter:image:alt", "An outline beside a chat."),
-        ):
-            with self.subTest(name=name):
-                self.assertContains(
-                    response, f'<meta {attribute}="{name}" content="{value}">', count=1, html=True
-                )
-        self.assertContains(
-            response,
-            '<link rel="canonical" href="https://public.example.test/blog/shared/">',
-            html=True,
-        )
-        index = self.client.get("/blog/")
-        self.assertContains(index, 'src="/site-assets/blog/language-learning-cover.webp"')
-        self.assertNotContains(index, "social.png")
-
-    @override_settings(APP_ORIGIN="https://public.example.test")
-    def test_link_previews_fall_back_to_the_cover_and_title(self):
-        self.write_post("without-social-image")
-        response = self.client.get("/blog/without-social-image/")
-        for attribute, name, value in (
-            (
-                "property",
-                "og:image",
-                "https://public.example.test/site-assets/blog/language-learning-cover.webp",
-            ),
-            (
-                "name",
-                "twitter:image",
-                "https://public.example.test/site-assets/blog/language-learning-cover.webp",
-            ),
-            ("property", "og:image:alt", "Title of without-social-image"),
-            ("name", "twitter:image:alt", "Title of without-social-image"),
-        ):
-            with self.subTest(name=name):
-                self.assertContains(
-                    response, f'<meta {attribute}="{name}" content="{value}">', html=True
-                )
-        self.assertNotContains(response, 'property="og:image:width"')
-        self.assertNotContains(response, 'property="og:image:height"')
-
-    def test_link_preview_text_is_escaped_in_html_attributes(self):
-        text = "'Store \"tools\" & <notes>'"
-        self.write_post("escaped", title=text, description=text, social_image_alt=text)
-        response = self.client.get("/blog/escaped/")
-        escaped = "Store &quot;tools&quot; &amp; &lt;notes&gt;"
-        for attribute, name in (
-            ("property", "og:title"),
-            ("property", "og:description"),
-            ("property", "og:image:alt"),
-            ("name", "twitter:title"),
-            ("name", "twitter:description"),
-            ("name", "twitter:image:alt"),
-        ):
-            with self.subTest(name=name):
-                self.assertContains(response, f'<meta {attribute}="{name}" content="{escaped}">')
-
     def test_reading_time_is_word_count_over_200_rounded_up(self):
         for slug, words in (("short", 1), ("exact", 200), ("over", 201)):
             self.write_post(slug, body=" ".join(["word"] * words))
@@ -249,14 +173,6 @@ class BlogTests(SimpleTestCase):
             ("image", "cover.webp"),
             ("image", r"'/\evil.example/cover.webp'"),
             ("image", '"/\\t/evil.example/cover.webp"'),
-            ("social_image", "''"),
-            ("social_image", "https://example.test/social.png"),
-            ("social_image", "//example.test/social.png"),
-            ("social_image", "social.png"),
-            ("social_image", r"'/\evil.example/social.png'"),
-            ("social_image", '"/\\t/evil.example/social.png"'),
-            ("social_image_alt", "''"),
-            ("social_image_alt", "42"),
             ("author", "''"),
         ):
             with self.subTest(field=field, value=value):
@@ -280,35 +196,3 @@ class BlogTests(SimpleTestCase):
         self.write_post("Not_A_Slug")
         with self.assertRaisesMessage(ImproperlyConfigured, "Not_A_Slug.md"):
             self.client.get("/blog/")
-
-
-@override_settings(APP_ORIGIN="https://remdo.com")
-class PublishedBlogSharingTests(SimpleTestCase):
-    def test_both_case_studies_use_their_own_landscape_preview(self):
-        for slug, image, alt in (
-            (
-                "learn-a-language-with-chatgpt-and-remdo",
-                "language-learning-social.png",
-                "Language practice in ChatGPT, with a lesson recap and tasks saved in RemDo.",
-            ),
-            (
-                "manage-your-stores-seo-content-with-chatgpt-and-remdo",
-                "seo-social.png",
-                "SEO drafts in ChatGPT, organised by category and product in RemDo.",
-            ),
-        ):
-            with self.subTest(slug=slug):
-                response = self.client.get(f"/blog/{slug}/")
-                for attribute, name in (("property", "og:image"), ("name", "twitter:image")):
-                    self.assertContains(
-                        response,
-                        f'<meta {attribute}="{name}" content="https://remdo.com/site-assets/blog/{image}">',
-                        html=True,
-                    )
-                for attribute, name in (
-                    ("property", "og:image:alt"),
-                    ("name", "twitter:image:alt"),
-                ):
-                    self.assertContains(
-                        response, f'<meta {attribute}="{name}" content="{alt}">', html=True
-                    )

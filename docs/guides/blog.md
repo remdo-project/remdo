@@ -18,7 +18,7 @@ description: A few thoughts on writing small tasks down.
 date: 2026-10-07
 topic: Perspectives
 image: /site-assets/blog/language-learning-cover.webp
-social_image: /site-assets/blog/language-learning-social.png
+social_image: /site-assets/blog/language-learning-social.jpg
 social_image_alt: Language practice in ChatGPT, with a lesson recap and tasks saved in RemDo.
 ---
 
@@ -41,7 +41,7 @@ add a square WebP of at least 720 pixels. The path is not checked, so confirm
 the cover appears in the index.
 
 For a link preview, add `social_image` with a site path to a landscape image
-and `social_image_alt` with a short description of the artwork. A 1200 × 630 PNG
+and `social_image_alt` with a short description of the artwork. A 1200 × 630 JPEG
 works for the current previews. These optional fields leave the square index
 cover unchanged. Without them, sharing uses the index cover and the post title
 as its alternative text. Include the image in the pull request and check that

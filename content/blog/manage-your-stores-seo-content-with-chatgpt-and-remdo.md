@@ -4,7 +4,7 @@ description: Prepare SEO drafts with ChatGPT and keep keywords, titles and descr
 date: 2026-10-27
 topic: Case study
 image: /site-assets/blog/seo-cover.webp
-social_image: /site-assets/blog/seo-social.png
+social_image: /site-assets/blog/seo-social.jpg
 social_image_alt: SEO drafts in ChatGPT, organised by category and product in RemDo.
 ---
 

@@ -4,7 +4,7 @@ description: Practise a language with ChatGPT and keep recaps, tutor feedback an
 date: 2026-10-14
 topic: Case study
 image: /site-assets/blog/language-learning-cover.webp
-social_image: /site-assets/blog/language-learning-social.png
+social_image: /site-assets/blog/language-learning-social.jpg
 social_image_alt: Language practice in ChatGPT, with a lesson recap and tasks saved in RemDo.
 ---
 
