@@ -34,6 +34,8 @@ POST_FIELDS = {
     "date": lambda value: type(value) is date,
     "topic": is_text,
     "image": is_site_path,
+    "social_image": lambda value: value is None or is_site_path(value),
+    "social_image_alt": lambda value: value is None or is_text(value),
     "author": lambda value: value is None or is_text(value),
 }
 
@@ -46,6 +48,8 @@ class Post:
     date: date
     topic: str
     image: str
+    social_image: str
+    social_image_alt: str
     author: str
     body: str
 
@@ -61,6 +65,8 @@ def load_posts():
         metadata, body = read_page(path, POST_FIELDS)
         fields = {key: metadata.get(key) for key in POST_FIELDS}
         fields["author"] = fields["author"] or DEFAULT_AUTHOR
+        fields["social_image"] = fields["social_image"] or fields["image"]
+        fields["social_image_alt"] = fields["social_image_alt"] or fields["title"]
         posts.append(Post(slug=path.stem, body=body, **fields))
     return sorted(posts, key=lambda post: (-post.date.toordinal(), post.slug))
 
@@ -90,6 +96,7 @@ def blog_post(request, slug):
         "pages/blog/post.html",
         {
             "canonical": f"{settings.APP_ORIGIN}/blog/{slug}/",
+            "social_image": f"{settings.APP_ORIGIN}{post.social_image}",
             "post": post,
             "body": body,
             "reading_minutes": max(1, ceil(len(strip_tags(body).split()) / WORDS_PER_MINUTE)),
