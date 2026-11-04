@@ -20,6 +20,13 @@ OPERATIONS = {
     "document": ["read", "move", "delete", "setText", "setContent"],
     "file": ["read", "move", "delete", "setText", "setContent"],
 }
+REQUIRED_FIELDS = {
+    "insert": ("kind", "text"),
+    "move": ("target", "parent"),
+    "delete": ("target",),
+    "setText": ("target",),
+    "setContent": ("target",),
+}
 # The text format's ID note, as in `- id:: k3x9`; the format parser replaces this.
 ID_NOTE = re.compile(r"^[ \t>]*[-*+][ \t]+id::[ \t]*(\S+)[ \t]*$", re.MULTILINE)
 
@@ -174,7 +181,10 @@ def text_of(workspace, path, kind):
 
 
 def read(workspace, path="", depth=1, content=False):
-    path = store.normalize_path(path) if path else ""
+    try:
+        path = store.normalize_path(path) if path else ""
+    except store.InvalidPath as error:
+        raise Refusal("INVALID_ARGUMENT", f"ref: {error}") from error
     tree = Tree(workspace)
     if tree.kind(path) is None:
         raise Refusal("NOT_FOUND", f"No note at {path!r}.")
@@ -308,6 +318,9 @@ class Call:
 
     def apply(self, operation):
         op = operation["op"]
+        missing = [field for field in REQUIRED_FIELDS[op] if field not in operation]
+        if missing:
+            self.refuse("INVALID_ARGUMENT", f"{op} needs {', '.join(missing)}.")
         if op == "insert":
             return self.insert(operation)
         if op == "move":

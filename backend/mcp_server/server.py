@@ -25,9 +25,10 @@ from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Route
+from workspaces import notes
 
-from .definitions import INSTRUCTIONS, TOOLS
-from .errors import DOCUMENT_NOT_FOUND, UNCONFIRMED, failure, result
+from .definitions import INSTRUCTIONS, TOOLS, WORKSPACE_TOOLS
+from .errors import DOCUMENT_NOT_FOUND, UNCONFIRMED, WORKSPACE_UNCONFIRMED, failure, result
 
 DATABASE_TIMEOUT_SECONDS = 10
 # Match String.trim() in the SDK's document/note address normalization.
@@ -102,6 +103,47 @@ def metadata_tool(name, arguments, user):
         ) from error
 
 
+def workspace_tool(name, arguments, user):
+    writes = name == "change_workspace" and not arguments.get("dryRun", False)
+    try:
+        if name == "list_workspaces":
+            return [
+                {"workspace": workspace.pk, "name": workspace.name}
+                for workspace in notes.workspaces_of(user)
+            ]
+        workspace = notes.workspace_of(user, arguments["workspace"])
+        if name == "read_note":
+            return notes.read(
+                workspace,
+                arguments.get("ref", {}).get("path", ""),
+                arguments.get("depth", 1),
+                arguments.get("content", False),
+            )
+        return notes.change(
+            workspace,
+            user,
+            arguments["operations"],
+            arguments.get("expected"),
+            dry_run=not writes,
+        )
+    except notes.Refusal as error:
+        message = str(error)
+        if error.index is not None:
+            message = f"operations.{error.index}: {message}"
+        if error.versions:
+            message += f" Current versions: {json.dumps(error.versions, ensure_ascii=False)}"
+        raise OperationError(error.code, message) from error
+    except DatabaseError as error:
+        raise OperationError(
+            "OUTCOME_UNCONFIRMED" if writes else "UNAVAILABLE",
+            WORKSPACE_UNCONFIRMED if writes else UNAVAILABLE,
+        ) from error
+
+
+def can_use_workspaces(user):
+    return user.has_perm("workspaces.use_workspaces")
+
+
 class RemdoServer(Server):
     def create_initialization_options(self, **kwargs):
         return super().create_initialization_options(
@@ -118,7 +160,11 @@ def create_app():
     streamable_http.pydantic_core = SimpleNamespace(from_json=decode_request)
     app_origin = settings.APP_ORIGIN
     tools = [types.Tool(**definition) for definition in TOOLS]
-    validators = {tool.name: Draft7Validator(tool.input_schema) for tool in tools}
+    workspace_tools = [types.Tool(**definition) for definition in WORKSPACE_TOOLS]
+    workspace_tool_names = {tool.name for tool in workspace_tools}
+    validators = {
+        tool.name: Draft7Validator(tool.input_schema) for tool in [*tools, *workspace_tools]
+    }
     append_schema = validators["append_children"].schema
     validators["append_children"] = Draft7Validator(
         {
@@ -145,14 +191,27 @@ def create_app():
             "url": document_url(document["id"]),
         }
 
+    async def workspaces_allowed(user):
+        try:
+            return await asyncio.wait_for(
+                database_call(can_use_workspaces, user), DATABASE_TIMEOUT_SECONDS
+            )
+        except (DatabaseError, TimeoutError) as error:
+            raise OperationError("UNAVAILABLE", UNAVAILABLE) from error
+
     async def list_tools(ctx, params):
+        if await workspaces_allowed(ctx.request.state.mcp_user):
+            return types.ListToolsResult(tools=[*tools, *workspace_tools])
         return types.ListToolsResult(tools=tools)
 
     # Validate here so errors keep RemDo's coded tool envelope, including a field path.
     async def call_tool(ctx, params):
         name, arguments = params.name, params.arguments or {}
         try:
-            if name not in validators:
+            if name not in validators or (
+                name in workspace_tool_names
+                and not await workspaces_allowed(ctx.request.state.mcp_user)
+            ):
                 raise OperationError("INVALID_ARGUMENT", f"Tool {name} not found")
             validation = next(validators[name].iter_errors(arguments), None)
             if validation:
@@ -162,6 +221,19 @@ def create_app():
                 )
             request = ctx.request
             authorization = request.headers["authorization"]
+            if name in workspace_tool_names:
+                writes = name == "change_workspace" and not arguments.get("dryRun", False)
+                try:
+                    value = await asyncio.wait_for(
+                        database_call(workspace_tool, name, arguments, request.state.mcp_user),
+                        DATABASE_TIMEOUT_SECONDS,
+                    )
+                except TimeoutError as error:
+                    raise OperationError(
+                        "OUTCOME_UNCONFIRMED" if writes else "UNAVAILABLE",
+                        WORKSPACE_UNCONFIRMED if writes else UNAVAILABLE,
+                    ) from error
+                return result(value)
             if name in {"list_documents", "create_document", "rename_document"}:
                 try:
                     value = await asyncio.wait_for(
