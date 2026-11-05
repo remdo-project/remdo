@@ -75,6 +75,17 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
             f'Current versions: {{"files": {{"Plan.md": "{current}"}}}}',
         )
 
+    async def test_a_tool_runs_only_its_own_operation(self):
+        await sync_to_async(self.allow_workspaces)()
+        account = await self.call_json("read_note", {})
+        [workspace] = account["children"]
+
+        result = await self.call(
+            "insert_note", {"parent": workspace["ref"], "op": "delete", "kind": "file", "text": "x"}
+        )
+
+        self.assertTrue(self.error_text(result).startswith("INVALID_ARGUMENT: "))
+
     async def test_an_agent_creates_a_workspace(self):
         await sync_to_async(self.allow_workspaces)()
 

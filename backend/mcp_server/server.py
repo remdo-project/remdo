@@ -124,8 +124,8 @@ def workspace_tool(name, arguments, user):
                 arguments.get("content", False),
             )
         operation = {
-            "op": NOTE_OPERATIONS[name],
             **{key: value for key, value in arguments.items() if key not in ("expected", "dryRun")},
+            "op": NOTE_OPERATIONS[name],
         }
         return notes.call(
             user, [operation], arguments.get("expected"), arguments.get("dryRun", False)

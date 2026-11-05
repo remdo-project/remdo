@@ -236,6 +236,7 @@ def note_tool(name, title, description, properties, required, read_only=False, d
             "type": "object",
             "properties": properties,
             "required": required,
+            "additionalProperties": False,
         },
         "annotations": {
             "readOnlyHint": read_only,
