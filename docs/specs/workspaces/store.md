@@ -62,7 +62,6 @@ callers.
 ## Future
 
 - Store document cache rows when the editor moves to text.
-- Store Git commit IDs when the Git adapter arrives.
 - Move large file content to an object store, keyed by the same content hash,
   when database size or cost makes it worthwhile.
 

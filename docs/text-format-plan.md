@@ -25,14 +25,20 @@ unchanged.
 - History uses three tables: `blob` holds content keyed by hash, `revision`
   holds the workspace, parent, author, time and message, and `revision_change`
   holds the paths each revision added, changed or deleted. `workspace_file`
-  holds current state, so only history views and Git export replay changes.
-  The Git adapter adds stored commit IDs in stage 5.
+  holds current state, so only history views replay changes.
 - The [workspace store](specs/workspaces/store.md) owns the file, path, commit
   and read rules.
-- Git is a rebuildable projection and sync channel. `git fast-import` builds a
-  repository from the tables, and stored commit IDs keep hashes stable, so
-  clones never diverge. The same adapter serves clone, export, a user's own
-  remote and a local folder of plain files.
+- Git is a connector, not a mirror. A workspace can connect to one branch of a
+  Git remote, optionally one folder of it, over plain Git. A sync fetches only
+  that branch's tip, merges a moved tip through the note-level merge, and
+  pushes new revisions as fast-forward commits built on the remote tip's tree.
+  The connection records the remote commit the workspace is based on.
+- What RemDo doesn't hold stays in the remote untouched: history from before
+  connecting, other branches and tags, and entries outside the store's rules,
+  such as symlinks, file modes, submodules, oversized files, refused paths and
+  anything outside the connected folder. Each push changes only the paths
+  RemDo changed, so none of it needs storing.
+- Cloning a workspace means connecting it to an empty remote of the user's own.
 - Each document's cache row holds its cache ID, path, generation, Yjs state,
   saved text and hash. A save writes text and Yjs state in one transaction.
 - A hash mismatch runs the external-edit sync. Rebuilding Yjs state from text is
@@ -64,6 +70,10 @@ unchanged.
   the history tables grow beyond this design.
 - Wiki.js keeps pages in a database with Git sync, and its two-way sync is
   reported as fragile, so two-way sync comes last.
+- GitBook's Git Sync, Git-based content editors such as Decap CMS, TinaCMS and
+  Keystatic, and Overleaf's GitHub sync keep their own store and sync one
+  branch of a user's repository. The connector follows them rather than
+  mirroring repositories.
 
 ### Writers
 
@@ -214,10 +224,14 @@ once stage 2 lands.
    - Exit: the UI and MCP read closed documents' notes without an editor.
 5. **Sharing and Git**
    - Add shared workspaces and members.
-   - Add the Git adapter for clone and export, then a user's own remote and a
-     local folder, with divergence handling through the note-level merge.
+   - Survey a few dozen public vault and docs repositories for what the
+     connector must leave untouched: merges, branches, symlinks, modes,
+     submodules, large files, refused paths and history size.
+   - Add the Git connector to one branch, optionally one folder, of a remote.
    - Add link rewriting on rename and the broken-link check.
-   - Exit: a flagged team shares a workspace, and a user clones it.
+   - Exit: a flagged team shares a workspace connected to a repository branch,
+     and edits on either side reach the other without changing what RemDo
+     doesn't hold.
 6. **Migration**
    - Reassess rich body paragraphs, since today's bodies show rich text.
    - Count sharing combinations and dry-run on a copy of production data.
@@ -300,7 +314,7 @@ Switch new documents by reseeding from text once all of these hold:
 - Bold, `@` links and dates in source lines must insert Markdown or stay off.
 - Email rendering, late offline migration and Yjs undo across a reseed are
   untested.
-- The history tables, the Git adapter and search were designed from research,
+- The history tables, the Git connector and search were designed from research,
   not spikes.
 - Python and JavaScript readers agree, but the outline tree and the Python
   writer haven't been spiked. The real-server tests stored text in a Git repository.
