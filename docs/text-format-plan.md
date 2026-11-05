@@ -72,9 +72,9 @@ unchanged.
 - The live door is the browser through Yjs. The text door is MCP, Git and any
   API.
 - Every note kind lives in Python, in the source that holds its data:
-  `backend/workspaces` for workspaces, folders, documents, plain files, outline
-  notes and Markdown blocks; `backend/accounts` for the account root; later one
-  adapter per external source. One entry point reads notes and applies calls
+  `backend/workspaces` for the account root, workspaces, folders, documents,
+  plain files, outline notes and Markdown blocks; later one adapter per
+  external source. One entry point reads notes and applies calls
   for MCP, the REST API and integrations.
 - Python owns the text format's reader and its only writer, on `markdown-it-py`.
   It matched the JavaScript `markdown-it` on 714 inputs, structure and line
@@ -179,7 +179,9 @@ once stage 2 lands.
      text `id::` claims its value.
    - Update note content by splicing text, never `clear()` plus `append()`.
    - Add Python note operations for outline notes and Markdown blocks, and
-     their MCP tools.
+     their MCP tools. Let each note resolve its own children and name the kinds
+     it holds, instead of deciding kinds from paths, and let each kind class
+     register itself.
    - Add the notes REST API, the change log and its stream on the same entry
      points as MCP, and let Home list the account root's workspaces and
      documents through the SDK. Test that the SDK catches up after the stream

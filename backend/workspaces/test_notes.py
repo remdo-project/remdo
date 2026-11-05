@@ -232,6 +232,20 @@ class NoteOperationTests(TestCase):
                 },
             )
 
+    def change(self, operations, expected=None, dry_run=False):
+        """Run a call on this workspace; cases name notes by path within it."""
+        workspace = {"workspace": self.workspace.pk}
+        scoped = []
+        for operation in operations:
+            operation = dict(operation)
+            for field in ("target", "parent"):
+                if field in operation:
+                    operation[field] = {**workspace, **operation[field]}
+            if operation["op"] == "insert":
+                operation.setdefault("parent", workspace)
+            scoped.append(operation)
+        return notes.call(self.owner, scoped, expected, dry_run)
+
     def files(self):
         return {
             path: store.read(self.workspace, path).content.decode()
@@ -260,13 +274,13 @@ class NoteOperationTests(TestCase):
 
                 if "refused" in case:
                     with self.assertRaises(notes.Refusal) as refusal:
-                        notes.change(self.workspace, self.owner, case["ops"], expected)
+                        self.change(case["ops"], expected)
                     self.assertEqual(
                         (refusal.exception.code, refusal.exception.index), case["refused"]
                     )
                     self.assertEqual(self.files(), before)
                     continue
-                result = notes.change(self.workspace, self.owner, case["ops"], expected)
+                result = self.change(case["ops"], expected)
                 self.assertEqual(self.files(), case["after"])
                 if "results" in case:
                     self.assertEqual(result["results"], case["results"])
@@ -277,9 +291,7 @@ class NoteOperationTests(TestCase):
         self.write({"a.md": "theirs\n"})
 
         with self.assertRaises(notes.Refusal) as refusal:
-            notes.change(
-                self.workspace,
-                self.owner,
+            self.change(
                 [{"op": "delete", "target": {"path": "a.md"}, "withChildren": True}],
                 expected,
             )
@@ -288,9 +300,7 @@ class NoteOperationTests(TestCase):
         self.assertEqual(refusal.exception.versions, {"files": {"a.md": current}})
 
     def test_success_returns_results_references_and_new_versions(self):
-        result = notes.change(
-            self.workspace,
-            self.owner,
+        result = self.change(
             [{"op": "insert", "kind": "document", "text": "Plan", "content": "- a\n"}],
         )
 
@@ -298,15 +308,14 @@ class NoteOperationTests(TestCase):
         ref = {"workspace": self.workspace.pk, "path": "Plan.md"}
         self.assertEqual(result["results"], [{"ref": ref, "kind": "document"}])
         self.assertEqual(result["changes"], [{"ref": ref, "change": "added", "version": version}])
+        self.workspace.refresh_from_db()
         self.assertEqual(result["revision"], self.workspace.head_id)
 
     def test_dry_run_describes_the_change_and_changes_nothing(self):
         self.write({"a.md": "- a\n"})
         head = self.workspace.head_id
 
-        result = notes.change(
-            self.workspace,
-            self.owner,
+        result = self.change(
             [{"op": "setContent", "target": {"path": "a.md"}, "content": "- b\n"}],
             self.versions(["a.md"]),
             dry_run=True,
@@ -321,9 +330,7 @@ class NoteOperationTests(TestCase):
         self.write({"a.md": "a\n"})
         head = self.workspace.head_id
 
-        result = notes.change(
-            self.workspace,
-            self.owner,
+        result = self.change(
             [{"op": "move", "target": {"path": "a.md"}, "parent": {"path": ""}}],
             self.versions(["a.md"]),
         )
@@ -336,11 +343,11 @@ class NoteOperationTests(TestCase):
         ref = {"workspace": self.workspace.pk, "path": ""}
         renamed = [{"ref": ref, "change": "renamed", "text": "Work"}]
 
-        preview = notes.change(self.workspace, self.owner, rename, dry_run=True)
+        preview = self.change(rename, dry_run=True)
         self.assertEqual(preview["changes"], renamed)
         self.assertEqual(Workspace.objects.get(pk=self.workspace.pk).name, "Personal")
 
-        result = notes.change(self.workspace, self.owner, rename)
+        result = self.change(rename)
         self.assertEqual(result["changes"], renamed)
         self.assertEqual(Workspace.objects.get(pk=self.workspace.pk).name, "Work")
         self.assertIsNone(self.workspace.head_id)
@@ -354,9 +361,7 @@ class NoteOperationTests(TestCase):
         ):
             with self.subTest(text=text), self.assertRaises(notes.Refusal) as refusal:
                 kind = "document" if text == "plan" else "file"
-                notes.change(
-                    self.workspace,
-                    self.owner,
+                self.change(
                     [{"op": "insert", "kind": kind, "text": text}],
                 )
             self.assertEqual(refusal.exception.versions, versions)
@@ -366,9 +371,7 @@ class NoteOperationTests(TestCase):
         self.write({f"{deep}/x.md": "x\n", "long/" + "n" * 60 + ".md": "n\n"})
 
         with self.assertRaises(notes.Refusal) as refusal:
-            notes.change(
-                self.workspace,
-                self.owner,
+            self.change(
                 [{"op": "move", "target": {"path": "long"}, "parent": {"path": deep}}],
                 {"folders": {"long": store.list_paths(self.workspace, "long").version}},
             )

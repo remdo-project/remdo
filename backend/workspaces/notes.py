@@ -88,11 +88,6 @@ class Tree:
             return "document" if path.endswith(DOCUMENT_SUFFIX) else "file"
         return "folder" if self.namespace.is_folder(path) else None
 
-    def files_of(self, path, kind):
-        if kind in ("document", "file"):
-            return [path]
-        return sorted(file for file in self.files if _under(file, path))
-
     def initial_version(self, folder):
         return store.listing_version(
             {path: hash_ for path, hash_ in self.initial.items() if _under(path, folder)}
@@ -150,23 +145,12 @@ class Tree:
 
 
 def read(user, ref=None, depth=1, content=False):
-    """Read the note `ref` names, starting from the user's account root."""
-    ref = ref or {}
-    account = Account(user)
-    if ref.get("workspace") is None:
-        if ref.get("path"):
-            raise Refusal("INVALID_ARGUMENT", "ref: a path needs its workspace.")
-        return account.read(depth)
-    note = Call(account.workspace(ref["workspace"]), {}).note(ref, "ref")
-    node = note.read(depth)
-    if content and isinstance(note, File):
-        node.update(decode(note.content))
-    return node
+    """Read the note `ref` names, resolved from the user's account root."""
+    return Call(user).resolve(ref or {}, "ref").read(depth, content)
 
 
 def call(user, operations, expected=None, dry_run=False):
-    """Apply `operations` all or none, on one workspace or on the user's account root."""
-    account = Account(user)
+    """Apply `operations` all or none, within one workspace or on the user's account root."""
     scopes = set()
     for index, operation in enumerate(operations):
         refs = [operation.get(field) or {} for field in ("target", "parent") if field in operation]
@@ -179,98 +163,8 @@ def call(user, operations, expected=None, dry_run=False):
             "INVALID_ARGUMENT", "A call changes the notes of one workspace, or the account root."
         )
     [scope] = scopes
-    if scope is None:
-        return account.call(operations, dry_run)
-    return change(account.workspace(scope), user, operations, expected, dry_run)
-
-
-def workspace_name(text, index=None):
-    try:
-        text.encode()
-    except UnicodeEncodeError as error:
-        raise Refusal("INVALID_ARGUMENT", "text: the text isn't valid Unicode.", index) from error
-    if not text.strip() or len(text) > WORKSPACE_NAME_MAX_LENGTH:
-        raise Refusal(
-            "INVALID_ARGUMENT",
-            f"A workspace name has 1 to {WORKSPACE_NAME_MAX_LENGTH} characters.",
-            index,
-        )
-    return text
-
-
-class Account:
-    """The account root: its children are the account's workspaces, and it creates new ones."""
-
-    kind = "account"
-    operations = ("read", "insert")
-
-    def __init__(self, user):
-        self.user = user
-
-    def workspaces(self):
-        """The account's workspaces by name, creating its personal workspace on first use."""
-        workspaces = models.Workspace.objects.filter(owner=self.user).order_by("name", "id")
-        if not workspaces.exists():
-            with transaction.atomic():
-                type(self.user).objects.select_for_update().filter(pk=self.user.pk).first()
-                if not workspaces.exists():
-                    models.Workspace.objects.create(name=PERSONAL_WORKSPACE_NAME, owner=self.user)
-        return list(workspaces)
-
-    def workspace(self, workspace_id):
-        workspace = models.Workspace.objects.filter(owner=self.user, pk=workspace_id).first()
-        if workspace is None:
-            raise Refusal(
-                "NOT_FOUND", "The workspace is not available. Read the account root for them."
-            )
-        return workspace
-
-    def read(self, depth):
-        node = {
-            "ref": {},
-            "kind": self.kind,
-            "text": self.user.email,
-            "operations": list(self.operations),
-        }
-        workspaces = self.workspaces()
-        if depth > 0:
-            node["children"] = [
-                Call(workspace, {}).note({"path": ""}).read(depth - 1) for workspace in workspaces
-            ]
-        else:
-            node["hasChildren"] = bool(workspaces)
-        return node
-
-    def call(self, operations, dry_run):
-        self.workspaces()
-        results = []
-        with transaction.atomic():
-            for index, operation in enumerate(operations):
-                results.append(self.apply(operation, index))
-            if dry_run:
-                transaction.set_rollback(True)
-        return {
-            "results": results,
-            "changes": [{"ref": result["ref"], "change": "added"} for result in results],
-            "revision": None,
-            "dryRun": dry_run,
-        }
-
-    def apply(self, operation, index):
-        op = operation["op"]
-        if op not in self.operations:
-            raise Refusal(
-                "INVALID_ARGUMENT", f"target: the account root doesn't offer {op}.", index
-            )
-        missing = [field for field in REQUIRED_FIELDS[op] if field not in operation]
-        if missing:
-            raise Refusal("INVALID_ARGUMENT", f"{op} needs {', '.join(missing)}.", index)
-        if operation["kind"] != "workspace":
-            raise Refusal("INVALID_ARGUMENT", "kind: the account root holds workspaces.", index)
-        workspace = models.Workspace.objects.create(
-            name=workspace_name(operation["text"], index), owner=self.user
-        )
-        return {"ref": {"workspace": workspace.pk, "path": ""}, "kind": "workspace"}
+    workspace = None if scope is None else Call(user).root.workspace(scope)
+    return Call(user, workspace, expected).run(operations, dry_run)
 
 
 class Expectations:
@@ -291,12 +185,12 @@ class Expectations:
         except store.InvalidPath as error:
             raise Refusal("INVALID_ARGUMENT", f"expected: {error}") from error
 
-    def check(self, path, kind, index):
-        """Check the caller read what an operation changes, as it is now."""
+    def check(self, note, index):
+        """Check the caller read what an operation on `note` changes, as it is now."""
         # A folder's listing version, not its files' versions, catches a file added under it.
-        if kind == "folder" and any(_under(file, path) for file in self.tree.initial):
-            self._check_listing(path, kind, index)
-        for file in self.tree.files_of(path, kind):
+        if note.listing and any(_under(file, note.path) for file in self.tree.initial):
+            self._check_listing(note.path, True, index)
+        for file in note.files():
             if file in self.first_use:
                 continue
             if file in self.files:
@@ -309,14 +203,14 @@ class Expectations:
                     )
                 self.first_use.setdefault(file, index)
                 continue
-            self._check_listing(file, kind, index)
+            self._check_listing(file, False, index)
 
-    def _check_listing(self, path, kind, index):
+    def _check_listing(self, path, listing, index):
         folder = max(
             (
                 folder
                 for folder in self.folders
-                if _under(path, folder) or (kind == "folder" and folder == path)
+                if _under(path, folder) or (listing and folder == path)
             ),
             key=len,
             default=None,
@@ -361,6 +255,8 @@ class Note:
 
     kind = None
     operations = ("read",)
+    listing = False
+    holds_ids = False
 
     def __init__(self, call, path):
         self.call = call
@@ -371,7 +267,7 @@ class Note:
     def text(self):
         return _name(self.path)
 
-    def read(self, depth):
+    def read(self, depth, content=False):
         return {
             "ref": self.call.ref(self.path),
             "kind": self.kind,
@@ -387,15 +283,17 @@ class Container(Note):
     def version(self):
         return self.tree.initial_version(self.path)
 
+    holds = {}
+
     def files(self):
-        return self.tree.files_of(self.path, "folder")
+        return sorted(file for file in self.tree.files if _under(file, self.path))
 
     def children(self):
         start = len(self.path) + 1 if self.path else 0
         names = {_join(self.path, file[start:].partition("/")[0]) for file in self.files()}
-        return [self.call.note({"path": name}) for name in sorted(names)]
+        return [self.call.note_at(name) for name in sorted(names)]
 
-    def read(self, depth):
+    def read(self, depth, content=False):
         node = super().read(depth)
         children = self.children()
         if depth > 0:
@@ -405,9 +303,7 @@ class Container(Note):
         return node
 
     def insert(self, operation):
-        new = FILE_KINDS.get(operation["kind"])
-        if new is None:
-            self.call.refuse("INVALID_ARGUMENT", f"kind: a {self.kind} holds documents and files.")
+        new = self.call.new_kind(self, operation["kind"])
         path = self.call.path(_join(self.path, new.name_for(self.call, operation["text"])), "text")
         content = self.call.content(operation)
         new.check_new(self.call, content)
@@ -420,13 +316,22 @@ class Workspace(Container):
     kind = "workspace"
     operations = ("read", "insert", "setText")
 
+    @classmethod
+    def name_for(cls, call, text):
+        call.encoded(text, "text")
+        if not text.strip() or len(text) > WORKSPACE_NAME_MAX_LENGTH:
+            call.refuse(
+                "INVALID_ARGUMENT",
+                f"text: a workspace name has 1 to {WORKSPACE_NAME_MAX_LENGTH} characters.",
+            )
+        return text
+
     @property
     def text(self):
         return self.call.name
 
     def set_text(self, operation):
-        text = self.call.changed_text(self.text, operation)
-        self.call.name = workspace_name(text, self.call.index)
+        self.call.name = self.name_for(self.call, self.call.changed_text(self.text, operation))
         return {"ref": self.call.ref("")}
 
 
@@ -458,8 +363,8 @@ class Movable(Note):
 
     def delete(self, operation):
         self.call.check(self)
-        files = self.files()
-        self.tree.load(file for file in files if file.endswith(DOCUMENT_SUFFIX))
+        files = [self.call.note_at(file) for file in self.files()]
+        self.tree.load(file.path for file in files if file.holds_ids)
         if self.has_children() and not operation.get("withChildren"):
             self.call.refuse(
                 "INVALID_ARGUMENT",
@@ -467,9 +372,8 @@ class Movable(Note):
             )
         removed = []
         for file in files:
-            if file.endswith(DOCUMENT_SUFFIX):
-                removed += ids_in(self.tree.content(file))
-            self.tree.remove(file)
+            removed += file.removed_ids()
+            self.tree.remove(file.path)
         return {"removedIds": removed}
 
     def relocate(self, new_path, field):
@@ -485,6 +389,7 @@ class Movable(Note):
 class Folder(Movable, Container):
     kind = "folder"
     operations = ("read", "insert", "move", "delete", "setText")
+    listing = True
 
     def has_children(self):
         return True
@@ -518,8 +423,17 @@ class File(Movable):
     def has_children(self):
         return False
 
-    def read(self, depth):
-        return {**super().read(depth), "hasChildren": False}
+    def removed_ids(self):
+        return []
+
+    def read(self, depth, content=False):
+        return {**self.node(depth, content), "hasChildren": False}
+
+    def node(self, depth, content=False):
+        node = Note.read(self, depth)
+        if content:
+            node.update(decode(self.content))
+        return node
 
     def set_content(self, operation):
         self.call.check(self)
@@ -548,6 +462,7 @@ class Document(File):
     """A `.md` file read in the RemDo text format; its text is its name without `.md`."""
 
     kind = "document"
+    holds_ids = True
 
     @classmethod
     def name_for(cls, call, text):
@@ -565,17 +480,75 @@ class Document(File):
     def has_children(self):
         return document_has_children(self.content)
 
-    def read(self, depth):
+    def removed_ids(self):
+        return ids_in(self.content)
+
+    def read(self, depth, content=False):
         # Until the format parser lists a document's children, Read can't say whether it has any.
-        return Note.read(self, depth)
+        return self.node(depth, content)
 
     def check_content(self, current, content):
         if sorted(ids_in(content)) != sorted(ids_in(current)):
             self.call.refuse("INVALID_ARGUMENT", "content: Set content can't add or remove IDs.")
 
 
+class AccountRoot:
+    """The account root: its children are the account's workspaces, and it creates new ones."""
+
+    kind = "account"
+    operations = ("read", "insert")
+    holds = {"workspace": Workspace}
+
+    def __init__(self, call):
+        self.call = call
+        self.user = call.user
+
+    def workspaces(self):
+        """The account's workspaces by name, creating its personal workspace on first use."""
+        workspaces = models.Workspace.objects.filter(owner=self.user).order_by("name", "id")
+        if not workspaces.exists():
+            with transaction.atomic():
+                type(self.user).objects.select_for_update().filter(pk=self.user.pk).first()
+                if not workspaces.exists():
+                    models.Workspace.objects.create(name=PERSONAL_WORKSPACE_NAME, owner=self.user)
+        return list(workspaces)
+
+    def workspace(self, workspace_id):
+        workspace = models.Workspace.objects.filter(owner=self.user, pk=workspace_id).first()
+        if workspace is None:
+            raise Refusal(
+                "NOT_FOUND", "The workspace is not available. Read the account root for them."
+            )
+        return workspace
+
+    def children(self):
+        return [Call(self.user, workspace).note_at("") for workspace in self.workspaces()]
+
+    def read(self, depth, content=False):
+        node = {
+            "ref": {},
+            "kind": self.kind,
+            "text": self.user.email,
+            "operations": list(self.operations),
+        }
+        children = self.children()
+        if depth > 0:
+            node["children"] = [child.read(depth - 1) for child in children]
+        else:
+            node["hasChildren"] = bool(children)
+        return node
+
+    def insert(self, operation):
+        new = self.call.new_kind(self, operation["kind"])
+        name = new.name_for(self.call, operation["text"])
+        workspace = models.Workspace.objects.create(name=name, owner=self.user)
+        ref = {"workspace": workspace.pk, "path": ""}
+        self.call.created.append(ref)
+        return {"ref": ref, "kind": new.kind}
+
+
 KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file": File}
-FILE_KINDS = {"document": Document, "file": File}
+Container.holds = {"document": Document, "file": File}
 METHODS = {
     "insert": "insert",
     "move": "move",
@@ -586,14 +559,69 @@ METHODS = {
 
 
 class Call:
-    """One call: its operations applied in order to the notes of one workspace."""
+    """One call: its operations applied in order to the account root or to one workspace."""
 
-    def __init__(self, workspace, expected):
+    def __init__(self, user, workspace=None, expected=None):
+        self.user = user
         self.workspace = workspace
-        self.tree = Tree(workspace)
-        self.expectations = Expectations(self.tree, expected)
-        self.name = workspace.name
-        self.index = 0
+        self.root = AccountRoot(self)
+        self.tree = Tree(workspace) if workspace else None
+        self.expectations = Expectations(self.tree, expected or {}) if workspace else None
+        self.name = workspace.name if workspace else None
+        self.created = []
+        self.index = None
+
+    def resolve(self, ref, field):
+        """The note `ref` names, in this call's workspace or any of the user's."""
+        workspace_id = ref.get("workspace")
+        if workspace_id is None or (self.workspace and workspace_id == self.workspace.pk):
+            return self.note(ref, field)
+        return Call(self.user, self.root.workspace(workspace_id)).note(ref, field)
+
+    def note(self, ref, field="target"):
+        ref = ref or {}
+        workspace_id, path = ref.get("workspace"), ref.get("path", "")
+        if workspace_id is None:
+            if path:
+                self.refuse("INVALID_ARGUMENT", f"{field}: a path needs its workspace.")
+            return self.root
+        if self.workspace is None or workspace_id != self.workspace.pk:
+            self.refuse(
+                "INVALID_ARGUMENT",
+                "A call changes the notes of one workspace, or the account root.",
+            )
+        path = self.path(path, field)
+        if self.tree.kind(path) is None:
+            self.refuse("NOT_FOUND", f"{field}: no note at {path!r}.")
+        return self.note_at(path)
+
+    def note_at(self, path):
+        return KINDS[self.tree.kind(path)](self, path)
+
+    def new_kind(self, parent, kind):
+        new = parent.holds.get(kind)
+        if new is None:
+            held = " and ".join(f"{name}s" for name in parent.holds)
+            self.refuse("INVALID_ARGUMENT", f"kind: a {parent.kind} holds {held}.")
+        return new
+
+    def run(self, operations, dry_run):
+        if self.workspace is None:
+            self.root.workspaces()
+        with transaction.atomic():
+            results = []
+            for self.index, operation in enumerate(operations):
+                results.append(self.apply(operation))
+            self.index = None
+            changes, revision = self.commit(operations, dry_run)
+            if dry_run:
+                transaction.set_rollback(True)
+        return {
+            "results": results,
+            "changes": changes,
+            "revision": None if revision is None or dry_run else revision.pk,
+            "dryRun": dry_run,
+        }
 
     def apply(self, operation):
         op = operation["op"]
@@ -606,12 +634,34 @@ class Call:
             self.refuse("INVALID_ARGUMENT", f"{field}: a {note.kind} doesn't offer {op}.")
         return getattr(note, METHODS[op])(operation)
 
-    def note(self, ref, field="target"):
-        path = self.path((ref or {}).get("path", ""), field)
-        kind = self.tree.kind(path)
-        if kind is None:
-            self.refuse("NOT_FOUND", f"{field}: no note at {path!r}.")
-        return KINDS[kind](self, path)
+    def commit(self, operations, dry_run):
+        """Save what the operations changed, and describe it."""
+        described = [{"ref": ref, "change": "added"} for ref in self.created]
+        if self.workspace is None:
+            return described, None
+        if self.name != self.workspace.name:
+            models.Workspace.objects.filter(pk=self.workspace.pk).update(name=self.name)
+            described.append({"ref": self.ref(""), "change": "renamed", "text": self.name})
+        changes = self.tree.changes()
+        revision = None
+        if changes:
+            try:
+                revision = store.commit(
+                    self.workspace,
+                    self.user,
+                    _message(operations),
+                    changes,
+                    folders=self.expectations.used_folders,
+                )
+            except store.StaleFile as error:
+                raise self.expectations.stale(error) from error
+            except store.StoreError as error:
+                raise Refusal("INVALID_ARGUMENT", str(error)) from error
+        described += [
+            _describe(self, path, before, content, dry_run)
+            for path, (before, content) in changes.items()
+        ]
+        return described, revision
 
     def refuse(self, code, message, versions=None):
         raise Refusal(code, message, self.index, versions)
@@ -620,7 +670,7 @@ class Call:
         return {"workspace": self.workspace.pk, "path": path}
 
     def check(self, note):
-        self.expectations.check(note.path, note.kind, self.index)
+        self.expectations.check(note, self.index)
 
     def path(self, path, field):
         try:
@@ -680,54 +730,6 @@ class Call:
                 )
             value = value.replace(replacement["old"], replacement["new"])
         return value
-
-
-def change(workspace, author, operations, expected=None, dry_run=False):
-    """Apply `operations` as one call: all of them as one commit, or none."""
-    call = Call(workspace, expected or {})
-    results = []
-    for index, operation in enumerate(operations):
-        call.index = index
-        results.append(call.apply(operation))
-    renamed = (
-        [{"ref": call.ref(""), "change": "renamed", "text": call.name}]
-        if call.name != workspace.name
-        else []
-    )
-    changes = call.tree.changes()
-    with transaction.atomic():
-        if call.name != workspace.name:
-            models.Workspace.objects.filter(pk=workspace.pk).update(name=call.name)
-        revision = None
-        if changes:
-            try:
-                revision = store.commit(
-                    workspace,
-                    author,
-                    _message(operations),
-                    changes,
-                    folders=call.expectations.used_folders,
-                )
-            except store.StaleFile as error:
-                raise call.expectations.stale(error) from error
-            except store.StoreError as error:
-                raise Refusal("INVALID_ARGUMENT", str(error)) from error
-        if dry_run:
-            transaction.set_rollback(True)
-    if dry_run:
-        workspace.refresh_from_db(fields=["head"])
-    else:
-        workspace.name = call.name
-    return {
-        "results": results,
-        "changes": renamed
-        + [
-            _describe(call, path, before, content, dry_run)
-            for path, (before, content) in changes.items()
-        ],
-        "revision": None if revision is None or dry_run else revision.pk,
-        "dryRun": dry_run,
-    }
 
 
 def _describe(call, path, before, content, dry_run):
