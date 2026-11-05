@@ -105,32 +105,33 @@ def metadata_tool(name, arguments, user):
         ) from error
 
 
+NOTE_OPERATIONS = {
+    "insert_note": "insert",
+    "move_note": "move",
+    "delete_note": "delete",
+    "set_note_text": "setText",
+    "set_note_content": "setContent",
+}
+
+
 def workspace_tool(name, arguments, user):
     try:
-        if name == "list_workspaces":
-            return [
-                {"workspace": workspace.pk, "name": workspace.name}
-                for workspace in notes.workspaces_of(user)
-            ]
-        workspace = notes.workspace_of(user, arguments["workspace"])
         if name == "read_note":
             return notes.read(
-                workspace,
-                arguments.get("ref", {}).get("path", ""),
+                user,
+                arguments.get("ref"),
                 arguments.get("depth", 1),
                 arguments.get("content", False),
             )
-        return notes.change(
-            workspace,
-            user,
-            arguments["operations"],
-            arguments.get("expected"),
-            dry_run=arguments.get("dryRun", False),
+        operation = {
+            "op": NOTE_OPERATIONS[name],
+            **{key: value for key, value in arguments.items() if key not in ("expected", "dryRun")},
+        }
+        return notes.call(
+            user, [operation], arguments.get("expected"), arguments.get("dryRun", False)
         )
     except notes.Refusal as error:
         message = str(error)
-        if error.index is not None:
-            message = f"operations.{error.index}: {message}"
         if error.versions:
             message += f" Current versions: {json.dumps(error.versions, ensure_ascii=False)}"
         raise OperationError(error.code, message) from error
@@ -144,6 +145,10 @@ def report(error):
 
 
 def can_use_workspaces(user):
+    # TODO: Workspaces stay behind this experimental permission until the text format migration
+    # (docs/text-format-plan.md) moves every user onto them; other users, including directory
+    # reviewers, keep the submitted MCP surface. Probe: delete this check and the use_workspaces
+    # permission, then the MCP contract tests list the workspace tools for every user.
     return user.has_perm("workspaces.use_workspaces")
 
 
@@ -225,7 +230,7 @@ def create_app():
             request = ctx.request
             authorization = request.headers["authorization"]
             if name in workspace_tool_names:
-                writes = name == "change_workspace" and not arguments.get("dryRun", False)
+                writes = name != "read_note" and not arguments.get("dryRun", False)
                 try:
                     value = await asyncio.wait_for(
                         database_call(workspace_tool, name, arguments, request.state.mcp_user),

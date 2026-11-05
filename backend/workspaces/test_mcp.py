@@ -11,7 +11,14 @@ from documents.test_mcp import McpClient
 from . import store
 from .models import Workspace
 
-WORKSPACE_TOOLS = {"list_workspaces", "read_note", "change_workspace"}
+WORKSPACE_TOOLS = {
+    "read_note",
+    "insert_note",
+    "move_note",
+    "delete_note",
+    "set_note_text",
+    "set_note_content",
+}
 
 
 class WorkspaceMcpTests(McpClient, TransactionTestCase):
@@ -30,10 +37,8 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
     async def test_only_users_with_the_permission_see_workspace_tools(self):
         names = await self.tool_names()
         self.assertFalse(names & WORKSPACE_TOOLS)
-        refused = await self.call("list_workspaces", {})
-        self.assertEqual(
-            self.error_text(refused), "INVALID_ARGUMENT: Tool list_workspaces not found"
-        )
+        refused = await self.call("read_note", {})
+        self.assertEqual(self.error_text(refused), "INVALID_ARGUMENT: Tool read_note not found")
 
         await sync_to_async(self.allow_workspaces)()
 
@@ -41,46 +46,49 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
 
     async def test_an_agent_creates_reads_and_changes_a_document(self):
         await sync_to_async(self.allow_workspaces)()
-        [workspace] = await self.call_json("list_workspaces", {})
-        self.assertEqual(workspace["name"], "Personal")
-        workspace_id = workspace["workspace"]
+        account = await self.call_json("read_note", {})
+        [workspace] = account["children"]
+        self.assertEqual(workspace["text"], "Personal")
 
-        await self.call_json(
-            "change_workspace",
-            {
-                "workspace": workspace_id,
-                "operations": [
-                    {"op": "insert", "kind": "document", "text": "Plan", "content": "- a\n"}
-                ],
-            },
+        inserted = await self.call_json(
+            "insert_note",
+            {"parent": workspace["ref"], "kind": "document", "text": "Plan", "content": "- a\n"},
         )
-        document = await self.call_json(
-            "read_note",
-            {"workspace": workspace_id, "ref": {"path": "Plan.md"}, "content": True},
-        )
+        [result] = inserted["results"]
+        document = await self.call_json("read_note", {"ref": result["ref"], "content": True})
         self.assertEqual((document["kind"], document["content"]), ("document", "- a\n"))
 
         edit = {
-            "workspace": workspace_id,
-            "operations": [{"op": "setContent", "target": {"path": "Plan.md"}, "content": "- b\n"}],
+            "target": document["ref"],
+            "content": "- b\n",
             "expected": {"files": {"Plan.md": document["version"]}},
         }
-        await self.call_json("change_workspace", edit)
-        stale = self.error_text(await self.call("change_workspace", edit))
+        await self.call_json("set_note_content", edit)
+        stale = self.error_text(await self.call("set_note_content", edit))
 
-        current = (await sync_to_async(self.read)(workspace_id, "Plan.md")).blob_hash
+        current = (
+            await sync_to_async(self.read)(workspace["ref"]["workspace"], "Plan.md")
+        ).blob_hash
         self.assertEqual(
             stale,
-            "FAILED_PRECONDITION: operations.0: 'Plan.md' changed since it was read. "
+            "FAILED_PRECONDITION: 'Plan.md' changed since it was read. "
             f'Current versions: {{"files": {{"Plan.md": "{current}"}}}}',
         )
+
+    async def test_an_agent_creates_a_workspace(self):
+        await sync_to_async(self.allow_workspaces)()
+
+        await self.call_json("insert_note", {"kind": "workspace", "text": "Team"})
+
+        account = await self.call_json("read_note", {})
+        self.assertEqual([child["text"] for child in account["children"]], ["Personal", "Team"])
 
     async def test_other_users_workspaces_are_not_found(self):
         await sync_to_async(self.allow_workspaces)()
         other = await sync_to_async(User.objects.create_user)("other@example.test")
         workspace = await sync_to_async(Workspace.objects.create)(name="Theirs", owner=other)
 
-        result = await self.call("read_note", {"workspace": workspace.pk})
+        result = await self.call("read_note", {"ref": {"workspace": workspace.pk}})
 
         self.assertTrue(self.error_text(result).startswith("NOT_FOUND: "))
 
@@ -89,9 +97,9 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
         await sync_to_async(self.allow_workspaces)()
 
         with patch("sentry_sdk.capture_exception") as capture:
-            with patch("workspaces.notes.workspaces_of", side_effect=DatabaseError):
-                unavailable = await self.call("list_workspaces", {})
-            invalid = await self.call("read_note", {"workspace": "missing"})
+            with patch("workspaces.notes.read", side_effect=DatabaseError):
+                unavailable = await self.call("read_note", {})
+            invalid = await self.call("read_note", {"ref": {"workspace": "missing"}})
 
         self.assertTrue(self.error_text(unavailable).startswith("UNAVAILABLE: "))
         self.assertTrue(self.error_text(invalid).startswith("NOT_FOUND: "))

@@ -177,173 +177,182 @@ TOOLS = [
 REF = {
     "type": "object",
     "properties": {
+        "workspace": {
+            "type": "string",
+            "description": "The note's workspace ID. Omit it for the account root, which lists "
+            "the user's workspaces.",
+        },
         "path": {
             "type": "string",
             "description": "The note's path in its workspace: a folder, document or file. "
-            "Empty for the workspace itself.",
-        }
+            "Empty or omitted for the workspace itself.",
+        },
     },
-    "required": ["path"],
+}
+EXPECTED = {
+    "type": "object",
+    "description": "The versions read_note returned for what this operation changes: an "
+    "existing document or file, or a folder holding it. A note changed since is refused; "
+    "read it again.",
+    "properties": {
+        "files": {
+            "type": "object",
+            "description": "Document or file path to its version.",
+            "additionalProperties": {"type": "string"},
+        },
+        "folders": {
+            "type": "object",
+            "description": "Folder path to its version, covering every file under it; empty "
+            "path for the whole workspace.",
+            "additionalProperties": {"type": "string"},
+        },
+    },
+}
+DRY_RUN = {"type": "boolean", "description": "Describe the change, with diffs, without making it."}
+REPLACEMENTS = {
+    "type": "array",
+    "description": "Instead of the whole value: exact replacements applied in order, each "
+    "matching exactly once, whitespace included.",
+    "items": {
+        "type": "object",
+        "properties": {"old": {"type": "string"}, "new": {"type": "string"}},
+        "required": ["old", "new"],
+    },
+}
+CONTENT_ENCODING = {
+    "type": "string",
+    "enum": ["utf8", "base64"],
+    "description": "How content is given. Defaults to utf8.",
 }
 
-# Only users with the workspace permission see these, so other users keep the submitted surface.
+
+def note_tool(name, title, description, properties, required, read_only=False, destructive=True):
+    return {
+        "name": name,
+        "title": title,
+        "description": description,
+        "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "properties": properties,
+            "required": required,
+        },
+        "annotations": {
+            "readOnlyHint": read_only,
+            "destructiveHint": destructive and not read_only,
+            "openWorldHint": False,
+            "title": title,
+        },
+        "execution": {"taskSupport": "forbidden"},
+        "_meta": {"securitySchemes": [{"type": "oauth2", "scopes": ["openid"]}]},
+    }
+
+
 WORKSPACE_TOOLS = [
-    {
-        "name": "list_workspaces",
-        "title": "List workspaces",
-        "description": "List the user's RemDo workspaces: Markdown documents and other files in "
-        "folders, changed through read_note and change_workspace.",
-        "inputSchema": {"type": "object", "properties": {}},
-        "annotations": {
-            "readOnlyHint": True,
-            "destructiveHint": False,
-            "openWorldHint": False,
-            "title": "List workspaces",
-        },
-        "execution": {"taskSupport": "forbidden"},
-        "_meta": {"securitySchemes": [{"type": "oauth2", "scopes": ["openid"]}]},
-    },
-    {
-        "name": "read_note",
-        "title": "Read workspace note",
-        "description": "Read a workspace, folder, document or file: its kind, text (a name), the "
-        "operations it offers, its version, and its children to the given depth. Folders list "
-        "their children by name. A document's outline isn't listed yet; ask for its content "
-        "instead. Pass the versions you read to change_workspace.",
-        "inputSchema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "type": "object",
-            "properties": {
-                "workspace": {"type": "string", "description": "A workspace ID."},
-                "ref": {**REF, "description": "The note to read; omit for the workspace."},
-                "depth": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 100,
-                    "description": "How many levels of children to return. Defaults to 1; "
-                    "0 returns only whether the note has children.",
-                },
-                "content": {
-                    "type": "boolean",
-                    "description": "Also return a document's or file's content, as UTF-8 text "
-                    "or, for other bytes, base64.",
-                },
+    note_tool(
+        "read_note",
+        "Read note",
+        "Read a note of the user's workspaces: the account root (no ref), which lists the "
+        "workspaces, a workspace, folder, document or file. Returns its kind, text (a name), "
+        "the operations it offers, its version, and its children to the given depth. A "
+        "document's outline isn't listed yet; ask for its content instead. Pass the versions "
+        "you read as `expected` when changing notes.",
+        {
+            "ref": {**REF, "description": "The note to read; omit for the account root."},
+            "depth": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many levels of children to return. Defaults to 1; 0 "
+                "returns only whether the note has children.",
             },
-            "required": ["workspace"],
-        },
-        "annotations": {
-            "readOnlyHint": True,
-            "destructiveHint": False,
-            "openWorldHint": False,
-            "title": "Read workspace note",
-        },
-        "execution": {"taskSupport": "forbidden"},
-        "_meta": {"securitySchemes": [{"type": "oauth2", "scopes": ["openid"]}]},
-    },
-    {
-        "name": "change_workspace",
-        "title": "Change workspace",
-        "description": "Create, move, rename, edit or delete documents, files and folders in one "
-        "workspace. Operations apply in order, all or none, and a later one can name a note an "
-        "earlier one created. State the version you read of every existing document or file "
-        "you change, or of a folder holding it; a note changed since is refused, so read it "
-        "again. setText renames; setContent replaces a document's or file's content. Use "
-        "dryRun to preview the change.",
-        "inputSchema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "type": "object",
-            "properties": {
-                "workspace": {"type": "string", "description": "A workspace ID."},
-                "operations": {
-                    "type": "array",
-                    "minItems": 1,
-                    "maxItems": 100,
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "op": {
-                                "type": "string",
-                                "enum": ["insert", "move", "delete", "setText", "setContent"],
-                            },
-                            "target": {**REF, "description": "The note to change."},
-                            "parent": {
-                                **REF,
-                                "description": "For insert and move: the workspace or folder "
-                                "to put the note in; insert defaults to the workspace.",
-                            },
-                            "kind": {
-                                "type": "string",
-                                "enum": ["document", "file"],
-                                "description": "For insert: a Markdown document, or another file.",
-                            },
-                            "text": {
-                                "type": "string",
-                                "description": "For insert and setText: the name. A document's "
-                                "name has no .md; a file's name includes its extension.",
-                            },
-                            "content": {
-                                "type": "string",
-                                "description": "For insert and setContent: the whole content.",
-                            },
-                            "contentEncoding": {
-                                "type": "string",
-                                "enum": ["utf8", "base64"],
-                                "description": "How content is given. Defaults to utf8.",
-                            },
-                            "replacements": {
-                                "type": "array",
-                                "description": "For setText and setContent, instead of text "
-                                "or content: exact replacements applied in order, each "
-                                "matching exactly once, whitespace included.",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "old": {"type": "string"},
-                                        "new": {"type": "string"},
-                                    },
-                                    "required": ["old", "new"],
-                                },
-                            },
-                            "withChildren": {
-                                "type": "boolean",
-                                "description": "For delete: also delete the note's children. "
-                                "Required for a folder or a non-empty document.",
-                            },
-                        },
-                        "required": ["op"],
-                    },
-                },
-                "expected": {
-                    "type": "object",
-                    "description": "The versions read_note returned.",
-                    "properties": {
-                        "files": {
-                            "type": "object",
-                            "description": "Document or file path to its version.",
-                            "additionalProperties": {"type": "string"},
-                        },
-                        "folders": {
-                            "type": "object",
-                            "description": "Folder path to its version, covering every file "
-                            "under it; empty path for the whole workspace.",
-                            "additionalProperties": {"type": "string"},
-                        },
-                    },
-                },
-                "dryRun": {
-                    "type": "boolean",
-                    "description": "Describe the change, with diffs, without making it.",
-                },
+            "content": {
+                "type": "boolean",
+                "description": "Also return a document's or file's content, as UTF-8 text or, "
+                "for other bytes, base64.",
             },
-            "required": ["workspace", "operations"],
         },
-        "annotations": {
-            "readOnlyHint": False,
-            "destructiveHint": True,
-            "openWorldHint": False,
-            "title": "Change workspace",
+        [],
+        read_only=True,
+    ),
+    note_tool(
+        "insert_note",
+        "Insert note",
+        "Create a note under a parent: a workspace under the account root (parent without a "
+        "workspace), or a Markdown document or other file under a workspace or folder. Each "
+        "call creates a new note, including retries.",
+        {
+            "parent": {
+                **REF,
+                "description": "Where to create the note; omit for the account root.",
+            },
+            "kind": {"type": "string", "enum": ["workspace", "document", "file"]},
+            "text": {
+                "type": "string",
+                "description": "The name. A document's name has no .md; a file's name includes "
+                "its extension.",
+            },
+            "content": {"type": "string", "description": "A document's or file's content."},
+            "contentEncoding": CONTENT_ENCODING,
+            "dryRun": DRY_RUN,
         },
-        "execution": {"taskSupport": "forbidden"},
-        "_meta": {"securitySchemes": [{"type": "oauth2", "scopes": ["openid"]}]},
-    },
+        ["kind", "text"],
+        destructive=False,
+    ),
+    note_tool(
+        "move_note",
+        "Move note",
+        "Move a folder, document or file, with everything under it, into another folder or the "
+        "workspace itself, in the same workspace.",
+        {
+            "target": {**REF, "description": "The note to move."},
+            "parent": {**REF, "description": "The workspace or folder to move it into."},
+            "expected": EXPECTED,
+            "dryRun": DRY_RUN,
+        },
+        ["target", "parent"],
+    ),
+    note_tool(
+        "delete_note",
+        "Delete note",
+        "Delete a folder, document or file. A folder or non-empty document needs withChildren. "
+        "Returns the IDs that disappear.",
+        {
+            "target": {**REF, "description": "The note to delete."},
+            "withChildren": {
+                "type": "boolean",
+                "description": "Also delete the note's children.",
+            },
+            "expected": EXPECTED,
+            "dryRun": DRY_RUN,
+        },
+        ["target"],
+    ),
+    note_tool(
+        "set_note_text",
+        "Rename note",
+        "Change a note's text: rename a workspace, folder, document or file.",
+        {
+            "target": {**REF, "description": "The note to rename."},
+            "text": {"type": "string", "description": "The new name."},
+            "replacements": REPLACEMENTS,
+            "expected": EXPECTED,
+            "dryRun": DRY_RUN,
+        },
+        ["target"],
+    ),
+    note_tool(
+        "set_note_content",
+        "Set note content",
+        "Replace a document's or file's content, whole or by exact replacements.",
+        {
+            "target": {**REF, "description": "The document or file to change."},
+            "content": {"type": "string", "description": "The whole new content."},
+            "contentEncoding": CONTENT_ENCODING,
+            "replacements": REPLACEMENTS,
+            "expected": EXPECTED,
+            "dryRun": DRY_RUN,
+        },
+        ["target"],
+    ),
 ]

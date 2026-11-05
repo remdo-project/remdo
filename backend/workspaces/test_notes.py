@@ -295,11 +295,9 @@ class NoteOperationTests(TestCase):
         )
 
         version = store.read(self.workspace, "Plan.md").blob_hash
-        self.assertEqual(result["results"], [{"ref": {"path": "Plan.md"}, "kind": "document"}])
-        self.assertEqual(
-            result["changes"],
-            [{"ref": {"path": "Plan.md"}, "change": "added", "version": version}],
-        )
+        ref = {"workspace": self.workspace.pk, "path": "Plan.md"}
+        self.assertEqual(result["results"], [{"ref": ref, "kind": "document"}])
+        self.assertEqual(result["changes"], [{"ref": ref, "change": "added", "version": version}])
         self.assertEqual(result["revision"], self.workspace.head_id)
 
     def test_dry_run_describes_the_change_and_changes_nothing(self):
@@ -335,7 +333,8 @@ class NoteOperationTests(TestCase):
 
     def test_renaming_the_workspace_changes_no_files(self):
         rename = [{"op": "setText", "target": {"path": ""}, "text": "Work"}]
-        renamed = [{"ref": {"path": ""}, "change": "renamed", "text": "Work"}]
+        ref = {"workspace": self.workspace.pk, "path": ""}
+        renamed = [{"ref": ref, "change": "renamed", "text": "Work"}]
 
         preview = notes.change(self.workspace, self.owner, rename, dry_run=True)
         self.assertEqual(preview["changes"], renamed)
@@ -379,7 +378,7 @@ class NoteOperationTests(TestCase):
     def test_read_lists_children_by_name_with_versions(self):
         self.write({"b.md": "- b\n", "a/x.png": "x", "c.txt": "", "empty.md": ""})
 
-        node = notes.read(self.workspace, depth=1)
+        node = notes.read(self.owner, {"workspace": self.workspace.pk}, depth=1)
 
         self.assertEqual(node["kind"], "workspace")
         self.assertEqual(node["text"], "Personal")
@@ -408,26 +407,76 @@ class NoteOperationTests(TestCase):
             {"a.md": (None, "- café\n".encode()), "b.bin": (None, b"\xff\x00")},
         )
 
-        document = notes.read(self.workspace, "a.md", content=True)
-        binary = notes.read(self.workspace, "b.bin", content=True)
+        document = notes.read(self.owner, self.ref("a.md"), content=True)
+        binary = notes.read(self.owner, self.ref("b.bin"), content=True)
 
         self.assertEqual((document["content"], document["contentEncoding"]), ("- café\n", "utf8"))
         self.assertEqual((binary["content"], binary["contentEncoding"]), ("/wA=", "base64"))
-        self.assertNotIn("content", notes.read(self.workspace, "a.md"))
+        self.assertNotIn("content", notes.read(self.owner, self.ref("a.md")))
 
-    def test_a_personal_workspace_is_created_once(self):
+    def ref(self, path=""):
+        return {"workspace": self.workspace.pk, "path": path}
+
+    def test_the_account_root_lists_workspaces_and_gives_a_personal_one(self):
         user = User.objects.create_user("new@example.test", "New-password-123")
 
-        first = notes.workspaces_of(user)
-        second = notes.workspaces_of(user)
+        first = notes.read(user, depth=1)
+        second = notes.read(user, depth=1)
 
         self.assertEqual(first, second)
-        self.assertEqual([workspace.name for workspace in first], ["Personal"])
+        self.assertEqual((first["kind"], first["text"]), ("account", "new@example.test"))
+        self.assertEqual(first["operations"], ["read", "insert"])
+        self.assertEqual([child["text"] for child in first["children"]], ["Personal"])
+
+    def test_inserting_under_the_account_root_creates_a_workspace(self):
+        insert = {"op": "insert", "kind": "workspace", "text": "Team"}
+
+        preview = notes.call(self.owner, [insert], dry_run=True)
+        self.assertEqual(Workspace.objects.filter(owner=self.owner).count(), 1)
+
+        result = notes.call(self.owner, [insert])
+        [created] = Workspace.objects.filter(owner=self.owner, name="Team")
+        self.assertEqual(
+            result["results"], [{"ref": {"workspace": created.pk, "path": ""}, "kind": "workspace"}]
+        )
+        self.assertTrue(preview["dryRun"])
+        self.assertEqual(
+            [child["text"] for child in notes.read(self.owner)["children"]], ["Personal", "Team"]
+        )
+
+    def test_the_account_root_holds_only_workspaces(self):
+        for operation, code in (
+            ({"op": "insert", "kind": "document", "text": "Plan"}, "INVALID_ARGUMENT"),
+            ({"op": "delete", "target": {}}, "INVALID_ARGUMENT"),
+        ):
+            with self.subTest(operation=operation), self.assertRaises(notes.Refusal) as refusal:
+                notes.call(self.owner, [operation])
+            self.assertEqual((refusal.exception.code, refusal.exception.index), (code, 0))
+
+    def test_a_call_stays_within_one_workspace(self):
+        other = Workspace.objects.create(name="Other", owner=self.owner)
+        self.write({"a.md": "a\n"})
+
+        for operations in (
+            [{"op": "move", "target": self.ref("a.md"), "parent": {"workspace": other.pk}}],
+            [
+                {"op": "insert", "parent": self.ref(), "kind": "file", "text": "x"},
+                {"op": "insert", "parent": {"workspace": other.pk}, "kind": "file", "text": "y"},
+            ],
+        ):
+            with self.subTest(operations=operations), self.assertRaises(notes.Refusal) as refusal:
+                notes.call(self.owner, operations)
+            self.assertEqual(refusal.exception.code, "INVALID_ARGUMENT")
 
     def test_other_users_workspaces_are_not_found(self):
         other = User.objects.create_user("other@example.test", "Other-password-123")
 
-        with self.assertRaises(notes.Refusal) as refusal:
-            notes.workspace_of(other, self.workspace.pk)
-
-        self.assertEqual(refusal.exception.code, "NOT_FOUND")
+        for attempt in (
+            lambda: notes.read(other, self.ref()),
+            lambda: notes.call(
+                other, [{"op": "insert", "parent": self.ref(), "kind": "file", "text": "x"}]
+            ),
+        ):
+            with self.assertRaises(notes.Refusal) as refusal:
+                attempt()
+            self.assertEqual(refusal.exception.code, "NOT_FOUND")
