@@ -52,8 +52,8 @@ unchanged.
 - `note_index` also serves the `note:` resolver, backlinks and MCP `search`.
 - Postgres matches with full-text search in the `simple` configuration plus
   `pg_trgm`; SQLite uses FTS5. Every query filters by workspace membership.
-- Django parses through the shared format module, so search and the editor read
-  documents the same way.
+- Django parses with the same Python reader as note operations, so search and
+  note operations read documents the same way.
 
 ### Storage alternatives
 
@@ -71,11 +71,26 @@ unchanged.
   revisions and saves.
 - The live door is the browser through Yjs. The text door is MCP, Git and any
   API.
-- Format logic (parse, check, write and note operations) is one TypeScript
-  module, shared by the browser and Django. Django runs it in embedded V8
-  (`mini-racer`), at about 60 MB per process; PythonMonkey is the fallback.
-- Node shrinks to the Yjs relay and Yjs-to-text conversion, behind three calls:
-  save, apply and read live text. Retiring Node later means replacing the relay.
+- Every note kind lives in Python, in the source that holds its data:
+  `backend/workspaces` for workspaces, folders, documents, plain files, outline
+  notes and Markdown blocks; `backend/accounts` for the account root; later one
+  adapter per external source. One entry point reads notes and applies calls
+  for MCP, the REST API and integrations.
+- Python owns the text format's reader and its only writer, on `markdown-it-py`.
+  It matched the JavaScript `markdown-it` on 714 inputs, structure and line
+  spans included. A JavaScript reader remains for paste and test fixtures.
+- Node shrinks to the Yjs relay and converts Yjs to and from a JSON outline
+  tree; it never writes Markdown. The tree holds notes with their markers and
+  checked state, headings, bodies, inline runs, dates and links, with anything
+  else as verbatim source, and each note's cache ID. Three calls carry it: save
+  to a tree, apply a tree to live Yjs by cache ID, and read the live tree.
+  Retiring Node later means replacing the relay.
+- The cache row keeps each document's last-saved tree, so the writer keeps
+  untouched text byte-identical.
+- The editor runs note operations for the person typing; Python runs them for
+  everyone else. Shared cases check that both give the same result.
+- The browser reads notes through the REST API, plus the live session for open
+  documents. The SDK keeps no kind map of its own.
 - A closed document needs no Node: Django applies the operation, checks it and
   records a revision. The next load syncs through the hash check.
 - An open document is saved first, then edited through the fork path, so online
@@ -130,27 +145,27 @@ once stage 2 lands.
    - Exit: an agent can list, read, search, create, move, rename and delete
      flagged documents and files.
 2. **Editor on text**
-   - Add the JavaScript parser and canonical writer, with write-time alignment
-     to the saved text.
+   - Spike the tree first: a Yjs-to-tree-to-text round trip over the corpus
+     keeps every byte.
+   - Add the Python reader and canonical writer, with write-time alignment to
+     the saved text, and the JavaScript reader for paste and test fixtures.
    - Express editor test fixtures and expected outlines in the text format
      before changing editor internals, so the same tests check behavior before
      and after.
    - Write operation cases once, as text before, operations, and text after or
-     the refusal. Test them on the shared format module, and check each other
+     the refusal. Test them on Python's note operations, and check each other
      surface, such as MCP or the editor, with only a few of the same cases. Add
      this rule to the [testing policy](dev/testing.md) once it has worked.
    - Extend the editor schema with headings, `block` lines, per-note markers and
      independent checkboxes. Use `line` or `group` storage with no body wrapper.
-   - Add Node's three calls, the cache row, the one-transaction save and hash
-     recovery.
+   - Add Node's three calls, the cache row with the last-saved tree, the
+     one-transaction save and hash recovery.
    - Add cache IDs on RemDo's own node state, with three sync steps: transfer to
      a recreated identical note, repair duplicates, and clear a holder when a
      text `id::` claims its value.
    - Update note content by splicing text, never `clear()` plus `append()`.
-   - Add note operations on the shared format module for every workspace kind,
-     run in Django through embedded V8, and their MCP tools. Python keeps
-     storage, versions and permissions, and the module's kind map is the one
-     the SDK uses.
+   - Add Python note operations for outline notes and Markdown blocks, and
+     their MCP tools.
    - Move the open document's semantic operations into note operations, as a
      complete contract migration once the pending MCP reviews allow it.
      Consider the [note range](specs/outliner/selection.md#note-ranges) as the
@@ -174,6 +189,9 @@ once stage 2 lands.
      [user-data hierarchy](specs/outliner/user-data.md#hierarchy), so listing
      and resolving workspaces are note operations and the personal workspace
      comes from Insert there. Fold `list_workspaces` into `read_note`.
+   - Move the account root to Python, replacing the SDK's `user-data`,
+     `document-source` and `collection` kinds; the SDK becomes a REST client
+     plus the editor session.
    - Check the contract with one read-only external source spike.
    - Exit: the UI and MCP read closed documents' notes without an editor.
 5. **Sharing and Git**
@@ -263,4 +281,6 @@ Switch new documents by reseeding from text once all of these hold:
 - Email rendering, late offline migration and Yjs undo across a reseed are
   untested.
 - The history tables, the Git adapter and search were designed from research,
-  not spikes. The real-server tests stored text in a Git repository.
+  not spikes.
+- Python and JavaScript readers agree, but the outline tree and the Python
+  writer haven't been spiked. The real-server tests stored text in a Git repository.
