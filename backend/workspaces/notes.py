@@ -1,4 +1,4 @@
-"""Note operations on a workspace's folders, documents and plain files.
+"""Note operations on a workspace's folders, documents and plain files, one class per kind.
 
 Outline notes, Markdown blocks and Ensure ID arrive with the text format parser.
 """
@@ -9,17 +9,11 @@ import re
 
 from django.db import transaction
 
-from . import store
-from .models import WORKSPACE_NAME_MAX_LENGTH, Workspace
+from . import models, store
+from .models import WORKSPACE_NAME_MAX_LENGTH
 
 PERSONAL_WORKSPACE_NAME = "Personal"
 DOCUMENT_SUFFIX = ".md"
-OPERATIONS = {
-    "workspace": ["read", "insert", "setText"],
-    "folder": ["read", "insert", "move", "delete", "setText"],
-    "document": ["read", "move", "delete", "setText", "setContent"],
-    "file": ["read", "move", "delete", "setText", "setContent"],
-}
 REQUIRED_FIELDS = {
     "insert": ("kind", "text"),
     "move": ("target", "parent"),
@@ -41,19 +35,19 @@ class Refusal(Exception):
 
 def workspaces_of(user):
     """The user's workspaces, creating their personal workspace on first use."""
-    workspaces = list(Workspace.objects.filter(owner=user))
+    workspaces = list(models.Workspace.objects.filter(owner=user))
     if workspaces:
         return workspaces
     with transaction.atomic():
         type(user).objects.select_for_update().filter(pk=user.pk).first()
-        workspaces = list(Workspace.objects.filter(owner=user))
+        workspaces = list(models.Workspace.objects.filter(owner=user))
         if not workspaces:
-            workspaces = [Workspace.objects.create(name=PERSONAL_WORKSPACE_NAME, owner=user)]
+            workspaces = [models.Workspace.objects.create(name=PERSONAL_WORKSPACE_NAME, owner=user)]
     return workspaces
 
 
 def workspace_of(user, workspace_id):
-    workspace = Workspace.objects.filter(owner=user, pk=workspace_id).first()
+    workspace = models.Workspace.objects.filter(owner=user, pk=workspace_id).first()
     if workspace is None:
         raise Refusal("NOT_FOUND", "The workspace is not available. Check list_workspaces.")
     return workspace
@@ -119,23 +113,9 @@ class Tree:
             return [path]
         return sorted(file for file in self.files if _under(file, path))
 
-    def has_children(self, path, kind):
-        if kind in ("workspace", "folder"):
-            return bool(self.files_of(path, kind))
-        return kind == "document" and document_has_children(self.content(path))
-
     def initial_version(self, folder):
         return store.listing_version(
             {path: hash_ for path, hash_ in self.initial.items() if _under(path, folder)}
-        )
-
-    def children(self, folder):
-        start = len(folder) + 1 if folder else 0
-        return sorted(
-            {
-                _join(folder, path[start:].partition("/")[0])
-                for path in self.files_of(folder, "folder")
-            }
         )
 
     def load(self, paths):
@@ -189,49 +169,15 @@ class Tree:
         }
 
 
-def text_of(workspace, path, kind):
-    if kind == "workspace":
-        return workspace.name
-    name = _name(path)
-    return name[: -len(DOCUMENT_SUFFIX)] if kind == "document" else name
-
-
 def read(workspace, path="", depth=1, content=False):
     try:
         path = store.normalize_folder(path)
     except store.InvalidPath as error:
         raise Refusal("INVALID_ARGUMENT", f"ref: {error}") from error
-    tree = Tree(workspace)
-    kind = tree.kind(path)
-    if kind is None:
-        raise Refusal("NOT_FOUND", f"No note at {path!r}.")
-    node = _read_node(workspace, tree, path, kind, depth)
-    if content and kind in ("document", "file"):
-        node.update(decode(tree.content(path)))
-    return node
-
-
-def _read_node(workspace, tree, path, kind, depth):
-    node = {
-        "ref": {"path": path},
-        "kind": kind,
-        "text": text_of(workspace, path, kind),
-        "operations": OPERATIONS[kind],
-    }
-    if kind in ("workspace", "folder"):
-        node["version"] = tree.initial_version(path)
-        children = tree.children(path)
-        if depth > 0:
-            node["children"] = [
-                _read_node(workspace, tree, child, tree.kind(child), depth - 1)
-                for child in children
-            ]
-        else:
-            node["hasChildren"] = bool(children)
-    else:
-        node["version"] = tree.files[path]
-        if kind == "file":
-            node["hasChildren"] = False
+    note = Call(workspace, {}).note({"path": path}, "ref")
+    node = note.read(depth)
+    if content and isinstance(note, File):
+        node.update(decode(note.content))
     return node
 
 
@@ -318,8 +264,241 @@ class Expectations:
         )
 
 
+class Note:
+    """A note of a workspace: its reference, kind, text, children and operations."""
+
+    kind = None
+    operations = ("read",)
+
+    def __init__(self, call, path):
+        self.call = call
+        self.tree = call.tree
+        self.path = path
+
+    @property
+    def text(self):
+        return _name(self.path)
+
+    def read(self, depth):
+        return {
+            "ref": {"path": self.path},
+            "kind": self.kind,
+            "text": self.text,
+            "operations": list(self.operations),
+            "version": self.version(),
+        }
+
+
+class Container(Note):
+    """A workspace or folder: it holds the files under its path, listed by name."""
+
+    def version(self):
+        return self.tree.initial_version(self.path)
+
+    def files(self):
+        return self.tree.files_of(self.path, "folder")
+
+    def children(self):
+        start = len(self.path) + 1 if self.path else 0
+        names = {_join(self.path, file[start:].partition("/")[0]) for file in self.files()}
+        return [self.call.note({"path": name}) for name in sorted(names)]
+
+    def read(self, depth):
+        node = super().read(depth)
+        children = self.children()
+        if depth > 0:
+            node["children"] = [child.read(depth - 1) for child in children]
+        else:
+            node["hasChildren"] = bool(children)
+        return node
+
+    def insert(self, operation):
+        new = FILE_KINDS[operation["kind"]]
+        path = self.call.path(_join(self.path, new.name_for(self.call, operation["text"])), "text")
+        content = self.call.content(operation)
+        new.check_new(self.call, content)
+        self.call.place(path)
+        self.call.put(path, content)
+        return {"ref": {"path": path}, "kind": new.kind}
+
+
+class Workspace(Container):
+    kind = "workspace"
+    operations = ("read", "insert", "setText")
+
+    @property
+    def text(self):
+        return self.call.name
+
+    def set_text(self, operation):
+        text = self.call.changed_text(self.text, operation)
+        self.call.encoded(text, "text")
+        if not text.strip() or len(text) > WORKSPACE_NAME_MAX_LENGTH:
+            self.call.refuse(
+                "INVALID_ARGUMENT",
+                f"A workspace name has 1 to {WORKSPACE_NAME_MAX_LENGTH} characters.",
+            )
+        self.call.name = text
+        return {"ref": {"path": ""}}
+
+
+class Movable(Note):
+    """A folder, document or file: it moves, is renamed, and is deleted with its files."""
+
+    @classmethod
+    def name_for(cls, call, text):
+        if not text or "/" in text:
+            call.refuse("INVALID_ARGUMENT", "text: a name is non-empty and has no '/'.")
+        return text
+
+    def move(self, operation):
+        parent = self.call.note(operation["parent"], "parent")
+        if not isinstance(parent, Container):
+            self.call.refuse("INVALID_ARGUMENT", "parent: only a workspace or folder holds notes.")
+        if parent.path == self.path or (parent.path and _under(parent.path, self.path)):
+            self.call.refuse("INVALID_ARGUMENT", "parent: a folder can't move into itself.")
+        new_path = _join(parent.path, _name(self.path))
+        if new_path != self.path:
+            self.relocate(new_path, "parent")
+        return {"ref": {"path": new_path}}
+
+    def set_text(self, operation):
+        text = self.call.changed_text(self.text, operation)
+        new_path = self.call.path(_join(_parent(self.path), self.name_for(self.call, text)), "text")
+        self.relocate(new_path, "text")
+        return {"ref": {"path": new_path}}
+
+    def delete(self, operation):
+        self.call.check(self)
+        files = self.files()
+        self.tree.load(file for file in files if file.endswith(DOCUMENT_SUFFIX))
+        if self.has_children() and not operation.get("withChildren"):
+            self.call.refuse(
+                "INVALID_ARGUMENT",
+                f"{self.path!r} has children; set withChildren to delete them too.",
+            )
+        removed = []
+        for file in files:
+            if file.endswith(DOCUMENT_SUFFIX):
+                removed += ids_in(self.tree.content(file))
+            self.tree.remove(file)
+        return {"removedIds": removed}
+
+    def relocate(self, new_path, field):
+        self.call.check(self)
+        moving = self.files()
+        hashes = {old: self.tree.remove(old) for old in moving}
+        for old in moving:
+            new = self.call.path(new_path + old[len(self.path) :], field)
+            self.call.place(new)
+            self.tree.add(new, hashes[old])
+
+
+class Folder(Movable, Container):
+    kind = "folder"
+    operations = ("read", "insert", "move", "delete", "setText")
+
+    def has_children(self):
+        return True
+
+
+class File(Movable):
+    kind = "file"
+    operations = ("read", "move", "delete", "setText", "setContent")
+
+    @classmethod
+    def name_for(cls, call, text):
+        name = super().name_for(call, text)
+        if name.endswith(DOCUMENT_SUFFIX):
+            call.refuse("INVALID_ARGUMENT", "text: a file named *.md would be a document.")
+        return name
+
+    @classmethod
+    def check_new(cls, call, content):
+        pass
+
+    @property
+    def content(self):
+        return self.tree.content(self.path)
+
+    def version(self):
+        return self.tree.files[self.path]
+
+    def files(self):
+        return [self.path]
+
+    def has_children(self):
+        return False
+
+    def read(self, depth):
+        return {**super().read(depth), "hasChildren": False}
+
+    def set_content(self, operation):
+        self.call.check(self)
+        current = self.content
+        if "replacements" in operation:
+            try:
+                text = current.decode()
+            except UnicodeDecodeError:
+                self.call.refuse("INVALID_ARGUMENT", "Replacements apply only to text.")
+            content = self.call.encoded(self.call.replaced(text, operation, "content"), "content")
+        elif "content" in operation:
+            content = self.call.content(operation)
+        else:
+            self.call.refuse("INVALID_ARGUMENT", "Give content or replacements.")
+        if content == current:
+            self.call.refuse("INVALID_ARGUMENT", "The content is unchanged.")
+        self.check_content(current, content)
+        self.call.put(self.path, content)
+        return {"ref": {"path": self.path}}
+
+    def check_content(self, current, content):
+        pass
+
+
+class Document(File):
+    """A `.md` file read in the RemDo text format; its text is its name without `.md`."""
+
+    kind = "document"
+
+    @classmethod
+    def name_for(cls, call, text):
+        return Movable.name_for(call, text) + DOCUMENT_SUFFIX
+
+    @classmethod
+    def check_new(cls, call, content):
+        if ids_in(content):
+            call.refuse("INVALID_ARGUMENT", "content: a new document can't carry IDs.")
+
+    @property
+    def text(self):
+        return _name(self.path)[: -len(DOCUMENT_SUFFIX)]
+
+    def has_children(self):
+        return document_has_children(self.content)
+
+    def read(self, depth):
+        # Until the format parser lists a document's children, Read can't say whether it has any.
+        return Note.read(self, depth)
+
+    def check_content(self, current, content):
+        if sorted(ids_in(content)) != sorted(ids_in(current)):
+            self.call.refuse("INVALID_ARGUMENT", "content: Set content can't add or remove IDs.")
+
+
+KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file": File}
+FILE_KINDS = {"document": Document, "file": File}
+METHODS = {
+    "insert": "insert",
+    "move": "move",
+    "delete": "delete",
+    "setText": "set_text",
+    "setContent": "set_content",
+}
+
+
 class Call:
-    """The note operations of one call, applied to a tree of the workspace's files."""
+    """One call: its operations applied in order to the notes of one workspace."""
 
     def __init__(self, workspace, expected):
         self.workspace = workspace
@@ -332,134 +511,47 @@ class Call:
         op = operation["op"]
         missing = [field for field in REQUIRED_FIELDS[op] if field not in operation]
         if missing:
-            self._refuse("INVALID_ARGUMENT", f"{op} needs {', '.join(missing)}.")
-        return self.HANDLERS[op](self, operation)
+            self.refuse("INVALID_ARGUMENT", f"{op} needs {', '.join(missing)}.")
+        field = "parent" if op == "insert" else "target"
+        note = self.note(operation.get(field), field)
+        if op not in note.operations:
+            self.refuse("INVALID_ARGUMENT", f"{field}: a {note.kind} doesn't offer {op}.")
+        return getattr(note, METHODS[op])(operation)
 
-    def insert(self, operation):
-        parent, _ = self._note(operation.get("parent"), "parent", ("workspace", "folder"))
-        kind = operation["kind"]
-        path = self._path(_join(parent, self._file_name(operation["text"], kind)), "text")
-        content = self._content(operation)
-        if kind == "document" and ids_in(content):
-            self._refuse("INVALID_ARGUMENT", "content: a new document can't carry IDs.")
-        self._place(path)
-        self._put(path, content)
-        return {"ref": {"path": path}, "kind": kind}
+    def note(self, ref, field="target"):
+        path = self.path((ref or {}).get("path", ""), field)
+        kind = self.tree.kind(path)
+        if kind is None:
+            self.refuse("NOT_FOUND", f"{field}: no note at {path!r}.")
+        return KINDS[kind](self, path)
 
-    def move(self, operation):
-        path, kind = self._note(operation.get("target"), kinds=("folder", "document", "file"))
-        parent, _ = self._note(operation.get("parent"), "parent", ("workspace", "folder"))
-        if parent == path or (parent and _under(parent, path)):
-            self._refuse("INVALID_ARGUMENT", "parent: a folder can't move into itself.")
-        new_path = _join(parent, _name(path))
-        if new_path != path:
-            self._check(path, kind)
-            self._relocate(path, kind, new_path, "parent")
-        return {"ref": {"path": new_path}}
-
-    def delete(self, operation):
-        path, kind = self._note(operation.get("target"), kinds=("folder", "document", "file"))
-        self._check(path, kind)
-        files = self.tree.files_of(path, kind)
-        self.tree.load(file for file in files if file.endswith(DOCUMENT_SUFFIX))
-        if self.tree.has_children(path, kind) and not operation.get("withChildren"):
-            self._refuse(
-                "INVALID_ARGUMENT", f"{path!r} has children; set withChildren to delete them too."
-            )
-        removed = []
-        for file in files:
-            if file.endswith(DOCUMENT_SUFFIX):
-                removed += ids_in(self.tree.content(file))
-            self.tree.remove(file)
-        return {"removedIds": removed}
-
-    def set_text(self, operation):
-        path, kind = self._note(operation.get("target"))
-        current = self.name if kind == "workspace" else text_of(self.workspace, path, kind)
-        text = self._replaced(current, operation, "text")
-        if text == current:
-            self._refuse("INVALID_ARGUMENT", "The text is unchanged.")
-        if kind == "workspace":
-            self._encoded(text, "text")
-            if not text.strip() or len(text) > WORKSPACE_NAME_MAX_LENGTH:
-                self._refuse(
-                    "INVALID_ARGUMENT",
-                    f"A workspace name has 1 to {WORKSPACE_NAME_MAX_LENGTH} characters.",
-                )
-            self.name = text
-            return {"ref": {"path": ""}}
-        new_path = self._path(_join(_parent(path), self._file_name(text, kind)), "text")
-        self._check(path, kind)
-        self._relocate(path, kind, new_path, "text")
-        return {"ref": {"path": new_path}}
-
-    def set_content(self, operation):
-        path, kind = self._note(operation.get("target"), kinds=("document", "file"))
-        self._check(path, kind)
-        current = self.tree.content(path)
-        if "replacements" in operation:
-            try:
-                text = current.decode()
-            except UnicodeDecodeError:
-                self._refuse("INVALID_ARGUMENT", "Replacements apply only to text.")
-            content = self._encoded(self._replaced(text, operation, "content"), "content")
-        elif "content" in operation:
-            content = self._content(operation)
-        else:
-            self._refuse("INVALID_ARGUMENT", "Give content or replacements.")
-        if content == current:
-            self._refuse("INVALID_ARGUMENT", "The content is unchanged.")
-        if kind == "document" and sorted(ids_in(content)) != sorted(ids_in(current)):
-            self._refuse("INVALID_ARGUMENT", "content: Set content can't add or remove IDs.")
-        self._put(path, content)
-        return {"ref": {"path": path}}
-
-    HANDLERS = {
-        "insert": insert,
-        "move": move,
-        "delete": delete,
-        "setText": set_text,
-        "setContent": set_content,
-    }
-
-    def _refuse(self, code, message, versions=None):
+    def refuse(self, code, message, versions=None):
         raise Refusal(code, message, self.index, versions)
 
-    def _check(self, path, kind):
-        self.expectations.check(path, kind, self.index)
+    def check(self, note):
+        self.expectations.check(note.path, note.kind, self.index)
 
-    def _path(self, path, field):
+    def path(self, path, field):
         try:
             return store.normalize_folder(path)
         except store.InvalidPath as error:
-            self._refuse("INVALID_ARGUMENT", f"{field}: {error}")
+            self.refuse("INVALID_ARGUMENT", f"{field}: {error}")
 
-    def _note(self, ref, field="target", kinds=None):
-        path = self._path((ref or {}).get("path", ""), field)
-        kind = self.tree.kind(path)
-        if kind is None:
-            self._refuse("NOT_FOUND", f"{field}: no note at {path!r}.")
-        if kinds and kind not in kinds:
-            self._refuse("INVALID_ARGUMENT", f"{field}: a {kind} doesn't offer this operation.")
-        return path, kind
-
-    def _place(self, path):
+    def place(self, path):
         reason = self.tree.namespace.conflict(path)
         if reason:
-            self._refuse(
+            self.refuse(
                 "FAILED_PRECONDITION", f"Can't place {path!r}: {reason}", self.tree.occupants(path)
             )
         self.expectations.produced(path, self.index)
 
-    def _relocate(self, path, kind, new_path, field):
-        moving = self.tree.files_of(path, kind)
-        hashes = {old: self.tree.remove(old) for old in moving}
-        for old in moving:
-            new = self._path(new_path + old[len(path) :], field)
-            self._place(new)
-            self.tree.add(new, hashes[old])
+    def put(self, path, content):
+        try:
+            self.tree.put(path, content)
+        except store.InvalidContent as error:
+            self.refuse("INVALID_ARGUMENT", f"content: {error}")
 
-    def _content(self, operation):
+    def content(self, operation):
         if "content" not in operation:
             return b""
         value = operation["content"]
@@ -467,39 +559,31 @@ class Call:
             try:
                 return base64.b64decode(value, validate=True)
             except ValueError:
-                self._refuse("INVALID_ARGUMENT", "content is not valid base64.")
-        return self._encoded(value, "content")
+                self.refuse("INVALID_ARGUMENT", "content is not valid base64.")
+        return self.encoded(value, "content")
 
-    def _encoded(self, text, field):
+    def encoded(self, text, field):
         try:
             return text.encode()
         except UnicodeEncodeError:
-            self._refuse("INVALID_ARGUMENT", f"{field}: the text isn't valid Unicode.")
+            self.refuse("INVALID_ARGUMENT", f"{field}: the text isn't valid Unicode.")
 
-    def _file_name(self, text, kind):
-        if not text or "/" in text:
-            self._refuse("INVALID_ARGUMENT", "text: a name is non-empty and has no '/'.")
-        name = text + DOCUMENT_SUFFIX if kind == "document" else text
-        if kind == "file" and name.endswith(DOCUMENT_SUFFIX):
-            self._refuse("INVALID_ARGUMENT", "text: a file named *.md would be a document.")
-        return name
+    def changed_text(self, current, operation):
+        text = self.replaced(current, operation, "text")
+        if text == current:
+            self.refuse("INVALID_ARGUMENT", "The text is unchanged.")
+        return text
 
-    def _put(self, path, content):
-        try:
-            self.tree.put(path, content)
-        except store.InvalidContent as error:
-            self._refuse("INVALID_ARGUMENT", f"content: {error}")
-
-    def _replaced(self, value, operation, field):
+    def replaced(self, value, operation, field):
         if "replacements" not in operation:
             new = operation.get(field)
             if new is None:
-                self._refuse("INVALID_ARGUMENT", f"Give {field} or replacements.")
+                self.refuse("INVALID_ARGUMENT", f"Give {field} or replacements.")
             return new
         for number, replacement in enumerate(operation["replacements"]):
             count = value.count(replacement["old"]) if replacement["old"] else 0
             if count != 1:
-                self._refuse(
+                self.refuse(
                     "INVALID_ARGUMENT",
                     f"replacements.{number}: the old text matches {count} times, not once.",
                 )
@@ -522,7 +606,7 @@ def change(workspace, author, operations, expected=None, dry_run=False):
     changes = call.tree.changes()
     with transaction.atomic():
         if call.name != workspace.name:
-            Workspace.objects.filter(pk=workspace.pk).update(name=call.name)
+            models.Workspace.objects.filter(pk=workspace.pk).update(name=call.name)
         revision = None
         if changes:
             try:
