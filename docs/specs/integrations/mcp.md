@@ -26,11 +26,12 @@ read a document or one note's subtree, append notes, and set a note's child
 [user data](../outliner/user-data.md) operation is named after it, and that
 operation's owner defines its behavior.
 
-Users with [workspaces](../workspaces/store.md) also get three tools that
-delegate to [note operations](../outliner/note-operations.md): `list_workspaces` lists their
-workspaces, `read_note` performs Read, and `change_workspace` performs a call. A
-workspace note is addressed by its workspace ID and its path, which is empty for
-the workspace itself.
+The server also offers one tool per
+[note operation](../outliner/note-operations.md#operations), named after it,
+such as `read_note`, `insert_note` and `delete_note`. Each applies one
+operation and addresses notes by
+[reference](../outliner/note-model.md#note-kinds), so reading without a
+workspace lists the user's workspaces.
 
 - A tool addresses a document by its
   [`documentId`](../outliner/note-ids.md#definitions), whose reads and appends

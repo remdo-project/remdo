@@ -89,8 +89,22 @@ unchanged.
   untouched text byte-identical.
 - The editor runs note operations for the person typing; Python runs them for
   everyone else. Shared cases check that both give the same result.
-- The browser reads notes through the REST API, plus the live session for open
-  documents. The SDK keeps no kind map of its own.
+- The browser's SDK keeps its note API, observation included. Every kind reads
+  from Django over REST and stays current through a change stream, outline
+  notes as of their last save; only the editor's text is live through Yjs. The
+  SDK sends operations and shows results, keeping typed kinds but no kind logic.
+- Each successful call appends a change-log row, naming the changed references,
+  in its own transaction. A server-sent events stream sends a user's new rows
+  and replays from `Last-Event-ID` after a reconnect. `LISTEN/NOTIFY` wakes it
+  on Postgres; SQLite checks every second.
+- Three boundaries stay fixed while the mechanism changes: `useNote(ref)` and
+  `observe(ref)` for consumers; events shaped `{ seq, ref, note? }`, where the
+  SDK writes a given note into its cache and refetches otherwise; and
+  `publish(account, refs)` with `changes(account, after)` on the server. Events
+  start without data. Pushing data, which needs a per-connection subscription
+  registry, or Redis behind `publish`, waits for monitoring to show the need.
+- DRF serializers define the notes API once: OpenAPI and the generated
+  TypeScript types come from them, and so do the MCP tools' input schemas.
 - A closed document needs no Node: Django applies the operation, checks it and
   records a revision. The next load syncs through the hash check.
 - An open document is saved first, then edited through the fork path, so online
@@ -116,9 +130,9 @@ unchanged.
   [note IDs](specs/outliner/note-ids.md#ids-in-workspaces) own the note shape
   and resolution. Source fields are read-only named children.
 - A source provides `read`, `list`, `search`, `subscribe` and `invoke`, shaped
-  like MCP resources and tools. Subscriptions carry no data.
-- The browser uses TanStack Query keyed by URI behind `useNote(uri)`. Open
-  documents use existing observation. Backlinks and search run on the server.
+  like MCP resources and tools.
+- The browser's SDK holds reads in TanStack Query keyed by reference behind
+  `useNote(ref)`. Backlinks and search run on the server.
 
 ### Documents and bodies
 
@@ -139,9 +153,9 @@ once stage 2 lands.
      `document_text` search.
    - Give each flagged user a personal workspace of Markdown documents on first
      use.
-   - Add note operations for workspaces, folders, documents and files, without
-     outline notes, through new MCP tools. Existing tools stay for old
-     documents.
+   - Add note operations for the account root, workspaces, folders, documents
+     and files, without outline notes, through one MCP tool per operation.
+     Existing tools stay for old documents.
    - Exit: an agent can list, read, search, create, move, rename and delete
      flagged documents and files.
 2. **Editor on text**
@@ -166,6 +180,10 @@ once stage 2 lands.
    - Update note content by splicing text, never `clear()` plus `append()`.
    - Add Python note operations for outline notes and Markdown blocks, and
      their MCP tools.
+   - Add the notes REST API, the change log and its stream on the same entry
+     points as MCP, and let Home list the account root's workspaces and
+     documents through the SDK. Test that the SDK catches up after the stream
+     drops.
    - Move the open document's semantic operations into note operations, as a
      complete contract migration once the pending MCP reviews allow it.
      Consider the [note range](specs/outliner/selection.md#note-ranges) as the
@@ -185,13 +203,11 @@ once stage 2 lands.
 4. **Note layer**
    - Add `note_index`, `resolve(uri)` and the new URL routes.
    - Add `useNote`, backlinks, search and the workspace source.
-   - List workspaces as notes in the account's
-     [user-data hierarchy](specs/outliner/user-data.md#hierarchy), so listing
-     and resolving workspaces are note operations and the personal workspace
-     comes from Insert there. Fold `list_workspaces` into `read_note`.
-   - Move the account root to Python, replacing the SDK's `user-data`,
-     `document-source` and `collection` kinds; the SDK becomes a REST client
-     plus the editor session.
+   - Give the Python account root the
+     [user-data hierarchy](specs/outliner/user-data.md#hierarchy), replacing
+     the SDK's `user-data`, `document-source` and `collection` kinds; the SDK
+     becomes a REST client plus the editor session. Decide whether workspaces
+     sit under a source per server.
    - Check the contract with one read-only external source spike.
    - Exit: the UI and MCP read closed documents' notes without an editor.
 5. **Sharing and Git**
@@ -216,8 +232,6 @@ once stage 2 lands.
 7. **Cleanup**
    - Remove `DocumentContent`, `DocumentGrant`, the body wrapper, per-call
      headless editors, old MCP tools and old routes.
-   - Remove the experimental flag and every mention of it, so workspaces are how
-     everyone creates and edits notes.
    - Before changing the MCP surface for everyone, check the published OpenAI
      plugin and any pending directory review for updates they need.
    - Move this design into its owning specifications, and remove the format's
@@ -248,6 +262,8 @@ Switch new documents by reseeding from text once all of these hold:
 
 ## Known limits
 
+- MCP applies one operation per tool call; a batch tool waits until agents
+  need several operations applied all or none.
 - Moves and renames keep `note:` links working but don't rewrite relative
   links, which can break until stage 5's link rewriting.
 - Text changed outside note operations, such as a Git push, skips their
@@ -256,6 +272,8 @@ Switch new documents by reseeding from text once all of these hold:
   document since its read; stage 3's live merge reduces that.
 - Until stage 2, Read returns a document's content but not its children, nor
   whether it has any, and Insert into a document and Ensure ID are refused.
+- Until stage 4, Read of the account root lists its workspaces but not its
+  [user-data](specs/outliner/user-data.md#hierarchy) collections.
 - Note operations can't create a folder: a folder exists only while it holds a
   file, and Insert has no way to add one with its first file.
 

@@ -1,7 +1,7 @@
 # Note operations
 
-Note operations read and change the notes a [workspace](./note-model.md#note-kinds)
-holds through one set of operations, following the
+Note operations read and change the notes under an
+[account root](./note-model.md#note-kinds) through one set of operations, following the
 [unified operations principle](../../principles.md#consumer-apis). Editors,
 agents and integrations use them alike.
 
@@ -13,9 +13,10 @@ agents and integrations use them alike.
    When asked, it also returns a document's or plain file's content.
    **Deterministic.**
 2. **Insert** adds new notes under a parent: outline notes and Markdown blocks
-   from a Markdown fragment nested as deep as needed, or documents and files,
-   where a document may come with its content. In a document, the position is
-   first, last, or before or after a sibling. **Deterministic.**
+   from a Markdown fragment nested as deep as needed, documents and files,
+   where a document may come with its content, or workspaces. In a document,
+   the position is first, last, or before or after a sibling.
+   **Deterministic.**
 3. **Move** puts a note, with its children, under a new parent in the same
    workspace, at a position as for Insert. **Deterministic.**
 4. **Delete** removes a note. A note with children is removed only when the
@@ -34,6 +35,7 @@ whitespace included. Replacements apply only to text. **Deterministic.**
 
 ## Kinds
 
+- **Account root:** Read, Insert.
 - **Workspace:** Read, Insert, Set text.
 - **Folder:** Read, Insert, Move, Delete, Set text.
 - **Document:** Read, Insert, Move, Delete, Set text, Set content, Ensure ID.
@@ -48,8 +50,9 @@ operations.
 
 ## Calls
 
-1. A call is an ordered list of operations on one workspace, applied all or
-   none as one [commit](../workspaces/store.md#commits). A later operation can
+1. A call is an ordered list of operations on one workspace or on the account
+   root, applied all or none, with a workspace's file changes as one
+   [commit](../workspaces/store.md#commits). A later operation can
    name a note an earlier one created. **Deterministic.**
 2. A call states the expected content of every file it changes, as the store
    requires. A Move, Delete or Set text of a folder also states the version of
