@@ -234,15 +234,14 @@ class NoteOperationTests(TestCase):
 
     def change(self, operations, expected=None, dry_run=False):
         """Run a call on this workspace; cases name notes by path within it."""
-        workspace = {"workspace": self.workspace.pk}
         scoped = []
         for operation in operations:
             operation = dict(operation)
             for field in ("target", "parent"):
                 if field in operation:
-                    operation[field] = {**workspace, **operation[field]}
+                    operation[field] = self.ref(operation[field]["path"])
             if operation["op"] == "insert":
-                operation.setdefault("parent", workspace)
+                operation.setdefault("parent", self.ref())
             scoped.append(operation)
         return notes.call(self.owner, scoped, expected, dry_run)
 
@@ -253,13 +252,13 @@ class NoteOperationTests(TestCase):
         }
 
     def versions(self, reads):
-        expected = {"files": {}, "folders": {}}
+        expected = {}
         for read in reads:
             if read.endswith("/") or read == "":
                 folder = read.rstrip("/")
-                expected["folders"][folder] = store.list_paths(self.workspace, folder).version
+                expected[self.ref(folder)] = store.list_paths(self.workspace, folder).version
             else:
-                expected["files"][read] = store.read(self.workspace, read).blob_hash
+                expected[self.ref(read)] = store.read(self.workspace, read).blob_hash
         return expected
 
     def test_cases(self):
@@ -297,7 +296,7 @@ class NoteOperationTests(TestCase):
             )
 
         current = store.read(self.workspace, "a.md").blob_hash
-        self.assertEqual(refusal.exception.versions, {"files": {"a.md": current}})
+        self.assertEqual(refusal.exception.versions, {self.ref("a.md"): current})
 
     def test_success_returns_results_references_and_new_versions(self):
         result = self.change(
@@ -305,7 +304,7 @@ class NoteOperationTests(TestCase):
         )
 
         version = store.read(self.workspace, "Plan.md").blob_hash
-        ref = {"workspace": self.workspace.pk, "path": "Plan.md"}
+        ref = self.ref("Plan.md")
         self.assertEqual(result["results"], [{"ref": ref, "kind": "document"}])
         self.assertEqual(result["changes"], [{"ref": ref, "change": "added", "version": version}])
         self.workspace.refresh_from_db()
@@ -340,7 +339,7 @@ class NoteOperationTests(TestCase):
 
     def test_renaming_the_workspace_changes_no_files(self):
         rename = [{"op": "setText", "target": {"path": ""}, "text": "Work"}]
-        ref = {"workspace": self.workspace.pk, "path": ""}
+        ref = self.ref()
         renamed = [{"ref": ref, "change": "renamed", "text": "Work"}]
 
         preview = self.change(rename, dry_run=True)
@@ -356,8 +355,8 @@ class NoteOperationTests(TestCase):
         self.write({"Plan.md": "- a\n", "notes/x.md": "x\n"})
 
         for text, versions in (
-            ("plan", {"files": {"Plan.md": store.read(self.workspace, "Plan.md").blob_hash}}),
-            ("notes", {"folders": {"notes": store.list_paths(self.workspace, "notes").version}}),
+            ("plan", {self.ref("Plan.md"): store.read(self.workspace, "Plan.md").blob_hash}),
+            ("notes", {self.ref("notes"): store.list_paths(self.workspace, "notes").version}),
         ):
             with self.subTest(text=text), self.assertRaises(notes.Refusal) as refusal:
                 kind = "document" if text == "plan" else "file"
@@ -373,7 +372,7 @@ class NoteOperationTests(TestCase):
         with self.assertRaises(notes.Refusal) as refusal:
             self.change(
                 [{"op": "move", "target": {"path": "long"}, "parent": {"path": deep}}],
-                {"folders": {"long": store.list_paths(self.workspace, "long").version}},
+                {self.ref("long"): store.list_paths(self.workspace, "long").version},
             )
 
         self.assertTrue(str(refusal.exception).startswith("parent: "), refusal.exception)
@@ -381,21 +380,21 @@ class NoteOperationTests(TestCase):
     def test_read_lists_children_by_name_with_versions(self):
         self.write({"b.md": "- b\n", "a/x.png": "x", "c.txt": "", "empty.md": ""})
 
-        node = notes.read(self.owner, {"workspace": self.workspace.pk}, depth=1)
+        node = notes.read(self.owner, self.ref(), depth=1)
 
         self.assertEqual(node["kind"], "workspace")
         self.assertEqual(node["text"], "Personal")
         self.assertEqual(node["version"], store.list_paths(self.workspace).version)
         self.assertEqual(
             [
-                (child["ref"]["path"], child["kind"], child["text"], child.get("hasChildren"))
+                (child["ref"], child["kind"], child["text"], child.get("hasChildren"))
                 for child in node["children"]
             ],
             [
-                ("a", "folder", "a", True),
-                ("b.md", "document", "b", None),
-                ("c.txt", "file", "c.txt", False),
-                ("empty.md", "document", "empty", None),
+                (self.ref("a"), "folder", "a", True),
+                (self.ref("b.md"), "document", "b", None),
+                (self.ref("c.txt"), "file", "c.txt", False),
+                (self.ref("empty.md"), "document", "empty", None),
             ],
         )
         self.assertEqual(
@@ -418,7 +417,32 @@ class NoteOperationTests(TestCase):
         self.assertNotIn("content", notes.read(self.owner, self.ref("a.md")))
 
     def ref(self, path=""):
-        return {"workspace": self.workspace.pk, "path": path}
+        return f"{self.workspace.pk}/{path}" if path else self.workspace.pk
+
+    def test_references_name_the_account_root_workspaces_and_paths(self):
+        self.write({"notes/a.md": "a\n"})
+
+        for ref, kind in (
+            ("me", "account"),
+            (self.ref(), "workspace"),
+            (self.ref("notes"), "folder"),
+            (self.ref("notes/a.md"), "document"),
+        ):
+            with self.subTest(ref=ref):
+                node = notes.read(self.owner, ref, depth=0)
+                self.assertEqual((node["ref"], node["kind"]), (ref, kind))
+
+    def test_malformed_and_id_references_are_refused(self):
+        for ref in (
+            "",
+            "/a.md",
+            f"{self.workspace.pk}/",
+            f"{self.workspace.pk}_",
+            f"{self.workspace.pk}_k3x9",
+        ):
+            with self.subTest(ref=ref), self.assertRaises(notes.Refusal) as refusal:
+                notes.read(self.owner, ref)
+            self.assertEqual(refusal.exception.code, "INVALID_ARGUMENT")
 
     def test_the_account_root_lists_workspaces_and_gives_a_personal_one(self):
         user = User.objects.create_user("new@example.test", "New-password-123")
@@ -439,9 +463,7 @@ class NoteOperationTests(TestCase):
 
         result = notes.call(self.owner, [insert])
         [created] = Workspace.objects.filter(owner=self.owner, name="Team")
-        self.assertEqual(
-            result["results"], [{"ref": {"workspace": created.pk, "path": ""}, "kind": "workspace"}]
-        )
+        self.assertEqual(result["results"], [{"ref": created.pk, "kind": "workspace"}])
         self.assertTrue(preview["dryRun"])
         self.assertEqual(
             [child["text"] for child in notes.read(self.owner)["children"]], ["Personal", "Team"]
@@ -450,7 +472,7 @@ class NoteOperationTests(TestCase):
     def test_the_account_root_holds_only_workspaces(self):
         for operation, code in (
             ({"op": "insert", "kind": "document", "text": "Plan"}, "INVALID_ARGUMENT"),
-            ({"op": "delete", "target": {}}, "INVALID_ARGUMENT"),
+            ({"op": "delete", "target": "me"}, "INVALID_ARGUMENT"),
         ):
             with self.subTest(operation=operation), self.assertRaises(notes.Refusal) as refusal:
                 notes.call(self.owner, [operation])
@@ -461,10 +483,10 @@ class NoteOperationTests(TestCase):
         self.write({"a.md": "a\n"})
 
         for operations in (
-            [{"op": "move", "target": self.ref("a.md"), "parent": {"workspace": other.pk}}],
+            [{"op": "move", "target": self.ref("a.md"), "parent": other.pk}],
             [
                 {"op": "insert", "parent": self.ref(), "kind": "file", "text": "x"},
-                {"op": "insert", "parent": {"workspace": other.pk}, "kind": "file", "text": "y"},
+                {"op": "insert", "parent": other.pk, "kind": "file", "text": "y"},
             ],
         ):
             with self.subTest(operations=operations), self.assertRaises(notes.Refusal) as refusal:

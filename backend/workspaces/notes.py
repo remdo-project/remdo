@@ -71,6 +71,29 @@ def _under(path, folder):
     return not folder or path.startswith(f"{folder}/")
 
 
+ACCOUNT_ROOT = "me"
+
+
+def parse_ref(ref):
+    """Split a reference into its workspace ID, path and note ID; the account root has none.
+
+    Raises ValueError for a string that isn't a reference.
+    """
+    if not isinstance(ref, str) or not ref:
+        raise ValueError("a reference is a non-empty string.")
+    if ref == ACCOUNT_ROOT:
+        return None, "", None
+    workspace, slash, path = ref.partition("/")
+    if slash:
+        if not workspace or not path:
+            raise ValueError(f"{ref!r} isn't a reference.")
+        return workspace, path, None
+    workspace, underscore, note_id = ref.partition("_")
+    if not workspace or (underscore and not note_id):
+        raise ValueError(f"{ref!r} isn't a reference.")
+    return workspace, "", note_id or None
+
+
 class Tree:
     """A workspace's files as a call changes them, before anything is committed."""
 
@@ -118,16 +141,15 @@ class Tree:
         return self.files.pop(path)
 
     def occupants(self, path):
-        """The stored versions of what occupies `path`, ignoring case."""
-        files = {}
+        """The stored versions of what occupies `path`, ignoring case, by path."""
+        versions = {}
         for key in [path, *store.folders_of(path)]:
             existing = self.namespace.files.get(key.casefold())
             if existing in self.initial:
-                files[existing] = self.initial[existing]
+                versions[existing] = self.initial[existing]
         folder = self.namespace.folders.get(path.casefold())
-        versions = {"files": files} if files else {}
         if folder and any(_under(stored, folder[0]) for stored in self.initial):
-            versions["folders"] = {folder[0]: self.initial_version(folder[0])}
+            versions[folder[0]] = self.initial_version(folder[0])
         return versions
 
     def changes(self):
@@ -146,15 +168,18 @@ class Tree:
 
 def read(user, ref=None, depth=1, content=False):
     """Read the note `ref` names, resolved from the user's account root."""
-    return Call(user).resolve(ref or {}, "ref").read(depth, content)
+    return Call(user).resolve(ACCOUNT_ROOT if ref is None else ref, "ref").read(depth, content)
 
 
 def call(user, operations, expected=None, dry_run=False):
     """Apply `operations` all or none, within one workspace or on the user's account root."""
     scopes = set()
     for index, operation in enumerate(operations):
-        refs = [operation.get(field) or {} for field in ("target", "parent") if field in operation]
-        workspaces = {ref.get("workspace") for ref in refs or [{}]}
+        refs = [operation[field] for field in ("target", "parent") if field in operation]
+        try:
+            workspaces = {parse_ref(ref)[0] for ref in refs or [ACCOUNT_ROOT]}
+        except ValueError as error:
+            raise Refusal("INVALID_ARGUMENT", str(error), index) from error
         if len(workspaces) > 1:
             raise Refusal("INVALID_ARGUMENT", "A note can't move between workspaces.", index)
         scopes |= workspaces
@@ -170,20 +195,15 @@ def call(user, operations, expected=None, dry_run=False):
 class Expectations:
     """The versions a call's caller read, and which of them the call relies on."""
 
-    def __init__(self, tree, expected):
+    def __init__(self, tree, versions, ref):
+        """`versions` maps each path the caller read to its version; `ref` names a path."""
         self.tree = tree
-        self.files = self._normalized(expected.get("files", {}))
-        self.folders = self._normalized(expected.get("folders", {}))
+        self.ref = ref
+        self.files = {path: v for path, v in versions.items() if path in tree.initial}
+        self.folders = {path: v for path, v in versions.items() if path not in tree.initial}
         self.used_folders = {}
         self.first_use = {}
         self.folder_first_use = {}
-
-    @staticmethod
-    def _normalized(versions):
-        try:
-            return {store.normalize_folder(path): version for path, version in versions.items()}
-        except store.InvalidPath as error:
-            raise Refusal("INVALID_ARGUMENT", f"expected: {error}") from error
 
     def check(self, note, index):
         """Check the caller read what an operation on `note` changes, as it is now."""
@@ -199,7 +219,7 @@ class Expectations:
                         "FAILED_PRECONDITION",
                         f"{file!r} changed since it was read.",
                         index,
-                        {"files": {file: self.tree.initial[file]}},
+                        {self.ref(file): self.tree.initial[file]},
                     )
                 self.first_use.setdefault(file, index)
                 continue
@@ -227,7 +247,7 @@ class Expectations:
                 "FAILED_PRECONDITION",
                 f"The files under {folder!r} changed since they were read.",
                 index,
-                {"folders": {folder: current}},
+                {self.ref(folder): current},
             )
         self.used_folders[folder] = current
         self.folder_first_use.setdefault(folder, index)
@@ -246,7 +266,7 @@ class Expectations:
             "FAILED_PRECONDITION",
             str(error),
             first_use.get(error.path),
-            {"folders" if error.folder else "files": {error.path: error.current}},
+            {self.ref(error.path): error.current},
         )
 
 
@@ -526,7 +546,7 @@ class AccountRoot:
 
     def read(self, depth, content=False):
         node = {
-            "ref": {},
+            "ref": ACCOUNT_ROOT,
             "kind": self.kind,
             "text": self.user.email,
             "operations": list(self.operations),
@@ -542,7 +562,7 @@ class AccountRoot:
         new = self.call.new_kind(self, operation["kind"])
         name = new.name_for(self.call, operation["text"])
         workspace = models.Workspace.objects.create(name=name, owner=self.user)
-        ref = {"workspace": workspace.pk, "path": ""}
+        ref = workspace.pk
         self.call.created.append(ref)
         return {"ref": ref, "kind": new.kind}
 
@@ -564,27 +584,50 @@ class Call:
     def __init__(self, user, workspace=None, expected=None):
         self.user = user
         self.workspace = workspace
+        self.index = None
         self.root = AccountRoot(self)
         self.tree = Tree(workspace) if workspace else None
-        self.expectations = Expectations(self.tree, expected or {}) if workspace else None
+        self.expectations = (
+            Expectations(self.tree, self.expected_paths(expected or {}), self.ref)
+            if workspace
+            else None
+        )
         self.name = workspace.name if workspace else None
         self.created = []
-        self.index = None
 
     def resolve(self, ref, field):
         """The note `ref` names, in this call's workspace or any of the user's."""
-        workspace_id = ref.get("workspace")
+        workspace_id = self.parsed(ref, field)[0]
         if workspace_id is None or (self.workspace and workspace_id == self.workspace.pk):
             return self.note(ref, field)
         return Call(self.user, self.root.workspace(workspace_id)).note(ref, field)
 
+    def parsed(self, ref, field):
+        try:
+            return parse_ref(ref)
+        except ValueError as error:
+            self.refuse("INVALID_ARGUMENT", f"{field}: {error}")
+
+    def expected_paths(self, expected):
+        paths = {}
+        for ref, version in expected.items():
+            workspace_id, path, note_id = self.parsed(ref, "expected")
+            if workspace_id != self.workspace.pk or note_id:
+                self.refuse(
+                    "INVALID_ARGUMENT", f"expected: {ref!r} isn't a path in this workspace."
+                )
+            paths[self.path(path, "expected")] = version
+        return paths
+
     def note(self, ref, field="target"):
-        ref = ref or {}
-        workspace_id, path = ref.get("workspace"), ref.get("path", "")
+        workspace_id, path, note_id = self.parsed(ACCOUNT_ROOT if ref is None else ref, field)
         if workspace_id is None:
-            if path:
-                self.refuse("INVALID_ARGUMENT", f"{field}: a path needs its workspace.")
             return self.root
+        if note_id:
+            self.refuse(
+                "INVALID_ARGUMENT",
+                f"{field}: ID references arrive with outline notes; use the path Read returns.",
+            )
         if self.workspace is None or workspace_id != self.workspace.pk:
             self.refuse(
                 "INVALID_ARGUMENT",
@@ -667,7 +710,7 @@ class Call:
         raise Refusal(code, message, self.index, versions)
 
     def ref(self, path):
-        return {"workspace": self.workspace.pk, "path": path}
+        return f"{self.workspace.pk}/{path}" if path else self.workspace.pk
 
     def check(self, note):
         self.expectations.check(note, self.index)
@@ -681,8 +724,11 @@ class Call:
     def place(self, path):
         reason = self.tree.namespace.conflict(path)
         if reason:
+            occupants = self.tree.occupants(path)
             self.refuse(
-                "FAILED_PRECONDITION", f"Can't place {path!r}: {reason}", self.tree.occupants(path)
+                "FAILED_PRECONDITION",
+                f"Can't place {path!r}: {reason}",
+                {self.ref(occupant): version for occupant, version in occupants.items()},
             )
         self.expectations.produced(path, self.index)
 

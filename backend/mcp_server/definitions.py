@@ -180,38 +180,17 @@ TOOLS = [
 ]
 
 REF = {
-    "type": "object",
-    "properties": {
-        "workspace": {
-            "type": "string",
-            "description": "The note's workspace ID. Omit it for the account root, which lists "
-            "the user's workspaces.",
-        },
-        "path": {
-            "type": "string",
-            "description": "The note's path in its workspace: a folder, document or file. "
-            "Empty or omitted for the workspace itself.",
-        },
-    },
+    "type": "string",
+    "description": "A note reference, as read_note returns it: `me` for the account root, "
+    "which lists the user's workspaces, a workspace ID, or `<workspaceId>/<path>` for a "
+    "folder, document or file.",
 }
 EXPECTED = {
     "type": "object",
-    "description": "The versions read_note returned for what this operation changes: an "
-    "existing document or file, or a folder holding it. A note changed since is refused; "
-    "read it again.",
-    "properties": {
-        "files": {
-            "type": "object",
-            "description": "Document or file path to its version.",
-            "additionalProperties": {"type": "string"},
-        },
-        "folders": {
-            "type": "object",
-            "description": "Folder path to its version, covering every file under it; empty "
-            "path for the whole workspace.",
-            "additionalProperties": {"type": "string"},
-        },
-    },
+    "description": "The versions read_note returned, by reference, for what this operation "
+    "changes: an existing document or file, or a folder or workspace holding it. A note "
+    "changed since is refused; read it again.",
+    "additionalProperties": {"type": "string"},
 }
 DRY_RUN = {"type": "boolean", "description": "Describe the change, with diffs, without making it."}
 REPLACEMENTS = {
@@ -258,13 +237,13 @@ WORKSPACE_TOOLS = [
     note_tool(
         "read_note",
         "Read note",
-        "Read a note of the user's workspaces: the account root (no ref), which lists the "
+        "Read a note of the user's workspaces: the account root (`me`, the default), which lists the "
         "workspaces, a workspace, folder, document or file. Returns its kind, text (a name), "
         "the operations it offers, its version, and its children to the given depth. A "
         "document's outline isn't listed yet; ask for its content instead. Pass the versions "
         "you read as `expected` when changing notes.",
         {
-            "ref": {**REF, "description": "The note to read; omit for the account root."},
+            "ref": {**REF, "description": "The note to read. Defaults to `me`."},
             "depth": {
                 "type": "integer",
                 "minimum": 0,
@@ -284,13 +263,13 @@ WORKSPACE_TOOLS = [
     note_tool(
         "insert_note",
         "Insert note",
-        "Create a note under a parent: a workspace under the account root (parent without a "
-        "workspace), or a Markdown document or other file under a workspace or folder. Each "
-        "call creates a new note, including retries.",
+        "Create a note under a parent: a workspace under the account root (`me`, the default "
+        "parent), or a Markdown document or other file under a workspace or folder. Each call "
+        "creates a new note, including retries.",
         {
             "parent": {
                 **REF,
-                "description": "Where to create the note; omit for the account root.",
+                "description": "Where to create the note. Defaults to `me`.",
             },
             "kind": {"type": "string", "enum": ["workspace", "document", "file"]},
             "text": {

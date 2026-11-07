@@ -47,6 +47,7 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
     async def test_an_agent_creates_reads_and_changes_a_document(self):
         await sync_to_async(self.allow_workspaces)()
         account = await self.call_json("read_note", {})
+        self.assertEqual(account["ref"], "me")
         [workspace] = account["children"]
         self.assertEqual(workspace["text"], "Personal")
 
@@ -61,18 +62,16 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
         edit = {
             "target": document["ref"],
             "content": "- b\n",
-            "expected": {"files": {"Plan.md": document["version"]}},
+            "expected": {document["ref"]: document["version"]},
         }
         await self.call_json("set_note_content", edit)
         stale = self.error_text(await self.call("set_note_content", edit))
 
-        current = (
-            await sync_to_async(self.read)(workspace["ref"]["workspace"], "Plan.md")
-        ).blob_hash
+        current = (await sync_to_async(self.read)(workspace["ref"], "Plan.md")).blob_hash
         self.assertEqual(
             stale,
             "FAILED_PRECONDITION: 'Plan.md' changed since it was read. "
-            f'Current versions: {{"files": {{"Plan.md": "{current}"}}}}',
+            f'Current versions: {{"{document["ref"]}": "{current}"}}',
         )
 
     async def test_a_tool_runs_only_its_own_operation(self):
@@ -99,7 +98,7 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
         other = await sync_to_async(User.objects.create_user)("other@example.test")
         workspace = await sync_to_async(Workspace.objects.create)(name="Theirs", owner=other)
 
-        result = await self.call("read_note", {"ref": {"workspace": workspace.pk}})
+        result = await self.call("read_note", {"ref": workspace.pk})
 
         self.assertTrue(self.error_text(result).startswith("NOT_FOUND: "))
 
@@ -110,7 +109,7 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
         with patch("sentry_sdk.capture_exception") as capture:
             with patch("workspaces.notes.read", side_effect=DatabaseError):
                 unavailable = await self.call("read_note", {})
-            invalid = await self.call("read_note", {"ref": {"workspace": "missing"}})
+            invalid = await self.call("read_note", {"ref": "missing"})
 
         self.assertTrue(self.error_text(unavailable).startswith("UNAVAILABLE: "))
         self.assertTrue(self.error_text(invalid).startswith("NOT_FOUND: "))
