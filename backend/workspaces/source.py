@@ -192,6 +192,10 @@ class Expectations:
         """Record a path the call creates, which later operations may change freely."""
         self.first_use.setdefault(path, index)
 
+    def absent_folder(self, folder, index):
+        """Require `folder` to hold nothing when the call commits, as when the call read it."""
+        self.folder_first_use.setdefault(folder, index)
+
     def stale(self, error):
         """The refusal for a file or folder the store found stale at commit."""
         first_use = self.folder_first_use if error.folder else self.first_use
@@ -565,6 +569,7 @@ class WorkspaceCall(Call):
         existing = self.tree.namespace.folder(path)
         if existing:
             self.refuse_taken(path, f"folder {existing!r} already exists.")
+        self.expectations.absent_folder(path, self.index)
 
     def refuse_taken(self, path, reason):
         if reason:

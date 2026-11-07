@@ -414,6 +414,25 @@ class NoteOperationTests(TestCase):
             ("FAILED_PRECONDITION", 0, {self.ref("Plan.md"): theirs}),
         )
 
+    def test_a_folder_a_concurrent_change_creates_blocks_a_rename_onto_it(self):
+        self.write({"old/a.txt": "a\n"})
+        expected = self.versions(["old/"])
+        call = source.open_call(self.owner, self.workspace.pk, expected)
+        self.write({"new/b.txt": "theirs\n"})
+
+        with self.assertRaises(notes.Refusal) as refusal:
+            call.run([{"op": "setText", "target": self.ref("old"), "text": "new"}], False)
+
+        self.assertEqual(
+            (refusal.exception.code, refusal.exception.index, refusal.exception.versions),
+            (
+                "FAILED_PRECONDITION",
+                0,
+                {self.ref("new"): store.list_paths(self.workspace, "new").version},
+            ),
+        )
+        self.assertEqual(self.files(), {"old/a.txt": "a\n", "new/b.txt": "theirs\n"})
+
     def test_expected_entries_for_other_notes_are_ignored(self):
         other = Workspace.objects.create(name="Other", owner=self.owner)
         self.write({"a.md": "a\n"})
