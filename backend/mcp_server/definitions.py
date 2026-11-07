@@ -210,7 +210,9 @@ CONTENT_ENCODING = {
 }
 
 
-def note_tool(name, title, description, properties, required, read_only=False, destructive=True):
+def declare_note_tool(
+    name, title, description, properties, required, read_only=False, destructive=True
+):
     return {
         "name": name,
         "title": title,
@@ -233,11 +235,11 @@ def note_tool(name, title, description, properties, required, read_only=False, d
     }
 
 
-WORKSPACE_TOOLS = [
-    note_tool(
+NOTE_TOOLS = [
+    declare_note_tool(
         "read_note",
         "Read note",
-        "Read a note of the user's workspaces: the account root (`me`, the default), which lists the "
+        "Read a note: the account root (`me`, the default), which lists the "
         "workspaces, a workspace, folder, document or file. Returns its kind, text (a name), "
         "the operations it offers, its version, and its children to the given depth. A "
         "document's outline isn't listed yet; ask for its content instead. Pass the versions "
@@ -260,7 +262,7 @@ WORKSPACE_TOOLS = [
         [],
         read_only=True,
     ),
-    note_tool(
+    declare_note_tool(
         "insert_note",
         "Insert note",
         "Create a note under a parent: a workspace under the account root (`me`, the default "
@@ -284,7 +286,7 @@ WORKSPACE_TOOLS = [
         ["kind", "text"],
         destructive=False,
     ),
-    note_tool(
+    declare_note_tool(
         "move_note",
         "Move note",
         "Move a folder, document or file, with everything under it, into another folder or the "
@@ -297,7 +299,7 @@ WORKSPACE_TOOLS = [
         },
         ["target", "parent"],
     ),
-    note_tool(
+    declare_note_tool(
         "delete_note",
         "Delete note",
         "Delete a folder, document or file. A folder or non-empty document needs withChildren. "
@@ -313,7 +315,7 @@ WORKSPACE_TOOLS = [
         },
         ["target"],
     ),
-    note_tool(
+    declare_note_tool(
         "set_note_text",
         "Rename note",
         "Change a note's text: rename a workspace, folder, document or file.",
@@ -326,7 +328,7 @@ WORKSPACE_TOOLS = [
         },
         ["target"],
     ),
-    note_tool(
+    declare_note_tool(
         "set_note_content",
         "Set note content",
         "Replace a document's or file's content, whole or by exact replacements.",

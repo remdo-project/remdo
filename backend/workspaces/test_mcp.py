@@ -11,7 +11,7 @@ from documents.test_mcp import McpClient
 from . import store
 from .models import Workspace
 
-WORKSPACE_TOOLS = {
+NOTE_TOOLS = {
     "read_note",
     "insert_note",
     "move_note",
@@ -34,15 +34,15 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
         self.assertFalse(result.get("isError"), result)
         return json.loads(result["content"][0]["text"])
 
-    async def test_only_users_with_the_permission_see_workspace_tools(self):
+    async def test_only_users_with_the_permission_see_note_tools(self):
         names = await self.tool_names()
-        self.assertFalse(names & WORKSPACE_TOOLS)
+        self.assertFalse(names & NOTE_TOOLS)
         refused = await self.call("read_note", {})
         self.assertEqual(self.error_text(refused), "INVALID_ARGUMENT: Tool read_note not found")
 
         await sync_to_async(self.allow_workspaces)()
 
-        self.assertEqual(await self.tool_names(), names | WORKSPACE_TOOLS)
+        self.assertEqual(await self.tool_names(), names | NOTE_TOOLS)
 
     async def test_an_agent_creates_reads_and_changes_a_document(self):
         await sync_to_async(self.allow_workspaces)()

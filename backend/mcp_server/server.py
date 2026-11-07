@@ -27,7 +27,7 @@ from starlette.responses import Response
 from starlette.routing import Route
 from workspaces import notes
 
-from .definitions import INSTRUCTIONS, TOOLS, WORKSPACE_TOOLS
+from .definitions import INSTRUCTIONS, NOTE_TOOLS, TOOLS
 from .errors import DOCUMENT_NOT_FOUND, UNCONFIRMED, WORKSPACE_UNCONFIRMED, failure, result
 
 DATABASE_TIMEOUT_SECONDS = 10
@@ -114,7 +114,7 @@ NOTE_OPERATIONS = {
 }
 
 
-def workspace_tool(name, arguments, user):
+def note_tool_call(name, arguments, user):
     try:
         if name == "read_note":
             return notes.read(
@@ -148,7 +148,7 @@ def can_use_workspaces(user):
     # TODO: Workspaces stay behind this experimental permission until the text format migration
     # (docs/text-format-plan.md) moves every user onto them; other users, including directory
     # reviewers, keep the submitted MCP surface. Probe: delete this check and the use_workspaces
-    # permission, then the MCP contract tests list the workspace tools for every user.
+    # permission, then the MCP contract tests list the note tools for every user.
     return user.has_perm("workspaces.use_workspaces")
 
 
@@ -168,11 +168,9 @@ def create_app():
     streamable_http.pydantic_core = SimpleNamespace(from_json=decode_request)
     app_origin = settings.APP_ORIGIN
     tools = [types.Tool(**definition) for definition in TOOLS]
-    workspace_tools = [types.Tool(**definition) for definition in WORKSPACE_TOOLS]
-    workspace_tool_names = {tool.name for tool in workspace_tools}
-    validators = {
-        tool.name: Draft7Validator(tool.input_schema) for tool in [*tools, *workspace_tools]
-    }
+    note_tools = [types.Tool(**definition) for definition in NOTE_TOOLS]
+    note_tool_names = {tool.name for tool in note_tools}
+    validators = {tool.name: Draft7Validator(tool.input_schema) for tool in [*tools, *note_tools]}
     append_schema = validators["append_children"].schema
     validators["append_children"] = Draft7Validator(
         {
@@ -209,7 +207,7 @@ def create_app():
 
     async def list_tools(ctx, params):
         if await workspaces_allowed(ctx.request.state.mcp_user):
-            return types.ListToolsResult(tools=[*tools, *workspace_tools])
+            return types.ListToolsResult(tools=[*tools, *note_tools])
         return types.ListToolsResult(tools=tools)
 
     # Validate here so errors keep RemDo's coded tool envelope, including a field path.
@@ -217,8 +215,7 @@ def create_app():
         name, arguments = params.name, params.arguments or {}
         try:
             if name not in validators or (
-                name in workspace_tool_names
-                and not await workspaces_allowed(ctx.request.state.mcp_user)
+                name in note_tool_names and not await workspaces_allowed(ctx.request.state.mcp_user)
             ):
                 raise OperationError("INVALID_ARGUMENT", f"Tool {name} not found")
             validation = next(validators[name].iter_errors(arguments), None)
@@ -229,11 +226,11 @@ def create_app():
                 )
             request = ctx.request
             authorization = request.headers["authorization"]
-            if name in workspace_tool_names:
+            if name in note_tool_names:
                 writes = name != "read_note" and not arguments.get("dryRun", False)
                 try:
                     value = await asyncio.wait_for(
-                        database_call(workspace_tool, name, arguments, request.state.mcp_user),
+                        database_call(note_tool_call, name, arguments, request.state.mcp_user),
                         DATABASE_TIMEOUT_SECONDS,
                     )
                 except (DatabaseError, TimeoutError) as error:
