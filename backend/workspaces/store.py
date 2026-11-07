@@ -140,6 +140,11 @@ class Listing:
     version: str
 
 
+def under(path, folder):
+    """Whether `path` is inside `folder`, where "" is the whole workspace."""
+    return not folder or path.startswith(f"{folder}/")
+
+
 def _files_under(workspace, folder):
     files = WorkspaceFile.objects.filter(workspace=workspace)
     if folder:
@@ -277,6 +282,15 @@ class Namespace:
                 return f"Folder {folder!r} differs only by case from {existing[0]!r}."
         return None
 
+    def file(self, path):
+        """The file whose path equals `path` ignoring case, or None."""
+        return self.files.get(path.casefold())
+
+    def folder(self, path):
+        """The folder whose path equals `path` ignoring case, or None."""
+        existing = self.folders.get(path.casefold())
+        return existing[0] if existing else None
+
     def is_folder(self, path):
         existing = self.folders.get(path.casefold())
         return existing is not None and existing[0] == path
@@ -322,6 +336,5 @@ def files_at(revision):
         .order_by("revision_id")
         .values_list("path", "blob_id")
     )
-    hashes = {hash_ for hash_ in final.values() if hash_ is not None}
-    contents = dict(Blob.objects.filter(hash__in=hashes).values_list("hash", "content"))
-    return {path: bytes(contents[hash_]) for path, hash_ in final.items() if hash_ is not None}
+    stored = contents(hash_ for hash_ in final.values() if hash_ is not None)
+    return {path: stored[hash_] for path, hash_ in final.items() if hash_ is not None}

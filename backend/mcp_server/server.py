@@ -117,12 +117,7 @@ NOTE_OPERATIONS = {
 def note_tool_call(name, arguments, user):
     try:
         if name == "read_note":
-            return notes.read(
-                user,
-                arguments.get("ref"),
-                arguments.get("depth", 1),
-                arguments.get("content", False),
-            )
+            return notes.read(user, **arguments)
         operation = {
             **{key: value for key, value in arguments.items() if key not in ("expected", "dryRun")},
             "op": NOTE_OPERATIONS[name],
@@ -197,13 +192,18 @@ def create_app():
             "url": document_url(document["id"]),
         }
 
-    async def workspaces_allowed(user):
+    async def run_database(function, *args, writes=False, unconfirmed=UNCONFIRMED):
         try:
-            return await asyncio.wait_for(
-                database_call(can_use_workspaces, user), DATABASE_TIMEOUT_SECONDS
-            )
+            return await asyncio.wait_for(database_call(function, *args), DATABASE_TIMEOUT_SECONDS)
         except (DatabaseError, TimeoutError) as error:
-            raise OperationError("UNAVAILABLE", UNAVAILABLE) from error
+            # Cancellation cannot stop the ORM worker or roll back a commit.
+            raise OperationError(
+                "OUTCOME_UNCONFIRMED" if writes else "UNAVAILABLE",
+                unconfirmed if writes else UNAVAILABLE,
+            ) from error
+
+    async def workspaces_allowed(user):
+        return await run_database(can_use_workspaces, user)
 
     async def list_tools(ctx, params):
         if await workspaces_allowed(ctx.request.state.mcp_user):
@@ -227,32 +227,23 @@ def create_app():
             request = ctx.request
             authorization = request.headers["authorization"]
             if name in note_tool_names:
-                writes = name != "read_note" and not arguments.get("dryRun", False)
-                try:
-                    value = await asyncio.wait_for(
-                        database_call(note_tool_call, name, arguments, request.state.mcp_user),
-                        DATABASE_TIMEOUT_SECONDS,
-                    )
-                except (DatabaseError, TimeoutError) as error:
-                    # Cancellation cannot stop the ORM worker or roll back a commit.
-                    raise OperationError(
-                        "OUTCOME_UNCONFIRMED" if writes else "UNAVAILABLE",
-                        WORKSPACE_UNCONFIRMED if writes else UNAVAILABLE,
-                    ) from error
+                value = await run_database(
+                    note_tool_call,
+                    name,
+                    arguments,
+                    request.state.mcp_user,
+                    writes=name != "read_note" and not arguments.get("dryRun", False),
+                    unconfirmed=WORKSPACE_UNCONFIRMED,
+                )
                 return result(value)
             if name in {"list_documents", "create_document", "rename_document"}:
-                try:
-                    value = await asyncio.wait_for(
-                        database_call(metadata_tool, name, arguments, request.state.mcp_user),
-                        DATABASE_TIMEOUT_SECONDS,
-                    )
-                except TimeoutError as error:
-                    # Cancellation cannot stop the ORM worker or roll back a commit.
-                    write = name != "list_documents"
-                    raise OperationError(
-                        "OUTCOME_UNCONFIRMED" if write else "UNAVAILABLE",
-                        UNCONFIRMED if write else UNAVAILABLE,
-                    ) from error
+                value = await run_database(
+                    metadata_tool,
+                    name,
+                    arguments,
+                    request.state.mcp_user,
+                    writes=name != "list_documents",
+                )
                 return result(
                     [document_result(d) for d in value]
                     if name == "list_documents"

@@ -3,19 +3,13 @@
 from django.db import transaction
 
 ACCOUNT_ROOT = "me"
-REQUIRED_FIELDS = {
-    "insert": ("kind", "text"),
-    "move": ("target", "parent"),
-    "delete": ("target",),
-    "setText": ("target",),
-    "setContent": ("target",),
-}
-METHODS = {
-    "insert": "insert",
-    "move": "move",
-    "delete": "delete",
-    "setText": "set_text",
-    "setContent": "set_content",
+# Each operation's method on a note, and the fields it needs.
+OPERATIONS = {
+    "insert": ("insert", ("kind", "text")),
+    "move": ("move", ("target", "parent")),
+    "delete": ("delete", ("target",)),
+    "setText": ("set_text", ("target",)),
+    "setContent": ("set_content", ("target",)),
 }
 
 
@@ -45,6 +39,15 @@ def parse_ref(ref):
     if not workspace or (underscore and not note_id):
         raise ValueError(f"{ref!r} isn't a reference.")
     return workspace, "", note_id or None
+
+
+def with_children(node, children, depth):
+    """Add a container's children to its read node, or whether it has any at the depth limit."""
+    if depth > 0:
+        node["children"] = [child.read(depth - 1) for child in children]
+    else:
+        node["hasChildren"] = bool(children)
+    return node
 
 
 class Call:
@@ -82,14 +85,15 @@ class Call:
 
     def apply(self, operation):
         op = operation["op"]
-        missing = [field for field in REQUIRED_FIELDS[op] if field not in operation]
+        method, required = OPERATIONS[op]
+        missing = [field for field in required if field not in operation]
         if missing:
             self.refuse("INVALID_ARGUMENT", f"{op} needs {', '.join(missing)}.")
         field = "parent" if op == "insert" else "target"
         note = self.note(operation.get(field), field)
         if op not in note.operations:
             self.refuse("INVALID_ARGUMENT", f"{field}: a {note.kind} doesn't offer {op}.")
-        return getattr(note, METHODS[op])(operation)
+        return getattr(note, method)(operation)
 
     def refuse(self, code, message, versions=None):
         raise Refusal(code, message, self.index, versions)

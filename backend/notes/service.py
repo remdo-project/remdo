@@ -2,7 +2,7 @@
 
 from workspaces import source as workspaces
 
-from .core import ACCOUNT_ROOT, Call, Refusal, parse_ref
+from .core import ACCOUNT_ROOT, Call, Refusal, parse_ref, with_children
 
 __all__ = ["Refusal", "call", "read"]
 
@@ -18,12 +18,6 @@ class AccountRoot:
         self.call = call
         self.user = call.user
 
-    def children(self):
-        return [
-            workspaces.WorkspaceCall(self.user, workspace).note_at("")
-            for workspace in workspaces.workspaces_of(self.user)
-        ]
-
     def read(self, depth, content=False):
         node = {
             "ref": ACCOUNT_ROOT,
@@ -31,12 +25,7 @@ class AccountRoot:
             "text": self.user.email,
             "operations": list(self.operations),
         }
-        children = self.children()
-        if depth > 0:
-            node["children"] = [child.read(depth - 1) for child in children]
-        else:
-            node["hasChildren"] = bool(children)
-        return node
+        return with_children(node, workspaces.workspace_notes(self.user), depth)
 
     def insert(self, operation):
         new = self.call.new_kind(self, operation["kind"])
@@ -54,13 +43,7 @@ class AccountCall(Call):
         self.created = []
 
     def note(self, ref, field="target"):
-        if self.parsed(ref, field)[0] is not None:
-            self.refuse("INVALID_ARGUMENT", "A call changes the notes of one source.")
         return self.root
-
-    def run(self, operations, dry_run):
-        workspaces.workspaces_of(self.user)
-        return super().run(operations, dry_run)
 
     def commit(self, operations, dry_run):
         return [{"ref": ref, "change": "added"} for ref in self.created], None
@@ -72,8 +55,7 @@ def read(user, ref=None, depth=1, content=False):
     workspace_id = account.parsed(ref, "ref")[0]
     if workspace_id is None:
         return account.root.read(depth, content)
-    workspace = workspaces.workspace_of(user, workspace_id)
-    return workspaces.WorkspaceCall(user, workspace).note(ref, "ref").read(depth, content)
+    return workspaces.open_call(user, workspace_id).note(ref, "ref").read(depth, content)
 
 
 def call(user, operations, expected=None, dry_run=False):
@@ -93,5 +75,4 @@ def call(user, operations, expected=None, dry_run=False):
     [scope] = scopes
     if scope is None:
         return AccountCall(user).run(operations, dry_run)
-    workspace = workspaces.workspace_of(user, scope)
-    return workspaces.WorkspaceCall(user, workspace, expected).run(operations, dry_run)
+    return workspaces.open_call(user, scope, expected).run(operations, dry_run)

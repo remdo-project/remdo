@@ -8,7 +8,7 @@ import difflib
 import re
 
 from django.db import transaction
-from notes.core import Call, Refusal
+from notes.core import Call, Refusal, with_children
 
 from . import models, store
 from .models import WORKSPACE_NAME_MAX_LENGTH
@@ -53,10 +53,6 @@ def _parent(path):
     return path.rsplit("/", 1)[0] if "/" in path else ""
 
 
-def _under(path, folder):
-    return not folder or path.startswith(f"{folder}/")
-
-
 class Tree:
     """A workspace's files as a call changes them, before anything is committed."""
 
@@ -76,17 +72,23 @@ class Tree:
 
     def initial_version(self, folder):
         return store.listing_version(
-            {path: hash_ for path, hash_ in self.initial.items() if _under(path, folder)}
+            {path: hash_ for path, hash_ in self.initial.items() if store.under(path, folder)}
         )
 
     def load(self, paths):
-        missing = {self.files[path] for path in paths} - self.contents.keys()
+        self.load_blobs(self.files[path] for path in paths)
+
+    def load_blobs(self, hashes):
+        missing = set(hashes) - self.contents.keys()
         if missing:
             self.contents.update(store.contents(missing))
 
     def content(self, path):
-        self.load([path])
-        return self.contents[self.files[path]]
+        return self.blob(self.files[path])
+
+    def blob(self, hash_):
+        self.load_blobs([hash_])
+        return self.contents[hash_]
 
     def put(self, path, content):
         hash_ = store.blob_hash(content)
@@ -107,12 +109,12 @@ class Tree:
         """The stored versions of what occupies `path`, ignoring case, by path."""
         versions = {}
         for key in [path, *store.folders_of(path)]:
-            existing = self.namespace.files.get(key.casefold())
+            existing = self.namespace.file(key)
             if existing in self.initial:
                 versions[existing] = self.initial[existing]
-        folder = self.namespace.folders.get(path.casefold())
-        if folder and any(_under(stored, folder[0]) for stored in self.initial):
-            versions[folder[0]] = self.initial_version(folder[0])
+        folder = self.namespace.folder(path)
+        if folder and any(store.under(stored, folder) for stored in self.initial):
+            versions[folder] = self.initial_version(folder)
         return versions
 
     def changes(self):
@@ -138,14 +140,13 @@ class Expectations:
         self.ref = ref
         self.files = {path: v for path, v in versions.items() if path in tree.initial}
         self.folders = {path: v for path, v in versions.items() if path not in tree.initial}
-        self.used_folders = {}
         self.first_use = {}
         self.folder_first_use = {}
 
     def check(self, note, index):
         """Check the caller read what an operation on `note` changes, as it is now."""
         # A folder's listing version, not its files' versions, catches a file added under it.
-        if note.listing and any(_under(file, note.path) for file in self.tree.initial):
+        if note.listing and any(store.under(file, note.path) for file in self.tree.initial):
             self._check_listing(note.path, True, index)
         for file in note.files():
             if file in self.first_use:
@@ -167,7 +168,7 @@ class Expectations:
             (
                 folder
                 for folder in self.folders
-                if _under(path, folder) or (listing and folder == path)
+                if store.under(path, folder) or (listing and folder == path)
             ),
             key=len,
             default=None,
@@ -186,11 +187,14 @@ class Expectations:
                 index,
                 {self.ref(folder): current},
             )
-        self.used_folders[folder] = current
         self.folder_first_use.setdefault(folder, index)
         for initial in self.tree.initial:
-            if _under(initial, folder):
+            if store.under(initial, folder):
                 self.first_use.setdefault(initial, index)
+
+    def used_folders(self):
+        """The listing version of each folder the call relied on, for the store to recheck."""
+        return {folder: self.tree.initial_version(folder) for folder in self.folder_first_use}
 
     def produced(self, path, index):
         """Record a path the call creates, which later operations may change freely."""
@@ -240,10 +244,8 @@ class Container(Note):
     def version(self):
         return self.tree.initial_version(self.path)
 
-    holds = {}
-
     def files(self):
-        return sorted(file for file in self.tree.files if _under(file, self.path))
+        return sorted(file for file in self.tree.files if store.under(file, self.path))
 
     def children(self):
         start = len(self.path) + 1 if self.path else 0
@@ -251,13 +253,7 @@ class Container(Note):
         return [self.call.note_at(name) for name in sorted(names)]
 
     def read(self, depth, content=False):
-        node = super().read(depth)
-        children = self.children()
-        if depth > 0:
-            node["children"] = [child.read(depth - 1) for child in children]
-        else:
-            node["hasChildren"] = bool(children)
-        return node
+        return with_children(super().read(depth), self.children(), depth)
 
     def insert(self, operation):
         new = self.call.new_kind(self, operation["kind"])
@@ -305,7 +301,7 @@ class Movable(Note):
         parent = self.call.note(operation["parent"], "parent")
         if not isinstance(parent, Container):
             self.call.refuse("INVALID_ARGUMENT", "parent: only a workspace or folder holds notes.")
-        if parent.path == self.path or (parent.path and _under(parent.path, self.path)):
+        if parent.path == self.path or (parent.path and store.under(parent.path, self.path)):
             self.call.refuse("INVALID_ARGUMENT", "parent: a folder can't move into itself.")
         new_path = _join(parent.path, _name(self.path))
         if new_path != self.path:
@@ -355,6 +351,7 @@ class Folder(Movable, Container):
 class File(Movable):
     kind = "file"
     operations = ("read", "move", "delete", "setText", "setContent")
+    children_known = True
 
     @classmethod
     def name_for(cls, call, text):
@@ -384,10 +381,9 @@ class File(Movable):
         return []
 
     def read(self, depth, content=False):
-        return {**self.node(depth, content), "hasChildren": False}
-
-    def node(self, depth, content=False):
-        node = Note.read(self, depth)
+        node = super().read(depth)
+        if self.children_known:
+            node["hasChildren"] = False
         if content:
             node.update(decode(self.content))
         return node
@@ -420,6 +416,8 @@ class Document(File):
 
     kind = "document"
     holds_ids = True
+    # Until the format parser lists a document's children, Read can't say whether it has any.
+    children_known = False
 
     @classmethod
     def name_for(cls, call, text):
@@ -440,10 +438,6 @@ class Document(File):
     def removed_ids(self):
         return ids_in(self.content)
 
-    def read(self, depth, content=False):
-        # Until the format parser lists a document's children, Read can't say whether it has any.
-        return self.node(depth, content)
-
     def check_content(self, current, content):
         if sorted(ids_in(content)) != sorted(ids_in(current)):
             self.call.refuse("INVALID_ARGUMENT", "content: Set content can't add or remove IDs.")
@@ -453,28 +447,36 @@ KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file":
 Container.holds = {"document": Document, "file": File}
 
 
-def workspaces_of(user):
+def _workspaces_of(user):
     """The user's workspaces by name, creating their personal workspace on first use."""
-    workspaces = models.Workspace.objects.filter(owner=user).order_by("name", "id")
-    if not workspaces.exists():
-        with transaction.atomic():
-            type(user).objects.select_for_update().filter(pk=user.pk).first()
-            if not workspaces.exists():
-                models.Workspace.objects.create(name=PERSONAL_WORKSPACE_NAME, owner=user)
-    return list(workspaces)
+    workspaces = list(models.Workspace.objects.filter(owner=user).order_by("name", "id"))
+    if workspaces:
+        return workspaces
+    with transaction.atomic():
+        type(user).objects.select_for_update().filter(pk=user.pk).first()
+        workspaces = list(models.Workspace.objects.filter(owner=user).order_by("name", "id"))
+        if not workspaces:
+            workspaces = [models.Workspace.objects.create(name=PERSONAL_WORKSPACE_NAME, owner=user)]
+    return workspaces
 
 
-def workspace_of(user, workspace_id):
+def workspace_notes(user):
+    """The user's workspaces as notes, for the account root to list."""
+    return [WorkspaceCall(user, workspace).note_at("") for workspace in _workspaces_of(user)]
+
+
+def open_call(user, workspace_id, expected=None):
+    """A call on one of the user's workspaces; other users' are refused as missing."""
     workspace = models.Workspace.objects.filter(owner=user, pk=workspace_id).first()
     if workspace is None:
         raise Refusal(
             "NOT_FOUND", "The workspace is not available. Read the account root for them."
         )
-    return workspace
+    return WorkspaceCall(user, workspace, expected)
 
 
 def create_workspace(user, name):
-    """Create a workspace and return its reference."""
+    _workspaces_of(user)
     return models.Workspace.objects.create(name=name, owner=user).pk
 
 
@@ -500,9 +502,7 @@ class WorkspaceCall(Call):
         return paths
 
     def note(self, ref, field="target"):
-        workspace_id, path, note_id = self.parsed(ref, field)
-        if workspace_id != self.workspace.pk:
-            self.refuse("INVALID_ARGUMENT", "A call changes the notes of one source.")
+        _, path, note_id = self.parsed(ref, field)
         if note_id:
             self.refuse(
                 "INVALID_ARGUMENT",
@@ -517,7 +517,6 @@ class WorkspaceCall(Call):
         return KINDS[self.tree.kind(path)](self, path)
 
     def commit(self, operations, dry_run):
-        """Save what the operations changed, and describe it."""
         described = []
         if self.name != self.workspace.name:
             models.Workspace.objects.filter(pk=self.workspace.pk).update(name=self.name)
@@ -531,7 +530,7 @@ class WorkspaceCall(Call):
                     self.user,
                     _message(operations),
                     changes,
-                    folders=self.expectations.used_folders,
+                    folders=self.expectations.used_folders(),
                 )
             except store.StaleFile as error:
                 raise self.expectations.stale(error) from error
@@ -593,9 +592,7 @@ def _describe(call, path, before, content, dry_run):
         "version": after,
     }
     if dry_run and before is not None and content is not None:
-        if before not in tree.contents:
-            tree.contents.update(store.contents([before]))
-        old = tree.contents[before]
+        old = tree.blob(before)
         try:
             description["diff"] = "".join(
                 difflib.unified_diff(
