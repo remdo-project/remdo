@@ -51,7 +51,7 @@ operations.
 ## Calls
 
 1. A call is an ordered list of operations within one
-   [source](./note-model.md#definitions), applied all or none, with a
+   [source](./note-model.md#sources), applied all or none, with a
    workspace's file changes as one [commit](../workspaces/store.md#commits).
    Insert acts within its parent's source and every other operation within its
    target's, so a source the call creates is changed only by a later call. A

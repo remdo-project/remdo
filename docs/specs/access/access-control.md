@@ -112,7 +112,7 @@ stops using the local data it is losing.
 
 ## Sources
 
-Each [source](../outliner/note-model.md#definitions) owns the authorization policy for itself and the notes under
+Each [source](../outliner/note-model.md#sources) owns the authorization policy for itself and the notes under
 it, down to the next source. Every note has one source. A source is its own
 source.
 Listing or linking a note alone grants no additional authority over it and does

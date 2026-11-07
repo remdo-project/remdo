@@ -36,15 +36,11 @@ Adapters preserve these guarantees whenever they create, import, or export notes
 
 ## Definitions
 
-- **Source:** a note whose subtree, down to the next source, follows its own
-  [authorization policy](../access/access-control.md#sources), independently of
-  where its data is stored. A server hosts it, and an adapter implements its
-  kind. Account roots, editor documents and workspaces are sources.
 - **Document:** an outline edited as a unit: an editor document, or a
   [Document](#note-kinds) note, a `.md` file in a workspace.
 - **Editor document:** a document containing an editor outline.
-- **Account root:** the source owned by one account and backed by its account
-  record, listing the sources the account can access. The
+- **Account root:** the [source](#sources) owned by one account and backed by its
+  account record, listing the sources the account can access. The
   [User Data root](./user-data.md#hierarchy) is the signed-in account's account
   root.
 - **Document order:** the depth-first, pre-order traversal of editor notes in
@@ -82,6 +78,20 @@ deletion. Structural operations follow containment; recursive navigation handles
 repeated notes and cycles. The visited route belongs to caller state and need
 not follow canonical ancestry.
 
+## Sources
+
+A **source** is a note whose [subtree](#definitions), down to the next source,
+follows its own [authorization policy](../access/access-control.md#sources),
+independently of where its data is stored. A server hosts each source, and an
+adapter implements its kind.
+
+- Sources nest. The [account root](#definitions) is the top source of an
+  account's tree.
+- Account roots, [workspaces](#note-kinds) and editor documents are sources.
+- A [call](./note-operations.md#calls) stays within one source, and a note's
+  [reference](./note-ids.md#ids-in-workspaces) takes the form its source's kind
+  defines.
+
 ## Note kinds
 
 Every note has a kind. Kinds share structure, content, and props but differ in
@@ -97,7 +107,7 @@ a tree of notes of the kinds below, which share the
 - **Account root:** the signed-in account's [account root](#definitions). Its
   children include the account's workspaces, ordered by name, and it always
   holds a personal one. Its text is the account's email address.
-- **Workspace:** the [source](#definitions) of every note in it. Its
+- **Workspace:** the [source](#sources) of every note in it. Its
   children are the folders, documents and plain files at its top level, ordered
   by name. Its text is its name.
 - **Folder:** the shared path of the files under it; it exists while it holds a
