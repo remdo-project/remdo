@@ -130,6 +130,8 @@ def note_tool_call(name, arguments, user):
         if error.versions:
             message += f" Current versions: {json.dumps(error.versions, ensure_ascii=False)}"
         raise OperationError(error.code, message) from error
+    except notes.NothingWritten as error:
+        raise OperationError("UNAVAILABLE", UNAVAILABLE) from error
 
 
 def report(error):
@@ -206,9 +208,13 @@ def create_app():
         return await run_database(can_use_workspaces, user)
 
     async def list_tools(ctx, params):
-        if await workspaces_allowed(ctx.request.state.mcp_user):
-            return types.ListToolsResult(tools=[*tools, *note_tools])
-        return types.ListToolsResult(tools=tools)
+        try:
+            allowed = await workspaces_allowed(ctx.request.state.mcp_user)
+        except OperationError as error:
+            # Users without workspaces, such as directory reviewers, still get their tools.
+            report(error)
+            allowed = False
+        return types.ListToolsResult(tools=[*tools, *note_tools] if allowed else tools)
 
     # Validate here so errors keep RemDo's coded tool envelope, including a field path.
     async def call_tool(ctx, params):

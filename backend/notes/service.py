@@ -1,10 +1,11 @@
 """The note service: references resolve from the account root to the source holding the note."""
 
+from django.db import DatabaseError
 from workspaces import source as workspaces
 
-from .core import ACCOUNT_ROOT, Call, Refusal, parse_ref, with_children
+from .core import ACCOUNT_ROOT, Call, NothingWritten, Refusal, parse_ref, with_children
 
-__all__ = ["Refusal", "call", "read"]
+__all__ = ["NothingWritten", "Refusal", "call", "read"]
 
 
 class AccountRoot:
@@ -73,6 +74,8 @@ def call(user, operations, expected=None, dry_run=False):
     if len(scopes) > 1:
         raise Refusal("INVALID_ARGUMENT", "A call changes the notes of one source.")
     [scope] = scopes
-    if scope is None:
-        return AccountCall(user).run(operations, dry_run)
-    return workspaces.open_call(user, scope, expected).run(operations, dry_run)
+    try:
+        target = AccountCall(user) if scope is None else workspaces.open_call(user, scope, expected)
+    except DatabaseError as error:
+        raise NothingWritten from error
+    return target.run(operations, dry_run)

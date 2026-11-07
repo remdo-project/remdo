@@ -1,6 +1,6 @@
 """What every note source shares: references, refusals, and how a call runs."""
 
-from django.db import transaction
+from django.db import DatabaseError, transaction
 
 ACCOUNT_ROOT = "me"
 OPERATIONS = {
@@ -10,6 +10,10 @@ OPERATIONS = {
     "setText": ("set_text", ("target",)),
     "setContent": ("set_content", ("target",)),
 }
+
+
+class NothingWritten(Exception):
+    """A database failure that left nothing written, so the caller may simply retry."""
 
 
 class Refusal(Exception):
@@ -71,14 +75,22 @@ class Call:
         raise NotImplementedError
 
     def run(self, operations, dry_run):
-        with transaction.atomic():
-            results = []
-            for self.index, operation in enumerate(operations):
-                results.append(self.apply(operation))
-            self.index = None
-            changes, revision = self.commit(operations, dry_run)
-            if dry_run:
-                transaction.set_rollback(True)
+        committing = False
+        try:
+            with transaction.atomic():
+                results = []
+                for self.index, operation in enumerate(operations):
+                    results.append(self.apply(operation))
+                self.index = None
+                changes, revision = self.commit(operations, dry_run)
+                if dry_run:
+                    transaction.set_rollback(True)
+                committing = True
+        except DatabaseError as error:
+            # Only a failure while committing can leave the outcome unknown.
+            if committing:
+                raise
+            raise NothingWritten from error
         return {
             "results": results,
             "changes": changes,

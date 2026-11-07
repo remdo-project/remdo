@@ -117,5 +117,30 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
         self.assertEqual(capture.call_count, 1)
         self.assertIsInstance(reported.__cause__, DatabaseError)
 
+    @override_settings(SENTRY_DSN="https://public@errors.example.test/1")
+    async def test_tools_list_falls_back_to_the_base_tools_when_the_permission_check_fails(self):
+        await sync_to_async(self.allow_workspaces)()
+
+        with patch("sentry_sdk.capture_exception") as capture:
+            with patch("mcp_server.server.can_use_workspaces", side_effect=DatabaseError):
+                names = await self.tool_names()
+
+        self.assertTrue(names)
+        self.assertFalse(names & NOTE_TOOLS)
+        self.assertEqual(capture.call_count, 1)
+
+    async def test_a_write_that_fails_before_committing_is_unavailable_not_unconfirmed(self):
+        await sync_to_async(self.allow_workspaces)()
+        [workspace] = (await self.call_json("read_note", {}))["children"]
+
+        with patch("workspaces.store.commit", side_effect=DatabaseError):
+            result = await self.call(
+                "insert_note", {"parent": workspace["ref"], "kind": "file", "text": "x"}
+            )
+
+        self.assertTrue(self.error_text(result).startswith("UNAVAILABLE: "), result)
+        listing = await self.call_json("read_note", {"ref": workspace["ref"]})
+        self.assertEqual(listing["children"], [])
+
     def read(self, workspace_id, path):
         return store.read(Workspace.objects.get(pk=workspace_id), path)
