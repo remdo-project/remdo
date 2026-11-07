@@ -116,6 +116,9 @@ a tree of notes of the kinds below, which share the
 Changing a note's text never changes its kind, and the name of a folder,
 document or plain file must be a valid [path segment](../workspaces/store.md#paths).
 
-A reference to one of these notes names its workspace and its path there, which
-is empty for the workspace itself; a reference without a workspace names the
-account root. **Deterministic.**
+A reference is a string that Read returns for every note and callers pass back
+unchanged; [Note IDs](./note-ids.md#ids-in-workspaces) spells its forms. A
+workspace's notes are referenced through their workspace, either by ID, once
+they have one, or by path. An ID reference survives renames and moves; a path
+reference names whatever is at that path. Read returns a note's ID reference
+when it has an ID. **Deterministic.**

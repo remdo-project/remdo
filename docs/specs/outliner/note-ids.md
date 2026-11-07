@@ -120,7 +120,7 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
 ## IDs in workspaces
 
 1. An outline note or [document](./note-model.md#note-kinds) in a workspace has
-   an ID only once something references it or a caller ensures one; the ID is
+   an ID only once a link points to it or a caller ensures one; the ID is
    written into its document's text, as the [text format](../../format.md)
    spells it.
 2. An ID is unique across its workspace and resolves there as a `note:` link. A
@@ -133,3 +133,7 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
    content can't add an ID the document lacked. **Deterministic.**
 5. When text written outside RemDo gives two notes one ID, reads report both,
    and a reference to that ID resolves to neither.
+6. A [reference](./note-model.md#note-kinds) is `me` for the caller's account
+   root, `<workspaceId>` for a workspace, `<workspaceId>_<id>` for a note with
+   an ID, and `<workspaceId>/<path>` for any other note of the workspace.
+   **Deterministic.**

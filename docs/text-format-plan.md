@@ -132,8 +132,10 @@ unchanged.
 - Every reference is a URI, and its scheme picks the source. `note:` is scoped
   to a workspace; only a full URL crosses a workspace or server. Email uses
   `mid:`.
-- URLs are `/w/<workspaceId>/n/<id>`, and `/w/<workspaceId>/d/<path>` for
-  documents with no text ID.
+- URLs are `/n/` followed by a
+  [reference](specs/outliner/note-ids.md#ids-in-workspaces). Until Cleanup,
+  `/n/` also serves editor documents, told apart by which kind of ID the
+  address starts with.
 - Every note has a cache ID in Yjs node state. A reference promotes that value
   to `id::` in the text, and text always overrides the cache.
 - [Note operations](specs/outliner/note-operations.md) and
@@ -288,6 +290,7 @@ Switch new documents by reseeding from text once all of these hold:
   document since its read; stage 3's live merge reduces that.
 - Until stage 2, Read returns a document's content but not its children, nor
   whether it has any, and Insert into a document and Ensure ID are refused.
+  Every document reference is then a path, which a rename breaks.
 - Until stage 4, Read of the account root lists its workspaces but not its
   [user-data](specs/outliner/user-data.md#hierarchy) collections.
 - Note operations can't create a folder: a folder exists only while it holds a

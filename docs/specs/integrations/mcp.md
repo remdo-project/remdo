@@ -30,8 +30,8 @@ The server also offers one tool per
 [note operation](../outliner/note-operations.md#operations), named after it,
 such as `read_note`, `insert_note` and `delete_note`. Each applies one
 operation and addresses notes by
-[reference](../outliner/note-model.md#note-kinds), so reading without a
-workspace lists the user's workspaces.
+[reference](../outliner/note-model.md#note-kinds), so reading `me` lists the
+user's workspaces.
 
 - A tool addresses a document by its
   [`documentId`](../outliner/note-ids.md#definitions), whose reads and appends
