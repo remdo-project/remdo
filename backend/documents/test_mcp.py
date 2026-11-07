@@ -17,7 +17,7 @@ from documents.errors import OperationError
 from documents.models import Document
 
 
-class McpTests(TransactionTestCase):
+class McpClient:
     def setUp(self):
         self.user = User.objects.create_user(email="mcp@example.test")
         token = Token(
@@ -65,6 +65,8 @@ class McpTests(TransactionTestCase):
         self.assertTrue(result["isError"])
         return result["content"][0]["text"]
 
+
+class McpTests(McpClient, TransactionTestCase):
     async def test_shared_http_service_handles_repeated_requests_without_exhausting_connections(
         self,
     ):

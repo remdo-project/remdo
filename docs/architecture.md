@@ -122,7 +122,7 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
 - Auth: Django and allauth own browser session authentication at
   `/api/auth/browser/v1`, administration at `/admin/`, and the authorization
   server for [delegated access](specs/access/access-control.md#delegated-access).
-- Django authorizes each collaboration document connection under [Document Access](specs/access/access-control.md#document-access).
+- Django authorizes each collaboration document connection under [Sources](specs/access/access-control.md#sources).
 - Private collaboration operations use an internal service credential, isolated
   from public gateway traffic.
 
@@ -213,7 +213,8 @@ Django owns document metadata and editor documents' binary Yjs state in the
 Each editor document's content is stored separately from metadata queries and is
 deleted with its registry entry. An existing editor document without saved content
 starts empty; missing registry entries and database failures do not become empty
-documents.
+documents. [Workspace](specs/workspaces/store.md) files and their history live in
+the same database.
 
 One active instance owns collaboration writes. Its SQLite database when
 selected uses its persistent storage root; its

@@ -3,30 +3,30 @@
 User data notes expose the signed-in account's
 [document list](../../architecture.md#document-registry) to consumers: its
 documents and each document's direct grants, under
-[Document Access](../access/access-control.md#document-access). The
+[Sources](../access/access-control.md#sources). The
 [open document](./open-document.md) owns editor content.
 
 ## Hierarchy
 
-The User Data root owns the Sources collection, exposed as `userData.sources`,
-and the aggregate Documents collection, exposed as `userData.documents`. Sources
-contains source notes; each source owns its `documents` collection, which
-structurally contains that source's documents. These fixed properties return
+The User Data root owns the Servers collection, exposed as `userData.sources`,
+and the aggregate Documents collection, exposed as `userData.documents`. Servers
+contains server notes; each server owns its `documents` collection, which
+structurally contains that server's documents. These fixed properties return
 collection references without acquiring their contents.
 
-The aggregate Documents collection lists documents across sources through the
-same [children read](./note-model.md#collections) as source collections. Within
+The aggregate Documents collection lists documents across servers through the
+same [children read](./note-model.md#collections) as server collections. Within
 one metadata host, either route returns the same document reference. The User
-Data root is the structural root. A document's parent is the source Documents
+Data root is the structural root. A document's parent is the server Documents
 collection currently listing it. An unlisted document, or one without available
 account context such as an open document on a host without account metadata,
-produces the unavailable-note error rather than a null parent. Source
+produces the unavailable-note error rather than a null parent. Server
 parentage describes containment in the account context, not document ownership
-or [access authority](../access/access-control.md#document-access).
+or [access authority](../access/access-control.md#sources).
 
-The User Data root is an [account document](./note-model.md#definitions) and the
-[owning document](../access/access-control.md#document-access) of Sources, source notes, and the Documents collections. Each
-listed document remains its own owning document.
+The User Data root is an [account root](./note-model.md#definitions) and the
+[source](../access/access-control.md#sources) of Servers, server notes, and the Documents collections. Each
+listed document remains its own source.
 
 ## State and observation
 
@@ -62,10 +62,10 @@ reconnecting, it also reflects changes made while disconnected.
 Creating, [renaming](./location-header.md#document-rename),
 [sharing](../access/access-control.md#document-sharing), and
 [deleting](../access/access-control.md#document-deletion) a document resolve
-once the document's source acknowledges the operation and the document list
+once the document's server acknowledges the operation and the document list
 includes the acknowledged result. A later document-list refresh failure does not
 fail a resolved operation. A rejected operation leaves the document list
 unchanged. An operation addresses its document by `docId` whether or not the
-document is listed; the document's source decides its outcome. An unlisted
-target whose source context the host does not know produces the
+document is listed; the document's server decides its outcome. An unlisted
+target whose server context the host does not know produces the
 unavailable-note error. A document name is at most 500 characters.

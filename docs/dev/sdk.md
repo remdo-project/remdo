@@ -71,7 +71,7 @@ only for a new category of ability, which later kinds reuse.
   errors. A captured model node differs from a resolving reference; its reactive
   machinery and invalidation policies are not RemDo's lifetime contract.
 - [ProseMirror commands](https://prosemirror.net/docs/guide/#commands) — boolean applicability checks without execution.
-  They receive a usable editor state; they do not define unavailable-source
+  They receive a usable editor state; they do not define unavailable-server
   behavior or guarantee that a later operation takes effect.
 - [BlockNote content API](https://www.blocknotejs.org/docs/reference/editor/manipulating-content) and [events](https://www.blocknotejs.org/docs/reference/editor/events) — ID-based operations, read-time block data,
   and content/selection observation. These do not supply live per-note

@@ -26,6 +26,13 @@ read a document or one note's subtree, append notes, and set a note's child
 [user data](../outliner/user-data.md) operation is named after it, and that
 operation's owner defines its behavior.
 
+The server also offers one tool per
+[note operation](../outliner/note-operations.md#operations), named after it,
+such as `read_note`, `insert_note` and `delete_note`. Each applies one
+operation and addresses notes by
+[reference](../outliner/note-model.md#note-kinds), so reading `me` lists the
+user's workspaces.
+
 - A tool addresses a document by its
   [`documentId`](../outliner/note-ids.md#definitions), whose reads and appends
   act on the document's [Content collection](../outliner/note-model.md#definitions),
@@ -54,6 +61,8 @@ operation's owner defines its behavior.
     cannot access it. The message says where to find what is available.
   - `UNAUTHENTICATED`: the RemDo API rejected the call's token. The error
     includes an OAuth challenge for reconnection.
+  - `FAILED_PRECONDITION`: a note changed since the caller read it, or a target
+    path is taken. Read the note again before retrying.
   - `PERMISSION_DENIED`: RemDo does not let the user perform the operation for a
     reason other than a document's accessibility.
   - `UNAVAILABLE`: RemDo is unavailable, or the document could not be opened

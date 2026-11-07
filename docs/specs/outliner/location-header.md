@@ -36,7 +36,7 @@ carries no sharing badge.
 
 ## Document rename
 
-Rename follows [Document Access](../access/access-control.md#document-access) and changes only the document name.
+Rename follows [Sources](../access/access-control.md#sources) and changes only the document name.
 
 - **Draft.** **Rename…** opens a dialog with the current name selected in a
   plain-text input. Edits stay local; remote changes leave the draft intact.
@@ -49,7 +49,7 @@ Rename follows [Document Access](../access/access-control.md#document-access) an
   dismissal, and repeat submission are blocked. Success closes the dialog;
   failure retains the draft and shows an error for explicit retry.
 - **Commit.** Submission requires acceptance by the server that owns the document;
-  an unavailable source retains the draft for retry without queuing the rename.
+  an unavailable server retains the draft for retry without queuing the rename.
   Concurrent renames resolve to the last server-accepted whole name. Users with
   access see it in open document views and lists after synchronization.
 - **Return.** Closing follows the [menu's focus restoration](./menu.md#behavior) and preserves the

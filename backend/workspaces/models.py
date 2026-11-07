@@ -32,6 +32,7 @@ class Workspace(models.Model):
 
     class Meta:
         ordering = ["created_at", "id"]
+        permissions = [("use_workspaces", "Can use workspaces")]
 
 
 class Blob(models.Model):

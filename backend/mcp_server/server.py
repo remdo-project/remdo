@@ -20,16 +20,19 @@ from mcp import types
 from mcp.server import streamable_http
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+from notes import service as notes
 from rest_framework.renderers import JSONRenderer
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Route
 
-from .definitions import INSTRUCTIONS, TOOLS
-from .errors import DOCUMENT_NOT_FOUND, UNCONFIRMED, failure, result
+from .definitions import INSTRUCTIONS, NOTE_TOOLS, TOOLS
+from .errors import DOCUMENT_NOT_FOUND, UNCONFIRMED, WORKSPACE_UNCONFIRMED, failure, result
 
 DATABASE_TIMEOUT_SECONDS = 10
+# Failures RemDo caused, as opposed to calls the client can correct.
+REPORTED_FAILURES = {"UNAVAILABLE", "OUTCOME_UNCONFIRMED"}
 # Match String.trim() in the SDK's document/note address normalization.
 ADDRESS_WHITESPACE = (
     "\t\n\v\f\r \u00a0\u1680"
@@ -102,6 +105,50 @@ def metadata_tool(name, arguments, user):
         ) from error
 
 
+NOTE_OPERATIONS = {
+    "insert_note": "insert",
+    "move_note": "move",
+    "delete_note": "delete",
+    "set_note_text": "setText",
+    "set_note_content": "setContent",
+}
+
+
+def note_tool_call(name, arguments, user):
+    try:
+        if name == "read_note":
+            return notes.read(user, **arguments)
+        operation = {
+            **{key: value for key, value in arguments.items() if key not in ("expected", "dryRun")},
+            "op": NOTE_OPERATIONS[name],
+        }
+        return notes.call(
+            user, [operation], arguments.get("expected"), arguments.get("dryRun", False)
+        )
+    except notes.Refusal as error:
+        message = str(error)
+        if error.versions:
+            message += f" Current versions: {json.dumps(error.versions, ensure_ascii=False)}"
+        raise OperationError(error.code, message) from error
+    except notes.NothingWritten as error:
+        raise OperationError("UNAVAILABLE", UNAVAILABLE) from error
+
+
+def report(error):
+    if settings.SENTRY_DSN:
+        import sentry_sdk
+
+        sentry_sdk.capture_exception(error)
+
+
+def can_use_workspaces(user):
+    # TODO: Workspaces stay behind this experimental permission until the text format migration
+    # (docs/text-format-plan.md) moves every user onto them; other users, including directory
+    # reviewers, keep the submitted MCP surface. Probe: delete this check and the use_workspaces
+    # permission, then the MCP contract tests list the note tools for every user.
+    return user.has_perm("workspaces.use_workspaces")
+
+
 class RemdoServer(Server):
     def create_initialization_options(self, **kwargs):
         return super().create_initialization_options(
@@ -118,7 +165,9 @@ def create_app():
     streamable_http.pydantic_core = SimpleNamespace(from_json=decode_request)
     app_origin = settings.APP_ORIGIN
     tools = [types.Tool(**definition) for definition in TOOLS]
-    validators = {tool.name: Draft7Validator(tool.input_schema) for tool in tools}
+    note_tools = [types.Tool(**definition) for definition in NOTE_TOOLS]
+    note_tool_names = {tool.name for tool in note_tools}
+    validators = {tool.name: Draft7Validator(tool.input_schema) for tool in [*tools, *note_tools]}
     append_schema = validators["append_children"].schema
     validators["append_children"] = Draft7Validator(
         {
@@ -145,14 +194,35 @@ def create_app():
             "url": document_url(document["id"]),
         }
 
+    async def run_database(function, *args, writes=False, unconfirmed=UNCONFIRMED):
+        try:
+            return await asyncio.wait_for(database_call(function, *args), DATABASE_TIMEOUT_SECONDS)
+        except (DatabaseError, TimeoutError) as error:
+            # Cancellation cannot stop the ORM worker or roll back a commit.
+            raise OperationError(
+                "OUTCOME_UNCONFIRMED" if writes else "UNAVAILABLE",
+                unconfirmed if writes else UNAVAILABLE,
+            ) from error
+
+    async def workspaces_allowed(user):
+        return await run_database(can_use_workspaces, user)
+
     async def list_tools(ctx, params):
-        return types.ListToolsResult(tools=tools)
+        try:
+            allowed = await workspaces_allowed(ctx.request.state.mcp_user)
+        except OperationError as error:
+            # Users without workspaces, such as directory reviewers, still get their tools.
+            report(error)
+            allowed = False
+        return types.ListToolsResult(tools=[*tools, *note_tools] if allowed else tools)
 
     # Validate here so errors keep RemDo's coded tool envelope, including a field path.
     async def call_tool(ctx, params):
         name, arguments = params.name, params.arguments or {}
         try:
-            if name not in validators:
+            if name not in validators or (
+                name in note_tool_names and not await workspaces_allowed(ctx.request.state.mcp_user)
+            ):
                 raise OperationError("INVALID_ARGUMENT", f"Tool {name} not found")
             validation = next(validators[name].iter_errors(arguments), None)
             if validation:
@@ -162,19 +232,24 @@ def create_app():
                 )
             request = ctx.request
             authorization = request.headers["authorization"]
+            if name in note_tool_names:
+                value = await run_database(
+                    note_tool_call,
+                    name,
+                    arguments,
+                    request.state.mcp_user,
+                    writes=name != "read_note" and not arguments.get("dryRun", False),
+                    unconfirmed=WORKSPACE_UNCONFIRMED,
+                )
+                return result(value)
             if name in {"list_documents", "create_document", "rename_document"}:
-                try:
-                    value = await asyncio.wait_for(
-                        database_call(metadata_tool, name, arguments, request.state.mcp_user),
-                        DATABASE_TIMEOUT_SECONDS,
-                    )
-                except TimeoutError as error:
-                    # Cancellation cannot stop the ORM worker or roll back a commit.
-                    write = name != "list_documents"
-                    raise OperationError(
-                        "OUTCOME_UNCONFIRMED" if write else "UNAVAILABLE",
-                        UNCONFIRMED if write else UNAVAILABLE,
-                    ) from error
+                value = await run_database(
+                    metadata_tool,
+                    name,
+                    arguments,
+                    request.state.mcp_user,
+                    writes=name != "list_documents",
+                )
                 return result(
                     [document_result(d) for d in value]
                     if name == "list_documents"
@@ -189,9 +264,10 @@ def create_app():
                 )
                 return result(f"Document: {document_url(doc_id)}\n\n{outline}")
             if name == "append_children":
-                notes = []
+                outline = []
                 pending = [
-                    (note, f"notes.{index}", notes) for index, note in enumerate(arguments["notes"])
+                    (note, f"notes.{index}", outline)
+                    for index, note in enumerate(arguments["notes"])
                 ]
                 pending.reverse()
                 count = 0
@@ -229,7 +305,7 @@ def create_app():
                     arguments["parent"], "The parent is not a documentId or a noteAddress."
                 )
                 ids = await call_editor(
-                    "append", doc_id, authorization, noteId=note_id, notes=notes
+                    "append", doc_id, authorization, noteId=note_id, notes=outline
                 )
                 return result(
                     [
@@ -257,12 +333,11 @@ def create_app():
                 }
             )
         except OperationError as error:
+            if error.code in REPORTED_FAILURES:
+                report(error)
             return failure(error, app_origin)
         except Exception as error:
-            if settings.SENTRY_DSN:
-                import sentry_sdk
-
-                sentry_sdk.capture_exception(error)
+            report(error)
             return failure(
                 OperationError("INTERNAL", "RemDo could not complete the request."), app_origin
             )

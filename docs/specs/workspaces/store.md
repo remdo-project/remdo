@@ -41,11 +41,14 @@ callers.
 2. A commit states the expected content of every file it changes. If any of
    those files differs, the commit is refused and writes nothing; changes to
    other files never cause a refusal. **Deterministic.**
-3. A commit is refused when it would change nothing, or when it deletes a
+3. A commit can also state the version of a folder's listing it read, and is
+   refused when it differs. **Deterministic.**
+4. A commit is refused when it would change nothing, or when it deletes a
    missing file. **Deterministic.**
-4. A revision can't be deleted on its own. Deleting a workspace deletes its
+5. A revision can't be deleted on its own. Deleting a workspace deletes its
    whole history, including content no other workspace holds.
-   **Deterministic.** Revisions never change once committed.
+   **Deterministic.**
+6. Revisions never change once committed.
 
 ## Reads
 
@@ -53,11 +56,12 @@ callers.
    expected content. A missing file reads as not existing. **Deterministic.**
 2. Every revision's files can be rebuilt from history, matching what was
    committed. **Deterministic.**
+3. Listing a folder returns the paths of the files under it and a version that
+   changes when any of them is added, removed or changed. **Deterministic.**
 
 ## Future
 
 - Store document cache rows when the editor moves to text.
-- Store Git commit IDs when the Git adapter arrives.
 - Move large file content to an object store, keyed by the same content hash,
   when database size or cost makes it worthwhile.
 

@@ -1,8 +1,8 @@
 # Note model
 
-RemDo models notes independently of editors and data sources, with shared
-structure, owned data, kinds, and structural terms. Editors and data sources
-are adapters that preserve this model.
+RemDo models notes independently of editors and storage, with shared structure,
+owned data, kinds, and structural terms. Editors and storage are adapters that
+preserve this model.
 
 ## Notes
 
@@ -36,12 +36,13 @@ Adapters preserve these guarantees whenever they create, import, or export notes
 
 ## Definitions
 
-- **Document:** a note that owns an [authorization boundary](../access/access-control.md#document-access), independently of
-  editor or storage representation.
+- **Document:** an outline edited as a unit: an editor document, or a
+  [Document](#note-kinds) note, a `.md` file in a workspace.
 - **Editor document:** a document containing an editor outline.
-- **Account document:** a document without an editor outline, owned by one
-  account and backed by its account record. The [User Data root](./user-data.md#hierarchy) is the
-  signed-in account's account document.
+- **Account root:** the [source](#sources) owned by one account and backed by its
+  account record, listing the sources the account can access. The
+  [User Data root](./user-data.md#hierarchy) is the signed-in account's account
+  root.
 - **Document order:** the depth-first, pre-order traversal of editor notes in
   the structural tree.
 - **Previous note / next note:** adjacent editor notes in document order. View
@@ -55,9 +56,9 @@ Adapters preserve these guarantees whenever they create, import, or export notes
   name. An editor document root is not directly selectable and has Content and
   Access collection notes as children, in that order. Content owns
   the top-level editor notes; Access owns the document's [direct grants](./user-data.md).
-  Its account-level parent follows the
+  An editor document's account-level parent follows the
   [user-data hierarchy](./user-data.md#hierarchy).
-- **Subtree:** an editor note and all its descendants. Structural moves preserve
+- **Subtree:** a note and all its descendants. Structural moves preserve
   subtrees as indivisible units.
 - **Note path:** the ordered chain of editor notes from a top-level note through
   a note's ancestors to the note itself. The document root and collection notes
@@ -77,9 +78,58 @@ deletion. Structural operations follow containment; recursive navigation handles
 repeated notes and cycles. The visited route belongs to caller state and need
 not follow canonical ancestry.
 
+## Sources
+
+A **source** is a note whose [subtree](#definitions), down to the next source,
+follows its own [authorization policy](../access/access-control.md#sources),
+independently of where its data is stored. A server hosts each source, and an
+adapter implements its kind.
+
+- Sources nest. The [account root](#definitions) is the top source of an
+  account's tree.
+- Account roots, [workspaces](#note-kinds) and editor documents are sources.
+- A [call](./note-operations.md#calls) stays within one source, and a note's
+  [reference](./note-ids.md#ids-in-workspaces) takes the form its source's kind
+  defines.
+
 ## Note kinds
 
 Every note has a kind. Kinds share structure, content, and props but differ in
 the capabilities they expose, including whether they are addressable, can own
 children, or can be [selected structurally](./selection.md). Each kind's owner
 defines its additional capabilities.
+
+An account's root, its [workspaces](../workspaces/store.md) and their files form
+a tree of notes of the kinds below, which share the
+[note operations](./note-operations.md). A kind's text is what
+[Set text](./note-operations.md#operations) changes.
+
+- **Account root:** the signed-in account's [account root](#definitions). Its
+  children include the account's workspaces, ordered by name, and it always
+  holds a personal one. Its text is the account's email address.
+- **Workspace:** the [source](#sources) of every note in it. Its
+  children are the folders, documents and plain files at its top level, ordered
+  by name. Its text is its name.
+- **Folder:** the shared path of the files under it; it exists while it holds a
+  file. Its children are as for a workspace, under its path. Its text is its
+  last path segment.
+- **Document:** a `.md` file read as an outline in the
+  [RemDo text format](../../format.md). Its children are its Markdown blocks and
+  outline notes. Its text is its file name without `.md`.
+- **Outline note:** a heading or list item of a document. Its children are its
+  Markdown blocks and outline notes. Its text is its own line as written:
+  marker, checkbox, name and text.
+- **Markdown block:** other Markdown in a document. It has no children. Its
+  text is its Markdown as written.
+- **Plain file:** any other file, with opaque content. It has no children. Its
+  text is its file name.
+
+Changing a note's text never changes its kind, and the name of a folder,
+document or plain file must be a valid [path segment](../workspaces/store.md#paths).
+
+A reference is a string that Read returns for every note and callers pass back
+unchanged; [Note IDs](./note-ids.md#ids-in-workspaces) spells its forms. A
+workspace's notes are referenced through their workspace, either by ID, once
+they have one, or by path. An ID reference survives renames and moves; a path
+reference names whatever is at that path. Read returns a note's ID reference
+when it has an ID. **Deterministic.**

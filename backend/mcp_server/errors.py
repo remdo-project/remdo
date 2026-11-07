@@ -10,6 +10,10 @@ UNCONFIRMED = (
     "Check with list_documents before retrying."
 )
 
+WORKSPACE_UNCONFIRMED = (
+    "RemDo did not confirm whether the change took effect. Read the notes again before retrying."
+)
+
 
 def result(value):
     text = (

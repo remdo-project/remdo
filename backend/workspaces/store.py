@@ -22,7 +22,16 @@ class StoreError(ValueError):
 
 
 class StaleFile(StoreError):
-    """A file changed since the caller read it."""
+    """A file, or the files under a folder, changed since the caller read them.
+
+    `current` is the file's blob hash or the folder's listing version, as it is now.
+    """
+
+    def __init__(self, message, path, current, folder=False):
+        super().__init__(message)
+        self.path = path
+        self.current = current
+        self.folder = folder
 
 
 class NoChanges(StoreError):
@@ -31,6 +40,15 @@ class NoChanges(StoreError):
 
 class InvalidPath(StoreError):
     pass
+
+
+class PathTaken(InvalidPath):
+    """An added path collides with what's stored; `occupants` maps what holds it to its version."""
+
+    def __init__(self, message, path, occupants):
+        super().__init__(message)
+        self.path = path
+        self.occupants = occupants
 
 
 class InvalidContent(StoreError):
@@ -87,6 +105,11 @@ def normalize_path(path):
     return path
 
 
+def normalize_folder(path):
+    """Normalize a folder path, where "" is the whole workspace."""
+    return normalize_path(path) if path else ""
+
+
 def blob_hash(content):
     if not isinstance(content, bytes):
         raise InvalidContent("Content must be bytes.")
@@ -105,20 +128,57 @@ def read(workspace, path):
     return File(path, bytes(row.blob.content), row.blob_id)
 
 
-def list_paths(workspace):
-    return list(
-        WorkspaceFile.objects.filter(workspace=workspace)
-        .order_by("path")
-        .values_list("path", flat=True)
-    )
+def contents(hashes):
+    """The content of each blob hash. Blobs never change, so these can't be stale."""
+    return {
+        hash_: bytes(content)
+        for hash_, content in Blob.objects.filter(hash__in=set(hashes)).values_list(
+            "hash", "content"
+        )
+    }
 
 
-def commit(workspace, author, message, changes):
+@dataclass(frozen=True)
+class Listing:
+    """The files under a folder, mapped to their blob hashes.
+
+    Pass `version` back to `commit` as the listing expected under this folder.
+    """
+
+    files: dict[str, str]
+    version: str
+
+
+def under(path, folder):
+    """Whether `path` is inside `folder`, where "" is the whole workspace."""
+    return not folder or path.startswith(f"{folder}/")
+
+
+def _files_under(workspace, folder):
+    files = WorkspaceFile.objects.filter(workspace=workspace)
+    if folder:
+        files = files.filter(path__startswith=f"{folder}/")
+    return dict(files.order_by("path").values_list("path", "blob_id"))
+
+
+def listing_version(files):
+    """The version of a listing whose `files` map each path to its blob hash."""
+    lines = "".join(f"{hash_} {path}\n" for path, hash_ in sorted(files.items()))
+    return hashlib.sha256(lines.encode()).hexdigest()
+
+
+def list_paths(workspace, folder=""):
+    files = _files_under(workspace, normalize_folder(folder))
+    return Listing(files, listing_version(files))
+
+
+def commit(workspace, author, message, changes, folders=None):
     """Apply `changes` as one new revision on top of the head.
 
     `changes` maps each path to `(expected, content)`: `expected` is the blob hash the caller
     read, or None for a file it saw missing, and `content` is the new bytes, or None to delete
-    the file. Raises StaleFile, writing nothing, when any of those files differs from `expected`.
+    the file. `folders` maps a folder to the listing version the caller read. Raises StaleFile,
+    writing nothing, when any of those files or listings differs from what the caller expects.
     """
     prepared = {}
     for path, (expected, content) in changes.items():
@@ -126,14 +186,24 @@ def commit(workspace, author, message, changes):
         if path in prepared:
             raise InvalidPath(f"Path {path!r} appears twice.")
         prepared[path] = (expected, None if content is None else blob_hash(content), content)
-    return _apply(workspace, author, message, prepared)
+    folders = {normalize_folder(folder): version for folder, version in (folders or {}).items()}
+    return _apply(workspace, author, message, prepared, folders)
 
 
 @transaction.atomic
-def _apply(workspace, author, message, prepared):
+def _apply(workspace, author, message, prepared, folders):
     # Serializes commits per workspace: a row lock on PostgreSQL, and SQLite's IMMEDIATE
     # transactions already allow one writer at a time.
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
+    for folder, expected in folders.items():
+        current = listing_version(_files_under(locked, folder))
+        if current != expected:
+            raise StaleFile(
+                f"The files under {folder!r} changed since they were listed.",
+                folder,
+                current,
+                folder=True,
+            )
     current = dict(
         WorkspaceFile.objects.filter(workspace=locked, path__in=prepared).values_list(
             "path", "blob_id"
@@ -143,7 +213,7 @@ def _apply(workspace, author, message, prepared):
     for path, (expected, hash_, content) in prepared.items():
         existing = current.get(path)
         if existing != expected:
-            raise StaleFile(f"{path!r} changed since it was read.")
+            raise StaleFile(f"{path!r} changed since it was read.", path, existing)
         if hash_ is None:
             if existing is None:
                 raise InvalidPath(f"Can't delete missing path {path!r}.")
@@ -189,43 +259,93 @@ def _apply(workspace, author, message, prepared):
     return revision
 
 
-def _folders(path):
+def folders_of(path):
     segments = path.split("/")
     return ["/".join(segments[:depth]) for depth in range(1, len(segments))]
 
 
+class Namespace:
+    """Files and folders as a case-insensitive filesystem sees them."""
+
+    def __init__(self, paths=()):
+        self.files = {}
+        self.folders = {}
+        for path in paths:
+            self.add(path)
+
+    def conflict(self, path):
+        """Why `path` can't be added beside the current files, or None."""
+        key = path.casefold()
+        if self.files.get(key) == path:
+            return f"{path!r} already exists."
+        if key in self.files:
+            return f"Paths {self.files[key]!r} and {path!r} differ only by case."
+        if key in self.folders:
+            return f"{path!r} is a folder, so it can't also be a file."
+        for folder in folders_of(path):
+            folder_key = folder.casefold()
+            if folder_key in self.files:
+                return f"{self.files[folder_key]!r} is a file, so {path!r} can't be inside it."
+            existing = self.folders.get(folder_key)
+            if existing and existing[0] != folder:
+                return f"Folder {folder!r} differs only by case from {existing[0]!r}."
+        return None
+
+    def file(self, path):
+        """The file whose path equals `path` ignoring case, or None."""
+        return self.files.get(path.casefold())
+
+    def folder(self, path):
+        """The folder whose path equals `path` ignoring case, or None."""
+        existing = self.folders.get(path.casefold())
+        return existing[0] if existing else None
+
+    def is_folder(self, path):
+        existing = self.folders.get(path.casefold())
+        return existing is not None and existing[0] == path
+
+    def add(self, path):
+        self.files[path.casefold()] = path
+        for folder in folders_of(path):
+            self.folders.setdefault(folder.casefold(), [folder, 0])[1] += 1
+
+    def remove(self, path):
+        del self.files[path.casefold()]
+        for folder in folders_of(path):
+            existing = self.folders[folder.casefold()]
+            existing[1] -= 1
+            if not existing[1]:
+                del self.folders[folder.casefold()]
+
+
+def occupants(namespace, files, path):
+    """The versions of what occupies `path` ignoring case, given `files` mapped to blob hashes."""
+    versions = {}
+    for key in [path, *folders_of(path)]:
+        existing = namespace.file(key)
+        if existing in files:
+            versions[existing] = files[existing]
+    folder = namespace.folder(path)
+    if folder and any(under(stored, folder) for stored in files):
+        versions[folder] = listing_version(
+            {stored: hash_ for stored, hash_ in files.items() if under(stored, folder)}
+        )
+    return versions
+
+
 def _check_namespace(workspace, added, deleted):
     """Reject added paths that a case-insensitive filesystem couldn't hold beside the rest."""
-    files, folders = {}, {}
-
-    def place(path):
-        files[path.casefold()] = path
-        for folder in _folders(path):
-            folders.setdefault(folder.casefold(), folder)
-
-    for path in (
+    files = dict(
         WorkspaceFile.objects.filter(workspace=workspace)
         .exclude(path__in=deleted)
-        .values_list("path", flat=True)
-    ):
-        place(path)
+        .values_list("path", "blob_id")
+    )
+    namespace = Namespace(files)
     for path in added:
-        key = path.casefold()
-        if key in files:
-            raise InvalidPath(f"Paths {files[key]!r} and {path!r} differ only by case.")
-        if key in folders:
-            raise InvalidPath(f"{path!r} is a folder, so it can't also be a file.")
-        for folder in _folders(path):
-            folder_key = folder.casefold()
-            if folder_key in files:
-                raise InvalidPath(
-                    f"{files[folder_key]!r} is a file, so {path!r} can't be inside it."
-                )
-            if folders.get(folder_key, folder) != folder:
-                raise InvalidPath(
-                    f"Folder {folder!r} differs only by case from {folders[folder_key]!r}."
-                )
-        place(path)
+        reason = namespace.conflict(path)
+        if reason:
+            raise PathTaken(reason, path, occupants(namespace, files, path))
+        namespace.add(path)
 
 
 def files_at(revision):
@@ -241,6 +361,5 @@ def files_at(revision):
         .order_by("revision_id")
         .values_list("path", "blob_id")
     )
-    hashes = {hash_ for hash_ in final.values() if hash_ is not None}
-    contents = dict(Blob.objects.filter(hash__in=hashes).values_list("hash", "content"))
-    return {path: bytes(contents[hash_]) for path, hash_ in final.items() if hash_ is not None}
+    stored = contents(hash_ for hash_ in final.values() if hash_ is not None)
+    return {path: stored[hash_] for path, hash_ in final.items() if hash_ is not None}
