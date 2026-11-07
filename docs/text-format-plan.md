@@ -82,10 +82,11 @@ unchanged.
 - The live door is the browser through Yjs. The text door is MCP, Git and any
   API.
 - Every note kind lives in Python, in the module that holds its data:
-  `backend/workspaces` for the account root, workspaces, folders, documents,
-  plain files, outline notes and Markdown blocks; later one adapter per
-  external source kind. One entry point reads notes and applies calls
-  for MCP, the REST API and integrations.
+  `backend/workspaces` for workspaces, folders, documents, plain files, outline
+  notes and Markdown blocks; later one adapter per external source kind.
+  `backend/notes` holds what sources share, the account root, and the one
+  entry point that reads notes and applies calls for MCP, the REST API and
+  integrations.
 - Python owns the text format's reader and its only writer, on `markdown-it-py`.
   It matched the JavaScript `markdown-it` on 714 inputs, structure and line
   spans included. A JavaScript reader remains for paste and test fixtures.

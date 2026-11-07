@@ -1,4 +1,4 @@
-"""Note operations on a workspace's folders, documents and plain files, one class per kind.
+"""The workspace source: its folders, documents and plain files as notes, one class per kind.
 
 Outline notes, Markdown blocks and Ensure ID arrive with the text format parser.
 """
@@ -8,29 +8,15 @@ import difflib
 import re
 
 from django.db import transaction
+from notes.core import Call, Refusal
 
 from . import models, store
 from .models import WORKSPACE_NAME_MAX_LENGTH
 
 PERSONAL_WORKSPACE_NAME = "Personal"
 DOCUMENT_SUFFIX = ".md"
-REQUIRED_FIELDS = {
-    "insert": ("kind", "text"),
-    "move": ("target", "parent"),
-    "delete": ("target",),
-    "setText": ("target",),
-    "setContent": ("target",),
-}
 # The text format's ID note, as in `- id:: k3x9`; the format parser replaces this.
 ID_NOTE = re.compile(r"^[ \t>]*[-*+][ \t]+id::[ \t]*(\S+)[ \t]*\r?$", re.MULTILINE)
-
-
-class Refusal(Exception):
-    def __init__(self, code, message, index=None, versions=None):
-        super().__init__(message)
-        self.code = code
-        self.index = index
-        self.versions = versions or {}
 
 
 def decode(content):
@@ -69,29 +55,6 @@ def _parent(path):
 
 def _under(path, folder):
     return not folder or path.startswith(f"{folder}/")
-
-
-ACCOUNT_ROOT = "me"
-
-
-def parse_ref(ref):
-    """Split a reference into its workspace ID, path and note ID; the account root has none.
-
-    Raises ValueError for a string that isn't a reference.
-    """
-    if not isinstance(ref, str) or not ref:
-        raise ValueError("a reference is a non-empty string.")
-    if ref == ACCOUNT_ROOT:
-        return None, "", None
-    workspace, slash, path = ref.partition("/")
-    if slash:
-        if not workspace or not path:
-            raise ValueError(f"{ref!r} isn't a reference.")
-        return workspace, path, None
-    workspace, underscore, note_id = ref.partition("_")
-    if not workspace or (underscore and not note_id):
-        raise ValueError(f"{ref!r} isn't a reference.")
-    return workspace, "", note_id or None
 
 
 class Tree:
@@ -164,30 +127,6 @@ class Tree:
             path: (self.initial.get(path), self.content(path) if path in self.files else None)
             for path in changed
         }
-
-
-def read(user, ref=None, depth=1, content=False):
-    """Read the note `ref` names, resolved from the user's account root."""
-    return Call(user).resolve(ACCOUNT_ROOT if ref is None else ref, "ref").read(depth, content)
-
-
-def call(user, operations, expected=None, dry_run=False):
-    """Apply `operations` all or none, within one source."""
-    scopes = set()
-    for index, operation in enumerate(operations):
-        refs = [operation[field] for field in ("target", "parent") if field in operation]
-        try:
-            workspaces = {parse_ref(ref)[0] for ref in refs or [ACCOUNT_ROOT]}
-        except ValueError as error:
-            raise Refusal("INVALID_ARGUMENT", str(error), index) from error
-        if len(workspaces) > 1:
-            raise Refusal("INVALID_ARGUMENT", "A note can't move between workspaces.", index)
-        scopes |= workspaces
-    if len(scopes) > 1:
-        raise Refusal("INVALID_ARGUMENT", "A call changes the notes of one source.")
-    [scope] = scopes
-    workspace = None if scope is None else Call(user).root.workspace(scope)
-    return Call(user, workspace, expected).run(operations, dry_run)
 
 
 class Expectations:
@@ -510,101 +449,44 @@ class Document(File):
             self.call.refuse("INVALID_ARGUMENT", "content: Set content can't add or remove IDs.")
 
 
-class AccountRoot:
-    """The account root: the source listing the account's other sources, which it creates."""
-
-    kind = "account"
-    operations = ("read", "insert")
-    holds = {"workspace": Workspace}
-
-    def __init__(self, call):
-        self.call = call
-        self.user = call.user
-
-    def workspaces(self):
-        """The account's workspaces by name, creating its personal workspace on first use."""
-        workspaces = models.Workspace.objects.filter(owner=self.user).order_by("name", "id")
-        if not workspaces.exists():
-            with transaction.atomic():
-                type(self.user).objects.select_for_update().filter(pk=self.user.pk).first()
-                if not workspaces.exists():
-                    models.Workspace.objects.create(name=PERSONAL_WORKSPACE_NAME, owner=self.user)
-        return list(workspaces)
-
-    def workspace(self, workspace_id):
-        workspace = models.Workspace.objects.filter(owner=self.user, pk=workspace_id).first()
-        if workspace is None:
-            raise Refusal(
-                "NOT_FOUND", "The workspace is not available. Read the account root for them."
-            )
-        return workspace
-
-    def children(self):
-        return [Call(self.user, workspace).note_at("") for workspace in self.workspaces()]
-
-    def read(self, depth, content=False):
-        node = {
-            "ref": ACCOUNT_ROOT,
-            "kind": self.kind,
-            "text": self.user.email,
-            "operations": list(self.operations),
-        }
-        children = self.children()
-        if depth > 0:
-            node["children"] = [child.read(depth - 1) for child in children]
-        else:
-            node["hasChildren"] = bool(children)
-        return node
-
-    def insert(self, operation):
-        new = self.call.new_kind(self, operation["kind"])
-        name = new.name_for(self.call, operation["text"])
-        workspace = models.Workspace.objects.create(name=name, owner=self.user)
-        ref = workspace.pk
-        self.call.created.append(ref)
-        return {"ref": ref, "kind": new.kind}
-
-
 KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file": File}
 Container.holds = {"document": Document, "file": File}
-METHODS = {
-    "insert": "insert",
-    "move": "move",
-    "delete": "delete",
-    "setText": "set_text",
-    "setContent": "set_content",
-}
 
 
-class Call:
-    """One call: its operations applied in order to the account root or to one workspace."""
+def workspaces_of(user):
+    """The user's workspaces by name, creating their personal workspace on first use."""
+    workspaces = models.Workspace.objects.filter(owner=user).order_by("name", "id")
+    if not workspaces.exists():
+        with transaction.atomic():
+            type(user).objects.select_for_update().filter(pk=user.pk).first()
+            if not workspaces.exists():
+                models.Workspace.objects.create(name=PERSONAL_WORKSPACE_NAME, owner=user)
+    return list(workspaces)
 
-    def __init__(self, user, workspace=None, expected=None):
-        self.user = user
-        self.workspace = workspace
-        self.index = None
-        self.root = AccountRoot(self)
-        self.tree = Tree(workspace) if workspace else None
-        self.expectations = (
-            Expectations(self.tree, self.expected_paths(expected or {}), self.ref)
-            if workspace
-            else None
+
+def workspace_of(user, workspace_id):
+    workspace = models.Workspace.objects.filter(owner=user, pk=workspace_id).first()
+    if workspace is None:
+        raise Refusal(
+            "NOT_FOUND", "The workspace is not available. Read the account root for them."
         )
-        self.name = workspace.name if workspace else None
-        self.created = []
+    return workspace
 
-    def resolve(self, ref, field):
-        """The note `ref` names, in this call's workspace or any of the user's."""
-        workspace_id = self.parsed(ref, field)[0]
-        if workspace_id is None or (self.workspace and workspace_id == self.workspace.pk):
-            return self.note(ref, field)
-        return Call(self.user, self.root.workspace(workspace_id)).note(ref, field)
 
-    def parsed(self, ref, field):
-        try:
-            return parse_ref(ref)
-        except ValueError as error:
-            self.refuse("INVALID_ARGUMENT", f"{field}: {error}")
+def create_workspace(user, name):
+    """Create a workspace and return its reference."""
+    return models.Workspace.objects.create(name=name, owner=user).pk
+
+
+class WorkspaceCall(Call):
+    """A call on the notes of one workspace, applied to a tree of its files."""
+
+    def __init__(self, user, workspace, expected=None):
+        super().__init__(user)
+        self.workspace = workspace
+        self.tree = Tree(workspace)
+        self.expectations = Expectations(self.tree, self.expected_paths(expected or {}), self.ref)
+        self.name = workspace.name
 
     def expected_paths(self, expected):
         paths = {}
@@ -618,18 +500,13 @@ class Call:
         return paths
 
     def note(self, ref, field="target"):
-        workspace_id, path, note_id = self.parsed(ACCOUNT_ROOT if ref is None else ref, field)
-        if workspace_id is None:
-            return self.root
+        workspace_id, path, note_id = self.parsed(ref, field)
+        if workspace_id != self.workspace.pk:
+            self.refuse("INVALID_ARGUMENT", "A call changes the notes of one source.")
         if note_id:
             self.refuse(
                 "INVALID_ARGUMENT",
                 f"{field}: ID references arrive with outline notes; use the path Read returns.",
-            )
-        if self.workspace is None or workspace_id != self.workspace.pk:
-            self.refuse(
-                "INVALID_ARGUMENT",
-                "A call changes the notes of one source.",
             )
         path = self.path(path, field)
         if self.tree.kind(path) is None:
@@ -639,47 +516,9 @@ class Call:
     def note_at(self, path):
         return KINDS[self.tree.kind(path)](self, path)
 
-    def new_kind(self, parent, kind):
-        new = parent.holds.get(kind)
-        if new is None:
-            held = " and ".join(f"{name}s" for name in parent.holds)
-            self.refuse("INVALID_ARGUMENT", f"kind: a {parent.kind} holds {held}.")
-        return new
-
-    def run(self, operations, dry_run):
-        if self.workspace is None:
-            self.root.workspaces()
-        with transaction.atomic():
-            results = []
-            for self.index, operation in enumerate(operations):
-                results.append(self.apply(operation))
-            self.index = None
-            changes, revision = self.commit(operations, dry_run)
-            if dry_run:
-                transaction.set_rollback(True)
-        return {
-            "results": results,
-            "changes": changes,
-            "revision": None if revision is None or dry_run else revision.pk,
-            "dryRun": dry_run,
-        }
-
-    def apply(self, operation):
-        op = operation["op"]
-        missing = [field for field in REQUIRED_FIELDS[op] if field not in operation]
-        if missing:
-            self.refuse("INVALID_ARGUMENT", f"{op} needs {', '.join(missing)}.")
-        field = "parent" if op == "insert" else "target"
-        note = self.note(operation.get(field), field)
-        if op not in note.operations:
-            self.refuse("INVALID_ARGUMENT", f"{field}: a {note.kind} doesn't offer {op}.")
-        return getattr(note, METHODS[op])(operation)
-
     def commit(self, operations, dry_run):
         """Save what the operations changed, and describe it."""
-        described = [{"ref": ref, "change": "added"} for ref in self.created]
-        if self.workspace is None:
-            return described, None
+        described = []
         if self.name != self.workspace.name:
             models.Workspace.objects.filter(pk=self.workspace.pk).update(name=self.name)
             described.append({"ref": self.ref(""), "change": "renamed", "text": self.name})
@@ -703,9 +542,6 @@ class Call:
             for path, (before, content) in changes.items()
         ]
         return described, revision
-
-    def refuse(self, code, message, versions=None):
-        raise Refusal(code, message, self.index, versions)
 
     def ref(self, path):
         return f"{self.workspace.pk}/{path}" if path else self.workspace.pk
@@ -746,34 +582,6 @@ class Call:
             except ValueError:
                 self.refuse("INVALID_ARGUMENT", "content is not valid base64.")
         return self.encoded(value, "content")
-
-    def encoded(self, text, field):
-        try:
-            return text.encode()
-        except UnicodeEncodeError:
-            self.refuse("INVALID_ARGUMENT", f"{field}: the text isn't valid Unicode.")
-
-    def changed_text(self, current, operation):
-        text = self.replaced(current, operation, "text")
-        if text == current:
-            self.refuse("INVALID_ARGUMENT", "The text is unchanged.")
-        return text
-
-    def replaced(self, value, operation, field):
-        if "replacements" not in operation:
-            new = operation.get(field)
-            if new is None:
-                self.refuse("INVALID_ARGUMENT", f"Give {field} or replacements.")
-            return new
-        for number, replacement in enumerate(operation["replacements"]):
-            count = value.count(replacement["old"]) if replacement["old"] else 0
-            if count != 1:
-                self.refuse(
-                    "INVALID_ARGUMENT",
-                    f"replacements.{number}: the old text matches {count} times, not once.",
-                )
-            value = value.replace(replacement["old"], replacement["new"])
-        return value
 
 
 def _describe(call, path, before, content, dry_run):

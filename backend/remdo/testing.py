@@ -28,7 +28,7 @@ TEST_RUNNER = "remdo.testing.DefaultLabelTestRunner"
 
 from django.test.runner import DiscoverRunner  # noqa: E402
 
-DEFAULT_TEST_LABELS = ("accounts", "documents", "fixtures", "remdo", "workspaces")
+DEFAULT_TEST_LABELS = ("accounts", "documents", "fixtures", "notes", "remdo", "workspaces")
 
 
 class DefaultLabelTestRunner(DiscoverRunner):

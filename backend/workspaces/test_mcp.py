@@ -107,7 +107,7 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
         await sync_to_async(self.allow_workspaces)()
 
         with patch("sentry_sdk.capture_exception") as capture:
-            with patch("workspaces.notes.read", side_effect=DatabaseError):
+            with patch("notes.service.read", side_effect=DatabaseError):
                 unavailable = await self.call("read_note", {})
             invalid = await self.call("read_note", {"ref": "missing"})
 

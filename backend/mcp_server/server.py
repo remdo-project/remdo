@@ -20,12 +20,12 @@ from mcp import types
 from mcp.server import streamable_http
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+from notes import service as notes
 from rest_framework.renderers import JSONRenderer
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Route
-from workspaces import notes
 
 from .definitions import INSTRUCTIONS, NOTE_TOOLS, TOOLS
 from .errors import DOCUMENT_NOT_FOUND, UNCONFIRMED, WORKSPACE_UNCONFIRMED, failure, result
