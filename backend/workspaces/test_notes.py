@@ -2,7 +2,7 @@ from accounts.models import User
 from django.test import TestCase
 from notes import service as notes
 
-from . import store
+from . import source, store
 from .models import Workspace
 
 DOC = "# Plan\n\n- step\n    - id:: k3x9\n"
@@ -54,6 +54,18 @@ CASES = {
         read=["a/"],
         ops=[{"op": "setText", "target": "a", "text": "c"}],
         after={"c/x.md": "x\n", "c/b/y.png": "y", "ab.md": "beside\n"},
+    ),
+    "rename a folder onto another folder": dict(
+        before={"a/x.md": "x\n", "b/y.md": "y\n"},
+        read=["a/"],
+        ops=[{"op": "setText", "target": "a", "text": "b"}],
+        refused=("FAILED_PRECONDITION", 0),
+    ),
+    "move a folder beside a folder of its name": dict(
+        before={"a/x.md": "x\n", "c/a/y.md": "y\n"},
+        read=["a/"],
+        ops=[{"op": "move", "target": "a", "parent": "c"}],
+        refused=("FAILED_PRECONDITION", 0),
     ),
     "rename a document by replacement": dict(
         before={"Plan draft.md": "a\n"},
@@ -380,6 +392,17 @@ class NoteOperationTests(TestCase):
             with self.subTest(text=text), self.assertRaises(notes.Refusal) as refusal:
                 self.change([{"op": "insert", "parent": "", "kind": kind, "text": text}])
             self.assertEqual(refusal.exception.versions, versions)
+
+    def test_a_path_taken_by_a_concurrent_change_is_a_failed_precondition(self):
+        call = source.open_call(self.owner, self.workspace.pk)
+        self.write({"Plan.md": "theirs\n"})
+
+        with self.assertRaises(notes.Refusal) as refusal:
+            call.run(
+                [{"op": "insert", "parent": self.ref(), "kind": "document", "text": "plan"}],
+                False,
+            )
+        self.assertEqual(refusal.exception.code, "FAILED_PRECONDITION")
 
     def test_a_move_past_the_path_limit_blames_the_parent(self):
         deep = "/".join(["d" * 40] * 4)

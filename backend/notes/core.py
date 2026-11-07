@@ -3,7 +3,6 @@
 from django.db import transaction
 
 ACCOUNT_ROOT = "me"
-# Each operation's method on a note, and the fields it needs.
 OPERATIONS = {
     "insert": ("insert", ("kind", "text")),
     "move": ("move", ("target", "parent")),

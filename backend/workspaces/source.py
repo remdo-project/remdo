@@ -333,6 +333,8 @@ class Movable(Note):
         self.call.check(self)
         moving = self.files()
         hashes = {old: self.tree.remove(old) for old in moving}
+        if self.listing:
+            self.call.place_folder(new_path)
         for old in moving:
             new = self.call.path(new_path + old[len(self.path) :], field)
             self.call.place(new)
@@ -534,8 +536,13 @@ class WorkspaceCall(Call):
                 )
             except store.StaleFile as error:
                 raise self.expectations.stale(error) from error
+            # Every path was checked against the tree, so a conflict here is a concurrent change.
             except store.StoreError as error:
-                raise Refusal("INVALID_ARGUMENT", str(error)) from error
+                raise Refusal("FAILED_PRECONDITION", str(error)) from error
+        if dry_run:
+            self.tree.load_blobs(
+                before for before, content in changes.values() if before and content is not None
+            )
         described += [
             _describe(self, path, before, content, dry_run)
             for path, (before, content) in changes.items()
@@ -555,7 +562,15 @@ class WorkspaceCall(Call):
             self.refuse("INVALID_ARGUMENT", f"{field}: {error}")
 
     def place(self, path):
-        reason = self.tree.namespace.conflict(path)
+        self.refuse_taken(path, self.tree.namespace.conflict(path))
+        self.expectations.produced(path, self.index)
+
+    def place_folder(self, path):
+        existing = self.tree.namespace.folder(path)
+        if existing:
+            self.refuse_taken(path, f"folder {existing!r} already exists.")
+
+    def refuse_taken(self, path, reason):
         if reason:
             occupants = self.tree.occupants(path)
             self.refuse(
@@ -563,7 +578,6 @@ class WorkspaceCall(Call):
                 f"Can't place {path!r}: {reason}",
                 {self.ref(occupant): version for occupant, version in occupants.items()},
             )
-        self.expectations.produced(path, self.index)
 
     def put(self, path, content):
         try:
