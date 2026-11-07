@@ -1,5 +1,10 @@
 """Public MCP tool declarations, independent of the editor transport."""
 
+# TODO: These instructions and TOOLS serve editor documents that the text format migration
+# (docs/text-format-plan.md) moves into workspaces, and they're the surface the directory reviews
+# approved. When migration ends, remove TOOLS and rewrite INSTRUCTIONS for workspaces, checking the
+# published plugin first. Probe: delete TOOLS, then the MCP contract tests fail only on the removed
+# tools.
 INSTRUCTIONS = "RemDo is an outliner: each document is a tree of single-line notes. Save content as an outline, not prose: a few short topic titles at the top level, with supporting details nested under the note they support, so each parent summarizes its children and the outline reads well when folded. Give each topic or conversation its own descriptively titled document, and read a document before adding to it or relying on it."
 
 TOOLS = [

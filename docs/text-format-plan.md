@@ -247,7 +247,7 @@ once stage 2 lands.
    - Exit: every document has moved or is reported.
 7. **Cleanup**
    - Remove `DocumentContent`, `DocumentGrant`, the body wrapper, per-call
-     headless editors, old MCP tools and old routes.
+     headless editors and old routes.
    - Before changing the MCP surface for everyone, check the published OpenAI
      plugin and any pending directory review for updates they need.
    - Move this design into its owning specifications, and remove the format's
