@@ -40,6 +40,10 @@ def parse_ref(ref):
     return workspace, "", note_id or None
 
 
+def _a(kind):
+    return f"an {kind}" if kind[0] in "aeiou" else f"a {kind}"
+
+
 def with_children(node, children, depth):
     """Add a container's children to its read node, or whether it has any at the depth limit."""
     if depth > 0:
@@ -91,7 +95,7 @@ class Call:
         field = "parent" if op == "insert" else "target"
         note = self.note(operation.get(field), field)
         if op not in note.operations:
-            self.refuse("INVALID_ARGUMENT", f"{field}: a {note.kind} doesn't offer {op}.")
+            self.refuse("INVALID_ARGUMENT", f"{field}: {_a(note.kind)} doesn't offer {op}.")
         return getattr(note, method)(operation)
 
     def refuse(self, code, message, versions=None):
@@ -107,7 +111,7 @@ class Call:
         new = parent.holds.get(kind)
         if new is None:
             held = " and ".join(f"{name}s" for name in parent.holds)
-            self.refuse("INVALID_ARGUMENT", f"kind: a {parent.kind} holds {held}.")
+            self.refuse("INVALID_ARGUMENT", f"kind: {_a(parent.kind)} holds {held}.")
         return new
 
     def encoded(self, text, field):

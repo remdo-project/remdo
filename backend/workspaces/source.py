@@ -107,15 +107,7 @@ class Tree:
 
     def occupants(self, path):
         """The stored versions of what occupies `path`, ignoring case, by path."""
-        versions = {}
-        for key in [path, *store.folders_of(path)]:
-            existing = self.namespace.file(key)
-            if existing in self.initial:
-                versions[existing] = self.initial[existing]
-        folder = self.namespace.folder(path)
-        if folder and any(store.under(stored, folder) for stored in self.initial):
-            versions[folder] = self.initial_version(folder)
-        return versions
+        return store.occupants(self.namespace, self.initial, path)
 
     def changes(self):
         """Each changed path's stored version and new content, None when deleted."""
@@ -311,6 +303,8 @@ class Movable(Note):
     def set_text(self, operation):
         text = self.call.changed_text(self.text, operation)
         new_path = self.call.path(_join(_parent(self.path), self.name_for(self.call, text)), "text")
+        if new_path == self.path:
+            self.call.refuse("INVALID_ARGUMENT", "The text is unchanged.")
         self.relocate(new_path, "text")
         return {"ref": self.call.ref(new_path)}
 
@@ -496,11 +490,8 @@ class WorkspaceCall(Call):
         paths = {}
         for ref, version in expected.items():
             workspace_id, path, note_id = self.parsed(ref, "expected")
-            if workspace_id != self.workspace.pk or note_id:
-                self.refuse(
-                    "INVALID_ARGUMENT", f"expected: {ref!r} isn't a path in this workspace."
-                )
-            paths[self.path(path, "expected")] = version
+            if workspace_id == self.workspace.pk and not note_id:
+                paths[self.path(path, "expected")] = version
         return paths
 
     def note(self, ref, field="target"):
@@ -537,8 +528,13 @@ class WorkspaceCall(Call):
             except store.StaleFile as error:
                 raise self.expectations.stale(error) from error
             # Every path was checked against the tree, so a conflict here is a concurrent change.
-            except store.StoreError as error:
-                raise Refusal("FAILED_PRECONDITION", str(error)) from error
+            except store.PathTaken as error:
+                raise Refusal(
+                    "FAILED_PRECONDITION",
+                    f"Can't place {error.path!r}: {error}",
+                    self.expectations.first_use.get(error.path),
+                    {self.ref(path): version for path, version in error.occupants.items()},
+                ) from error
         if dry_run:
             self.tree.load_blobs(
                 before for before, content in changes.values() if before and content is not None

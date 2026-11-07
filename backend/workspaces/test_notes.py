@@ -85,6 +85,12 @@ CASES = {
         ops=[{"op": "setText", "target": "a.txt", "text": "a.md"}],
         refused=("INVALID_ARGUMENT", 0),
     ),
+    "rename to the same name composed differently": dict(
+        before={"caf\u00e9.md": "a\n"},
+        read=["caf\u00e9.md"],
+        ops=[{"op": "setText", "target": "caf\u00e9.md", "text": "cafe\u0301"}],
+        refused=("INVALID_ARGUMENT", 0),
+    ),
     "set text to the same text": dict(
         before={"a.md": "a\n"},
         read=["a.md"],
@@ -402,7 +408,24 @@ class NoteOperationTests(TestCase):
                 [{"op": "insert", "parent": self.ref(), "kind": "document", "text": "plan"}],
                 False,
             )
-        self.assertEqual(refusal.exception.code, "FAILED_PRECONDITION")
+        theirs = store.read(self.workspace, "Plan.md").blob_hash
+        self.assertEqual(
+            (refusal.exception.code, refusal.exception.index, refusal.exception.versions),
+            ("FAILED_PRECONDITION", 0, {self.ref("Plan.md"): theirs}),
+        )
+
+    def test_expected_entries_for_other_notes_are_ignored(self):
+        other = Workspace.objects.create(name="Other", owner=self.owner)
+        self.write({"a.md": "a\n"})
+        expected = {
+            **self.versions(["a.md"]),
+            f"{other.pk}/x.md": "stale",
+            f"{self.workspace.pk}_k3x9": "stale",
+        }
+
+        self.change([{"op": "setContent", "target": "a.md", "content": "b\n"}], expected)
+
+        self.assertEqual(self.files(), {"a.md": "b\n"})
 
     def test_a_move_past_the_path_limit_blames_the_parent(self):
         deep = "/".join(["d" * 40] * 4)

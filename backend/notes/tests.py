@@ -75,6 +75,12 @@ class AccountRootAndReferenceTests(TestCase):
             [child["text"] for child in notes.read(self.owner)["children"]], ["Personal", "Team"]
         )
 
+    def test_refusals_name_the_account_root_as_an_account(self):
+        with self.assertRaises(notes.Refusal) as refusal:
+            notes.call(self.owner, [{"op": "delete", "target": "me"}])
+
+        self.assertEqual(str(refusal.exception), "target: an account doesn't offer delete.")
+
     def test_the_account_root_holds_only_workspaces(self):
         for operation, code in (
             ({"op": "insert", "kind": "document", "text": "Plan"}, "INVALID_ARGUMENT"),

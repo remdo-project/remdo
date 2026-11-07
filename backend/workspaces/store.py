@@ -42,6 +42,15 @@ class InvalidPath(StoreError):
     pass
 
 
+class PathTaken(InvalidPath):
+    """An added path collides with what's stored; `occupants` maps what holds it to its version."""
+
+    def __init__(self, message, path, occupants):
+        super().__init__(message)
+        self.path = path
+        self.occupants = occupants
+
+
 class InvalidContent(StoreError):
     pass
 
@@ -309,17 +318,33 @@ class Namespace:
                 del self.folders[folder.casefold()]
 
 
+def occupants(namespace, files, path):
+    """The versions of what occupies `path` ignoring case, given `files` mapped to blob hashes."""
+    versions = {}
+    for key in [path, *folders_of(path)]:
+        existing = namespace.file(key)
+        if existing in files:
+            versions[existing] = files[existing]
+    folder = namespace.folder(path)
+    if folder and any(under(stored, folder) for stored in files):
+        versions[folder] = listing_version(
+            {stored: hash_ for stored, hash_ in files.items() if under(stored, folder)}
+        )
+    return versions
+
+
 def _check_namespace(workspace, added, deleted):
     """Reject added paths that a case-insensitive filesystem couldn't hold beside the rest."""
-    namespace = Namespace(
+    files = dict(
         WorkspaceFile.objects.filter(workspace=workspace)
         .exclude(path__in=deleted)
-        .values_list("path", flat=True)
+        .values_list("path", "blob_id")
     )
+    namespace = Namespace(files)
     for path in added:
         reason = namespace.conflict(path)
         if reason:
-            raise InvalidPath(reason)
+            raise PathTaken(reason, path, occupants(namespace, files, path))
         namespace.add(path)
 
 
