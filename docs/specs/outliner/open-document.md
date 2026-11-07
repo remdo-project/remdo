@@ -21,7 +21,7 @@ collection and each editor note support [children reads](./note-model.md#collect
 to their current direct editor children in order, and
 [appending](./insertion.md#appending-notes). Creating a live reference
 neither requires the note to exist nor creates it. Value reads resolve the
-current committed note; an unavailable note or source produces an identifiable
+current committed note; an unavailable note or server produces an identifiable
 unavailable-note error, distinct from unexpected read failures.
 
 Document metadata and editor content are independently available. A usable
@@ -39,8 +39,8 @@ themselves.
 
 Capability reads report current semantic eligibility for the addressed note,
 focus, selection, or history. An ineligible action, missing target, or unavailable
-source returns false; unexpected read failures propagate. A capability result
-neither establishes target existence or source readiness nor guarantees that a
+server returns false; unexpected read failures propagate. A capability result
+neither establishes target existence or server readiness nor guarantees that a
 later operation takes effect.
 
 Observation is scoped to the document note, a collection, an addressed editor
@@ -52,7 +52,7 @@ operation eligibility.
 Each subscription is
 independent, can be released repeatedly, and may remain active through
 unavailability or a failed read to observe recovery. Notifications include
-changes in target or source availability and read failures, even when capability
+changes in target or server availability and read failures, even when capability
 values remain false. Listeners may safely invoke open-document operations.
 
 ## Operations and ownership

@@ -54,12 +54,12 @@ blur halo around the button.
 
 1. Home shows document navigation and actions, without a document editor or its
    toolbar. Its heading follows [Location header](./location-header.md).
-2. Home lists the user's [accessible documents](../access/access-control.md#access-roots)
+2. Home lists the user's [accessible documents](../access/access-control.md#sources)
    in one list under Current Server, omitted when the user has none.
 3. Each listed document shows its display name and opens that document when
    activated, landing on its [document-root view](./zoom.md#visibility-and-editing-boundary).
    A document owned by another user, or owned by the user with at least one
-   [grant](../access/access-control.md#access-roots), also shows a **Shared** marker beside its
+   [grant](../access/access-control.md#sources), also shows a **Shared** marker beside its
    name. The marker adds **Shared with you** or **Shared by you** to the row's
    description, respectively, and shows the same text on hover, without changing
    the row's accessible name. On a document the user owns, the marker is a
@@ -97,8 +97,8 @@ entries usable. It has no unread state or notification history.
 
 ## Document actions
 
-1. **New document** opens a naming dialog before creating a document in the
-   local source and opening it.
+1. **New document** opens a naming dialog before creating a document on the
+   current server and opening it.
 2. **Upload document** imports a document from a backup file.
 3. Each document row with document actions has a separate [quick action menu](./menu.md) button.
    Opening it targets that document without opening the document. Its document

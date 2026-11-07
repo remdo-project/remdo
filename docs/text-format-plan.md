@@ -81,10 +81,10 @@ unchanged.
   revisions and saves.
 - The live door is the browser through Yjs. The text door is MCP, Git and any
   API.
-- Every note kind lives in Python, in the source that holds its data:
+- Every note kind lives in Python, in the module that holds its data:
   `backend/workspaces` for the account root, workspaces, folders, documents,
   plain files, outline notes and Markdown blocks; later one adapter per
-  external source. One entry point reads notes and applies calls
+  external source kind. One entry point reads notes and applies calls
   for MCP, the REST API and integrations.
 - Python owns the text format's reader and its only writer, on `markdown-it-py`.
   It matched the JavaScript `markdown-it` on 714 inputs, structure and line
@@ -129,7 +129,7 @@ unchanged.
 
 ### References and notes
 
-- Every reference is a URI, and its scheme picks the source. `note:` is scoped
+- Every reference is a URI, and its scheme picks how it resolves. `note:` is scoped
   to a workspace; only a full URL crosses a workspace or server. Email uses
   `mid:`.
 - URLs are `/n/` followed by a
@@ -140,9 +140,9 @@ unchanged.
   to `id::` in the text, and text always overrides the cache.
 - [Note operations](specs/outliner/note-operations.md) and
   [note IDs](specs/outliner/note-ids.md#ids-in-workspaces) own the note shape
-  and resolution. Source fields are read-only named children.
-- A source provides `read`, `list`, `search`, `subscribe` and `invoke`, shaped
-  like MCP resources and tools.
+  and resolution. An external source's fields are read-only named children.
+- A source kind's adapter provides `read`, `list`, `search`, `subscribe` and
+  `invoke`, shaped like MCP resources and tools.
 - The browser's SDK holds reads in TanStack Query keyed by reference behind
   `useNote(ref)`. Backlinks and search run on the server.
 
@@ -216,12 +216,13 @@ once stage 2 lands.
      the known move limit.
 4. **Note layer**
    - Add `note_index`, `resolve(uri)` and the new URL routes.
-   - Add `useNote`, backlinks, search and the workspace source.
+   - Add `useNote`, backlinks and search over workspaces.
    - Give the Python account root the
      [user-data hierarchy](specs/outliner/user-data.md#hierarchy), replacing
      the SDK's `user-data`, `document-source` and `collection` kinds; the SDK
-     becomes a REST client plus the editor session. Decide whether workspaces
-     sit under a source per server.
+     becomes a REST client plus the editor session, and code names for
+     user-data's servers stop saying "source". Decide whether the account root
+     lists workspaces per server.
    - Check the contract with one read-only external source spike.
    - Exit: the UI and MCP read closed documents' notes without an editor.
 5. **Sharing and Git**
@@ -256,7 +257,7 @@ once stage 2 lands.
      note on existing documents.
    - Give the remaining existing kinds, such as account roots and user data
      notes, note operations or retire them.
-   - Drop editor documents from the access roots and their sharing rules.
+   - Drop editor documents from the sources and their sharing rules.
    - Rename what remains of the open document to the editor session.
    - Fold the remaining `docs/todo.md`, legacy backlog and format Follow-up
      items into their owners, then delete this plan.

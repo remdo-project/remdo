@@ -122,7 +122,7 @@ App-owned HTTP surface that sits in front of collaboration infrastructure.
 - Auth: Django and allauth own browser session authentication at
   `/api/auth/browser/v1`, administration at `/admin/`, and the authorization
   server for [delegated access](specs/access/access-control.md#delegated-access).
-- Django authorizes each collaboration document connection under [Access Roots](specs/access/access-control.md#access-roots).
+- Django authorizes each collaboration document connection under [Sources](specs/access/access-control.md#sources).
 - Private collaboration operations use an internal service credential, isolated
   from public gateway traffic.
 

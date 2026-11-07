@@ -1,12 +1,12 @@
 # Access Control
 
 Access control combines authenticated identity, administrative authority, and
-the ownership or grants of access roots. These boundaries determine which app
+the ownership or grants of sources. These boundaries determine which app
 state and collaborative document state a user can access.
 
 ## Access Scope
 
-User-facing access to an access root is authenticated by a session, or a
+User-facing access to a source is authenticated by a session, or a
 [delegated access](#delegated-access) token, on the server that owns it.
 RemDo does not expose anonymous documents, public documents, document-access
 links carrying bearer credentials, or a local-only no-login mode.
@@ -110,22 +110,22 @@ handling and may clear a newer login, requiring the user to sign in again.
 Signing out of one browser tab signs out every tab sharing its storage, which
 stops using the local data it is losing.
 
-## Access Roots
+## Sources
 
-Each [access root](../outliner/note-model.md#definitions) owns the authorization policy for itself and the notes under
-it, down to the next access root. Every note has one access root. An access
-root is its own access root.
+Each [source](../outliner/note-model.md#definitions) owns the authorization policy for itself and the notes under
+it, down to the next source. Every note has one source. A source is its own
+source.
 Listing or linking a note alone grants no additional authority over it and does
-not change its access root.
+not change its source.
 
-Exposing data or performing operations through another access root requires the
-source root's authorization. The receiving root controls access to that
-exposure within the source's permitted data and operations. The receiving
-root's users need not have direct access to the source root.
+Exposing data or performing operations through another source requires the
+exposing source's authorization. The receiving source controls access to that
+exposure within the exposing source's permitted data and operations. The
+receiving source's users need not have direct access to the exposing source.
 
 The following rules apply to each user authenticated by the server.
 
-Every access root has one owner. An editor document may have zero or more
+Every source has one owner. An editor document may have zero or more
 direct grants; a new one has none. Its URL only locates it; ownership or a grant
 authorizes access. An [account root](../outliner/note-model.md#definitions) takes no direct grants and
 cannot be renamed or deleted. A [workspace](../workspaces/store.md#definitions)
@@ -142,7 +142,7 @@ full document access.
 Only the owner receives the document's recipient list.
 A recipient also receives the document owner's email and available display name.
 
-Users with full document access may [rename the document](../outliner/location-header.md#document-rename). The source authorizes
+Users with full document access may [rename the document](../outliner/location-header.md#document-rename). The document's server authorizes
 each submission using the caller's current access; client metadata caches do not
 authorize changes.
 
@@ -170,7 +170,7 @@ Pending submission locks the email and action; failure retains the draft.
 
 The email field shows a green border and a checkmark as a well-formed address is
 typed, requiring a dotted domain except for `localhost`. Format errors appear on
-blur or submission and clear when corrected. Source errors take precedence.
+blur or submission and clear when corrected. Server errors take precedence.
 
 While typing a name or email, the grant form suggests people from current direct
 sharing relationships on this server: recipients of the caller's documents and
@@ -248,7 +248,7 @@ delegated access, including a grant made before promotion.
 
 A delegated access token authenticates as its user on the RemDo API and on
 [collaboration connections](../../architecture.md#collaboration-credentials-and-paths),
-under that user's current [access](#access-roots), without a
+under that user's current [access](#sources), without a
 browser origin. The [MCP server](../integrations/mcp.md) accepts only tokens
 with the `openid` scope and issued for it as their target resource
 ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)); the API and

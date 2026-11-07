@@ -49,11 +49,11 @@ implementation.
   against the [document registry](architecture.md#document-registry) and [offline inventory](architecture.md#future). The retired
   projection-backed implementation remains historical evidence. Once decided,
   align the [note model](specs/outliner/note-model.md), architecture, and links owners.
-- **Overlapping source inventories.** When source discovery can expose one
-  document through several sources, decide how its canonical source parent is
+- **Overlapping server inventories.** When server discovery can expose one
+  document through several servers, decide how its canonical server parent is
   selected and how aggregate membership reports duplicate, partial, or
   unavailable coverage. Preserve the [single-parent and membership distinction](specs/outliner/note-model.md#invariants),
-  global document identity, and each source's authorization boundary; the
+  global document identity, and each server's authorization boundary; the
   [account hierarchy](specs/outliner/user-data.md#hierarchy) does not establish a federation or authentication protocol.
 - **External sources.** Test the [adapter direction](principles.md#multi-origin-direction) against calendar entries and
   email: find, address, link, and use their context while their content remains
@@ -64,27 +64,27 @@ implementation.
   A calendar spike fit the note contract with no new availability state: an
   unreachable source is unavailable and a removed event is known absent. It
   stood alone as its own root, so a real connector still settles identity,
-  navigation, and placement under [User Data](specs/outliner/user-data.md#hierarchy), whose children and source
+  navigation, and placement under [User Data](specs/outliner/user-data.md#hierarchy), whose children and server
   shape are fixed to documents.
 
 ### Document exposure
 
-Design the mechanism for [exposing data through another access root](specs/access/access-control.md#access-roots): a proxy
+Design the mechanism for [exposing data through another source](specs/access/access-control.md#sources): a proxy
 note in shared document B showing part of private document A, an aggregate over
 A's notes, or a public profile built as an ordinary public document. Research on
 2026-10-30 found that only source-authorized designs deliver this; references
 checked against the viewer's own access, as in Notion and Confluence, cannot.
 [BigQuery authorized views](https://docs.cloud.google.com/bigquery/docs/authorized-views) are the closest precedent.
 
-- **Direction.** The source document's owner creates an exposure record, stored
-  in the document registry and scoped to a note or subtree of the source for one
-  receiving document. Any document can be a source, including an account
-  root. A proxy note stores only the record's identity.
+- **Direction.** The exposing source's owner creates an exposure record, stored
+  in the document registry and scoped to a note or subtree of it for one
+  receiving source. Any source can expose data, including an account root. A
+  proxy note stores only the record's identity.
 - **Reads.** Each read checks the viewer against the receiving document and
-  rechecks the record, including that its grantor still owns the source. The
-  server resolves a read-only projection from the record; no path accepts a
-  client-supplied source note. Proxied content never enters the receiving
-  document's Yjs state, where it would outlive revocation.
+  rechecks the record, including that its grantor still owns the exposing
+  source. The server resolves a read-only projection from the record; no path
+  accepts a client-supplied exposing note. Proxied content never enters the
+  receiving document's Yjs state, where it would outlive revocation.
 - **Derived data.** MCP, search, and aggregates read through the record and only
   over its scope. Titles, parents, counts, backlinks, and search hits of
   unexposed notes stay hidden. Revocation stops future reads, not existing
@@ -148,9 +148,9 @@ Decisions requiring a contract owner's judgement:
    requires accepting that an undeletable database leaves readable data on the
    device, which is a [privacy-first](principles.md#non-negotiables) decision
    rather than cleanup. Decide the threat model before the implementation.
-2. **Current Server grouping.** Collapsing the remaining source abstraction
-   depends on whether [Home](specs/outliner/home.md) keeps a visible source
-   grouping and its local-source document action. Decide Home's shape first;
+2. **Current Server grouping.** Collapsing the remaining server abstraction
+   depends on whether [Home](specs/outliner/home.md) keeps a visible server
+   grouping and its current-server document action. Decide Home's shape first;
    the [multi-origin direction](principles.md#multi-origin-direction) does not
    require the present implementation.
 3. **Collaboration database access boundary.** Routing content load and store
@@ -403,7 +403,7 @@ Remaining:
   Avoid a runtime descriptor framework and a generic property API; add untyped
   properties only if user-defined types become a product feature.
 
-- **Non-editor access roots.** [Account roots](specs/outliner/note-model.md#definitions) keep their `user-data`
+- **Non-editor sources.** [Account roots](specs/outliner/note-model.md#definitions) keep their `user-data`
   kind, and no consumer reads ownership yet. Use the [external-source examples](#cross-source-discovery) to
   test the same role for a scope such as a mailbox or calendar. Settle which
   account root owns an aggregate across servers, and the owner under the

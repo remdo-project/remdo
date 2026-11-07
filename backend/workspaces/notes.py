@@ -172,7 +172,7 @@ def read(user, ref=None, depth=1, content=False):
 
 
 def call(user, operations, expected=None, dry_run=False):
-    """Apply `operations` all or none, within one workspace or on the user's account root."""
+    """Apply `operations` all or none, within one source."""
     scopes = set()
     for index, operation in enumerate(operations):
         refs = [operation[field] for field in ("target", "parent") if field in operation]
@@ -184,9 +184,7 @@ def call(user, operations, expected=None, dry_run=False):
             raise Refusal("INVALID_ARGUMENT", "A note can't move between workspaces.", index)
         scopes |= workspaces
     if len(scopes) > 1:
-        raise Refusal(
-            "INVALID_ARGUMENT", "A call changes the notes of one workspace, or the account root."
-        )
+        raise Refusal("INVALID_ARGUMENT", "A call changes the notes of one source.")
     [scope] = scopes
     workspace = None if scope is None else Call(user).root.workspace(scope)
     return Call(user, workspace, expected).run(operations, dry_run)
@@ -513,7 +511,7 @@ class Document(File):
 
 
 class AccountRoot:
-    """The account root: its children are the account's workspaces, and it creates new ones."""
+    """The account root: the source listing the account's other sources, which it creates."""
 
     kind = "account"
     operations = ("read", "insert")
@@ -631,7 +629,7 @@ class Call:
         if self.workspace is None or workspace_id != self.workspace.pk:
             self.refuse(
                 "INVALID_ARGUMENT",
-                "A call changes the notes of one workspace, or the account root.",
+                "A call changes the notes of one source.",
             )
         path = self.path(path, field)
         if self.tree.kind(path) is None:

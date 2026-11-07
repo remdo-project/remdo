@@ -1,8 +1,8 @@
 # Note model
 
-RemDo models notes independently of editors and data sources, with shared
-structure, owned data, kinds, and structural terms. Editors and data sources
-are adapters that preserve this model.
+RemDo models notes independently of editors and storage, with shared structure,
+owned data, kinds, and structural terms. Editors and storage are adapters that
+preserve this model.
 
 ## Notes
 
@@ -36,16 +36,17 @@ Adapters preserve these guarantees whenever they create, import, or export notes
 
 ## Definitions
 
-- **Access root:** a note that owns the [authorization policy](../access/access-control.md#access-roots) for
-  itself and the notes under it, independently of editor or storage
-  representation. Editor documents, workspaces and account roots are access
-  roots.
+- **Source:** a note whose subtree, down to the next source, follows its own
+  [authorization policy](../access/access-control.md#sources), independently of
+  where its data is stored. A server hosts it, and an adapter implements its
+  kind. Account roots, editor documents and workspaces are sources.
 - **Document:** an outline edited as a unit: an editor document, or a
   [Document](#note-kinds) note, a `.md` file in a workspace.
 - **Editor document:** a document containing an editor outline.
-- **Account root:** an access root without an outline, owned by one account and
-  backed by its account record. The [User Data root](./user-data.md#hierarchy) is the signed-in
-  account's account root.
+- **Account root:** the source owned by one account and backed by its account
+  record, listing the sources the account can access. The
+  [User Data root](./user-data.md#hierarchy) is the signed-in account's account
+  root.
 - **Document order:** the depth-first, pre-order traversal of editor notes in
   the structural tree.
 - **Previous note / next note:** adjacent editor notes in document order. View
@@ -61,7 +62,7 @@ Adapters preserve these guarantees whenever they create, import, or export notes
   the top-level editor notes; Access owns the document's [direct grants](./user-data.md).
   An editor document's account-level parent follows the
   [user-data hierarchy](./user-data.md#hierarchy).
-- **Subtree:** an editor note and all its descendants. Structural moves preserve
+- **Subtree:** a note and all its descendants. Structural moves preserve
   subtrees as indivisible units.
 - **Note path:** the ordered chain of editor notes from a top-level note through
   a note's ancestors to the note itself. The document root and collection notes
@@ -96,7 +97,7 @@ a tree of notes of the kinds below, which share the
 - **Account root:** the signed-in account's [account root](#definitions). Its
   children include the account's workspaces, ordered by name, and it always
   holds a personal one. Its text is the account's email address.
-- **Workspace:** the [access root](#definitions) of every note in it. Its
+- **Workspace:** the [source](#definitions) of every note in it. Its
   children are the folders, documents and plain files at its top level, ordered
   by name. Its text is its name.
 - **Folder:** the shared path of the files under it; it exists while it holds a
@@ -109,7 +110,7 @@ a tree of notes of the kinds below, which share the
   Markdown blocks and outline notes. Its text is its own line as written:
   marker, checkbox, name and text.
 - **Markdown block:** other Markdown in a document. It has no children. Its
-  text is its source.
+  text is its Markdown as written.
 - **Plain file:** any other file, with opaque content. It has no children. Its
   text is its file name.
 

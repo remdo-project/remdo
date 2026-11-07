@@ -45,15 +45,17 @@ whitespace included. Replacements apply only to text. **Deterministic.**
 
 An operation a kind doesn't offer is refused, and kinds this list doesn't name
 offer none. A workspace is deleted under its
-[access rules](../access/access-control.md#access-roots), not through these
+[access rules](../access/access-control.md#sources), not through these
 operations.
 
 ## Calls
 
-1. A call is an ordered list of operations on one workspace or on the account
-   root, applied all or none, with a workspace's file changes as one
-   [commit](../workspaces/store.md#commits). A later operation can
-   name a note an earlier one created. **Deterministic.**
+1. A call is an ordered list of operations within one
+   [source](./note-model.md#definitions), applied all or none, with a
+   workspace's file changes as one [commit](../workspaces/store.md#commits).
+   Insert acts within its parent's source and every other operation within its
+   target's, so a source the call creates is changed only by a later call. A
+   later operation can name a note an earlier one created. **Deterministic.**
 2. A call states the expected content of every file it changes, as the store
    requires. A Move, Delete or Set text of a folder also states the version of
    its [listing](../workspaces/store.md#reads), so a file added or changed under
