@@ -184,7 +184,9 @@ once stage 3 lands.
 3. **Editor on text**, in this order, each step one or a few PRs
    - Before changing editor internals, move editor tests onto the text format
      so the same tests check behavior before and after: first find notes by
-     their text, expecting exactly one match, against today's fixtures; then
+     their text, expecting exactly one match, against today's fixtures, in the
+     shared helpers, then in the lookups specs make inside editor updates, the
+     clipboard helper and the test bridge, and in selection expectations; then
      write fixtures in the format with only the IDs tests rely on, checked
      against the JSON they replace; then expected outlines. A JavaScript reader
      in test support reads what migrated fixtures use and moves into the app
