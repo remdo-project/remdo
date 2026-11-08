@@ -166,3 +166,16 @@ it('takes over a save made elsewhere that a read reports while its own save is a
   await waitFor(() => expect(box).toHaveValue('- theirs\n'));
   expect(screen.queryByRole('alert')).toBeNull();
 });
+
+it('keeps its own later save after a read reported its earlier one', async () => {
+  serveReadme('- a\n');
+  const box = await open();
+  save(box, '- one\n');
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Saved'));
+  await act(() => client.invalidateQueries({ queryKey: NOTES_QUERY_KEY }));
+
+  save(box, '- two\n');
+
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Saved'));
+  expect(box).toHaveValue('- two\n');
+});

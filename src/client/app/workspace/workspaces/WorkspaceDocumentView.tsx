@@ -1,5 +1,5 @@
 import { Alert, Button, Group, Stack, Textarea } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { ZoomBreadcrumbs } from '#client/editor/view/workspace';
@@ -88,11 +88,13 @@ function DocumentShell({
 function LoadedDocument({
   latest,
   onClose,
+  onSaved,
   reload,
   workspace,
 }: {
   latest: Base;
   onClose: () => void;
+  onSaved: (saved: Base) => Promise<void>;
   reload: () => Promise<NoteRead>;
   workspace: WorkspaceEntry;
 }) {
@@ -114,7 +116,7 @@ function LoadedDocument({
   };
 
   // A read during this view's own save may predate or follow its response; once the save
-  // settles the base version, a read that still differs is someone else's save.
+  // settles the base version and the latest read, a read that still differs is someone else's save.
   if (!saving && latest.version !== base.version && latest.version !== decided) {
     if (draft === base.text) {
       adopt(latest);
@@ -135,8 +137,9 @@ function LoadedDocument({
     setError(null);
     try {
       const result = await callNotes([{ op: 'setContent', target: ref, content: draft }], { [ref]: version });
-      const saved = result.changes.find((change) => change.ref === ref);
-      setBase({ text: draft, version: saved?.version ?? version });
+      const saved = { text: draft, version: result.changes.find((change) => change.ref === ref)?.version ?? version };
+      await onSaved(saved);
+      setBase(saved);
       setConflict(null);
     } catch (failure) {
       if (failure instanceof NotesRefusal && failure.code === 'FAILED_PRECONDITION') {
@@ -216,8 +219,10 @@ export function WorkspaceDocumentView({
   onClose: () => void;
 }) {
   const ref = workspace.documentRef;
+  const client = useQueryClient();
+  const queryKey = [...NOTES_QUERY_KEY, ref, 'content'];
   const readme = useQuery({
-    queryKey: [...NOTES_QUERY_KEY, ref, 'content'],
+    queryKey,
     // The loaded view keeps its own base, so a reopened view must read fresh content, not a cached read.
     gcTime: 0,
     queryFn: ({ signal }) => readNote(ref, { content: true }, signal),
@@ -228,6 +233,13 @@ export function WorkspaceDocumentView({
         key={ref}
         latest={baseOf(readme.data)}
         onClose={onClose}
+        onSaved={async (saved) => {
+          // A read in flight may predate the save, or a read it superseded may still be the
+          // latest, so the save becomes the latest read until one started after it lands.
+          await client.cancelQueries({ queryKey });
+          client.setQueryData<NoteRead>(queryKey, (note) => note && { ...note, content: saved.text, version: saved.version });
+          void client.invalidateQueries({ queryKey });
+        }}
         reload={async () => (await readme.refetch({ throwOnError: true })).data!}
         workspace={workspace}
       />

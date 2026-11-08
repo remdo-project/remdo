@@ -161,12 +161,14 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     let reopenTimer: ReturnType<typeof setTimeout> | undefined;
     let silenceTimer: ReturnType<typeof setTimeout> | undefined;
     let reopenDelay = MIN_REOPEN_DELAY_MS;
-    // A listing already in flight may predate the change; TanStack reuses rather
-    // than restarts one that has no data yet.
     let rereadTimer: ReturnType<typeof setTimeout> | undefined;
+    // Notices arriving before the reread starts join it, so a steady stream still rereads.
     const reread = () => {
-      clearTimeout(rereadTimer);
+      if (rereadTimer !== undefined) return;
       rereadTimer = setTimeout(() => {
+        rereadTimer = undefined;
+        // A listing already in flight may predate the change; TanStack reuses rather
+        // than restarts one that has no data yet.
         for (const queryKey of [documentsQuery.queryKey, NOTES_QUERY_KEY]) {
           void client.cancelQueries({ queryKey }).then(() => client.invalidateQueries({ queryKey }));
         }
