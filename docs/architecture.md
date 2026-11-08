@@ -97,7 +97,8 @@ PostgreSQL runs as a separate service with its own lifecycle.
 ## Routing and Origin Boundary
 
 Browser collaboration uses the current same-origin collaboration endpoint for
-document WebSockets and the account's document-list change stream. Django
+document WebSockets and the account's change stream for its document list
+and workspaces. Django
 validates browser origins against the [configured trusted origins](specs/access/access-control.md#csrf-protection).
 
 ### Gateway

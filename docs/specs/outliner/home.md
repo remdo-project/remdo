@@ -66,7 +66,9 @@ blur halo around the button.
    the row's accessible name. On a document the user owns, the marker is a
    separate button that opens the document's
    [sharing surface](../access/access-control.md#document-sharing).
-   A listed workspace shows its name and opens its document.
+   A listed workspace shows its name and opens its document. Listed workspaces
+   stay current as the [document list](./user-data.md#state-and-observation)
+   does.
 4. Above the list, Home offers [document search](./search.md#document-scope),
    omitted with the list.
 
