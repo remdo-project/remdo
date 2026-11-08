@@ -100,16 +100,72 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["notes_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notes/{ref}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["notes_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CallRequest: {
+            operations: components["schemas"]["OperationRequest"][];
+            expected?: {
+                [key: string]: string | null;
+            };
+            /** @default false */
+            dryRun: boolean;
+        };
+        CallResult: {
+            results: {
+                [key: string]: unknown;
+            }[];
+            changes: {
+                [key: string]: unknown;
+            }[];
+            revision: number | null;
+            dryRun: boolean;
+        };
         Config: {
             buildRevision: string;
             csrfCookieName: string;
             csrfToken: string;
             errorReportingDsn: string;
         };
+        /**
+         * @description * `utf8` - utf8
+         *     * `base64` - base64
+         * @enum {string}
+         */
+        ContentEncodingEnum: "utf8" | "base64";
         CurrentUser: {
             readonly userId: string;
         };
@@ -142,12 +198,64 @@ export interface components {
         Health: {
             ok: boolean;
         };
+        /**
+         * @description * `account` - account
+         *     * `workspace` - workspace
+         *     * `folder` - folder
+         *     * `document` - document
+         *     * `file` - file
+         * @enum {string}
+         */
+        KindEnum: "account" | "workspace" | "folder" | "document" | "file";
+        Note: {
+            ref: string;
+            kind: components["schemas"]["KindEnum"];
+            text: string;
+            operations: string[];
+            version?: string | null;
+            hasChildren?: boolean;
+            children?: components["schemas"]["Note"][];
+            content?: string;
+            contentEncoding?: components["schemas"]["ContentEncodingEnum"];
+        };
+        /**
+         * @description * `insert` - insert
+         *     * `move` - move
+         *     * `delete` - delete
+         *     * `setText` - setText
+         *     * `setContent` - setContent
+         * @enum {string}
+         */
+        OpEnum: "insert" | "move" | "delete" | "setText" | "setContent";
+        OperationRequest: {
+            op: components["schemas"]["OpEnum"];
+            target?: string;
+            parent?: string;
+            kind?: string;
+            text?: string;
+            content?: string;
+            contentEncoding?: components["schemas"]["ContentEncodingEnum"];
+            replacements?: components["schemas"]["ReplacementRequest"][];
+            withChildren?: boolean;
+        };
+        Refusal: {
+            code: string;
+            message: string;
+            index: number | null;
+            versions: {
+                [key: string]: string | null;
+            };
+        };
         RenameDocument: {
             readonly id: string;
             title: string;
         };
         RenameDocumentRequest: {
             title: string;
+        };
+        ReplacementRequest: {
+            old: string;
+            new: string;
         };
         ShareDocumentError: {
             email?: string[];
@@ -338,6 +446,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    notes_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CallRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallResult"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+        };
+    };
+    notes_retrieve: {
+        parameters: {
+            query?: {
+                content?: boolean;
+                depth?: number;
+            };
+            header?: never;
+            path: {
+                ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Note"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refusal"];
                 };
             };
         };

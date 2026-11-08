@@ -29,6 +29,7 @@ from django.urls import include, path, re_path
 from django.views.decorators.http import require_safe
 from documents import internal, views
 from drf_spectacular.views import SpectacularAPIView
+from notes import views as notes
 
 from .app_page import app_page, home_page, keep_me_posted
 from .blog import blog_index, blog_post
@@ -77,6 +78,8 @@ urlpatterns = [
     path("api/documents", views.DocumentListCreateView.as_view()),
     path("api/documents/<str:document_id>", views.DocumentView.as_view()),
     path("api/documents/<str:document_id>/access", views.DocumentShareView.as_view()),
+    path("api/notes", notes.CallView.as_view()),
+    path("api/notes/<path:ref>", notes.NoteView.as_view()),
     path("internal/collaboration/session", internal.session_user),
     path("internal/collaboration/documents/<str:document_id>/authorize", internal.authorize),
     path("internal/collaboration/documents/<str:document_id>/content", internal.content),
