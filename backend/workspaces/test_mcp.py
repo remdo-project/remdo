@@ -21,6 +21,12 @@ NOTE_TOOLS = {
 
 
 class WorkspaceMcpTests(McpClient, TransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        # These tests commit for real, and the notice would reach whatever hub the
+        # environment's port block serves, such as a developer's running stack.
+        self.enterContext(patch("notes.service.notify_document_list_changed"))
+
     def allow_workspaces(self):
         self.user.user_permissions.add(Permission.objects.get(codename="use_workspaces"))
 

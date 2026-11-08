@@ -450,6 +450,30 @@ describe('document-list change stream', () => {
     expect(listings()).toBe(before + 1);
   });
 
+  it('lets a reread land while notices keep arriving, then rereads once more', async () => {
+    const runtime = account();
+    const held = deferred<Response>();
+    let listings = 0;
+    documentRequests(() => {
+      listings += 1;
+      if (listings === 2) return held.promise;
+      return Response.json([{ id: 'shared', title: listings === 1 ? 'Draft' : 'Latest', shareable: false }]);
+    });
+    runtimeCleanup.push(new QueryObserver(runtime.client, runtime.documentsQuery).subscribe(() => {}));
+    runtime.watchDocumentList();
+    const title = () => runtime.userData.documents.getById('shared')?.getText();
+    await vi.waitFor(() => expect(title()).toBe('Draft'));
+
+    FakeWebSocket.opened[0]!.send('changed');
+    await vi.waitFor(() => expect(listings).toBe(2));
+    FakeWebSocket.opened[0]!.send('changed');
+    FakeWebSocket.opened[0]!.send('changed');
+    held.resolve(Response.json([{ id: 'shared', title: 'Landed', shareable: false }]));
+
+    await vi.waitFor(() => expect(title()).toBe('Latest'));
+    expect(listings).toBe(3);
+  });
+
   it('rereads held notes when another source reports a change', async () => {
     const { runtime, title } = watchedAccount(['Draft']);
     let reads = 0;
@@ -491,8 +515,9 @@ describe('document-list change stream', () => {
   it('treats a keepalive as liveness rather than a change', async () => {
     const { title, listings } = watchedAccount(['Draft', 'Renamed elsewhere']);
     await vi.waitFor(() => expect(title()).toBe('Draft'));
+    vi.useFakeTimers();
     FakeWebSocket.opened[0]!.send('keepalive');
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await vi.advanceTimersByTimeAsync(1000);
     expect(listings()).toBe(1);
     expect(title()).toBe('Draft');
   });

@@ -27,11 +27,19 @@ export function isWorkspaceEntry(entry: object): entry is WorkspaceEntry {
   return 'kind' in entry && entry.kind === 'workspace';
 }
 
+// The list is read outside the query, which a notice's reread could cancel and resolve with
+// the old list, so a change resolves only once the list reflects it.
 async function change(client: QueryClient, operation: NoteOperation) {
   try {
     return await callNotes([operation]);
   } finally {
-    await client.invalidateQueries({ queryKey: ACCOUNT_QUERY });
+    await client.cancelQueries({ queryKey: ACCOUNT_QUERY });
+    try {
+      client.setQueryData(ACCOUNT_QUERY, await readNote('me', { depth: 2 }));
+    } catch {
+      // A failed reread must not turn the change's outcome into a failure.
+      void client.invalidateQueries({ queryKey: ACCOUNT_QUERY });
+    }
   }
 }
 

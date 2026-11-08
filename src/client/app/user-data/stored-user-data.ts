@@ -162,16 +162,29 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     let silenceTimer: ReturnType<typeof setTimeout> | undefined;
     let reopenDelay = MIN_REOPEN_DELAY_MS;
     let rereadTimer: ReturnType<typeof setTimeout> | undefined;
-    // Notices arriving before the reread starts join it, so a steady stream still rereads.
+    let rereading = false;
+    let rereadAgain = false;
+    // A listing already in flight may predate the change; TanStack reuses rather
+    // than restarts one that has no data yet.
+    const rereadNow = async () => {
+      rereading = true;
+      await Promise.all([documentsQuery.queryKey, NOTES_QUERY_KEY].map(async (queryKey) => {
+        await client.cancelQueries({ queryKey });
+        await client.invalidateQueries({ queryKey });
+      }));
+      rereading = false;
+      if (rereadAgain && !stopped) {
+        rereadAgain = false;
+        void rereadNow();
+      }
+    };
+    // Notices join a pending reread, and those arriving during one start a single next one,
+    // so a steady stream never cancels a reread before it lands.
     const reread = () => {
-      if (rereadTimer !== undefined) return;
-      rereadTimer = setTimeout(() => {
+      if (rereading) rereadAgain = true;
+      else rereadTimer ??= setTimeout(() => {
         rereadTimer = undefined;
-        // A listing already in flight may predate the change; TanStack reuses rather
-        // than restarts one that has no data yet.
-        for (const queryKey of [documentsQuery.queryKey, NOTES_QUERY_KEY]) {
-          void client.cancelQueries({ queryKey }).then(() => client.invalidateQueries({ queryKey }));
-        }
+        void rereadNow();
       }, REREAD_DELAY_MS);
     };
     const open = () => {
