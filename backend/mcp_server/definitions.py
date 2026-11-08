@@ -284,8 +284,7 @@ NOTE_TOOLS = [
     declare_note_tool(
         "delete_note",
         "Delete note",
-        "Delete a workspace with its document and history, which needs withChildren. Returns "
-        "the IDs that disappear.",
+        "Delete a workspace with its document and history, which needs withChildren.",
         {
             "target": {**REF, "description": "The note to delete."},
             "withChildren": {

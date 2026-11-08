@@ -110,7 +110,6 @@ CASES = {
         read=["a/"],
         ops=[{"op": "delete", "target": "a", "withChildren": True}],
         after={"b.md": "b\n"},
-        results=[{"removedIds": ["k3x9", "p7q2"]}],
     ),
     "delete a document with content needs withChildren": dict(
         before={"a.md": "- a\n"},
@@ -123,7 +122,6 @@ CASES = {
         read=["a.md"],
         ops=[{"op": "delete", "target": "a.md"}],
         after={"b.txt": "b\n"},
-        results=[{"removedIds": ["k3x9"]}],
     ),
     "set content by exact replacement": dict(
         before={"a.md": DOC},
@@ -597,7 +595,7 @@ class SingleFileWorkspaceTests(TestCase):
         result = notes.call(self.owner, [delete])
 
         self.assertEqual(preview["changes"], result["changes"])
-        self.assertEqual(result["results"], [{"removedIds": ["k3x9"]}])
+        self.assertEqual(result["results"], [{"ref": self.workspace.pk}])
         self.assertEqual(result["changes"], [{"ref": self.workspace.pk, "change": "deleted"}])
         self.assertFalse(Workspace.objects.filter(pk=self.workspace.pk).exists())
         self.assertFalse(Blob.objects.exists())

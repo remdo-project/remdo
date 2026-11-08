@@ -42,12 +42,6 @@ def document_has_children(content):
     return bool(ID_NOTE.sub("", text).strip())
 
 
-def removed_ids(tree, files):
-    """The IDs that deleting `files` removes, reading their contents at once."""
-    tree.load(file.path for file in files if file.holds_ids)
-    return [note_id for file in files for note_id in file.removed_ids()]
-
-
 def _name(path):
     return path.rsplit("/", 1)[-1]
 
@@ -222,7 +216,6 @@ class Note:
     kind = None
     operations = ("read",)
     listing = False
-    holds_ids = False
 
     def __init__(self, call, path):
         self.call = call
@@ -307,9 +300,8 @@ class Workspace(Container):
             self.call.refuse(
                 "INVALID_ARGUMENT", "A workspace holds its document; set withChildren to delete it."
             )
-        removed = removed_ids(self.tree, [self.call.note_at(file) for file in self.files()])
         self.call.deleted = True
-        return {"removedIds": removed}
+        return {"ref": self.call.ref("")}
 
 
 class Movable(Note):
@@ -342,16 +334,14 @@ class Movable(Note):
 
     def delete(self, operation):
         self.call.check(self)
-        files = [self.call.note_at(file) for file in self.files()]
-        removed = removed_ids(self.tree, files)
         if self.has_children() and not operation.get("withChildren"):
             self.call.refuse(
                 "INVALID_ARGUMENT",
                 f"{self.path!r} has children; set withChildren to delete them too.",
             )
-        for file in files:
-            self.tree.remove(file.path)
-        return {"removedIds": removed}
+        for file in self.files():
+            self.tree.remove(file)
+        return {"ref": self.call.ref(self.path)}
 
     def relocate(self, new_path, field):
         self.call.check(self)
@@ -403,9 +393,6 @@ class File(Movable):
     def has_children(self):
         return False
 
-    def removed_ids(self):
-        return []
-
     def read(self, depth, content=False):
         node = super().read(depth)
         if self.children_known:
@@ -441,7 +428,6 @@ class Document(File):
     """A `.md` file read in the RemDo text format; its text is its name without `.md`."""
 
     kind = "document"
-    holds_ids = True
 
     @property
     def operations(self):
@@ -465,9 +451,6 @@ class Document(File):
 
     def has_children(self):
         return document_has_children(self.content)
-
-    def removed_ids(self):
-        return ids_in(self.content)
 
     def check_content(self, current, content):
         if sorted(ids_in(content)) != sorted(ids_in(current)):

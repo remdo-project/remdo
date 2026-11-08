@@ -20,8 +20,7 @@ agents and integrations use them alike.
 3. **Move** puts a note, with its children, under a new parent in the same
    workspace, at a position as for Insert. **Deterministic.**
 4. **Delete** removes a note. A note with children is removed only when the
-   operation says so, along with its children. The result lists the IDs that
-   disappear. **Deterministic.**
+   operation says so, along with its children. **Deterministic.**
 5. **Set text** changes a note's [text](./note-model.md#note-kinds).
    **Deterministic.**
 6. **Set content** changes a document's whole content.
