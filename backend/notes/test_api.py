@@ -78,3 +78,10 @@ class NotesApiTests(TestCase):
         )
         self.assertEqual(missing.status_code, 404)
         self.assertEqual(malformed.status_code, 400)
+
+    def test_the_bootstrap_reports_workspace_access(self):
+        other = User.objects.create_user("other@example.test", "Other-password-123")
+
+        self.assertTrue(self.client.get("/api/current-user").json()["canUseWorkspaces"])
+        self.client.force_login(other)
+        self.assertFalse(self.client.get("/api/current-user").json()["canUseWorkspaces"])

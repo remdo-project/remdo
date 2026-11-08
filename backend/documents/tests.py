@@ -72,7 +72,7 @@ class DocumentFlowTests(TestCase):
     def test_sign_in_bootstrap_create_list_and_reopen(self):
         self.sign_in()
         bootstrap = self.client.get("/api/current-user").json()
-        self.assertEqual(bootstrap, {"userId": str(self.owner.pk)})
+        self.assertEqual(bootstrap, {"userId": str(self.owner.pk), "canUseWorkspaces": False})
         self.assertEqual(self.client.get("/api/current-user").json(), bootstrap)
         response = self.post("/api/documents", {"title": "Research"})
         self.assertEqual(response.status_code, 201)
@@ -558,7 +558,7 @@ class StarterDocumentTests(TestCase):
         for _ in range(2):
             self.assertEqual(
                 self.client.get("/api/current-user").json(),
-                {"userId": str(user.pk)},
+                {"userId": str(user.pk), "canUseWorkspaces": False},
             )
             self.assertEqual(self.client.get("/api/documents").json(), [])
         self.assertFalse(Document.objects.filter(owner=user).exists())
