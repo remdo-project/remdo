@@ -34,8 +34,12 @@ async function change(client: QueryClient, operation: NoteOperation) {
     return await callNotes([operation]);
   } finally {
     await client.cancelQueries({ queryKey: ACCOUNT_QUERY });
+    const landed = () => client.getQueryState(ACCOUNT_QUERY)?.dataUpdatedAt;
+    const before = landed();
     try {
-      client.setQueryData(ACCOUNT_QUERY, await readNote('me', { depth: 2 }));
+      const list = await readNote('me', { depth: 2 });
+      // A query read landing meanwhile started after the change, so it is at least as new.
+      if (landed() === before) client.setQueryData(ACCOUNT_QUERY, list);
     } catch {
       // A failed reread must not turn the change's outcome into a failure.
       void client.invalidateQueries({ queryKey: ACCOUNT_QUERY });

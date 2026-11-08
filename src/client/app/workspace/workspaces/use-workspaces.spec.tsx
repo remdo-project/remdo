@@ -78,3 +78,38 @@ it('resolves a change once the listed workspaces reflect it', async () => {
 
   expect(client.getQueryData<NoteRead>([...NOTES_QUERY_KEY, 'me'])?.children?.[0]?.text).toBe('Lisbon');
 });
+
+it('keeps a newer list a notice read while the change confirmed it', async () => {
+  writeStoredCurrentUserBootstrap(JSON.stringify({ userId: 'alice', canUseWorkspaces: true }));
+  let name = 'Trip';
+  let reads = 0;
+  const account = (text: string) => Response.json({
+    ref: 'me', kind: 'account', text: 'a@example.test', operations: ['read', 'insert'],
+    children: [{
+      ref: 'w1', kind: 'workspace', text, operations: ['read', 'delete', 'setText'], version: text,
+      children: [{ ref: 'w1/README.md', kind: 'document', text: 'README', operations: ['read'], version: null }],
+    }],
+  });
+  vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
+    const { pathname } = new URL(request.url);
+    if (pathname === '/api/config') return Response.json({ csrfCookieName: 'csrftoken' });
+    if (request.method === 'POST') {
+      name = 'Lisbon';
+      return Response.json({ results: [{ ref: 'w1' }], changes: [], revision: null, dryRun: false });
+    }
+    if (++reads === 2) {
+      // Another session renames again, and its notice's read lands before this one answers.
+      const older = account(name);
+      name = 'Porto';
+      await client.refetchQueries({ queryKey: [...NOTES_QUERY_KEY, 'me'] });
+      return older;
+    }
+    return account(name);
+  }));
+  const { result } = renderHook(useWorkspaces, { wrapper });
+  await waitFor(() => expect(result.current.workspaces).toHaveLength(1));
+
+  await act(() => result.current.workspaces[0]!.rename('Lisbon'));
+
+  expect(client.getQueryData<NoteRead>([...NOTES_QUERY_KEY, 'me'])?.children?.[0]?.text).toBe('Porto');
+});
