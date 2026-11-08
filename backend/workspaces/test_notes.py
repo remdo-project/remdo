@@ -544,6 +544,20 @@ class SingleFileWorkspaceTests(TestCase):
             ("FAILED_PRECONDITION", {self.readme: current}),
         )
 
+    def test_a_save_after_a_concurrent_deletion_finds_the_workspace_missing(self):
+        changes = source.Tree.changes
+
+        def deleted_meanwhile(tree):
+            Workspace.objects.filter(pk=self.workspace.pk).delete()
+            return changes(tree)
+
+        with (
+            mock.patch.object(source.Tree, "changes", deleted_meanwhile),
+            self.assertRaises(notes.Refusal) as refusal,
+        ):
+            self.set_content("- a\n", None)
+        self.assertEqual(refusal.exception.code, "NOT_FOUND")
+
     def test_a_workspace_adds_and_renames_no_files(self):
         self.set_content("- a\n", None)
 

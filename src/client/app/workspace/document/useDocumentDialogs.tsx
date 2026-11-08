@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DocumentNote } from '#note-sdk';
-import { isWorkspaceEntry } from '../workspaces/use-workspaces';
+import { isWorkspaceEntry, WORKSPACE_NAME_MAX_LENGTH } from '../workspaces/use-workspaces';
 import type { WorkspaceEntry } from '../workspaces/use-workspaces';
 import { DocumentDeleteDialog } from './DocumentDeleteDialog';
 import { DocumentRenameDialog } from './DocumentRenameDialog';
@@ -59,7 +59,14 @@ export function useDocumentDialogs(fallbackRef: { current: HTMLElement | null },
           onDeleted={onDeleted}
         />
       ),
-      rename: <DocumentRenameDialog key={target.note.getId()} note={target.note} onClose={close} />,
+      rename: (
+        <DocumentRenameDialog
+          key={target.note.getId()}
+          maxLength={isWorkspaceEntry(target.note) ? WORKSPACE_NAME_MAX_LENGTH : undefined}
+          note={target.note}
+          onClose={close}
+        />
+      ),
       share: !isWorkspaceEntry(target.note) && (
         <DocumentShareDialog key={target.note.getId()} note={target.note} onClose={close} />
       ),

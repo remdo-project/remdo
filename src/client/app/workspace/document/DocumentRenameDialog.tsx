@@ -5,9 +5,11 @@ import type { DocumentNote } from '#note-sdk';
 import { RemdoDialog } from '#client/ui/RemdoDialog';
 
 export function DocumentRenameDialog({
+  maxLength = DOCUMENT_TITLE_MAX_LENGTH,
   note,
   onClose,
 }: {
+  maxLength?: number;
   note: Pick<DocumentNote, 'getText'> & { rename: (title: string) => Promise<unknown> };
   onClose: () => void;
 }) {
@@ -51,7 +53,7 @@ export function DocumentRenameDialog({
             error={error}
             errorProps={{ role: 'alert' }}
             label="Document name"
-            maxLength={DOCUMENT_TITLE_MAX_LENGTH}
+            maxLength={maxLength}
             onChange={(event) => { setDraft(event.currentTarget.value); setError(null); }}
             // Only the opening focus selects, so returning to the field keeps the caret.
             onFocus={(event) => {

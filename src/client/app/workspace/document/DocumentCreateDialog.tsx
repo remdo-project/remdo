@@ -2,6 +2,7 @@ import { Button as FormButton, Group, Stack, TextInput } from '@mantine/core';
 import { useRef, useState } from 'react';
 import { DOCUMENT_TITLE_MAX_LENGTH } from '#domain/documents/user-data';
 import { RemdoDialog } from '#client/ui/RemdoDialog';
+import { WORKSPACE_NAME_MAX_LENGTH } from '../workspaces/use-workspaces';
 
 function suggestName(base: string, existingNames: readonly string[]): string {
   const names = new Set(existingNames.map((name) => name.trim().toLowerCase()));
@@ -63,7 +64,7 @@ export function DocumentCreateDialog({
             errorProps={{ role: 'alert' }}
             inputWrapperOrder={['label', 'input', 'description', 'error']}
             label={`${Kind} name`}
-            maxLength={DOCUMENT_TITLE_MAX_LENGTH}
+            maxLength={kind === 'workspace' ? WORKSPACE_NAME_MAX_LENGTH : DOCUMENT_TITLE_MAX_LENGTH}
             onChange={(event) => { setDraft(event.currentTarget.value); setError(null); }}
             onFocus={(event) => {
               if (selectedOnOpenRef.current) return;

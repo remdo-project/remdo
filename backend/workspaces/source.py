@@ -15,6 +15,7 @@ from .models import WORKSPACE_NAME_MAX_LENGTH
 
 DOCUMENT_SUFFIX = ".md"
 README = "README.md"
+MISSING_WORKSPACE = "The workspace is not available. Read the account root for them."
 # The text format's ID note, as in `- id:: k3x9`; the format parser replaces this.
 ID_NOTE = re.compile(r"^[ \t>]*[-*+][ \t]+id::[ \t]*(\S+)[ \t]*\r?$", re.MULTILINE)
 
@@ -498,9 +499,7 @@ def open_call(user, workspace_id, expected=None):
     """A call on one of the user's workspaces; other users' are refused as missing."""
     workspace = models.Workspace.objects.filter(owner=user, pk=workspace_id).first()
     if workspace is None:
-        raise Refusal(
-            "NOT_FOUND", "The workspace is not available. Read the account root for them."
-        )
+        raise Refusal("NOT_FOUND", MISSING_WORKSPACE)
     return WorkspaceCall(user, workspace, expected)
 
 
@@ -568,9 +567,13 @@ class WorkspaceCall(Call):
 
     def commit(self, operations, dry_run):
         if self.deleted:
-            deleted = [{"ref": self.ref(""), "change": "deleted"}]
-            self.workspace.delete()
-            return deleted, None
+            # The store's commit lock, so a concurrent save can't add history the deletion misses.
+            locked = (
+                models.Workspace.objects.select_for_update().filter(pk=self.workspace.pk).first()
+            )
+            if locked is not None:
+                locked.delete()
+            return [{"ref": self.ref(""), "change": "deleted"}], None
         described = []
         if self.name != self.workspace.name:
             models.Workspace.objects.filter(pk=self.workspace.pk).update(name=self.name)
@@ -588,6 +591,9 @@ class WorkspaceCall(Call):
                 )
             except store.StaleFile as error:
                 raise self.expectations.stale(error) from error
+            # Deleted by a concurrent call since this one opened it.
+            except models.Workspace.DoesNotExist as error:
+                raise Refusal("NOT_FOUND", MISSING_WORKSPACE) from error
             # Every path was checked against the tree, so a conflict here is a concurrent change.
             except store.PathTaken as error:
                 raise Refusal(

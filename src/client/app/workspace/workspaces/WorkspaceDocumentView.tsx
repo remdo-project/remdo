@@ -99,7 +99,8 @@ function LoadedDocument({
   const [base, setBase] = useState(initial);
   const [draft, setDraft] = useState(initial.text);
   const [saving, setSaving] = useState(false);
-  const [conflict, setConflict] = useState<string | null>(null);
+  // The current version a stale save was refused against, which may be null for a missing file.
+  const [conflict, setConflict] = useState<{ version: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   let status: Status = 'saved';
@@ -118,7 +119,7 @@ function LoadedDocument({
       setConflict(null);
     } catch (failure) {
       if (failure instanceof NotesRefusal && failure.code === 'FAILED_PRECONDITION') {
-        setConflict(failure.versions[ref] ?? null);
+        setConflict({ version: failure.versions[ref] ?? null });
       } else {
         setError(failure instanceof Error ? failure.message : 'Could not save the document.');
       }
@@ -150,7 +151,7 @@ function LoadedDocument({
             Your text isn't saved.
             <Group gap={8}>
               <Button onClick={() => { void reloadTheirs(); }} variant="default">Reload theirs</Button>
-              <Button className="remdo-dialog-danger" onClick={() => { void save(conflict); }}>
+              <Button className="remdo-dialog-danger" onClick={() => { void save(conflict.version); }}>
                 Overwrite with mine
               </Button>
             </Group>

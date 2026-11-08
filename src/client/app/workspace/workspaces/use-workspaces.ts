@@ -6,6 +6,8 @@ import { callNotes, readNote } from './notes-api';
 import type { NoteOperation, NoteRead } from './notes-api';
 
 const ACCOUNT_QUERY = ['notes', 'me'] as const;
+/** Mirrors WORKSPACE_NAME_MAX_LENGTH in backend/workspaces/models.py. */
+export const WORKSPACE_NAME_MAX_LENGTH = 200;
 
 /** A workspace as Home lists it: rows, menus and dialogs treat it like a document. */
 export interface WorkspaceEntry {
