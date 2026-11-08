@@ -558,6 +558,16 @@ class SingleFileWorkspaceTests(TestCase):
             self.set_content("- a\n", None)
         self.assertEqual(refusal.exception.code, "NOT_FOUND")
 
+    def test_a_rename_after_a_concurrent_deletion_finds_the_workspace_missing(self):
+        call = source.open_call(self.owner, self.workspace.pk)
+        Workspace.objects.filter(pk=self.workspace.pk).delete()
+
+        with self.assertRaises(notes.Refusal) as refusal:
+            call.run([{"op": "setText", "target": self.workspace.pk, "text": "Renamed"}], False)
+
+        self.assertEqual(refusal.exception.code, "NOT_FOUND")
+        self.assertFalse(Workspace.objects.exists())
+
     def test_a_workspace_adds_and_renames_no_files(self):
         self.set_content("- a\n", None)
 

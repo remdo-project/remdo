@@ -504,16 +504,17 @@ def open_call(user, workspace_id, expected=None):
 
 
 def create_workspace(call, name, content):
-    """Create a workspace for the call's user, and a call on it that writes any README content.
+    """Create a workspace for the call's user, with a call on it that writes any README content.
 
     The caller commits that call with its own, so the README's revision is part of its result.
     """
     workspace = models.Workspace.objects.create(name=name, owner=call.user)
+    if not content:
+        return workspace.pk, None
     files = WorkspaceCall(call.user, workspace)
     files.index = call.index
-    if content:
-        Document.check_new(files, content)
-        files.put(README, content)
+    Document.check_new(files, content)
+    files.put(README, content)
     return workspace.pk, files
 
 
@@ -576,7 +577,8 @@ class WorkspaceCall(Call):
             return [{"ref": self.ref(""), "change": "deleted"}], None
         described = []
         if self.name != self.workspace.name:
-            models.Workspace.objects.filter(pk=self.workspace.pk).update(name=self.name)
+            if not models.Workspace.objects.filter(pk=self.workspace.pk).update(name=self.name):
+                raise Refusal("NOT_FOUND", MISSING_WORKSPACE)
             described.append({"ref": self.ref(""), "change": "renamed", "text": self.name})
         changes = self.tree.changes()
         revision = None

@@ -59,9 +59,10 @@ class AccountCall(Call):
     def commit(self, operations, dry_run):
         described, revision = [], None
         for ref, files in self.created:
-            changes, files_revision = files.commit(operations, dry_run)
-            described += [{"ref": ref, "change": "added"}, *changes]
-            revision = files_revision or revision
+            described.append({"ref": ref, "change": "added"})
+            if files:
+                changes, revision = files.commit(operations, dry_run)
+                described += changes
         return described, revision
 
 
