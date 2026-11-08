@@ -566,6 +566,21 @@ class SingleFileWorkspaceTests(TestCase):
         self.assertEqual(refusal.exception.code, "NOT_FOUND")
         self.assertFalse(Workspace.objects.exists())
 
+    def test_a_document_holds_only_utf8_text(self):
+        binary = {"content": "/wA=", "contentEncoding": "base64"}
+
+        for operation in (
+            {"op": "setContent", "target": self.readme, **binary},
+            {"op": "insert", "parent": "me", "kind": "workspace", "text": "Bytes", **binary},
+        ):
+            with self.subTest(op=operation["op"]), self.assertRaises(notes.Refusal) as refusal:
+                notes.call(self.owner, [operation], {self.readme: None})
+            self.assertEqual(
+                (refusal.exception.code, str(refusal.exception)),
+                ("INVALID_ARGUMENT", "content: a document is UTF-8 text."),
+            )
+        self.assertEqual(Workspace.objects.count(), 1)
+
     def test_a_workspace_adds_and_renames_no_files(self):
         self.set_content("- a\n", None)
 

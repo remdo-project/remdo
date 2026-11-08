@@ -441,7 +441,15 @@ class Document(File):
         return Movable.name_for(call, text) + DOCUMENT_SUFFIX
 
     @classmethod
+    def check_text(cls, call, content):
+        try:
+            content.decode()
+        except UnicodeDecodeError:
+            call.refuse("INVALID_ARGUMENT", "content: a document is UTF-8 text.")
+
+    @classmethod
     def check_new(cls, call, content):
+        cls.check_text(call, content)
         if ids_in(content):
             call.refuse("INVALID_ARGUMENT", "content: a new document can't carry IDs.")
 
@@ -453,6 +461,7 @@ class Document(File):
         return document_has_children(self.content)
 
     def check_content(self, current, content):
+        self.check_text(self.call, content)
         if sorted(ids_in(content)) != sorted(ids_in(current)):
             self.call.refuse("INVALID_ARGUMENT", "content: Set content can't add or remove IDs.")
 
