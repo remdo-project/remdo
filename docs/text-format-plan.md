@@ -8,6 +8,11 @@ The plan covers single-file workspaces through the migration of every editor
 document. Multi-file workspaces, the Git connector and external sources need
 [later plans](#later-plans).
 
+The plan finishes its migrations: anything predating it that has a simpler or
+more consistent form on its mechanisms moves to them, or is deleted, rather
+than living beside them. What is too large to move at once is listed under
+Cleanup with its reason.
+
 New documents use this design behind an experimental flag, a Django permission
 that administrators grant, so each stage can merge to `main` without affecting
 existing documents. Users without the flag, including directory reviewers, see
@@ -142,6 +147,17 @@ unchanged.
   Rich paragraph lines can follow if users ask, with no text change.
 - `folded` stays in Yjs node state.
 
+## How steps land
+
+- Each step holds one side fixed, changing only tests or only production
+  code, so the unchanged side shows nothing else moved.
+- Mechanical changes, scripted with the command in the pull request, stay apart
+  from logic changes.
+- A new path lands, callers switch, then the old path goes, each passing on its
+  own; while both exist, a check shows they agree.
+- A migration follows the mechanism that enables it as its own step, not inside
+  the feature.
+
 ## Stages
 
 Stages 3 and 5 can run in parallel once stage 2 lands. So can stages 4 and 6
@@ -152,7 +168,7 @@ once stage 3 lands.
    - Add note operations for the account root, workspaces, folders, documents
      and files, without outline notes, through one MCP tool per operation.
      Existing tools stay for old documents.
-2. **Workspaces on Home**
+2. **Workspaces on Home**, landed with search moved to stage 5
    - Narrow workspaces to one `README.md`: refuse any call that leaves another
      file, keeping the folder and plain-file kinds for multi-file workspaces,
      and drop the personal workspace. Insert of a workspace may come with its
@@ -163,22 +179,28 @@ once stage 3 lands.
      document as plain text, and renames and deletes workspaces.
    - Send notes changes through the account's change notice, and test that Home
      catches up after the channel reconnects.
-   - Add search across the account's workspaces, for Home and MCP.
-   - Exit: a flagged user creates, edits, renames, finds and deletes
-     workspaces on Home and through MCP, and Home shows an agent's changes
-     without a reload.
-3. **Editor on text**
-   - Spike the tree first: a Yjs-to-tree-to-text round trip over the corpus
-     keeps every byte.
+   - Exit: a flagged user creates, edits, renames and deletes workspaces on
+     Home and through MCP, and Home shows an agent's changes without a reload.
+3. **Editor on text**, in this order, each step one or a few PRs
+   - Before changing editor internals, move editor tests onto the text format
+     so the same tests check behavior before and after: first find notes by
+     their text, expecting exactly one match, against today's fixtures; then
+     write fixtures in the format with only the IDs tests rely on, checked
+     against the JSON they replace; then expected outlines. A JavaScript reader
+     in test support reads what migrated fixtures use and moves into the app
+     when paste needs it; expected outlines compare as trees, so tests need no
+     second writer. JSON fixtures stay for states the format can't express.
    - Add the Python reader and canonical writer, with write-time alignment to
-     the saved text, and the JavaScript reader for paste and test fixtures.
-   - Express editor test fixtures and expected outlines in the text format
-     before changing editor internals, so the same tests check behavior before
-     and after.
+     the saved text, and let Read list a document's outline notes and blocks.
+     Test the writer on edits beside unusual Markdown, not only on text that
+     round-trips unchanged.
    - Write operation cases once, as text before, operations, and text after or
      the refusal. Test them on Python's note operations, and check each other
      surface, such as MCP or the editor, with only a few of the same cases. Add
      this rule to the [testing policy](dev/testing.md) once it has worked.
+   - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and
+     the corpus keeps every byte, reports what it loses, and settles the
+     schema, including how editor bodies map to Markdown blocks.
    - Extend the editor schema with headings, `block` lines, per-note markers and
      independent checkboxes. Use `line` or `group` storage with no body wrapper.
    - Add Node's three calls, the cache row with the last-saved tree, the
@@ -187,11 +209,14 @@ once stage 3 lands.
      a recreated identical note, repair duplicates, and clear a holder when a
      text `id::` claims its value.
    - Update note content by splicing text, never `clear()` plus `append()`.
+   - Open a workspace's document in the editor instead of as plain text, the
+     first change people see. It comes before outline note operations, which
+     would otherwise give the editor an independent reference, so integration
+     problems surface early.
    - Add Python note operations for outline notes and Markdown blocks, and
-     their MCP tools. Let each note resolve its own children and name the kinds
-     it holds, instead of deciding kinds from paths, and let each kind class
-     register itself.
-   - Open a workspace's document in the editor instead of as plain text.
+     their MCP tools, starting with Set text and Ensure ID. Let each note
+     resolve its own children and name the kinds it holds, instead of deciding
+     kinds from paths, and let each kind class register itself.
    - Move the open document's semantic operations into note operations, as a
      complete contract migration once the pending MCP reviews allow it.
      Consider the [note range](specs/outliner/selection.md#note-ranges) as the
@@ -211,6 +236,8 @@ once stage 3 lands.
 5. **Note layer**
    - Add `resolve(uri)` for `note:` across workspaces and the new URL routes.
    - Add `useNote` and backlinks.
+   - Add search across the account's workspaces, for Home and MCP, whose
+     results open the matching note.
    - Give the Python account root the
      [user-data hierarchy](specs/outliner/user-data.md#hierarchy), replacing
      the SDK's `user-data`, `document-source` and `collection` kinds; the SDK
