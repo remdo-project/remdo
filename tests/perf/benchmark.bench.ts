@@ -121,7 +121,7 @@ const OPERATIONS: Operation[] = [
   {
     name: 'add note',
     run: async (remdo, targets) => {
-      await placeCaretAtNote(remdo, targets.leafNoteId, Number.POSITIVE_INFINITY);
+      await placeCaretAtNote(remdo, { id: targets.leafNoteId }, Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Enter' });
     },
   },
@@ -130,44 +130,44 @@ const OPERATIONS: Operation[] = [
   {
     name: 'reorder note (within parent)',
     run: async (remdo, targets) => {
-      await placeCaretAtNote(remdo, targets.withinParentNoteId, 0);
+      await placeCaretAtNote(remdo, { id: targets.withinParentNoteId }, 0);
       await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND);
     },
   },
   {
     name: 'reorder note (between parents)',
     run: async (remdo, targets) => {
-      await placeCaretAtNote(remdo, targets.betweenParentsMovingNoteId, 0);
+      await placeCaretAtNote(remdo, { id: targets.betweenParentsMovingNoteId }, 0);
       await pressKey(remdo, { key: 'Tab' });
-      await placeCaretAtNote(remdo, targets.betweenParentsMovingNoteId, 0);
+      await placeCaretAtNote(remdo, { id: targets.betweenParentsMovingNoteId }, 0);
       await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND);
     },
   },
   {
     name: 'delete note',
     run: async (remdo, targets) => {
-      await selectNoteSubtree(remdo, targets.deleteNoteId);
+      await selectNoteSubtree(remdo, { id: targets.deleteNoteId });
       await pressKey(remdo, { key: 'Delete' });
     },
   },
   {
     name: 'type character (start)',
     run: async (remdo, targets) => {
-      await placeCaretAtNote(remdo, targets.typingNoteId, 0);
+      await placeCaretAtNote(remdo, { id: targets.typingNoteId }, 0);
       await typeText(remdo, 'x');
     },
   },
   {
     name: 'type character (middle)',
     run: async (remdo, targets) => {
-      await placeCaretAtNote(remdo, targets.typingNoteId, targets.typingMiddleOffset);
+      await placeCaretAtNote(remdo, { id: targets.typingNoteId }, targets.typingMiddleOffset);
       await typeText(remdo, 'x');
     },
   },
   {
     name: 'type character (end)',
     run: async (remdo, targets) => {
-      await placeCaretAtNote(remdo, targets.typingNoteId, Number.POSITIVE_INFINITY);
+      await placeCaretAtNote(remdo, { id: targets.typingNoteId }, Number.POSITIVE_INFINITY);
       await typeText(remdo, 'x');
     },
   },

@@ -1,11 +1,12 @@
 import type { ListItemNode } from '@lexical/list';
-import { $isListItemNode } from '@lexical/list';
+import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { RemdoTestApi } from '#client/editor/dev';
 import { waitFor } from '@testing-library/react';
 import type { TextNode } from 'lexical';
 import {
   $createRangeSelection,
   $getNodeByKey,
+  $getRoot,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
@@ -16,7 +17,6 @@ import { extractOutlineFromEditorState } from '#tests-common/outline';
 import { findNearestListItem, getRootElementOrThrow } from './selection';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { forEachContentItemInOutline } from '#client/editor/outline/list-traversal';
-import { $requireRootContentList } from '#client/editor/outline/schema';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
 import { expect } from 'vitest';
@@ -52,7 +52,10 @@ export type NoteRef = string | { id: string };
 
 function $findNote(note: NoteRef): ListItemNode {
   const matches: ListItemNode[] = [];
-  forEachContentItemInOutline($requireRootContentList(), (item) => {
+  // A malformed root, as a schema-bypass fixture holds before normalization, has no notes to
+  // find; the editor's own root helper would also report it as a runtime invariant.
+  const rootList = $getRoot().getFirstChild();
+  if ($isListNode(rootList)) forEachContentItemInOutline(rootList, (item) => {
     if (typeof note === 'string' ? getNoteOwnText(item) === note : $getNoteId(item) === note.id) {
       matches.push(item);
     }
@@ -100,14 +103,16 @@ export async function placeCaretAtNote(remdo: RemdoTestApi, note: NoteRef, offse
 
   await remdo.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' }, { expect: 'any' });
 
-  const key = getNoteKey(remdo, note);
+  let noteId = '';
   await remdo.mutate(() => {
-    placeCaretAtListItem($getListItemByKeyOrThrow(key), offset);
+    const item = $findNote(note);
+    noteId = $getNoteIdOrThrow(item);
+    placeCaretAtListItem(item, offset);
   });
 
   await waitFor(() => {
     // Wait for both lexical and outline selection state to settle, so the progressive ladder resets.
-    expect(readCaretNoteKey(remdo)).toBe(key);
+    expect(readCaretNoteId(remdo)).toBe(noteId);
     expect(remdo.editor.selection.get()?.kind).toBe('caret');
   });
 }
@@ -123,9 +128,11 @@ export async function placeCaretAtNoteTextNode(
 
   await remdo.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' }, { expect: 'any' });
 
-  const key = getNoteKey(remdo, note);
+  let noteId = '';
   await remdo.mutate(() => {
-    const textNodes = $getListItemByKeyOrThrow(key).getChildren().filter($isTextNode);
+    const item = $findNote(note);
+    noteId = $getNoteIdOrThrow(item);
+    const textNodes = item.getChildren().filter($isTextNode);
     const target = textNodes[textNodeIndex]!;
 
     const length = target.getTextContentSize();
@@ -138,7 +145,7 @@ export async function placeCaretAtNoteTextNode(
   });
 
   await waitFor(() => {
-    expect(readCaretNoteKey(remdo)).toBe(key);
+    expect(readCaretNoteId(remdo)).toBe(noteId);
     expect(remdo.editor.selection.get()?.kind).toBe('caret');
   });
 }
