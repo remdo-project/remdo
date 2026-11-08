@@ -10,12 +10,12 @@ agents and integrations use them alike.
 1. **Read** returns a note's text and, to a requested depth, its children, with
    each note's reference, kind and the operations it offers, and the version of
    every file read. A note at the depth limit reports whether it has children.
-   When asked, it also returns a document's or plain file's content.
+   When asked, it also returns a document's content.
    **Deterministic.**
 2. **Insert** adds new notes under a parent: outline notes and Markdown blocks
-   from a Markdown fragment nested as deep as needed, documents and files,
-   where a document may come with its content, or workspaces. In a document,
-   the position is first, last, or before or after a sibling.
+   from a Markdown fragment nested as deep as needed, or workspaces, which may
+   come with their document's content. In a document, the position is first,
+   last, or before or after a sibling.
    **Deterministic.**
 3. **Move** puts a note, with its children, under a new parent in the same
    workspace, at a position as for Insert. **Deterministic.**
@@ -24,7 +24,7 @@ agents and integrations use them alike.
    disappear. **Deterministic.**
 5. **Set text** changes a note's [text](./note-model.md#note-kinds).
    **Deterministic.**
-6. **Set content** changes a document's or plain file's whole content.
+6. **Set content** changes a document's whole content.
    **Deterministic.**
 7. **Ensure ID** returns a note's ID, writing a new one into its document when
    the note has none. **Deterministic.**
@@ -36,17 +36,15 @@ whitespace included. Replacements apply only to text. **Deterministic.**
 ## Kinds
 
 - **Account root:** Read, Insert.
-- **Workspace:** Read, Insert, Set text.
-- **Folder:** Read, Insert, Move, Delete, Set text.
-- **Document:** Read, Insert, Move, Delete, Set text, Set content, Ensure ID.
+- **Workspace:** Read, Delete, Set text.
+- **Document:** Read, Insert, Set content, Ensure ID.
 - **Outline note:** Read, Insert, Move, Delete, Set text, Ensure ID.
 - **Markdown block:** Read, Move, Delete, Set text.
-- **Plain file:** Read, Move, Delete, Set text, Set content.
 
 An operation a kind doesn't offer is refused, and kinds this list doesn't name
-offer none. A workspace is deleted under its
-[access rules](../access/access-control.md#sources), not through these
-operations.
+offer none. Deleting a workspace follows its
+[access rules](../access/access-control.md#sources), states no expected
+content, and deletes the workspace's history with it.
 
 ## Calls
 
@@ -57,9 +55,7 @@ operations.
    target's, so a source the call creates is changed only by a later call. A
    later operation can name a note an earlier one created. **Deterministic.**
 2. A call states the expected content of every file it changes, as the store
-   requires. A Move, Delete or Set text of a folder also states the version of
-   its [listing](../workspaces/store.md#reads), so a file added or changed under
-   it since makes the call stale. **Deterministic.**
+   requires. **Deterministic.**
 3. An operation is refused when its target path is taken, or when it would put
    a note somewhere the [text format](../../format.md) can't hold it, such as a
    heading under a deeper heading. **Deterministic.**
@@ -74,6 +70,13 @@ operations.
    nothing. **Deterministic.**
 7. A call that changes nothing succeeds without a revision. Insert, Set text
    and Set content that would change nothing are refused. **Deterministic.**
+
+## Future
+
+- **Multi-file workspaces:** Insert, Move, Delete and Set text of folders,
+  documents and plain files in a workspace, a folder's operations stating the
+  version of its [listing](../workspaces/store.md#reads), and Set content of
+  plain files.
 
 ## References
 

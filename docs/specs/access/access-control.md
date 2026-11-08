@@ -265,6 +265,7 @@ established collaboration connections keep their authorization until disconnect.
 ## Future
 
 - Consider offering a readable export before document deletion.
+- Add workspace members with full access, as editor documents have grants.
 - Consider password changes when adding account self-service.
 - Add audit logging and rate limiting to future public-policy changes.
 - Define anonymous access and public documents.

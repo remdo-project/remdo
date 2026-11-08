@@ -1,7 +1,7 @@
 # Quick Action Menu
 
 RemDo has one quick action menu: an action popup for an editor-note row, a
-document view's [location header](./location-header.md), a [Home](./home.md) document row, or the current
+document view's [location header](./location-header.md), a [Home](./home.md) row, or the current
 [selection](./selection.md). It owns entry, action availability, targeting, and focus behavior.
 When opened for an editor note, it is an [editor popup](./popups.md) and follows that shared
 contract.
@@ -47,9 +47,10 @@ contract.
    - Fold/Unfold per [Folding](./folding.md), hidden when single-note folding is
      unavailable, shortcut `F` when the menu is open.
    - Zoom per [Zoom](./zoom.md), shortcut `Z`.
-   - Rename… for a document, per [Document rename](./location-header.md#document-rename).
-   - Share… for a document the current user owns, per [Document sharing](../access/access-control.md#document-sharing).
-   - Delete… for a document the current user owns, per [Document deletion](../access/access-control.md#document-deletion).
+   - Rename… for an editor document, per [Document rename](./location-header.md#document-rename).
+   - Share… for an editor document the current user owns, per [Document sharing](../access/access-control.md#document-sharing).
+   - Delete… for an editor document the current user owns, per [Document deletion](../access/access-control.md#document-deletion).
+   - Rename… and Delete… for a workspace, per [Workspace actions](./home.md#workspace-actions).
 4. Children actions:
    - Child list type actions per [List types](./list-types.md#type-conversion), showing only
      the two non-current options; hidden for leaf notes.
