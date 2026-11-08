@@ -423,7 +423,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'orphan body');
 
-    await placeCaretAtNote(remdo, 'note2', 0);
+    await placeCaretAtNote(remdo, { id: 'note2' }, 0);
     await pressKey(remdo, { key: 'Backspace' });
 
     expect(remdo).toMatchOutline([

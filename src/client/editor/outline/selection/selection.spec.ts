@@ -1054,14 +1054,14 @@ describe('selection plugin', () => {
   });
 
   it('skips the inline stage for whitespace-only notes on Cmd/Ctrl+A', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'space');
+        await placeCaretAtNote(remdo, { id: 'space' });
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['space'] });
   });
 
   it('restores the caret in a whitespace-only note when contraction empties a directional ladder', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-    await placeCaretAtNote(remdo, 'space', 1);
+    await placeCaretAtNote(remdo, { id: 'space' }, 1);
     await stepSelectionLadder(remdo, 'down');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['space'] });
 
@@ -1071,7 +1071,7 @@ describe('selection plugin', () => {
   });
 
   it('skips the inline stage for empty notes with no text nodes on downward step', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'nestedEmpty');
+        await placeCaretAtNote(remdo, { id: 'nestedEmpty' });
 
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
@@ -1081,7 +1081,7 @@ describe('selection plugin', () => {
   });
 
   it('selects the nested empty note before child-of-empty on downward step', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'nestedEmpty');
+        await placeCaretAtNote(remdo, { id: 'nestedEmpty' });
 
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
@@ -1092,7 +1092,7 @@ describe('selection plugin', () => {
   });
 
   it('selects only the nested empty note on Cmd/Ctrl+A before child-of-empty', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'nestedEmpty');
+        await placeCaretAtNote(remdo, { id: 'nestedEmpty' });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
@@ -1101,7 +1101,7 @@ describe('selection plugin', () => {
   });
 
   it('keeps Cmd/Ctrl+A anchored to child-of-empty when caret is at the end', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'child', Number.POSITIVE_INFINITY);
+        await placeCaretAtNote(remdo, { id: 'child' }, Number.POSITIVE_INFINITY);
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
@@ -1111,7 +1111,7 @@ describe('selection plugin', () => {
   });
 
   it('selects the trailing empty note on Cmd/Ctrl+A', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'trailing');
+        await placeCaretAtNote(remdo, { id: 'trailing' });
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
@@ -1121,7 +1121,7 @@ describe('selection plugin', () => {
   });
 
   it('expands Cmd/Ctrl+A from a trailing empty note to its siblings', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'trailing');
+        await placeCaretAtNote(remdo, { id: 'trailing' });
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
@@ -1139,7 +1139,7 @@ describe('selection plugin', () => {
   });
 
   it('selects the nested empty note on upward step before the previous sibling', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'nestedAfterChild');
+        await placeCaretAtNote(remdo, { id: 'nestedAfterChild' });
     await stepSelectionLadder(remdo, 'up');
 
     await waitFor(() => {
@@ -1149,13 +1149,13 @@ describe('selection plugin', () => {
   });
 
   it('extends Shift+Click from a nested empty note to its parent', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        const nestedElement = getNoteElement(remdo, 'nestedAfterChild');
-    const parentElement = getNoteElement(remdo, 'parent');
+        const nestedElement = getNoteElement(remdo, { id: 'nestedAfterChild' });
+    const parentElement = getNoteElement(remdo, { id: 'parent' });
 
     await collapseDomSelectionAtNode(nestedElement, nestedElement.childNodes.length);
 
     await waitFor(() => {
-      expect(readCaretNoteKey(remdo)).toBe(getNoteKey(remdo, 'nestedAfterChild'));
+      expect(readCaretNoteKey(remdo)).toBe(getNoteKey(remdo, { id: 'nestedAfterChild' }));
     });
 
     await extendDomSelectionToNode(parentElement, parentElement.childNodes.length);
@@ -1169,7 +1169,7 @@ describe('selection plugin', () => {
   });
 
   it('advances Cmd/Ctrl+A through the empty note ladder stages', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'nestedEmpty');
+        await placeCaretAtNote(remdo, { id: 'nestedEmpty' });
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
@@ -1273,7 +1273,7 @@ describe('selection plugin', () => {
   });
 
   it('collapses a single-note range on an empty note back to a caret', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'trailing');
+        await placeCaretAtNote(remdo, { id: 'trailing' });
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     await waitFor(() => {
@@ -1284,13 +1284,13 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'Escape' });
 
     await waitFor(() => {
-      expect(readCaretNoteKey(remdo)).toBe(getNoteKey(remdo, 'trailing'));
+      expect(readCaretNoteKey(remdo)).toBe(getNoteKey(remdo, { id: 'trailing' }));
     });
   });
 
   // Expected: a directional step starting on an empty parent note selects the full parent subtree.
   it('selects the full subtree when a directional step starts on an empty parent note', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'parent');
+        await placeCaretAtNote(remdo, { id: 'parent' });
     await stepSelectionLadder(remdo, 'down');
 
     await waitFor(() => {
@@ -1300,7 +1300,7 @@ describe('selection plugin', () => {
       });
     });
 
-    await placeCaretAtNote(remdo, 'parent');
+    await placeCaretAtNote(remdo, { id: 'parent' });
     await stepSelectionLadder(remdo, 'up');
 
     await waitFor(() => {
@@ -1313,20 +1313,20 @@ describe('selection plugin', () => {
 
   // Expected: Shift+Left/Right are inline-only and remain no-ops on empty notes (no note range).
   it('keeps Shift+Left/Right as no-ops on an empty note', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, 'parent');
-    expect(readCaretNoteKey(remdo)).toBe(getNoteKey(remdo, 'parent'));
+        await placeCaretAtNote(remdo, { id: 'parent' });
+    expect(readCaretNoteKey(remdo)).toBe(getNoteKey(remdo, { id: 'parent' }));
     expect(remdo.editor.selection.isStructural()).toBe(false);
 
     await pressKey(remdo, { key: 'ArrowRight', shift: true });
     await pressKey(remdo, { key: 'ArrowLeft', shift: true });
 
-    expect(readCaretNoteKey(remdo)).toBe(getNoteKey(remdo, 'parent'));
+    expect(readCaretNoteKey(remdo)).toBe(getNoteKey(remdo, { id: 'parent' }));
     expect(remdo.editor.selection.isStructural()).toBe(false);
   });
 
   it('snaps mixed empty/non-empty ranges into a contiguous note range', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
         const betaText = getNoteTextNode(remdo, 'beta');
-    const emptyTail = getNoteElement(remdo, 'nestedAfterChild');
+    const emptyTail = getNoteElement(remdo, { id: 'nestedAfterChild' });
 
     await dragDomSelectionBetween(betaText, 1, emptyTail, emptyTail.childNodes.length);
 

@@ -42,27 +42,31 @@ export function $getListItemByKeyOrThrow(key: string, label = key): ListItemNode
   return node;
 }
 
-function $findItemByNoteId(noteId: string): ListItemNode {
-  const root = $getRoot();
-  const list = root.getFirstChild() as ListNode;
-  const $search = (listNode: ListNode): ListItemNode | null => {
-    const items = listNode.getChildren().filter($isListItemNode);
-    for (const item of items) {
-      if ($getNoteId(item) === noteId) {
-        return item;
-      }
+/** A note in a test: its text, or `{ id }` when the test is about identity or texts repeat. */
+export type NoteRef = string | { id: string };
 
-      const nestedLists = item.getChildren().filter((child): child is ListNode => child.getType() === 'list');
-      for (const nested of nestedLists) {
-        const found = $search(nested);
-        if (found) return found;
+function $noteText(item: ListItemNode): string {
+  return item.getChildren().filter((child) => child.getType() !== 'list').map((child) => child.getTextContent()).join('');
+}
+
+function $findNote(note: NoteRef): ListItemNode {
+  const matches: ListItemNode[] = [];
+  const $search = (listNode: ListNode) => {
+    for (const item of listNode.getChildren().filter($isListItemNode)) {
+      if ($getNoteId(item) && (typeof note === 'string' ? $noteText(item) === note : $getNoteId(item) === note.id)) {
+        matches.push(item);
+      }
+      for (const nested of item.getChildren()) {
+        if (nested.getType() === 'list') $search(nested as ListNode);
       }
     }
-    return null;
   };
-
-  const match = $search(list)!;
-  return match;
+  $search($getRoot().getFirstChild() as ListNode);
+  if (matches.length !== 1) {
+    const described = typeof note === 'string' ? `with text ${JSON.stringify(note)}` : `with id ${note.id}`;
+    throw new Error(`Expected exactly one note ${described}, found ${matches.length}`);
+  }
+  return matches[0]!;
 }
 
 function placeCaretAtListItem(item: ListItemNode, offset: number) {
@@ -94,28 +98,28 @@ function focusEditorRootElement(remdo: RemdoTestApi): void {
   }
 }
 
-export async function placeCaretAtNote(remdo: RemdoTestApi, noteId: string, offset = 0) {
+export async function placeCaretAtNote(remdo: RemdoTestApi, note: NoteRef, offset = 0) {
   // Places a collapsed caret in the note, using text content when available.
   // Limitations: if the note has no text node, selection snaps to list item boundaries; selection may be promoted later by the app.
   focusEditorRootElement(remdo);
 
   await remdo.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' }, { expect: 'any' });
 
+  const key = getNoteKey(remdo, note);
   await remdo.mutate(() => {
-    const item = $findItemByNoteId(noteId);
-    placeCaretAtListItem(item, offset);
+    placeCaretAtListItem($findNote(note), offset);
   });
 
   await waitFor(() => {
     // Wait for both lexical and outline selection state to settle, so the progressive ladder resets.
-    expect(readCaretNoteId(remdo)).toBe(noteId);
+    expect(readCaretNoteKey(remdo)).toBe(key);
     expect(remdo.editor.selection.get()?.kind).toBe('caret');
   });
 }
 
 export async function placeCaretAtNoteTextNode(
   remdo: RemdoTestApi,
-  noteId: string,
+  note: NoteRef,
   textNodeIndex: number,
   offset: number
 ) {
@@ -124,9 +128,9 @@ export async function placeCaretAtNoteTextNode(
 
   await remdo.dispatchCommand(COLLAPSE_STRUCTURAL_SELECTION_COMMAND, { edge: 'anchor' }, { expect: 'any' });
 
+  const key = getNoteKey(remdo, note);
   await remdo.mutate(() => {
-    const item = $findItemByNoteId(noteId);
-    const textNodes = item.getChildren().filter($isTextNode);
+    const textNodes = $findNote(note).getChildren().filter($isTextNode);
     const target = textNodes[textNodeIndex]!;
 
     const length = target.getTextContentSize();
@@ -139,44 +143,44 @@ export async function placeCaretAtNoteTextNode(
   });
 
   await waitFor(() => {
-    expect(readCaretNoteId(remdo)).toBe(noteId);
+    expect(readCaretNoteKey(remdo)).toBe(key);
     expect(remdo.editor.selection.get()?.kind).toBe('caret');
   });
 }
 
-export function getNoteKey(remdo: RemdoTestApi, noteId: string): string {
-  return remdo.validate(() => {
-    const item = $findItemByNoteId(noteId);
-    return item.getKey();
-  });
+export function getNoteKey(remdo: RemdoTestApi, note: NoteRef): string {
+  return remdo.validate(() => $findNote(note).getKey());
+}
+
+export function getNoteIdOf(remdo: RemdoTestApi, note: NoteRef): string {
+  return remdo.validate(() => $getNoteIdOrThrow($findNote(note)));
 }
 
 // Test-only helper for precise fixture setup. This bypasses recursive checklist
 // command semantics and writes per-note storage state directly.
-export async function setRawNoteCheckedState(remdo: RemdoTestApi, noteId: string, checked: boolean) {
+export async function setRawNoteCheckedState(remdo: RemdoTestApi, note: NoteRef, checked: boolean) {
   await remdo.mutate(() => {
-    const item = $findItemByNoteId(noteId);
-    $setNoteCheckedRaw(item, checked);
+    $setNoteCheckedRaw($findNote(note), checked);
   });
 }
 
 export function readOutline(remdo: RemdoTestApi): Outline {
   return extractOutlineFromEditorState(remdo.getEditorState());
 }
-export async function selectEntireNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
+export async function selectEntireNote(remdo: RemdoTestApi, note: NoteRef): Promise<void> {
   // Selects the full text range of a single note.
-  await selectNoteTextRange(remdo, noteId, 0, Number.POSITIVE_INFINITY);
+  await selectNoteTextRange(remdo, note, 0, Number.POSITIVE_INFINITY);
 }
 
 export async function selectNoteTextRange(
   remdo: RemdoTestApi,
-  noteId: string,
+  note: NoteRef,
   start: number,
   end: number
 ): Promise<void> {
   // Selects a partial text range of a single note.
   // Limitations: requires a text node in the note; does not simulate pointer selection.
-  await placeCaretAtNote(remdo, noteId);
+  await placeCaretAtNote(remdo, note);
 
   await remdo.mutate(() => {
     const selection = $getSelection();
@@ -198,17 +202,17 @@ export async function selectNoteTextRange(
 
 export async function selectAcrossNoteTextNodes(
   remdo: RemdoTestApi,
-  noteId: string,
+  note: NoteRef,
   anchorTextNodeIndex: number,
   anchorOffset: number,
   focusTextNodeIndex: number,
   focusOffset: number
 ): Promise<void> {
   // Selects a range spanning several text nodes of one note (formatting splits).
-  await placeCaretAtNote(remdo, noteId);
+  await placeCaretAtNote(remdo, note);
 
   await remdo.mutate(() => {
-    const textNodes = $findItemByNoteId(noteId).getChildren().filter($isTextNode);
+    const textNodes = $findNote(note).getChildren().filter($isTextNode);
     const selection = $getSelection();
     expect($isRangeSelection(selection)).toBe(true);
 
@@ -289,21 +293,21 @@ function findContentTextNode(item: ListItemNode) {
 
 export async function selectNoteRange(
   remdo: RemdoTestApi,
-  startNoteId: string,
-  endNoteId: string
+  start: NoteRef,
+  end: NoteRef
 ): Promise<void> {
   // Creates a Lexical RangeSelection spanning note text (snaps to a note range when it crosses notes).
   // Limitations: requires text nodes in both notes and does not simulate DOM pointer selection.
-  if (startNoteId === endNoteId) {
-    await selectEntireNote(remdo, startNoteId);
+  if (getNoteKey(remdo, start) === getNoteKey(remdo, end)) {
+    await selectEntireNote(remdo, start);
     return;
   }
 
   focusEditorRootElement(remdo);
 
   await remdo.mutate(() => {
-    const startItem = $findItemByNoteId(startNoteId);
-    const endItem = $findItemByNoteId(endNoteId);
+    const startItem = $findNote(start);
+    const endItem = $findNote(end);
     const startTextNode = findContentTextNode(startItem);
     const endTextNode = findContentTextNode(endItem);
 

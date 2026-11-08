@@ -435,7 +435,7 @@ describe('date nodes', () => {
 
   it('selects a whole date token on ArrowLeft from leading whitespace after it', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 1, 1);
+    await placeCaretAtNoteTextNode(remdo, { id: 'note1' }, 1, 1);
 
     await pressKey(remdo, { key: 'ArrowLeft' });
     expectDateTokenSelected(remdo);
@@ -443,7 +443,7 @@ describe('date nodes', () => {
 
   it('selects a whole date token on ArrowRight from trailing whitespace before it', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 0, 6);
+    await placeCaretAtNoteTextNode(remdo, { id: 'note1' }, 0, 6);
 
     await pressKey(remdo, { key: 'ArrowRight' });
     expectDateTokenSelected(remdo);
@@ -607,7 +607,7 @@ describe('date nodes', () => {
 
   it('selects a date token before deleting it with Delete', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setupInlineDate(remdo);
-    await placeCaretAtNoteTextNode(remdo, 'note1', 0, Number.POSITIVE_INFINITY);
+    await placeCaretAtNoteTextNode(remdo, { id: 'note1' }, 0, Number.POSITIVE_INFINITY);
 
     await pressKey(remdo, { key: 'Delete' });
     expectDateTokenSelected(remdo);

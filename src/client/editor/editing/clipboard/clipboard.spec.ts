@@ -82,7 +82,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
       link.append($createTextNode('link'));
       note.append(link, $createTextNode(' after'));
     });
-    await placeCaretAtNote(remdo, 'note2', 0);
+    await placeCaretAtNote(remdo, { id: 'note2' }, 0);
     await remdo.mutate(() => {
       const link = $findNoteById('note2')!.getChildren().find($isLinkNode)!;
       const linkText = link.getChildren().filter($isTextNode)[0]!;
@@ -175,7 +175,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
   });
 
   it('pastes multi-line plain text in the middle of a formatted note with multiple text nodes', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-    await placeCaretAtNoteTextNode(remdo, 'mixedFormatting', 2, 2);
+    await placeCaretAtNoteTextNode(remdo, { id: 'mixedFormatting' }, 2, 2);
     await pastePlainText(remdo, 'A\nB');
 
     const texts = flattenOutline(readOutline(remdo)).map((node) => node.text ?? '');
@@ -190,7 +190,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
   });
 
   it('splits a formatted note when pasting at the start of a later text node', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-    await placeCaretAtNoteTextNode(remdo, 'mixedFormatting', 1, 0);
+    await placeCaretAtNoteTextNode(remdo, { id: 'mixedFormatting' }, 1, 0);
     await pastePlainText(remdo, 'A\nB');
 
     const texts = flattenOutline(readOutline(remdo)).map((node) => node.text ?? '');
@@ -236,7 +236,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
       { noteId: 'note3', text: 'note3' },
     ]);
 
-    await placeCaretAtNote(remdo, 'note2', 0);
+    await placeCaretAtNote(remdo, { id: 'note2' }, 0);
     await pastePlainText(remdo, 'A\nB');
 
     expect(remdo).toMatchOutline([
@@ -364,7 +364,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
       note.append(linkNode);
     });
 
-    await selectEntireNote(remdo, 'note2');
+    await selectEntireNote(remdo, { id: 'note2' });
     expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
     const payload = await copySelection(remdo);
 

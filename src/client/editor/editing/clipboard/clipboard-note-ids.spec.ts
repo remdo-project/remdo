@@ -185,7 +185,7 @@ describe('note ids on paste', () => {
     await typeText(remdo, ' @note2');
     await pressKey(remdo, { key: 'Enter' });
 
-    await selectStructuralNotes(remdo, 'note1');
+    await selectStructuralNotes(remdo, { id: 'note1' });
     const clipboardPayload = await copySelection(remdo);
 
     // Give note3 a body and put the caret in it, then paste.
@@ -214,7 +214,7 @@ describe('note ids on paste', () => {
       $addNoteBody(destination).append($createTextNode('destination '));
     });
 
-    await selectNoteRange(remdo, 'mixedFormatting', 'ownedChild');
+    await selectNoteRange(remdo, { id: 'mixedFormatting' }, { id: 'ownedChild' });
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
     });
@@ -276,7 +276,7 @@ describe('note ids on paste', () => {
     await typeText(remdo, ' @note2');
     await pressKey(remdo, { key: 'Enter' });
 
-    await selectStructuralNotes(remdo, 'note1');
+    await selectStructuralNotes(remdo, { id: 'note1' });
     const clipboardPayload = await copySelection(remdo);
     const copiedLink = findSerializedNoteLinkInNodes(clipboardPayload.nodes as SerializedLexicalNode[])!;
     // Clipboard payload must be self-contained across browser contexts, so same-doc links carry docId here.
@@ -300,7 +300,7 @@ describe('note ids on paste', () => {
     meta({ fixture: 'links' }),
     async ({ remdo }) => {
       const sourceDocId = remdo.getCollabDocId();
-      await selectStructuralNotes(remdo, 'note1');
+      await selectStructuralNotes(remdo, { id: 'note1' });
       const clipboardPayload = (await cutSelection(remdo)) as { nodes?: SerializedLexicalNode[] };
 
       expect(flattenOutline(readOutline(remdo)).some((note) => note.noteId === 'note1')).toBe(false);
@@ -316,7 +316,7 @@ describe('note ids on paste', () => {
       const { api: destination, unmount } = await renderRemdoEditor(destinationDocId);
       try {
         const insertionNoteId = readOutline(destination).at(-1)!.noteId!;
-        await placeCaretAtNote(destination, insertionNoteId, Number.POSITIVE_INFINITY);
+        await placeCaretAtNote(destination, { id: insertionNoteId }, Number.POSITIVE_INFINITY);
         await pastePayload(destination, clipboardPayload);
 
         const pastedNoteId = readOutline(destination).at(-1)!.noteId!;
@@ -521,7 +521,7 @@ describe('note ids on paste', () => {
       { noteId: 'note3', text: 'note3' },
     ]);
 
-    await selectStructuralNotes(remdo, 'note2');
+    await selectStructuralNotes(remdo, { id: 'note2' });
     await pastePayload(remdo, clipboardPayload);
 
     expect(remdo).toMatchOutline([
@@ -653,7 +653,7 @@ describe('note ids on paste', () => {
   it('round-trips formatted note content exactly', meta({ fixture: 'formatted' }), async ({ remdo }) => {
     const initialState = remdo.getEditorState();
 
-    await selectStructuralNotes(remdo, 'mixedFormatting');
+    await selectStructuralNotes(remdo, { id: 'mixedFormatting' });
     const clipboardPayload = await cutSelection(remdo);
     expect(flattenOutline(readOutline(remdo)).some((note) => note.noteId === 'mixedFormatting')).toBe(false);
 

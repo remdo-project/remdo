@@ -40,7 +40,7 @@ describe('zoom plugin', () => {
       expect(getNoteElement(remdo, noteId)).not.toHaveClass('zoom-hidden');
     }
     for (const noteId of hiddenNoteIds) {
-      expect(getNoteElement(remdo, noteId)).toHaveClass('zoom-hidden');
+      expect(getNoteElement(remdo, { id: noteId })).toHaveClass('zoom-hidden');
     }
   }
 

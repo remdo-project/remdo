@@ -132,7 +132,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
         textNode.setTextContent('');
       });
       const before = remdo.getEditorState();
-      await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
+      await placeCaretAtNote(remdo, { id: 'note3' }, Number.POSITIVE_INFINITY);
 
       await pressKey(remdo, { key: 'Delete' });
 
@@ -356,7 +356,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
         { noteId: 'trailing' },
       ]);
 
-      await placeCaretAtNote(remdo, 'space', Number.POSITIVE_INFINITY);
+      await placeCaretAtNote(remdo, { id: 'space' }, Number.POSITIVE_INFINITY);
 
       const whitespaceNoteKey = readCaretNoteKey(remdo);
       const betaKey = getNoteKey(remdo, 'beta');
@@ -548,7 +548,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
         { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
         { noteId: 'note5', text: 'note5' },
       ]);
-      await placeCaretAtNote(remdo, 'note2SpaceLeft', 0);
+      await placeCaretAtNote(remdo, { id: 'note2SpaceLeft' }, 0);
       await pressKey(remdo, { key: 'Backspace' });
 
       expect(remdo).toMatchOutline([
@@ -608,7 +608,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
         { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
         { noteId: 'note5', text: 'note5' },
       ]);
-      await placeCaretAtNote(remdo, 'note4SpaceRight', Number.POSITIVE_INFINITY);
+      await placeCaretAtNote(remdo, { id: 'note4SpaceRight' }, Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline([
@@ -634,7 +634,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
     });
 
     it('deletes only the selected empty note after Cmd/Ctrl+A', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-            await placeCaretAtNote(remdo, 'trailing');
+            await placeCaretAtNote(remdo, { id: 'trailing' });
 
       await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 

@@ -195,7 +195,7 @@ it('keeps the open-work marking when a checked note also has a body', meta({ fix
   // A body-wrapper is a ListItemNode whose next sibling is the note's own
   // children-wrapper, so syncing one as if it were a note would clear the flag.
   const childrenWrapperOf = (noteId: string) => {
-    let next = getNoteElement(remdo, noteId).nextElementSibling;
+    let next = getNoteElement(remdo, { id: noteId }).nextElementSibling;
     if (next?.classList.contains('note-body-wrapper')) {
       next = next.nextElementSibling;
     }
@@ -203,10 +203,10 @@ it('keeps the open-work marking when a checked note also has a body', meta({ fix
   };
 
   // n2 carries both a body and children.
-  expect(getNoteElement(remdo, 'n2').nextElementSibling?.classList.contains('note-body-wrapper')).toBe(true);
+  expect(getNoteElement(remdo, { id: 'n2' }).nextElementSibling?.classList.contains('note-body-wrapper')).toBe(true);
   expect(childrenWrapperOf('n2')).not.toBeNull();
 
-  await setRawNoteCheckedState(remdo, 'n2', true);
+  await setRawNoteCheckedState(remdo, { id: 'n2' }, true);
   expect(childrenWrapperOf('n2')?.dataset.noteUnderChecked).toBe('true');
 
   // The body-wrapper must not be treated as a note in its own right: its next
