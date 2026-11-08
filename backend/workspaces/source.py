@@ -1,20 +1,20 @@
-"""The workspace source: its folders, documents and plain files as notes, one class per kind.
+"""The workspace source: its document, folders and plain files as notes, one class per kind.
 
-Outline notes, Markdown blocks and Ensure ID arrive with the text format parser.
+A workspace holds one document, README.md, until multi-file workspaces return. Outline notes,
+Markdown blocks and Ensure ID arrive with the text format parser.
 """
 
 import base64
 import difflib
 import re
 
-from django.db import transaction
 from notes.core import Call, Refusal, with_children
 
 from . import models, store
 from .models import WORKSPACE_NAME_MAX_LENGTH
 
-PERSONAL_WORKSPACE_NAME = "Personal"
 DOCUMENT_SUFFIX = ".md"
+README = "README.md"
 # The text format's ID note, as in `- id:: k3x9`; the format parser replaces this.
 ID_NOTE = re.compile(r"^[ \t>]*[-*+][ \t]+id::[ \t]*(\S+)[ \t]*\r?$", re.MULTILINE)
 
@@ -130,8 +130,9 @@ class Expectations:
         """`versions` maps each path the caller read to its version; `ref` names a path."""
         self.tree = tree
         self.ref = ref
-        self.files = {path: v for path, v in versions.items() if path in tree.initial}
-        self.folders = {path: v for path, v in versions.items() if path not in tree.initial}
+        # A null version records a file read as missing, such as a README not yet saved.
+        self.files = {path: v for path, v in versions.items() if path in tree.initial or v is None}
+        self.folders = {path: v for path, v in versions.items() if path not in self.files}
         self.first_use = {}
         self.folder_first_use = {}
 
@@ -144,12 +145,13 @@ class Expectations:
             if file in self.first_use:
                 continue
             if file in self.files:
-                if self.files[file] != self.tree.initial[file]:
+                current = self.tree.initial.get(file)
+                if self.files[file] != current:
                     raise Refusal(
                         "FAILED_PRECONDITION",
                         f"{file!r} changed since it was read.",
                         index,
-                        {self.ref(file): self.tree.initial[file]},
+                        {self.ref(file): current},
                     )
                 self.first_use.setdefault(file, index)
                 continue
@@ -263,7 +265,12 @@ class Container(Note):
 
 class Workspace(Container):
     kind = "workspace"
-    operations = ("read", "insert", "setText")
+
+    @property
+    def operations(self):
+        if self.call.single_file:
+            return ("read", "delete", "setText")
+        return ("read", "insert", "delete", "setText")
 
     @classmethod
     def name_for(cls, call, text):
@@ -279,9 +286,24 @@ class Workspace(Container):
     def text(self):
         return self.call.name
 
+    def children(self):
+        if self.call.single_file:
+            return [self.call.note_at(README)]
+        return super().children()
+
     def set_text(self, operation):
         self.call.name = self.name_for(self.call, self.call.changed_text(self.text, operation))
         return {"ref": self.call.ref("")}
+
+    def delete(self, operation):
+        if not operation.get("withChildren"):
+            self.call.refuse(
+                "INVALID_ARGUMENT", "A workspace holds its document; set withChildren to delete it."
+            )
+        files = [self.call.note_at(file) for file in self.files()]
+        removed = [note_id for file in files if file.holds_ids for note_id in file.removed_ids()]
+        self.call.deleted = True
+        return {"removedIds": removed}
 
 
 class Movable(Note):
@@ -366,10 +388,11 @@ class File(Movable):
 
     @property
     def content(self):
-        return self.tree.content(self.path)
+        # Only the README of a workspace that hasn't saved it yet is missing; it reads as empty.
+        return self.tree.content(self.path) if self.path in self.tree.files else b""
 
     def version(self):
-        return self.tree.files[self.path]
+        return self.tree.files.get(self.path)
 
     def files(self):
         return [self.path]
@@ -416,6 +439,11 @@ class Document(File):
 
     kind = "document"
     holds_ids = True
+
+    @property
+    def operations(self):
+        return ("read", "setContent") if self.call.single_file else super().operations
+
     # Until the format parser lists a document's children, Read can't say whether it has any.
     children_known = False
 
@@ -447,22 +475,10 @@ KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file":
 Container.holds = {"document": Document, "file": File}
 
 
-def _workspaces_of(user):
-    """The user's workspaces by name, creating their personal workspace on first use."""
-    workspaces = list(models.Workspace.objects.filter(owner=user).order_by("name", "id"))
-    if workspaces:
-        return workspaces
-    with transaction.atomic():
-        type(user).objects.select_for_update().filter(pk=user.pk).first()
-        workspaces = list(models.Workspace.objects.filter(owner=user).order_by("name", "id"))
-        if not workspaces:
-            workspaces = [models.Workspace.objects.create(name=PERSONAL_WORKSPACE_NAME, owner=user)]
-    return workspaces
-
-
 def workspace_notes(user):
-    """The user's workspaces as notes, for the account root to list."""
-    return [WorkspaceCall(user, workspace).note_at("") for workspace in _workspaces_of(user)]
+    """The user's workspaces as notes by name, for the account root to list."""
+    workspaces = models.Workspace.objects.filter(owner=user).order_by("name", "id")
+    return [WorkspaceCall(user, workspace).note_at("") for workspace in workspaces]
 
 
 def open_call(user, workspace_id, expected=None):
@@ -475,13 +491,24 @@ def open_call(user, workspace_id, expected=None):
     return WorkspaceCall(user, workspace, expected)
 
 
-def create_workspace(user, name):
-    _workspaces_of(user)
-    return models.Workspace.objects.create(name=name, owner=user).pk
+def create_workspace(call, name, content=None):
+    """Create a workspace for the call's user, with its README when `content` is given."""
+    workspace = models.Workspace.objects.create(name=name, owner=call.user)
+    if content is not None:
+        Document.check_new(call, content)
+        try:
+            store.commit(workspace, call.user, "insert", {README: (None, content)})
+        except store.InvalidContent as error:
+            call.refuse("INVALID_ARGUMENT", f"content: {error}")
+    return workspace.pk
 
 
 class WorkspaceCall(Call):
     """A call on the notes of one workspace, applied to a tree of its files."""
+
+    # Multi-file workspaces return with a later plan (docs/text-format-plan.md); until then their
+    # tests turn this off to keep the folder and plain-file kinds working.
+    single_file = True
 
     def __init__(self, user, workspace, expected=None):
         super().__init__(user)
@@ -489,6 +516,12 @@ class WorkspaceCall(Call):
         self.tree = Tree(workspace)
         self.expectations = Expectations(self.tree, self.expected_paths(expected or {}), self.ref)
         self.name = workspace.name
+        self.deleted = False
+
+    def apply(self, operation):
+        if self.deleted:
+            self.refuse("INVALID_ARGUMENT", "The workspace was deleted earlier in this call.")
+        return super().apply(operation)
 
     def expected_paths(self, expected):
         paths = {}
@@ -506,14 +539,23 @@ class WorkspaceCall(Call):
                 f"{field}: ID references arrive with outline notes; use the path Read returns.",
             )
         path = self.path(path, field)
-        if self.tree.kind(path) is None:
+        if self.kind(path) is None:
             self.refuse("NOT_FOUND", f"{field}: no note at {path!r}.")
         return self.note_at(path)
 
     def note_at(self, path):
-        return KINDS[self.tree.kind(path)](self, path)
+        return KINDS[self.kind(path)](self, path)
+
+    def kind(self, path):
+        if self.single_file and path == README:
+            return "document"
+        return self.tree.kind(path)
 
     def commit(self, operations, dry_run):
+        if self.deleted:
+            deleted = [{"ref": self.ref(""), "change": "deleted"}]
+            self.workspace.delete()
+            return deleted, None
         described = []
         if self.name != self.workspace.name:
             models.Workspace.objects.filter(pk=self.workspace.pk).update(name=self.name)
@@ -585,17 +627,6 @@ class WorkspaceCall(Call):
             self.tree.put(path, content)
         except store.InvalidContent as error:
             self.refuse("INVALID_ARGUMENT", f"content: {error}")
-
-    def content(self, operation):
-        if "content" not in operation:
-            return b""
-        value = operation["content"]
-        if operation.get("contentEncoding") == "base64":
-            try:
-                return base64.b64decode(value, validate=True)
-            except ValueError:
-                self.refuse("INVALID_ARGUMENT", "content is not valid base64.")
-        return self.encoded(value, "content")
 
 
 def _describe(call, path, before, content, dry_run):

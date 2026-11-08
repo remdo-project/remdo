@@ -30,7 +30,9 @@ class AccountRoot:
 
     def insert(self, operation):
         new = self.call.new_kind(self, operation["kind"])
-        ref = workspaces.create_workspace(self.user, new.name_for(self.call, operation["text"]))
+        name = new.name_for(self.call, operation["text"])
+        content = self.call.content(operation) if "content" in operation else None
+        ref = workspaces.create_workspace(self.call, name, content)
         self.call.created.append(ref)
         return {"ref": ref, "kind": new.kind}
 

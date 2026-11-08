@@ -107,7 +107,6 @@ def metadata_tool(name, arguments, user):
 
 NOTE_OPERATIONS = {
     "insert_note": "insert",
-    "move_note": "move",
     "delete_note": "delete",
     "set_note_text": "setText",
     "set_note_content": "setContent",

@@ -182,15 +182,15 @@ TOOLS = [
 REF = {
     "type": "string",
     "description": "A note reference, as read_note returns it: `me` for the account root, "
-    "which lists the user's workspaces, a workspace ID, or `<workspaceId>/<path>` for a "
-    "folder, document or file.",
+    "which lists the user's workspaces, a workspace ID, or `<workspaceId>/README.md` for a "
+    "workspace's document.",
 }
 EXPECTED = {
     "type": "object",
-    "description": "The versions read_note returned, by reference, for what this operation "
-    "changes: an existing document or file, or a folder or workspace holding it. A note "
+    "description": "The versions read_note returned, by reference, for the document this "
+    "operation changes; null for a document read before it was first saved. A document "
     "changed since is refused; read it again.",
-    "additionalProperties": {"type": "string"},
+    "additionalProperties": {"type": ["string", "null"]},
 }
 DRY_RUN = {"type": "boolean", "description": "Describe the change, with diffs, without making it."}
 REPLACEMENTS = {
@@ -240,10 +240,10 @@ NOTE_TOOLS = [
         "read_note",
         "Read note",
         "Read a note: the account root (`me`, the default), which lists the "
-        "workspaces, a workspace, folder, document or file. Returns its kind, text (a name), "
-        "the operations it offers, its version, and its children to the given depth. A "
-        "document's outline isn't listed yet; ask for its content instead. Pass the versions "
-        "you read as `expected` when changing notes.",
+        "workspaces, a workspace, whose one child is its Markdown document README.md, or that "
+        "document. Returns its kind, text (a name), the operations it offers, its version, and "
+        "its children to the given depth. A document's outline isn't listed yet; ask for its "
+        "content instead. Pass the versions you read as `expected` when changing notes.",
         {
             "ref": {**REF, "description": "The note to read. Defaults to `me`."},
             "depth": {
@@ -255,8 +255,8 @@ NOTE_TOOLS = [
             },
             "content": {
                 "type": "boolean",
-                "description": "Also return a document's or file's content, as UTF-8 text or, "
-                "for other bytes, base64.",
+                "description": "Also return a document's content, as UTF-8 text or, for other "
+                "bytes, base64.",
             },
         },
         [],
@@ -265,21 +265,16 @@ NOTE_TOOLS = [
     declare_note_tool(
         "insert_note",
         "Insert note",
-        "Create a note under a parent: a workspace under the account root (`me`, the default "
-        "parent), or a Markdown document or other file under a workspace or folder. Each call "
-        "creates a new note, including retries.",
+        "Create a workspace under the account root (`me`, the default parent), optionally with "
+        "its document's Markdown content. Each call creates a new workspace, including retries.",
         {
             "parent": {
                 **REF,
                 "description": "Where to create the note. Defaults to `me`.",
             },
-            "kind": {"type": "string", "enum": ["workspace", "document", "file"]},
-            "text": {
-                "type": "string",
-                "description": "The name. A document's name has no .md; a file's name includes "
-                "its extension.",
-            },
-            "content": {"type": "string", "description": "A document's or file's content."},
+            "kind": {"type": "string", "enum": ["workspace"]},
+            "text": {"type": "string", "description": "The workspace's name."},
+            "content": {"type": "string", "description": "The workspace document's content."},
             "contentEncoding": CONTENT_ENCODING,
             "dryRun": DRY_RUN,
         },
@@ -287,23 +282,10 @@ NOTE_TOOLS = [
         destructive=False,
     ),
     declare_note_tool(
-        "move_note",
-        "Move note",
-        "Move a folder, document or file, with everything under it, into another folder or the "
-        "workspace itself, in the same workspace.",
-        {
-            "target": {**REF, "description": "The note to move."},
-            "parent": {**REF, "description": "The workspace or folder to move it into."},
-            "expected": EXPECTED,
-            "dryRun": DRY_RUN,
-        },
-        ["target", "parent"],
-    ),
-    declare_note_tool(
         "delete_note",
         "Delete note",
-        "Delete a folder, document or file. A folder or non-empty document needs withChildren. "
-        "Returns the IDs that disappear.",
+        "Delete a workspace with its document and history, which needs withChildren. Returns "
+        "the IDs that disappear.",
         {
             "target": {**REF, "description": "The note to delete."},
             "withChildren": {
@@ -318,7 +300,7 @@ NOTE_TOOLS = [
     declare_note_tool(
         "set_note_text",
         "Rename note",
-        "Change a note's text: rename a workspace, folder, document or file.",
+        "Change a note's text: rename a workspace.",
         {
             "target": {**REF, "description": "The note to rename."},
             "text": {"type": "string", "description": "The new name."},
@@ -331,9 +313,10 @@ NOTE_TOOLS = [
     declare_note_tool(
         "set_note_content",
         "Set note content",
-        "Replace a document's or file's content, whole or by exact replacements.",
+        "Replace a workspace document's content, whole or by exact replacements. Saving a "
+        "document for the first time creates it.",
         {
-            "target": {**REF, "description": "The document or file to change."},
+            "target": {**REF, "description": "The document to change."},
             "content": {"type": "string", "description": "The whole new content."},
             "contentEncoding": CONTENT_ENCODING,
             "replacements": REPLACEMENTS,

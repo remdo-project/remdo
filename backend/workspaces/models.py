@@ -39,6 +39,9 @@ class Blob(models.Model):
     hash = models.CharField(primary_key=True, max_length=64)
     content = models.BinaryField()
 
+    class Meta:
+        default_permissions = ()
+
 
 class Revision(models.Model):
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="revisions")
@@ -50,6 +53,9 @@ class Revision(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     message = models.TextField(blank=True)
 
+    class Meta:
+        default_permissions = ()
+
 
 class RevisionChange(models.Model):
     revision = models.ForeignKey(Revision, on_delete=models.CASCADE, related_name="changes")
@@ -58,6 +64,7 @@ class RevisionChange(models.Model):
     blob = models.ForeignKey(Blob, null=True, on_delete=models.PROTECT)
 
     class Meta:
+        default_permissions = ()
         constraints = [
             models.UniqueConstraint(
                 fields=["revision", "path"], name="one_change_per_revision_path"
@@ -71,6 +78,7 @@ class WorkspaceFile(models.Model):
     blob = models.ForeignKey(Blob, on_delete=models.PROTECT)
 
     class Meta:
+        default_permissions = ()
         constraints = [
             models.UniqueConstraint(
                 fields=["workspace", "path"], name="one_file_per_workspace_path"
