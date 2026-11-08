@@ -927,8 +927,8 @@ describe('note body (docs/specs/outliner/body.md)', () => {
 // exercise the model-level skip directly (placing the caret, then invoking the
 // redirect the arrow command performs).
 describe('note body vertical navigation (docs/specs/outliner/body.md)', () => {
-  async function addBodyTo(remdo: RemdoTestApi, noteId: string, text: string) {
-    await placeCaretAtNote(remdo, noteId, Number.POSITIVE_INFINITY);
+  async function addBodyTo(remdo: RemdoTestApi, note: string, text: string) {
+    await placeCaretAtNote(remdo, note, Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, text);
   }

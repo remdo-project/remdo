@@ -17,10 +17,10 @@ function noteIds(remdo: RemdoTestApi): string[] {
 
 // Remove a note (and its subtree) directly in the model — a deterministic stand-in
 // for a remote collaborator deleting the note.
-async function removeNote(remdo: RemdoTestApi, noteId: string): Promise<void> {
-  const key = getNoteKey(remdo, noteId);
+async function removeNote(remdo: RemdoTestApi, note: string): Promise<void> {
+  const key = getNoteKey(remdo, note);
   await remdo.mutate(() => {
-    removeNoteSubtree($getListItemByKeyOrThrow(key, noteId));
+    removeNoteSubtree($getListItemByKeyOrThrow(key, note));
   });
 }
 

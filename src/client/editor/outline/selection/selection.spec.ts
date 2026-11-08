@@ -1054,14 +1054,14 @@ describe('selection plugin', () => {
   });
 
   it('skips the inline stage for whitespace-only notes on Cmd/Ctrl+A', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, { id: 'space' });
+        await placeCaretAtNote(remdo, ' ');
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['space'] });
   });
 
   it('restores the caret in a whitespace-only note when contraction empties a directional ladder', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-    await placeCaretAtNote(remdo, { id: 'space' }, 1);
+    await placeCaretAtNote(remdo, ' ', 1);
     await stepSelectionLadder(remdo, 'down');
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['space'] });
 
@@ -1101,7 +1101,7 @@ describe('selection plugin', () => {
   });
 
   it('keeps Cmd/Ctrl+A anchored to child-of-empty when caret is at the end', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-        await placeCaretAtNote(remdo, { id: 'child' }, Number.POSITIVE_INFINITY);
+        await placeCaretAtNote(remdo, 'child-of-empty', Number.POSITIVE_INFINITY);
 
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
 

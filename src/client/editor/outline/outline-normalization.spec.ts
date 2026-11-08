@@ -50,7 +50,7 @@ describe('outline normalization on load', () => {
       fixtureSchemaBypass: true,
     }),
     async ({ remdo }) => {
-      await placeCaretAtNote(remdo, { id: 'note3' });
+      await placeCaretAtNote(remdo, 'note3-root-2nd-child');
       await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND);
       expect(remdo).toMatchOutline([
         { noteId: 'note3', text: 'note3-root-2nd-child' },

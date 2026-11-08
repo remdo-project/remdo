@@ -2,7 +2,7 @@ import { act, waitFor } from '@testing-library/react';
 import { expect } from 'vitest';
 
 import type { RemdoTestApi } from '#client/editor/dev';
-import { getNoteIdOf, getNoteKey, placeCaretAtNote, selectNoteRange } from './note';
+import { getNoteIdOf, isSameNote, placeCaretAtNote, selectNoteRange } from './note';
 import type { NoteRef } from './note';
 import { stepSelectionLadder } from './keyboard';
 import { getNoteElement } from './dom-note';
@@ -80,7 +80,7 @@ export async function selectStructuralNotes(
   start: NoteRef,
   end: NoteRef = start
 ): Promise<void> {
-  if (getNoteKey(remdo, start) === getNoteKey(remdo, end)) {
+  if (isSameNote(remdo, start, end)) {
     await selectNoteSubtree(remdo, start);
     const startId = getNoteIdOf(remdo, start);
     await waitFor(() => {
@@ -103,7 +103,7 @@ export async function selectStructuralNotesByDomRange(
   start: NoteRef,
   end: NoteRef = start
 ): Promise<void> {
-  if (getNoteKey(remdo, start) === getNoteKey(remdo, end)) {
+  if (isSameNote(remdo, start, end)) {
     await selectStructuralNotes(remdo, start);
     return;
   }

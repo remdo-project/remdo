@@ -175,8 +175,8 @@ it('keeps a checked note complete while marking its subtree as mixed', meta({ fi
 
 it('marks the subtree of a checked note as open work', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
   // The flag sits on the children-wrapper, the sibling right after the note.
-  const wrapperOf = (noteId: string) => {
-    const next = getNoteElement(remdo, noteId).nextElementSibling;
+  const wrapperOf = (note: string) => {
+    const next = getNoteElement(remdo, note).nextElementSibling;
     return next instanceof HTMLElement && next.classList.contains('list-nested-item') ? next : null;
   };
 

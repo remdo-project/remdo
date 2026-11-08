@@ -1,4 +1,4 @@
-import type { ListItemNode, ListNode } from '@lexical/list';
+import type { ListItemNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
 import type { RemdoTestApi } from '#client/editor/dev';
 import { waitFor } from '@testing-library/react';
@@ -6,7 +6,6 @@ import type { TextNode } from 'lexical';
 import {
   $createRangeSelection,
   $getNodeByKey,
-  $getRoot,
   $getSelection,
   $isRangeSelection,
   $isTextNode,
@@ -16,6 +15,9 @@ import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState } from '#tests-common/outline';
 import { findNearestListItem, getRootElementOrThrow } from './selection';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
+import { forEachContentItemInOutline } from '#client/editor/outline/list-traversal';
+import { $requireRootContentList } from '#client/editor/outline/schema';
+import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
 import { $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
 import { expect } from 'vitest';
 import { COLLAPSE_STRUCTURAL_SELECTION_COMMAND } from '#client/editor/foundation/commands';
@@ -42,26 +44,19 @@ export function $getListItemByKeyOrThrow(key: string, label = key): ListItemNode
   return node;
 }
 
-/** A note in a test: its text, or `{ id }` when the test is about identity or texts repeat. */
+/**
+ * A note in a test: its text, or `{ id }` when the test is about identity, its text repeats, or
+ * its text is awkward to spell, such as a link label.
+ */
 export type NoteRef = string | { id: string };
-
-function $noteText(item: ListItemNode): string {
-  return item.getChildren().filter((child) => child.getType() !== 'list').map((child) => child.getTextContent()).join('');
-}
 
 function $findNote(note: NoteRef): ListItemNode {
   const matches: ListItemNode[] = [];
-  const $search = (listNode: ListNode) => {
-    for (const item of listNode.getChildren().filter($isListItemNode)) {
-      if ($getNoteId(item) && (typeof note === 'string' ? $noteText(item) === note : $getNoteId(item) === note.id)) {
-        matches.push(item);
-      }
-      for (const nested of item.getChildren()) {
-        if (nested.getType() === 'list') $search(nested as ListNode);
-      }
+  forEachContentItemInOutline($requireRootContentList(), (item) => {
+    if (typeof note === 'string' ? getNoteOwnText(item) === note : $getNoteId(item) === note.id) {
+      matches.push(item);
     }
-  };
-  $search($getRoot().getFirstChild() as ListNode);
+  });
   if (matches.length !== 1) {
     const described = typeof note === 'string' ? `with text ${JSON.stringify(note)}` : `with id ${note.id}`;
     throw new Error(`Expected exactly one note ${described}, found ${matches.length}`);
@@ -107,7 +102,7 @@ export async function placeCaretAtNote(remdo: RemdoTestApi, note: NoteRef, offse
 
   const key = getNoteKey(remdo, note);
   await remdo.mutate(() => {
-    placeCaretAtListItem($findNote(note), offset);
+    placeCaretAtListItem($getListItemByKeyOrThrow(key), offset);
   });
 
   await waitFor(() => {
@@ -130,7 +125,7 @@ export async function placeCaretAtNoteTextNode(
 
   const key = getNoteKey(remdo, note);
   await remdo.mutate(() => {
-    const textNodes = $findNote(note).getChildren().filter($isTextNode);
+    const textNodes = $getListItemByKeyOrThrow(key).getChildren().filter($isTextNode);
     const target = textNodes[textNodeIndex]!;
 
     const length = target.getTextContentSize();
@@ -150,6 +145,10 @@ export async function placeCaretAtNoteTextNode(
 
 export function getNoteKey(remdo: RemdoTestApi, note: NoteRef): string {
   return remdo.validate(() => $findNote(note).getKey());
+}
+
+export function isSameNote(remdo: RemdoTestApi, a: NoteRef, b: NoteRef): boolean {
+  return a === b || getNoteKey(remdo, a) === getNoteKey(remdo, b);
 }
 
 export function getNoteIdOf(remdo: RemdoTestApi, note: NoteRef): string {
@@ -298,7 +297,7 @@ export async function selectNoteRange(
 ): Promise<void> {
   // Creates a Lexical RangeSelection spanning note text (snaps to a note range when it crosses notes).
   // Limitations: requires text nodes in both notes and does not simulate DOM pointer selection.
-  if (getNoteKey(remdo, start) === getNoteKey(remdo, end)) {
+  if (isSameNote(remdo, start, end)) {
     await selectEntireNote(remdo, start);
     return;
   }

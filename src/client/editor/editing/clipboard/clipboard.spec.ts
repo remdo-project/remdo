@@ -175,7 +175,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
   });
 
   it('pastes multi-line plain text in the middle of a formatted note with multiple text nodes', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-    await placeCaretAtNoteTextNode(remdo, { id: 'mixedFormatting' }, 2, 2);
+    await placeCaretAtNoteTextNode(remdo, 'plain bold italic underline plain', 2, 2);
     await pastePlainText(remdo, 'A\nB');
 
     const texts = flattenOutline(readOutline(remdo)).map((node) => node.text ?? '');
@@ -190,7 +190,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
   });
 
   it('splits a formatted note when pasting at the start of a later text node', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-    await placeCaretAtNoteTextNode(remdo, { id: 'mixedFormatting' }, 1, 0);
+    await placeCaretAtNoteTextNode(remdo, 'plain bold italic underline plain', 1, 0);
     await pastePlainText(remdo, 'A\nB');
 
     const texts = flattenOutline(readOutline(remdo)).map((node) => node.text ?? '');

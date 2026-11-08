@@ -49,7 +49,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   });
 
   it('enter at the start of a later text node splits the note (multi-text)', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-    await placeCaretAtNoteTextNode(remdo, { id: 'mixedFormatting' }, 1, 0);
+    await placeCaretAtNoteTextNode(remdo, 'plain bold italic underline plain', 1, 0);
 
     await pressKey(remdo, { key: 'Enter' });
     const trailingNoteId = readCaretNoteId(remdo);
@@ -160,16 +160,16 @@ describe('insertion semantics (docs/insertion.md)', () => {
       note.clear();
       note.append($createTextNode('left right'));
     });
-    await placeCaretAtNote(remdo, { id: 'note2' }, Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'left right', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'body');
-    await setRawNoteCheckedState(remdo, { id: 'note2' }, true);
+    await setRawNoteCheckedState(remdo, 'left right', true);
     await setRawNoteCheckedState(remdo, 'note3', true);
     await remdo.mutate(() => {
       $setNoteFolded($findNoteById('note2')!, true);
     });
 
-    await placeCaretAtNote(remdo, { id: 'note2' }, 5);
+    await placeCaretAtNote(remdo, 'left right', 5);
     await pressKey(remdo, { key: 'Enter' });
     const splitChildId = readCaretNoteId(remdo);
 
@@ -350,16 +350,16 @@ describe('insertion semantics (docs/insertion.md)', () => {
       note.clear();
       note.append($createTextNode('left right'));
     });
-    await placeCaretAtNote(remdo, { id: 'note2' }, Number.POSITIVE_INFINITY);
+    await placeCaretAtNote(remdo, 'left right', Number.POSITIVE_INFINITY);
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'body');
-    await setRawNoteCheckedState(remdo, { id: 'note2' }, true);
+    await setRawNoteCheckedState(remdo, 'left right', true);
     await setRawNoteCheckedState(remdo, 'note3', true);
     await remdo.mutate(() => {
       $setNoteFolded($findNoteById('note2')!, true);
     });
 
-    await placeCaretAtNote(remdo, { id: 'note2' }, 5);
+    await placeCaretAtNote(remdo, 'left right', 5);
     await pressKey(remdo, { key: 'Enter' });
     const trailingNoteId = readCaretNoteId(remdo);
 
@@ -423,7 +423,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
   describe('inline text selection', () => {
     it('removes the selected text and splits as a middle caret would', meta({ fixture: 'tree' }), async ({ remdo }) => {
-      await selectNoteTextRange(remdo, { id: 'note1' }, 2, 4);
+      await selectNoteTextRange(remdo, 'note1', 2, 4);
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
       await typeText(remdo, 'X');
@@ -522,7 +522,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     });
 
     it('splits when the selection spans several text nodes', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-      await selectAcrossNoteTextNodes(remdo, { id: 'mixedFormatting' }, 0, 3, 2, 3);
+      await selectAcrossNoteTextNodes(remdo, 'plain bold italic underline plain', 0, 3, 2, 3);
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
 

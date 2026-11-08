@@ -25,8 +25,8 @@ import { getBodyWrapper } from '#client/editor/outline/list-structure';
 // Shift+Click is simulated by collapsing the caret then extending to the target.
 // That is the same path the live pointer drives.
 
-async function addBody(remdo: RemdoTestApi, noteId: string, text: string) {
-  await placeCaretAtNote(remdo, noteId, Number.POSITIVE_INFINITY);
+async function addBody(remdo: RemdoTestApi, note: string, text: string) {
+  await placeCaretAtNote(remdo, note, Number.POSITIVE_INFINITY);
   await pressKey(remdo, { key: 'Enter', shift: true });
   await typeText(remdo, text);
 }
