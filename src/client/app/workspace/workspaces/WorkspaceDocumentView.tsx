@@ -92,7 +92,7 @@ function LoadedDocument({
 }: {
   initial: Base;
   onClose: () => void;
-  reload: () => Promise<NoteRead | undefined>;
+  reload: () => Promise<NoteRead>;
   workspace: WorkspaceEntry;
 }) {
   const ref = workspace.documentRef;
@@ -101,7 +101,7 @@ function LoadedDocument({
   const [saving, setSaving] = useState(false);
   // The current version a stale save was refused against, which may be null for a missing file.
   const [conflict, setConflict] = useState<{ version: string | null } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ title: string; message: string } | null>(null);
 
   let status: Status = 'saved';
   if (saving) status = 'saving';
@@ -121,7 +121,7 @@ function LoadedDocument({
       if (failure instanceof NotesRefusal && failure.code === 'FAILED_PRECONDITION') {
         setConflict({ version: failure.versions[ref] ?? null });
       } else {
-        setError(failure instanceof Error ? failure.message : 'Could not save the document.');
+        setError({ title: 'Could not save', message: failure instanceof Error ? failure.message : '' });
       }
     } finally {
       setSaving(false);
@@ -129,8 +129,13 @@ function LoadedDocument({
   };
 
   const reloadTheirs = async () => {
-    const current = await reload();
-    if (!current) return;
+    let current: NoteRead;
+    try {
+      current = await reload();
+    } catch (failure) {
+      setError({ title: 'Could not reload', message: failure instanceof Error ? failure.message : '' });
+      return;
+    }
     const theirs = baseOf(current);
     setBase(theirs);
     setDraft(theirs.text);
@@ -159,8 +164,8 @@ function LoadedDocument({
         </Alert>
       )}
       {error && (
-        <Alert closeButtonLabel="Dismiss" color="red" onClose={() => setError(null)} title="Could not save" withCloseButton>
-          {error}
+        <Alert closeButtonLabel="Dismiss" color="red" onClose={() => setError(null)} title={error.title} withCloseButton>
+          {error.message}
         </Alert>
       )}
       <Textarea
@@ -207,7 +212,7 @@ export function WorkspaceDocumentView({
         initial={baseOf(readme.data)}
         key={ref}
         onClose={onClose}
-        reload={async () => (await readme.refetch()).data}
+        reload={async () => (await readme.refetch({ throwOnError: true })).data!}
         workspace={workspace}
       />
     );

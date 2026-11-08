@@ -11,11 +11,12 @@ afterEach(() => { vi.unstubAllGlobals(); });
 
 // A notes server holding one README whose saves are refused once someone else saved it.
 function serveReadme(content: string) {
-  const document = { content, version: 'v1', saves: 1 };
+  const document = { content, version: 'v1', saves: 1, readable: true };
   vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
     const { pathname } = new URL(request.url);
     if (pathname === '/api/config') return Response.json({ csrfCookieName: 'csrftoken' });
     if (request.method === 'GET') {
+      if (!document.readable) return new Response(null, { status: 503 });
       return Response.json({
         ref: README, kind: 'document', text: 'README', operations: ['read', 'setContent'],
         version: document.version, content: document.content, contentEncoding: 'utf8',
@@ -103,4 +104,19 @@ it('overwrites their save with the typed text on request', async () => {
   await waitFor(() => expect(server.document.content).toBe('- mine\n'));
   expect(screen.queryByRole('alert')).toBeNull();
   expect(screen.getByRole('status')).toHaveTextContent('Saved');
+});
+
+it('keeps typed text when reloading theirs fails', async () => {
+  const server = serveReadme('- a\n');
+  const box = await open();
+  server.saveAsSomeoneElse('- theirs\n');
+  save(box, '- mine\n');
+  await screen.findByRole('alert', { name: /changed this document/u });
+
+  server.document.readable = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Reload theirs' }));
+
+  await screen.findByText('Could not reload');
+  expect(box).toHaveValue('- mine\n');
+  expect(screen.getByRole('alert', { name: /changed this document/u })).toBeInTheDocument();
 });
