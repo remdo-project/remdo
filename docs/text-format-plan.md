@@ -160,8 +160,7 @@ once stage 3 lands.
    - Narrow workspaces to one `README.md`: refuse any call that leaves another
      file, keeping the folder and plain-file kinds for multi-file workspaces,
      and drop the personal workspace. Insert of a workspace may come with its
-     document's content. Delete existing workspaces, which hold only testers'
-     data, instead of converting them.
+     document's content.
    - Drop the history tables' unused admin permissions.
    - Add the notes REST API on the same entry points as MCP. Home lists
      workspaces in its Current Server list through the SDK, opens a workspace's
@@ -313,8 +312,6 @@ Switch new documents by reseeding from text once all of these hold:
   need several operations applied all or none.
 - Per-file versions refuse an agent's call whenever someone saved the same
   document since its read; stage 4's live merge reduces that.
-- Until stage 2, workspaces can hold folders and several files, and accounts
-  get a personal workspace.
 - Until stage 3, Read returns a document's content but not its children, nor
   whether it has any, and Insert into a document and Ensure ID are refused.
 - Until stage 3, a workspace's document opens as its Markdown in a plain text
