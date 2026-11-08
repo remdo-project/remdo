@@ -191,7 +191,12 @@ once stage 3 lands.
      against the JSON they replace; then expected outlines. A JavaScript reader
      in test support reads what migrated fixtures use and moves into the app
      when paste needs it; expected outlines compare as trees, so tests need no
-     second writer. JSON fixtures stay for states the format can't express.
+     second writer. JSON fixtures stay for states the format can't express, and
+     fixtures with bodies wait for the spike.
+   - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and
+     the corpus, with a throwaway writer, keeps every byte, reports what it
+     loses, and settles the schema, including how editor bodies map to
+     Markdown blocks.
    - Add the Python reader and canonical writer, with write-time alignment to
      the saved text, and let Read list a document's outline notes and blocks.
      Test the writer on edits beside unusual Markdown, not only on text that
@@ -200,9 +205,6 @@ once stage 3 lands.
      the refusal. Test them on Python's note operations, and check each other
      surface, such as MCP or the editor, with only a few of the same cases. Add
      this rule to the [testing policy](dev/testing.md) once it has worked.
-   - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and
-     the corpus keeps every byte, reports what it loses, and settles the
-     schema, including how editor bodies map to Markdown blocks.
    - Extend the editor schema with headings, `block` lines, per-note markers and
      independent checkboxes. Use `line` or `group` storage with no body wrapper.
    - Add Node's three calls, the cache row with the last-saved tree, the
