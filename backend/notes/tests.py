@@ -50,16 +50,17 @@ class AccountRootAndReferenceTests(TestCase):
                 notes.read(self.owner, ref)
             self.assertEqual(refusal.exception.code, "INVALID_ARGUMENT")
 
-    def test_the_account_root_lists_workspaces_and_gives_a_personal_one(self):
+    def test_the_account_root_lists_workspaces_by_name(self):
         user = User.objects.create_user("new@example.test", "New-password-123")
+        self.assertEqual(notes.read(user, depth=1)["children"], [])
+        for name in ("Team", "Home"):
+            Workspace.objects.create(name=name, owner=user)
 
-        first = notes.read(user, depth=1)
-        second = notes.read(user, depth=1)
+        root = notes.read(user, depth=1)
 
-        self.assertEqual(first, second)
-        self.assertEqual((first["kind"], first["text"]), ("account", "new@example.test"))
-        self.assertEqual(first["operations"], ["read", "insert"])
-        self.assertEqual([child["text"] for child in first["children"]], ["Personal"])
+        self.assertEqual((root["kind"], root["text"]), ("account", "new@example.test"))
+        self.assertEqual(root["operations"], ["read", "insert"])
+        self.assertEqual([child["text"] for child in root["children"]], ["Home", "Team"])
 
     def test_inserting_under_the_account_root_creates_a_workspace(self):
         insert = {"op": "insert", "kind": "workspace", "text": "Team"}
@@ -73,6 +74,20 @@ class AccountRootAndReferenceTests(TestCase):
         self.assertTrue(preview["dryRun"])
         self.assertEqual(
             [child["text"] for child in notes.read(self.owner)["children"]], ["Personal", "Team"]
+        )
+
+    def test_a_new_workspace_may_come_with_its_document(self):
+        result = notes.call(
+            self.owner, [{"op": "insert", "kind": "workspace", "text": "Trip", "content": "- a\n"}]
+        )
+
+        [created] = result["results"]
+        workspace = Workspace.objects.get(pk=created["ref"])
+        self.assertEqual(store.read(workspace, "README.md").content, b"- a\n")
+        self.assertEqual(result["revision"], workspace.head_id)
+        self.assertEqual(
+            [(change["ref"], change["change"]) for change in result["changes"]],
+            [(workspace.pk, "added"), (f"{workspace.pk}/README.md", "added")],
         )
 
     def test_refusals_name_the_account_root_as_an_account(self):

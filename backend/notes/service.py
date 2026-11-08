@@ -5,7 +5,16 @@ from workspaces import source as workspaces
 
 from .core import ACCOUNT_ROOT, Call, NothingWritten, Refusal, parse_ref, with_children
 
-__all__ = ["NothingWritten", "Refusal", "call", "read"]
+__all__ = ["NothingWritten", "Refusal", "call", "can_use_workspaces", "read"]
+
+
+def can_use_workspaces(user):
+    # TODO: Workspaces stay behind this experimental permission until the text format migration
+    # (docs/text-format-plan.md) moves every user onto them; other users, including directory
+    # reviewers, keep Home and the submitted MCP surface unchanged. Probe: delete this check and
+    # the use_workspaces permission, then the MCP contract tests list the note tools for every
+    # user and the notes API tests reach every user's notes.
+    return user.has_perm("workspaces.use_workspaces")
 
 
 class AccountRoot:
@@ -30,8 +39,9 @@ class AccountRoot:
 
     def insert(self, operation):
         new = self.call.new_kind(self, operation["kind"])
-        ref = workspaces.create_workspace(self.user, new.name_for(self.call, operation["text"]))
-        self.call.created.append(ref)
+        name = new.name_for(self.call, operation["text"])
+        ref, files = workspaces.create_workspace(self.call, name, self.call.content(operation))
+        self.call.created.append((ref, files))
         return {"ref": ref, "kind": new.kind}
 
 
@@ -47,7 +57,13 @@ class AccountCall(Call):
         return self.root
 
     def commit(self, operations, dry_run):
-        return [{"ref": ref, "change": "added"} for ref in self.created], None
+        described, revision = [], None
+        for ref, files in self.created:
+            described.append({"ref": ref, "change": "added"})
+            if files:
+                changes, revision = files.commit(operations, dry_run)
+                described += changes
+        return described, revision
 
 
 def read(user, ref=None, depth=1, content=False):

@@ -1,5 +1,7 @@
 """What every note source shares: references, refusals, and how a call runs."""
 
+import base64
+
 from django.db import DatabaseError, transaction
 
 ACCOUNT_ROOT = "me"
@@ -125,6 +127,17 @@ class Call:
             held = " and ".join(f"{name}s" for name in parent.holds)
             self.refuse("INVALID_ARGUMENT", f"kind: {_a(parent.kind)} holds {held}.")
         return new
+
+    def content(self, operation):
+        if "content" not in operation:
+            return b""
+        value = operation["content"]
+        if operation.get("contentEncoding") == "base64":
+            try:
+                return base64.b64decode(value, validate=True)
+            except ValueError:
+                self.refuse("INVALID_ARGUMENT", "content is not valid base64.")
+        return self.encoded(value, "content")
 
     def encoded(self, text, field):
         try:

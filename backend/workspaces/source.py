@@ -1,20 +1,21 @@
-"""The workspace source: its folders, documents and plain files as notes, one class per kind.
+"""The workspace source: its document, folders and plain files as notes, one class per kind.
 
-Outline notes, Markdown blocks and Ensure ID arrive with the text format parser.
+A workspace holds one document, README.md, until multi-file workspaces return. Outline notes,
+Markdown blocks and Ensure ID arrive with the text format parser.
 """
 
 import base64
 import difflib
 import re
 
-from django.db import transaction
 from notes.core import Call, Refusal, with_children
 
 from . import models, store
 from .models import WORKSPACE_NAME_MAX_LENGTH
 
-PERSONAL_WORKSPACE_NAME = "Personal"
 DOCUMENT_SUFFIX = ".md"
+README = "README.md"
+MISSING_WORKSPACE = "The workspace is not available. Read the account root for them."
 # The text format's ID note, as in `- id:: k3x9`; the format parser replaces this.
 ID_NOTE = re.compile(r"^[ \t>]*[-*+][ \t]+id::[ \t]*(\S+)[ \t]*\r?$", re.MULTILINE)
 
@@ -130,8 +131,9 @@ class Expectations:
         """`versions` maps each path the caller read to its version; `ref` names a path."""
         self.tree = tree
         self.ref = ref
-        self.files = {path: v for path, v in versions.items() if path in tree.initial}
-        self.folders = {path: v for path, v in versions.items() if path not in tree.initial}
+        # A null version records a file read as missing, such as a README not yet saved.
+        self.files = {path: v for path, v in versions.items() if path in tree.initial or v is None}
+        self.folders = {path: v for path, v in versions.items() if path not in self.files}
         self.first_use = {}
         self.folder_first_use = {}
 
@@ -144,12 +146,13 @@ class Expectations:
             if file in self.first_use:
                 continue
             if file in self.files:
-                if self.files[file] != self.tree.initial[file]:
+                current = self.tree.initial.get(file)
+                if self.files[file] != current:
                     raise Refusal(
                         "FAILED_PRECONDITION",
                         f"{file!r} changed since it was read.",
                         index,
-                        {self.ref(file): self.tree.initial[file]},
+                        {self.ref(file): current},
                     )
                 self.first_use.setdefault(file, index)
                 continue
@@ -213,7 +216,6 @@ class Note:
     kind = None
     operations = ("read",)
     listing = False
-    holds_ids = False
 
     def __init__(self, call, path):
         self.call = call
@@ -263,7 +265,12 @@ class Container(Note):
 
 class Workspace(Container):
     kind = "workspace"
-    operations = ("read", "insert", "setText")
+
+    @property
+    def operations(self):
+        if self.call.single_file:
+            return ("read", "delete", "setText")
+        return ("read", "insert", "delete", "setText")
 
     @classmethod
     def name_for(cls, call, text):
@@ -279,8 +286,21 @@ class Workspace(Container):
     def text(self):
         return self.call.name
 
+    def children(self):
+        if self.call.single_file:
+            return [self.call.note_at(README)]
+        return super().children()
+
     def set_text(self, operation):
         self.call.name = self.name_for(self.call, self.call.changed_text(self.text, operation))
+        return {"ref": self.call.ref("")}
+
+    def delete(self, operation):
+        if not operation.get("withChildren"):
+            self.call.refuse(
+                "INVALID_ARGUMENT", "A workspace holds its document; set withChildren to delete it."
+            )
+        self.call.deleted = True
         return {"ref": self.call.ref("")}
 
 
@@ -314,18 +334,14 @@ class Movable(Note):
 
     def delete(self, operation):
         self.call.check(self)
-        files = [self.call.note_at(file) for file in self.files()]
-        self.tree.load(file.path for file in files if file.holds_ids)
         if self.has_children() and not operation.get("withChildren"):
             self.call.refuse(
                 "INVALID_ARGUMENT",
                 f"{self.path!r} has children; set withChildren to delete them too.",
             )
-        removed = []
-        for file in files:
-            removed += file.removed_ids()
-            self.tree.remove(file.path)
-        return {"removedIds": removed}
+        for file in self.files():
+            self.tree.remove(file)
+        return {"ref": self.call.ref(self.path)}
 
     def relocate(self, new_path, field):
         self.call.check(self)
@@ -377,9 +393,6 @@ class File(Movable):
     def has_children(self):
         return False
 
-    def removed_ids(self):
-        return []
-
     def read(self, depth, content=False):
         node = super().read(depth)
         if self.children_known:
@@ -415,7 +428,11 @@ class Document(File):
     """A `.md` file read in the RemDo text format; its text is its name without `.md`."""
 
     kind = "document"
-    holds_ids = True
+
+    @property
+    def operations(self):
+        return ("read", "setContent") if self.call.single_file else super().operations
+
     # Until the format parser lists a document's children, Read can't say whether it has any.
     children_known = False
 
@@ -424,7 +441,15 @@ class Document(File):
         return Movable.name_for(call, text) + DOCUMENT_SUFFIX
 
     @classmethod
+    def check_text(cls, call, content):
+        try:
+            content.decode()
+        except UnicodeDecodeError:
+            call.refuse("INVALID_ARGUMENT", "content: a document is UTF-8 text.")
+
+    @classmethod
     def check_new(cls, call, content):
+        cls.check_text(call, content)
         if ids_in(content):
             call.refuse("INVALID_ARGUMENT", "content: a new document can't carry IDs.")
 
@@ -435,53 +460,62 @@ class Document(File):
     def has_children(self):
         return document_has_children(self.content)
 
-    def removed_ids(self):
-        return ids_in(self.content)
-
     def check_content(self, current, content):
+        self.check_text(self.call, content)
         if sorted(ids_in(content)) != sorted(ids_in(current)):
             self.call.refuse("INVALID_ARGUMENT", "content: Set content can't add or remove IDs.")
+
+
+class Readme(Document):
+    """A workspace's one document, which reads as empty until its first save creates it."""
+
+    @property
+    def content(self):
+        return self.tree.content(self.path) if self.path in self.tree.files else b""
+
+    def version(self):
+        return self.tree.files.get(self.path)
 
 
 KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file": File}
 Container.holds = {"document": Document, "file": File}
 
 
-def _workspaces_of(user):
-    """The user's workspaces by name, creating their personal workspace on first use."""
-    workspaces = list(models.Workspace.objects.filter(owner=user).order_by("name", "id"))
-    if workspaces:
-        return workspaces
-    with transaction.atomic():
-        type(user).objects.select_for_update().filter(pk=user.pk).first()
-        workspaces = list(models.Workspace.objects.filter(owner=user).order_by("name", "id"))
-        if not workspaces:
-            workspaces = [models.Workspace.objects.create(name=PERSONAL_WORKSPACE_NAME, owner=user)]
-    return workspaces
-
-
 def workspace_notes(user):
-    """The user's workspaces as notes, for the account root to list."""
-    return [WorkspaceCall(user, workspace).note_at("") for workspace in _workspaces_of(user)]
+    """The user's workspaces as notes by name, for the account root to list."""
+    workspaces = models.Workspace.objects.filter(owner=user).order_by("name", "id")
+    return [WorkspaceCall(user, workspace).note_at("") for workspace in workspaces]
 
 
 def open_call(user, workspace_id, expected=None):
     """A call on one of the user's workspaces; other users' are refused as missing."""
     workspace = models.Workspace.objects.filter(owner=user, pk=workspace_id).first()
     if workspace is None:
-        raise Refusal(
-            "NOT_FOUND", "The workspace is not available. Read the account root for them."
-        )
+        raise Refusal("NOT_FOUND", MISSING_WORKSPACE)
     return WorkspaceCall(user, workspace, expected)
 
 
-def create_workspace(user, name):
-    _workspaces_of(user)
-    return models.Workspace.objects.create(name=name, owner=user).pk
+def create_workspace(call, name, content):
+    """Create a workspace for the call's user, with a call on it that writes any README content.
+
+    The caller commits that call with its own, so the README's revision is part of its result.
+    """
+    workspace = models.Workspace.objects.create(name=name, owner=call.user)
+    if not content:
+        return workspace.pk, None
+    files = WorkspaceCall(call.user, workspace)
+    files.index = call.index
+    Document.check_new(files, content)
+    files.put(README, content)
+    return workspace.pk, files
 
 
 class WorkspaceCall(Call):
     """A call on the notes of one workspace, applied to a tree of its files."""
+
+    # Multi-file workspaces return with a later plan (docs/text-format-plan.md); until then their
+    # tests turn this off to keep the folder and plain-file kinds working.
+    single_file = True
 
     def __init__(self, user, workspace, expected=None):
         super().__init__(user)
@@ -489,6 +523,12 @@ class WorkspaceCall(Call):
         self.tree = Tree(workspace)
         self.expectations = Expectations(self.tree, self.expected_paths(expected or {}), self.ref)
         self.name = workspace.name
+        self.deleted = False
+
+    def apply(self, operation):
+        if self.deleted:
+            self.refuse("INVALID_ARGUMENT", "The workspace was deleted earlier in this call.")
+        return super().apply(operation)
 
     def expected_paths(self, expected):
         paths = {}
@@ -506,17 +546,31 @@ class WorkspaceCall(Call):
                 f"{field}: ID references arrive with outline notes; use the path Read returns.",
             )
         path = self.path(path, field)
-        if self.tree.kind(path) is None:
+        if not self.is_readme(path) and self.tree.kind(path) is None:
             self.refuse("NOT_FOUND", f"{field}: no note at {path!r}.")
         return self.note_at(path)
 
     def note_at(self, path):
+        if self.is_readme(path):
+            return Readme(self, path)
         return KINDS[self.tree.kind(path)](self, path)
 
+    def is_readme(self, path):
+        return self.single_file and path == README
+
     def commit(self, operations, dry_run):
+        if self.deleted:
+            # The store's commit lock, so a concurrent save can't add history the deletion misses.
+            locked = (
+                models.Workspace.objects.select_for_update().filter(pk=self.workspace.pk).first()
+            )
+            if locked is not None:
+                locked.delete()
+            return [{"ref": self.ref(""), "change": "deleted"}], None
         described = []
         if self.name != self.workspace.name:
-            models.Workspace.objects.filter(pk=self.workspace.pk).update(name=self.name)
+            if not models.Workspace.objects.filter(pk=self.workspace.pk).update(name=self.name):
+                raise Refusal("NOT_FOUND", MISSING_WORKSPACE)
             described.append({"ref": self.ref(""), "change": "renamed", "text": self.name})
         changes = self.tree.changes()
         revision = None
@@ -531,6 +585,9 @@ class WorkspaceCall(Call):
                 )
             except store.StaleFile as error:
                 raise self.expectations.stale(error) from error
+            # Deleted by a concurrent call since this one opened it.
+            except models.Workspace.DoesNotExist as error:
+                raise Refusal("NOT_FOUND", MISSING_WORKSPACE) from error
             # Every path was checked against the tree, so a conflict here is a concurrent change.
             except store.PathTaken as error:
                 raise Refusal(
@@ -585,17 +642,6 @@ class WorkspaceCall(Call):
             self.tree.put(path, content)
         except store.InvalidContent as error:
             self.refuse("INVALID_ARGUMENT", f"content: {error}")
-
-    def content(self, operation):
-        if "content" not in operation:
-            return b""
-        value = operation["content"]
-        if operation.get("contentEncoding") == "base64":
-            try:
-                return base64.b64decode(value, validate=True)
-            except ValueError:
-                self.refuse("INVALID_ARGUMENT", "content is not valid base64.")
-        return self.encoded(value, "content")
 
 
 def _describe(call, path, before, content, dry_run):

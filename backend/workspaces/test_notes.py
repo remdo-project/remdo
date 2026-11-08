@@ -1,9 +1,11 @@
+from unittest import mock
+
 from accounts.models import User
 from django.test import TestCase
 from notes import service as notes
 
 from . import source, store
-from .models import Workspace
+from .models import Blob, Workspace
 
 DOC = "# Plan\n\n- step\n    - id:: k3x9\n"
 OTHER = "- other\n  - id:: p7q2\n"
@@ -108,7 +110,6 @@ CASES = {
         read=["a/"],
         ops=[{"op": "delete", "target": "a", "withChildren": True}],
         after={"b.md": "b\n"},
-        results=[{"removedIds": ["k3x9", "p7q2"]}],
     ),
     "delete a document with content needs withChildren": dict(
         before={"a.md": "- a\n"},
@@ -121,7 +122,6 @@ CASES = {
         read=["a.md"],
         ops=[{"op": "delete", "target": "a.md"}],
         after={"b.txt": "b\n"},
-        results=[{"removedIds": ["k3x9"]}],
     ),
     "set content by exact replacement": dict(
         before={"a.md": DOC},
@@ -231,12 +231,13 @@ CASES = {
 }
 
 
-class NoteOperationTests(TestCase):
+class MultiFileNoteOperationTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.owner = User.objects.create_user("owner@example.test", "Owner-password-123")
 
     def setUp(self):
+        self.enterContext(mock.patch.object(source.WorkspaceCall, "single_file", False))
         self.workspace = Workspace.objects.create(name="Personal", owner=self.owner)
 
     def write(self, files):
@@ -499,3 +500,117 @@ class NoteOperationTests(TestCase):
 
     def ref(self, path=""):
         return f"{self.workspace.pk}/{path}" if path else self.workspace.pk
+
+
+class SingleFileWorkspaceTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = User.objects.create_user("owner@example.test", "Owner-password-123")
+
+    def setUp(self):
+        self.workspace = Workspace.objects.create(name="Trip", owner=self.owner)
+        self.readme = f"{self.workspace.pk}/README.md"
+
+    def set_content(self, content, version):
+        return notes.call(
+            self.owner,
+            [{"op": "setContent", "target": self.readme, "content": content}],
+            {self.readme: version},
+        )
+
+    def test_a_workspace_holds_its_readme_which_reads_empty_until_saved(self):
+        node = notes.read(self.owner, self.workspace.pk, depth=1)
+
+        self.assertEqual(node["operations"], ["read", "delete", "setText"])
+        [document] = node["children"]
+        self.assertEqual(
+            (document["ref"], document["kind"], document["text"], document["version"]),
+            (self.readme, "document", "README", None),
+        )
+        self.assertEqual(document["operations"], ["read", "setContent"])
+        self.assertEqual(notes.read(self.owner, self.readme, content=True)["content"], "")
+
+    def test_the_first_save_creates_the_readme_and_a_stale_one_is_refused(self):
+        self.set_content("- a\n", None)
+
+        self.assertEqual(store.read(self.workspace, "README.md").content, b"- a\n")
+        with self.assertRaises(notes.Refusal) as refusal:
+            self.set_content("- mine\n", None)
+        current = store.read(self.workspace, "README.md").blob_hash
+        self.assertEqual(
+            (refusal.exception.code, refusal.exception.versions),
+            ("FAILED_PRECONDITION", {self.readme: current}),
+        )
+
+    def test_a_save_after_a_concurrent_deletion_finds_the_workspace_missing(self):
+        changes = source.Tree.changes
+
+        def deleted_meanwhile(tree):
+            Workspace.objects.filter(pk=self.workspace.pk).delete()
+            return changes(tree)
+
+        with (
+            mock.patch.object(source.Tree, "changes", deleted_meanwhile),
+            self.assertRaises(notes.Refusal) as refusal,
+        ):
+            self.set_content("- a\n", None)
+        self.assertEqual(refusal.exception.code, "NOT_FOUND")
+
+    def test_a_rename_after_a_concurrent_deletion_finds_the_workspace_missing(self):
+        call = source.open_call(self.owner, self.workspace.pk)
+        Workspace.objects.filter(pk=self.workspace.pk).delete()
+
+        with self.assertRaises(notes.Refusal) as refusal:
+            call.run([{"op": "setText", "target": self.workspace.pk, "text": "Renamed"}], False)
+
+        self.assertEqual(refusal.exception.code, "NOT_FOUND")
+        self.assertFalse(Workspace.objects.exists())
+
+    def test_a_document_holds_only_utf8_text(self):
+        binary = {"content": "/wA=", "contentEncoding": "base64"}
+
+        for operation in (
+            {"op": "setContent", "target": self.readme, **binary},
+            {"op": "insert", "parent": "me", "kind": "workspace", "text": "Bytes", **binary},
+        ):
+            with self.subTest(op=operation["op"]), self.assertRaises(notes.Refusal) as refusal:
+                notes.call(self.owner, [operation], {self.readme: None})
+            self.assertEqual(
+                (refusal.exception.code, str(refusal.exception)),
+                ("INVALID_ARGUMENT", "content: a document is UTF-8 text."),
+            )
+        self.assertEqual(Workspace.objects.count(), 1)
+
+    def test_a_workspace_adds_and_renames_no_files(self):
+        self.set_content("- a\n", None)
+
+        for operation in (
+            {"op": "insert", "parent": self.workspace.pk, "kind": "document", "text": "Plan"},
+            {"op": "setText", "target": self.readme, "text": "Plan"},
+            {"op": "delete", "target": self.readme, "withChildren": True},
+        ):
+            with self.subTest(op=operation["op"]), self.assertRaises(notes.Refusal) as refusal:
+                notes.call(self.owner, [operation])
+            self.assertEqual(refusal.exception.code, "INVALID_ARGUMENT")
+
+    def test_deleting_a_workspace_deletes_its_history(self):
+        store.commit(
+            self.workspace, self.owner, "", {"README.md": (None, b"- a\n    - id:: k3x9\n")}
+        )
+        delete = {"op": "delete", "target": self.workspace.pk, "withChildren": True}
+
+        with self.assertRaises(notes.Refusal):
+            notes.call(self.owner, [{**delete, "withChildren": False}])
+        with self.assertRaises(notes.Refusal) as refusal:
+            notes.call(self.owner, [delete, {"op": "setText", "target": self.workspace.pk}])
+        self.assertEqual(refusal.exception.index, 1)
+        preview = notes.call(self.owner, [delete], dry_run=True)
+        self.assertTrue(Workspace.objects.filter(pk=self.workspace.pk).exists())
+
+        result = notes.call(self.owner, [delete])
+
+        self.assertEqual(preview["changes"], result["changes"])
+        self.assertEqual(result["results"], [{"ref": self.workspace.pk}])
+        self.assertEqual(result["changes"], [{"ref": self.workspace.pk, "change": "deleted"}])
+        self.assertFalse(Workspace.objects.filter(pk=self.workspace.pk).exists())
+        self.assertFalse(Blob.objects.exists())

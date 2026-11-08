@@ -12,6 +12,8 @@ editing depend on the location:
 - Home displays the read-only heading **Home**.
 - A [document root](./note-model.md#definitions) displays its own text as a read-only document name.
   [Rename](#document-rename) changes that name through an explicit submission.
+  A workspace's document takes its [workspace's](./note-model.md#note-kinds)
+  text as its name, and Rename changes the workspace's text.
 - A zoomed [editor note](./note-model.md#note-kinds) displays its own rich content as an editable heading. It
   supports the same inline content as any editor note, including
   [inline formatting](./inline-formatting.md) and [note links](./links.md). Edits apply in place through ordinary document

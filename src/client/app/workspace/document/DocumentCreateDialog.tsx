@@ -2,26 +2,30 @@ import { Button as FormButton, Group, Stack, TextInput } from '@mantine/core';
 import { useRef, useState } from 'react';
 import { DOCUMENT_TITLE_MAX_LENGTH } from '#domain/documents/user-data';
 import { RemdoDialog } from '#client/ui/RemdoDialog';
+import { WORKSPACE_NAME_MAX_LENGTH } from '../workspaces/use-workspaces';
 
-function suggestDocumentName(existingNames: readonly string[]): string {
+function suggestName(base: string, existingNames: readonly string[]): string {
   const names = new Set(existingNames.map((name) => name.trim().toLowerCase()));
-  let suggestion = 'New Document';
+  let suggestion = base;
   for (let suffix = 1; names.has(suggestion.toLowerCase()); suffix += 1) {
-    suggestion = `New Document ${suffix}`;
+    suggestion = `${base} ${suffix}`;
   }
   return suggestion;
 }
 
 export function DocumentCreateDialog({
   existingNames,
+  kind = 'document',
   onClose,
   onCreate,
 }: {
   existingNames: readonly string[];
+  kind?: 'document' | 'workspace';
   onClose: () => void;
   onCreate: (title: string) => Promise<void>;
 }) {
-  const [draft, setDraft] = useState(() => suggestDocumentName(existingNames));
+  const Kind = kind[0]!.toUpperCase() + kind.slice(1);
+  const [draft, setDraft] = useState(() => suggestName(`New ${Kind}`, existingNames));
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const pendingRef = useRef(false);
@@ -33,7 +37,7 @@ export function DocumentCreateDialog({
     inputRef.current?.focus();
     const title = draft.trim();
     if (!title) {
-      setError('Enter a document name.');
+      setError(`Enter a ${kind} name.`);
       return;
     }
     pendingRef.current = true;
@@ -43,14 +47,14 @@ export function DocumentCreateDialog({
       await onCreate(title);
       onClose();
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Could not create the document. Try again.');
+      setError(failure instanceof Error ? failure.message : `Could not create the ${kind}. Try again.`);
       pendingRef.current = false;
       setPending(false);
     }
   };
 
   return (
-    <RemdoDialog isDismissable={!pending} onClose={onClose} title="New document">
+    <RemdoDialog isDismissable={!pending} onClose={onClose} title={`New ${kind}`}>
       <form onSubmit={(event) => { event.preventDefault(); void submit(); }}>
         <Stack gap="md">
           <TextInput
@@ -59,8 +63,8 @@ export function DocumentCreateDialog({
             error={error}
             errorProps={{ role: 'alert' }}
             inputWrapperOrder={['label', 'input', 'description', 'error']}
-            label="Document name"
-            maxLength={DOCUMENT_TITLE_MAX_LENGTH}
+            label={`${Kind} name`}
+            maxLength={kind === 'workspace' ? WORKSPACE_NAME_MAX_LENGTH : DOCUMENT_TITLE_MAX_LENGTH}
             onChange={(event) => { setDraft(event.currentTarget.value); setError(null); }}
             onFocus={(event) => {
               if (selectedOnOpenRef.current) return;
@@ -77,7 +81,7 @@ export function DocumentCreateDialog({
           {pending && <span role="status">Creating…</span>}
           <Group gap={8} justify="flex-end">
             <FormButton disabled={pending} onClick={onClose} variant="default">Cancel</FormButton>
-            <FormButton disabled={pending} type="submit">Create document</FormButton>
+            <FormButton disabled={pending} type="submit">Create {kind}</FormButton>
           </Group>
         </Stack>
       </form>

@@ -75,7 +75,8 @@ Tools write:
 - Strikethrough:: `~~x~~`, with marks moved off surrounding whitespace
 - Underline:: `<u>x</u>`
 - Date:: `[1 Nov](date:2026-11-01)`
-- Note or document link:: `[x](note:k3x9)`
+- Note or document link:: `[x](note:k3x9)`, or `[x](note:Hq3vZp8Lmx_k3x9)` in
+  another workspace
 - Other file link:: relative path, as in `[x](../assets/chart.png)`
 - Code block:: backtick fence
 - Hard line break:: trailing `\`

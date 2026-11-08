@@ -107,7 +107,6 @@ def metadata_tool(name, arguments, user):
 
 NOTE_OPERATIONS = {
     "insert_note": "insert",
-    "move_note": "move",
     "delete_note": "delete",
     "set_note_text": "setText",
     "set_note_content": "setContent",
@@ -139,14 +138,6 @@ def report(error):
         import sentry_sdk
 
         sentry_sdk.capture_exception(error)
-
-
-def can_use_workspaces(user):
-    # TODO: Workspaces stay behind this experimental permission until the text format migration
-    # (docs/text-format-plan.md) moves every user onto them; other users, including directory
-    # reviewers, keep the submitted MCP surface. Probe: delete this check and the use_workspaces
-    # permission, then the MCP contract tests list the note tools for every user.
-    return user.has_perm("workspaces.use_workspaces")
 
 
 class RemdoServer(Server):
@@ -205,7 +196,7 @@ def create_app():
             ) from error
 
     async def workspaces_allowed(user):
-        return await run_database(can_use_workspaces, user)
+        return await run_database(notes.can_use_workspaces, user)
 
     async def list_tools(ctx, params):
         try:

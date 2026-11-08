@@ -99,20 +99,18 @@ the capabilities they expose, including whether they are addressable, can own
 children, or can be [selected structurally](./selection.md). Each kind's owner
 defines its additional capabilities.
 
-An account's root, its [workspaces](../workspaces/store.md) and their files form
-a tree of notes of the kinds below, which share the
+An account's root, its [workspaces](../workspaces/store.md) and their documents
+form a tree of notes of the kinds below, which share the
 [note operations](./note-operations.md). A kind's text is what
 [Set text](./note-operations.md#operations) changes.
 
 - **Account root:** the signed-in account's [account root](#definitions). Its
-  children include the account's workspaces, ordered by name, and it always
-  holds a personal one. Its text is the account's email address.
-- **Workspace:** the [source](#sources) of every note in it. Its
-  children are the folders, documents and plain files at its top level, ordered
-  by name. Its text is its name.
-- **Folder:** the shared path of the files under it; it exists while it holds a
-  file. Its children are as for a workspace, under its path. Its text is its
-  last path segment.
+  children include the account's workspaces, ordered by name. Its text is the
+  account's email address.
+- **Workspace:** the [source](#sources) of every note in it. Its one child is
+  its document, `README.md`, which reads as an empty document while the file is
+  missing; the first change creates it. Its text is its name, independent of
+  the file's.
 - **Document:** a `.md` file read as an outline in the
   [RemDo text format](../../format.md). Its children are its Markdown blocks and
   outline notes. Its text is its file name without `.md`.
@@ -121,11 +119,8 @@ a tree of notes of the kinds below, which share the
   marker, checkbox, name and text.
 - **Markdown block:** other Markdown in a document. It has no children. Its
   text is its Markdown as written.
-- **Plain file:** any other file, with opaque content. It has no children. Its
-  text is its file name.
 
-Changing a note's text never changes its kind, and the name of a folder,
-document or plain file must be a valid [path segment](../workspaces/store.md#paths).
+Changing a note's text never changes its kind.
 
 A reference is a string that Read returns for every note and callers pass back
 unchanged; [Note IDs](./note-ids.md#ids-in-workspaces) spells its forms. A
@@ -133,3 +128,8 @@ workspace's notes are referenced through their workspace, either by ID, once
 they have one, or by path. An ID reference survives renames and moves; a path
 reference names whatever is at that path. Read returns a note's ID reference
 when it has an ID. **Deterministic.**
+
+## Future
+
+- **Multi-file workspaces:** folders, plain files and several documents in one
+  workspace, listed as the workspace's children by name.

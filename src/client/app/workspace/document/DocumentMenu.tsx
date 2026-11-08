@@ -3,7 +3,9 @@ import type { KeyboardEvent } from 'react';
 import { Button, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover } from 'react-aria-components';
 import type { DocumentNote, OpenDocument } from '#note-sdk';
 
-export function DocumentMenu({
+type MenuNote = Pick<DocumentNote, 'canRename' | 'canShareWith' | 'canDelete'>;
+
+export function DocumentMenu<Note extends MenuNote>({
   label,
   note,
   onDelete,
@@ -12,10 +14,10 @@ export function DocumentMenu({
   view,
 }: {
   label: string;
-  note: DocumentNote;
-  onDelete: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
-  onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
-  onShare: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
+  note: Note;
+  onDelete: (note: Note, trigger: HTMLButtonElement | null) => void;
+  onRename: (note: Note, trigger: HTMLButtonElement | null) => void;
+  onShare: (note: Note, trigger: HTMLButtonElement | null) => void;
   view?: OpenDocument['view'];
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null);

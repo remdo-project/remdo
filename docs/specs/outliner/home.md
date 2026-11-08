@@ -55,7 +55,8 @@ blur halo around the button.
 1. Home shows document navigation and actions, without a document editor or its
    toolbar. Its heading follows [Location header](./location-header.md).
 2. Home lists the user's [accessible documents](../access/access-control.md#sources)
-   in one list under Current Server, omitted when the user has none.
+   and [workspaces](./note-model.md#note-kinds) in one list under Current
+   Server, omitted when the user has none.
 3. Each listed document shows its display name and opens that document when
    activated, landing on its [document-root view](./zoom.md#visibility-and-editing-boundary).
    A document owned by another user, or owned by the user with at least one
@@ -65,6 +66,7 @@ blur halo around the button.
    the row's accessible name. On a document the user owns, the marker is a
    separate button that opens the document's
    [sharing surface](../access/access-control.md#document-sharing).
+   A listed workspace shows its name and opens its document.
 4. Above the list, Home offers [document search](./search.md#document-scope),
    omitted with the list.
 
@@ -100,13 +102,16 @@ entries usable. It has no unread state or notification history.
 1. **New document** opens a naming dialog before creating a document on the
    current server and opening it.
 2. **Upload document** imports a document from a backup file.
-3. Each document row with document actions has a separate [quick action menu](./menu.md) button.
-   Opening it targets that document without opening the document. Its document
+3. **New workspace** opens a naming dialog before
+   [inserting](./note-operations.md#operations) a workspace and opening its
+   document.
+4. Each row with actions has a separate [quick action menu](./menu.md) button.
+   Opening it targets that row without opening it. A document row's document
    actions match those on the document-root header;
    actions requiring an open outline are absent.
 
-New document and Upload document remain directly visible on Home. The Home
-heading is not a document-action target.
+New document, Upload document and New workspace remain directly visible on
+Home. The Home heading is not a document-action target.
 
 ### New document
 
@@ -124,6 +129,18 @@ existing names. `Enter` during input-method composition does not submit.
 **New document**. Pending creation blocks editing, dismissal, and resubmission.
 Failure retains the draft and input focus with an inline error for retry;
 success focuses the first editor note.
+
+### New workspace
+
+The dialog follows New document, suggesting **New Workspace** against the
+listed names; success opens the new workspace's empty document.
+
+### Workspace actions
+
+1. **Rename…** follows [Document rename](./location-header.md#document-rename).
+2. **Delete…** confirms, naming the workspace and stating that deletion can't
+   be undone, then applies [Delete](./note-operations.md#operations) with its
+   children. Failure reports its reason.
 
 ## Entering and leaving Home
 

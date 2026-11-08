@@ -123,7 +123,9 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
    an ID only once a link points to it or a caller ensures one; the ID is
    written into its document's text, as the [text format](../../format.md)
    spells it.
-2. An ID is unique across its workspace and resolves there as a `note:` link. A
+2. An ID is unique across its workspace and resolves there as a `note:` link;
+   a `note:` link holding a `<workspaceId>_<id>` reference resolves in that
+   workspace on the same server. A
    note keeps its ID through every [note operation](./note-operations.md)
    except Delete, including a move to another document. **Deterministic.**
 3. Inserted or copied notes start without an ID; a fragment carrying one is

@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
+from notes.service import can_use_workspaces
 from rest_framework import serializers
 
 from .models import DOCUMENT_TITLE_MAX_LENGTH, Document, DocumentGrant
@@ -82,10 +83,14 @@ class RenameDocumentSerializer(serializers.ModelSerializer):
 
 class CurrentUserSerializer(serializers.ModelSerializer):
     userId = serializers.CharField(source="pk", read_only=True)
+    canUseWorkspaces = serializers.SerializerMethodField(method_name="get_can_use_workspaces")
 
     class Meta:
         model = get_user_model()
-        fields = ["userId"]
+        fields = ["userId", "canUseWorkspaces"]
+
+    def get_can_use_workspaces(self, user) -> bool:
+        return can_use_workspaces(user)
 
 
 class ConfigSerializer(serializers.Serializer):

@@ -42,7 +42,7 @@ implementation.
   access changes, and unavailable sources before choosing direct document
   loading or a derived search index. Coordinate the UI, [note-link picker](specs/outliner/links.md#future), and
   [MCP](#claude-mcp-save-a-conversation-to-remdo) through shared SDK operations. For documents in workspaces, the
-  [adoption plan](text-format-plan.md)'s Note layer stage covers the index.
+  [adoption plan](text-format-plan.md)'s Workspaces on Home stage covers search.
 - **Unopened documents.** Settle host-owned acquisition of non-current documents,
   content retention, and offline availability under the [open-document read boundary](specs/outliner/open-document.md#state-and-observation).
   Reassess persisted user-data handles and document-specific kinds
