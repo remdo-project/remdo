@@ -10,6 +10,8 @@ import { currentUserBootstrapQuery } from './current-user-bootstrap';
 /** The root of every notes query, which the account's change notice rereads. */
 export const NOTES_QUERY_KEY = ['notes'] as const;
 const MIN_REOPEN_DELAY_MS = 1000;
+// An agent's note tools change one note per call, so its notices arrive in bursts.
+const REREAD_DELAY_MS = 150;
 const MAX_REOPEN_DELAY_MS = 60_000;
 
 export function createUserDataRuntime(userId: string, client = new QueryClient()) {
@@ -161,10 +163,14 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     let reopenDelay = MIN_REOPEN_DELAY_MS;
     // A listing already in flight may predate the change; TanStack reuses rather
     // than restarts one that has no data yet.
+    let rereadTimer: ReturnType<typeof setTimeout> | undefined;
     const reread = () => {
-      for (const queryKey of [documentsQuery.queryKey, NOTES_QUERY_KEY]) {
-        void client.cancelQueries({ queryKey }).then(() => client.invalidateQueries({ queryKey }));
-      }
+      clearTimeout(rereadTimer);
+      rereadTimer = setTimeout(() => {
+        for (const queryKey of [documentsQuery.queryKey, NOTES_QUERY_KEY]) {
+          void client.cancelQueries({ queryKey }).then(() => client.invalidateQueries({ queryKey }));
+        }
+      }, REREAD_DELAY_MS);
     };
     const open = () => {
       const opened = new WebSocket(url);
@@ -205,6 +211,7 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     const stop = () => {
       stopped = true;
       clearTimeout(reopenTimer);
+      clearTimeout(rereadTimer);
       clearTimeout(silenceTimer);
       // Closing a connecting socket logs a browser warning; its open handler closes it instead.
       if (socket.readyState !== WebSocket.CONNECTING) socket.close();

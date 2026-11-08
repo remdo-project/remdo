@@ -12,7 +12,7 @@ afterEach(() => { vi.unstubAllGlobals(); });
 
 // A notes server holding one README whose saves are refused once someone else saved it.
 function serveReadme(content: string) {
-  const document = { content, version: 'v1', saves: 1, readable: true };
+  const document = { content, version: 'v1', saves: 1, readable: true, responded: Promise.resolve() };
   vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
     const { pathname } = new URL(request.url);
     if (pathname === '/api/config') return Response.json({ csrfCookieName: 'csrftoken' });
@@ -35,9 +35,11 @@ function serveReadme(content: string) {
     }
     document.content = operations[0]!.content;
     document.version = `v${++document.saves}`;
+    const saved = document.version;
+    await document.responded;
     return Response.json({
       results: [{ ref: README }],
-      changes: [{ ref: README, change: 'changed', version: document.version }],
+      changes: [{ ref: README, change: 'changed', version: saved }],
       revision: document.saves,
       dryRun: false,
     });
@@ -147,4 +149,20 @@ it('offers the conflict choice at once when a save elsewhere meets typed text', 
 
   await screen.findByRole('alert', { name: /changed this document/u });
   expect(box).toHaveValue('- mine\n');
+});
+
+it('takes over a save made elsewhere that a read reports while its own save is answered', async () => {
+  const server = serveReadme('- a\n');
+  const box = await open();
+  let respond!: () => void;
+  server.document.responded = new Promise((resolve) => { respond = resolve; });
+  save(box, '- mine\n');
+  await waitFor(() => expect(server.document.content).toBe('- mine\n'));
+
+  server.saveAsSomeoneElse('- theirs\n');
+  await act(() => client.invalidateQueries({ queryKey: NOTES_QUERY_KEY }));
+  respond();
+
+  await waitFor(() => expect(box).toHaveValue('- theirs\n'));
+  expect(screen.queryByRole('alert')).toBeNull();
 });

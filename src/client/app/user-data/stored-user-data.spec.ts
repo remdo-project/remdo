@@ -437,6 +437,19 @@ describe('document-list change stream', () => {
     await vi.waitFor(() => expect(title()).toBe('Renamed elsewhere'));
   });
 
+  it('rereads once for a burst of notices', async () => {
+    const { title, listings } = watchedAccount(['Draft', 'Changed', 'Changed again']);
+    await vi.waitFor(() => expect(title()).toBe('Draft'));
+    const before = listings();
+    vi.useFakeTimers();
+
+    for (let notice = 0; notice < 3; notice += 1) FakeWebSocket.opened[0]!.send('changed');
+    await vi.advanceTimersByTimeAsync(1000);
+
+    await vi.waitFor(() => expect(title()).toBe('Changed'));
+    expect(listings()).toBe(before + 1);
+  });
+
   it('rereads held notes when another source reports a change', async () => {
     const { runtime, title } = watchedAccount(['Draft']);
     let reads = 0;

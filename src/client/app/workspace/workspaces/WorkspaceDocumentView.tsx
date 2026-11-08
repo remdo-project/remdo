@@ -86,38 +86,41 @@ function DocumentShell({
 }
 
 function LoadedDocument({
-  initial,
   latest,
   onClose,
   reload,
   workspace,
 }: {
-  initial: Base;
   latest: Base;
   onClose: () => void;
   reload: () => Promise<NoteRead>;
   workspace: WorkspaceEntry;
 }) {
   const ref = workspace.documentRef;
-  const [base, setBase] = useState(initial);
-  const [draft, setDraft] = useState(initial.text);
+  const [base, setBase] = useState(latest);
+  const [draft, setDraft] = useState(latest.text);
   const [saving, setSaving] = useState(false);
   // The current version a stale save was refused against, which may be null for a missing file.
   const [conflict, setConflict] = useState<{ version: string | null } | null>(null);
   const [error, setError] = useState<{ title: string; message: string } | null>(null);
-  const [seenVersion, setSeenVersion] = useState(latest.version);
+  // The latest read already taken over or offered as a conflict, so it is handled once.
+  const [decided, setDecided] = useState(latest.version);
 
-  // A save made elsewhere: take it over a clean draft, otherwise offer the conflict choice now.
-  // During this view's own save the read may race the response, which settles the version.
-  if (latest.version !== seenVersion) {
-    setSeenVersion(latest.version);
-    if (!saving && latest.version !== base.version) {
-      if (draft === base.text) {
-        setBase(latest);
-        setDraft(latest.text);
-      } else {
-        setConflict({ version: latest.version });
-      }
+  const adopt = (next: Base) => {
+    setBase(next);
+    setDraft(next.text);
+    setConflict(null);
+    setDecided(next.version);
+  };
+
+  // A read during this view's own save may predate or follow its response; once the save
+  // settles the base version, a read that still differs is someone else's save.
+  if (!saving && latest.version !== base.version && latest.version !== decided) {
+    if (draft === base.text) {
+      adopt(latest);
+    } else {
+      setDecided(latest.version);
+      setConflict({ version: latest.version });
     }
   }
 
@@ -154,10 +157,7 @@ function LoadedDocument({
       setError({ title: 'Could not reload', message: failure instanceof Error ? failure.message : '' });
       return;
     }
-    const theirs = baseOf(current);
-    setBase(theirs);
-    setDraft(theirs.text);
-    setConflict(null);
+    adopt(baseOf(current));
   };
 
   return (
@@ -220,13 +220,11 @@ export function WorkspaceDocumentView({
     queryKey: [...NOTES_QUERY_KEY, ref, 'content'],
     // The loaded view keeps its own base, so a reopened view must read fresh content, not a cached read.
     gcTime: 0,
-    refetchOnWindowFocus: false,
     queryFn: ({ signal }) => readNote(ref, { content: true }, signal),
   });
   if (readme.data) {
     return (
       <LoadedDocument
-        initial={baseOf(readme.data)}
         key={ref}
         latest={baseOf(readme.data)}
         onClose={onClose}

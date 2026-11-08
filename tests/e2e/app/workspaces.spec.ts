@@ -1,4 +1,5 @@
 import { expect, test } from '#e2e/fixtures';
+import type { components } from '#platform/http/api-schema';
 
 test('a workspace opens from Home as its document, saves, renames and deletes', async ({ page }) => {
   await page.goto('/');
@@ -40,10 +41,13 @@ test('a workspace opens from Home as its document, saves, renames and deletes', 
 });
 
 test('Home and an open workspace follow changes made elsewhere', async ({ page }) => {
-  const call = async (operations: object[], expected: object = {}) => {
+  const call = async (
+    operations: Array<components['schemas']['OperationRequest']>,
+    expected: Record<string, string | null> = {},
+  ) => {
     const response = await page.request.post('/api/notes', { data: { operations, expected, dryRun: false } });
-    expect(response.ok()).toBe(true);
-    return await response.json() as { results: Array<{ ref: string }>; changes: Array<{ ref: string; version?: string }> };
+    await expect(response).toBeOK();
+    return await response.json() as components['schemas']['CallResult'];
   };
   await page.goto('/');
   const currentServer = page.getByRole('group', { name: 'Current Server', exact: true });
@@ -54,8 +58,8 @@ test('Home and an open workspace follow changes made elsewhere', async ({ page }
   const text = page.getByRole('textbox', { name: 'From an agent Markdown' });
   await expect(text).toHaveValue('- a\n');
 
-  const readme = `${created.results[0]!.ref}/README.md`;
-  const version = created.changes.find((change) => change.ref === readme)!.version;
+  const readme = `${String(created.results[0]!.ref)}/README.md`;
+  const version = created.changes.find((change) => change.ref === readme)!.version ?? null;
   await call([{ op: 'setContent', target: readme, content: '- a\n- b\n' }], { [readme]: version });
   await expect(text).toHaveValue('- a\n- b\n');
 });
