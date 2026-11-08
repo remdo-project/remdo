@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DocumentNote } from '#note-sdk';
+import { isWorkspaceEntry } from '../workspaces/use-workspaces';
+import type { WorkspaceEntry } from '../workspaces/use-workspaces';
 import { DocumentDeleteDialog } from './DocumentDeleteDialog';
 import { DocumentRenameDialog } from './DocumentRenameDialog';
 import { DocumentShareDialog } from './DocumentShareDialog';
@@ -7,9 +9,11 @@ import { DocumentShareDialog } from './DocumentShareDialog';
 type DialogKind = 'delete' | 'rename' | 'share';
 interface Target {
   kind: DialogKind;
-  note: DocumentNote;
+  note: DocumentNote | WorkspaceEntry;
   trigger: HTMLButtonElement | null;
 }
+
+const WORKSPACE_DELETION = "The workspace's document and its history are deleted. This cannot be undone.";
 
 export function useDocumentDialogs(fallbackRef: { current: HTMLElement | null }, onDeleted?: () => void) {
   const [target, setTarget] = useState<Target | null>(null);
@@ -37,7 +41,7 @@ export function useDocumentDialogs(fallbackRef: { current: HTMLElement | null },
     requestAnimationFrame(() => fallbackRef.current?.focus({ preventScroll: true }));
   };
 
-  const open = (kind: DialogKind) => (note: DocumentNote, trigger: HTMLButtonElement | null) => {
+  const open = (kind: DialogKind) => (note: DocumentNote | WorkspaceEntry, trigger: HTMLButtonElement | null) => {
     setTarget({ kind, note, trigger });
   };
 
@@ -46,9 +50,19 @@ export function useDocumentDialogs(fallbackRef: { current: HTMLElement | null },
     openRename: open('rename'),
     openShare: open('share'),
     documentDialog: target && {
-      delete: <DocumentDeleteDialog key={target.note.getId()} note={target.note} onClose={close} onDeleted={onDeleted} />,
+      delete: (
+        <DocumentDeleteDialog
+          description={isWorkspaceEntry(target.note) ? WORKSPACE_DELETION : undefined}
+          key={target.note.getId()}
+          note={target.note}
+          onClose={close}
+          onDeleted={onDeleted}
+        />
+      ),
       rename: <DocumentRenameDialog key={target.note.getId()} note={target.note} onClose={close} />,
-      share: <DocumentShareDialog key={target.note.getId()} note={target.note} onClose={close} />,
+      share: !isWorkspaceEntry(target.note) && (
+        <DocumentShareDialog key={target.note.getId()} note={target.note} onClose={close} />
+      ),
     }[target.kind],
   };
 }

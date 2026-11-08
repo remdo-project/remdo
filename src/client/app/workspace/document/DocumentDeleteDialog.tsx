@@ -4,11 +4,13 @@ import type { DocumentNote } from '#note-sdk';
 import { RemdoDialog } from '#client/ui/RemdoDialog';
 
 export function DocumentDeleteDialog({
+  description = 'The document and its content are deleted for everyone it is shared with. This cannot be undone.',
   note,
   onClose,
   onDeleted,
 }: {
-  note: DocumentNote;
+  description?: string;
+  note: Pick<DocumentNote, 'getText' | 'delete'>;
   onClose: () => void;
   onDeleted?: () => void;
 }) {
@@ -33,9 +35,7 @@ export function DocumentDeleteDialog({
   return (
     <RemdoDialog isDismissable={!pending} onClose={onClose} title={`Delete “${name}”?`}>
       <Stack gap="md">
-        <Text>
-          The document and its content are deleted for everyone it is shared with. This cannot be undone.
-        </Text>
+        <Text>{description}</Text>
         {error && <Alert color="red" role="alert" variant="light">{error}</Alert>}
         {pending && <span role="status">Deleting…</span>}
         <Group gap={8} justify="flex-end">

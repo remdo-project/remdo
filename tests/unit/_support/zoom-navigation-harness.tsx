@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { createDocumentPath, parseDocumentRef } from '#document-routes';
@@ -33,7 +34,11 @@ export async function renderZoomNavigation(initialNoteId: string | null = 'note1
     },
   ], { initialEntries: [createDocumentPath(docId)] });
   const nextEditor = getTestBridgeRegistry().waitForNext();
-  render(<TestMantineProvider><RouterProvider router={router} /></TestMantineProvider>);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TestMantineProvider><RouterProvider router={router} /></TestMantineProvider>
+    </QueryClientProvider>,
+  );
   const api = await nextEditor;
   await api._bridge.waitForCollaborationReady();
   await act(async () => {

@@ -632,3 +632,20 @@
     max-width: none;
   }
 }
+
+.workspace-document {
+  padding: var(--mantine-spacing-md) var(--remdo-body-inset) 2.5rem;
+}
+
+.workspace-document-note,
+.workspace-document-status {
+  margin: 0;
+  color: var(--chrome-muted);
+  font-size: var(--mantine-font-size-sm);
+}
+
+.workspace-document-text textarea {
+  font-family: var(--remdo-font-family-monospace);
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.55;
+}

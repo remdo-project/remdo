@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- Shared render harness for route component tests. */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
@@ -241,10 +242,13 @@ export function renderDocumentRouteWithResult(initialEntry: string = createDocum
     { initialEntries: [initialEntry] },
   );
 
+  // The app gives each account's tree a query client, as its user-data runtime boundary does.
   const result = render(
-    <TestMantineProvider>
-      <RouterProvider router={router} />
-    </TestMantineProvider>
+    <QueryClientProvider client={new QueryClient()}>
+      <TestMantineProvider>
+        <RouterProvider router={router} />
+      </TestMantineProvider>
+    </QueryClientProvider>
   );
 
   return { router, result };

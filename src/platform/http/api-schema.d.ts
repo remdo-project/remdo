@@ -168,6 +168,7 @@ export interface components {
         ContentEncodingEnum: "utf8" | "base64";
         CurrentUser: {
             readonly userId: string;
+            readonly canUseWorkspaces: boolean;
         };
         Document: {
             readonly id: string;

@@ -8,7 +8,7 @@ export function DocumentRenameDialog({
   note,
   onClose,
 }: {
-  note: DocumentNote;
+  note: Pick<DocumentNote, 'getText'> & { rename: (title: string) => Promise<unknown> };
   onClose: () => void;
 }) {
   // Read once: the live note throws once its document leaves the list.

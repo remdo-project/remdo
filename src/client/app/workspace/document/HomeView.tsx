@@ -7,14 +7,21 @@ import { useCoarsePointer } from '#client/browser/useCoarsePointer';
 import { matchesPathQuery, tokenizeQuery } from '#client/search/query-match';
 import { formatNavigationLabel } from '#client/ui/navigation-label';
 import { useDocumentSearchShortcut } from '../useDocumentSearchShortcut';
+import { isWorkspaceEntry } from '../workspaces/use-workspaces';
+import type { WorkspaceEntry } from '../workspaces/use-workspaces';
 import { DocumentMenu } from './DocumentMenu';
 import { useDocumentDialogs } from './useDocumentDialogs';
+
+type HomeEntry = DocumentNote | WorkspaceEntry;
 
 export interface HomeViewProps {
   focusSearchRequested?: boolean;
   sources: readonly DocumentSourceNote[];
+  workspaces?: readonly WorkspaceEntry[] | null;
   onSelectDocument: (docId: string) => void;
+  onSelectWorkspace?: (workspace: WorkspaceEntry) => void;
   onCreateDocument: () => void;
+  onCreateWorkspace?: () => void;
   onUploadDocument: (file: File) => void;
 }
 
@@ -31,7 +38,7 @@ const MODIFIER_KEYS = new Set([
 
 const documentIdOf = (element: Element | null) => element?.closest<HTMLElement>('[data-home-row]')?.dataset.homeRow;
 
-function filterHomeDocuments(documents: readonly DocumentNote[], query: string): DocumentNote[] {
+function filterHomeDocuments(documents: readonly HomeEntry[], query: string): HomeEntry[] {
   return documents.filter((document) => (
     matchesPathQuery([formatNavigationLabel(document.getText(), Number.POSITIVE_INFINITY)], query)
   ));
@@ -42,7 +49,7 @@ function DocumentGroup({
   documents,
   highlightId,
   highlightInput,
-  onSelectDocument,
+  onSelect,
   onDelete,
   onRename,
   onShare,
@@ -50,13 +57,13 @@ function DocumentGroup({
   onActivate,
 }: {
   label: string;
-  documents: readonly DocumentNote[];
+  documents: readonly HomeEntry[];
   highlightId: string | null;
   highlightInput: ActiveInput;
-  onSelectDocument: (docId: string) => void;
-  onDelete: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
-  onRename: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
-  onShare: (note: DocumentNote, trigger: HTMLButtonElement | null) => void;
+  onSelect: (entry: HomeEntry) => void;
+  onDelete: (note: HomeEntry, trigger: HTMLButtonElement | null) => void;
+  onRename: (note: HomeEntry, trigger: HTMLButtonElement | null) => void;
+  onShare: (note: HomeEntry, trigger: HTMLButtonElement | null) => void;
   menuTargetId: string | null;
   onActivate: (docId: string, source: ActivationSource) => void;
 }) {
@@ -68,9 +75,11 @@ function DocumentGroup({
           const id = note.getId();
           const label = formatNavigationLabel(note.getText());
           const shareable = note.canShareWith();
-          const sharedNote = !shareable
-            ? 'Shared with you'
-            : note.access.getChildren().length > 0 ? 'Shared by you' : null;
+          let sharedNote: string | null = null;
+          if (!isWorkspaceEntry(note)) {
+            if (!shareable) sharedNote = 'Shared with you';
+            else if (note.access.getChildren().length > 0) sharedNote = 'Shared by you';
+          }
           const sharedId = `home-doc-shared-${id}`;
           return (
             <li
@@ -90,7 +99,7 @@ function DocumentGroup({
                 className="home-doc remdo-interaction-surface"
                 data-home-document-ref={id}
                 id={`home-doc-link-${id}`}
-                onClick={() => onSelectDocument(id)}
+                onClick={() => onSelect(note)}
                 type="button"
               >
                 <span className="home-doc-label">{label}</span>
@@ -121,9 +130,12 @@ function DocumentGroup({
 export function HomeView({
   focusSearchRequested = false,
   onCreateDocument,
+  onCreateWorkspace,
   onSelectDocument,
+  onSelectWorkspace,
   onUploadDocument,
   sources,
+  workspaces,
 }: HomeViewProps) {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
@@ -139,9 +151,14 @@ export function HomeView({
   const lastInputRef = useRef<LastInput>('keyboard');
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
   const groups = sources.map((source) => {
-    const documents = source.documents.getChildren();
+    const documents: HomeEntry[] = [...source.documents.getChildren()];
+    if (workspaces && source.getLocal()) documents.push(...workspaces);
     return { source, documents, visibleDocuments: filterHomeDocuments(documents, query) };
   });
+  const select = (entry: HomeEntry) => {
+    if (isWorkspaceEntry(entry)) onSelectWorkspace?.(entry);
+    else onSelectDocument(entry.getId());
+  };
   const hasDocuments = groups.some(({ documents }) => documents.length > 0);
   const visibleDocuments = groups.flatMap((group) => group.visibleDocuments);
   const matchIds = visibleDocuments.map((note) => note.getId());
@@ -246,7 +263,8 @@ export function HomeView({
       moveHighlight(event.key === 'ArrowDown' ? 1 : -1);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      if (highlightId !== null) onSelectDocument(highlightId);
+      const highlighted = visibleDocuments.find((note) => note.getId() === highlightId);
+      if (highlighted) select(highlighted);
     } else if (event.key === 'Escape' && query !== '') {
       event.preventDefault();
       setQuery('');
@@ -338,6 +356,11 @@ export function HomeView({
           >
             Upload document
           </button>
+          {onCreateWorkspace && (
+            <button className="remdo-account-button" onClick={onCreateWorkspace} type="button">
+              New workspace
+            </button>
+          )}
           <button
             className="remdo-account-button remdo-account-button-primary"
             onClick={onCreateDocument}
@@ -399,7 +422,7 @@ export function HomeView({
             documents={documents}
             onDelete={openDelete}
             onRename={openRename}
-            onSelectDocument={onSelectDocument}
+            onSelect={select}
             onShare={openShare}
             menuTargetId={menuTargetId}
             onActivate={activate}

@@ -88,6 +88,7 @@ const domTests = [
   'src/client/app/user-data/*.spec.{ts,tsx}',
   'src/client/app/workspace/document/home-view.spec.tsx',
   'src/client/app/workspace/search-result-row.spec.tsx',
+  'src/client/app/workspace/workspaces/*.spec.tsx',
   'src/client/dev/*.spec.tsx',
   'src/client/ui/*.spec.tsx',
 ];
