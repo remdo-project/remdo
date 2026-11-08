@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { TestMantineProvider } from '#tests';
+import { NOTES_QUERY_KEY } from '#client/app/user-data/stored-user-data';
 import type { WorkspaceEntry } from './use-workspaces';
 import { WorkspaceDocumentView } from './WorkspaceDocumentView';
 
@@ -62,9 +63,12 @@ const workspace: WorkspaceEntry = {
   delete: async () => {},
 };
 
+let client: QueryClient;
+
 async function open() {
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={client}>
       <TestMantineProvider>
         <WorkspaceDocumentView onClose={() => {}} workspace={workspace} />
       </TestMantineProvider>
@@ -119,4 +123,28 @@ it('keeps typed text when reloading theirs fails', async () => {
   await screen.findByText('Could not reload');
   expect(box).toHaveValue('- mine\n');
   expect(screen.getByRole('alert', { name: /changed this document/u })).toBeInTheDocument();
+});
+
+it('takes over a save made elsewhere when nothing is typed', async () => {
+  const server = serveReadme('- a\n');
+  const box = await open();
+  server.saveAsSomeoneElse('- theirs\n');
+
+  await act(() => client.invalidateQueries({ queryKey: NOTES_QUERY_KEY }));
+
+  await waitFor(() => expect(box).toHaveValue('- theirs\n'));
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.getByRole('status')).toHaveTextContent('Saved');
+});
+
+it('offers the conflict choice at once when a save elsewhere meets typed text', async () => {
+  const server = serveReadme('- a\n');
+  const box = await open();
+  fireEvent.change(box, { target: { value: '- mine\n' } });
+  server.saveAsSomeoneElse('- theirs\n');
+
+  await act(() => client.invalidateQueries({ queryKey: NOTES_QUERY_KEY }));
+
+  await screen.findByRole('alert', { name: /changed this document/u });
+  expect(box).toHaveValue('- mine\n');
 });

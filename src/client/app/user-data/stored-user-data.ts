@@ -7,6 +7,8 @@ import { api, requireData } from '#platform/http/api-client';
 import { DOCUMENT_LIST_CHANGED, DOCUMENT_LIST_PATH, DOCUMENT_LIST_SILENCE_LIMIT_MS } from '#platform/net/document-list-socket';
 import { currentUserBootstrapQuery } from './current-user-bootstrap';
 
+/** The root of every notes query, which the account's change notice rereads. */
+export const NOTES_QUERY_KEY = ['notes'] as const;
 const MIN_REOPEN_DELAY_MS = 1000;
 const MAX_REOPEN_DELAY_MS = 60_000;
 
@@ -160,8 +162,9 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     // A listing already in flight may predate the change; TanStack reuses rather
     // than restarts one that has no data yet.
     const reread = () => {
-      void client.cancelQueries({ queryKey: documentsQuery.queryKey })
-        .then(() => client.invalidateQueries({ queryKey: documentsQuery.queryKey }));
+      for (const queryKey of [documentsQuery.queryKey, NOTES_QUERY_KEY]) {
+        void client.cancelQueries({ queryKey }).then(() => client.invalidateQueries({ queryKey }));
+      }
     };
     const open = () => {
       const opened = new WebSocket(url);

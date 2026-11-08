@@ -1,6 +1,6 @@
 import { onlineManager, QueryClient, QueryObserver } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createUserDataRuntime, getUserDataRuntime, resetUserDataRuntime } from './stored-user-data';
+import { createUserDataRuntime, getUserDataRuntime, NOTES_QUERY_KEY, resetUserDataRuntime } from './stored-user-data';
 import { NoteUnavailableError } from '#note-sdk';
 import type { UserDataRuntime } from './stored-user-data';
 
@@ -435,6 +435,19 @@ describe('document-list change stream', () => {
 
     FakeWebSocket.opened[0]!.send('changed');
     await vi.waitFor(() => expect(title()).toBe('Renamed elsewhere'));
+  });
+
+  it('rereads held notes when another source reports a change', async () => {
+    const { runtime, title } = watchedAccount(['Draft']);
+    let reads = 0;
+    runtimeCleanup.push(new QueryObserver(runtime.client, {
+      queryKey: [...NOTES_QUERY_KEY, 'me'],
+      queryFn: () => ++reads,
+    }).subscribe(() => {}));
+    await vi.waitFor(() => expect([title(), reads]).toEqual(['Draft', 1]));
+
+    FakeWebSocket.opened[0]!.send('changed');
+    await vi.waitFor(() => expect(reads).toBe(2));
   });
 
   it('rereads the list when the stream connects, covering changes missed while disconnected', async () => {

@@ -6,6 +6,7 @@ import { ZoomBreadcrumbs } from '#client/editor/view/workspace';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentMenu } from '../document/DocumentMenu';
 import { useDocumentDialogs } from '../document/useDocumentDialogs';
+import { NOTES_QUERY_KEY } from '#client/app/user-data/stored-user-data';
 import { callNotes, NotesRefusal, readNote } from './notes-api';
 import type { NoteRead } from './notes-api';
 import type { WorkspaceEntry } from './use-workspaces';
@@ -86,11 +87,13 @@ function DocumentShell({
 
 function LoadedDocument({
   initial,
+  latest,
   onClose,
   reload,
   workspace,
 }: {
   initial: Base;
+  latest: Base;
   onClose: () => void;
   reload: () => Promise<NoteRead>;
   workspace: WorkspaceEntry;
@@ -102,6 +105,21 @@ function LoadedDocument({
   // The current version a stale save was refused against, which may be null for a missing file.
   const [conflict, setConflict] = useState<{ version: string | null } | null>(null);
   const [error, setError] = useState<{ title: string; message: string } | null>(null);
+  const [seenVersion, setSeenVersion] = useState(latest.version);
+
+  // A save made elsewhere: take it over a clean draft, otherwise offer the conflict choice now.
+  // During this view's own save the read may race the response, which settles the version.
+  if (latest.version !== seenVersion) {
+    setSeenVersion(latest.version);
+    if (!saving && latest.version !== base.version) {
+      if (draft === base.text) {
+        setBase(latest);
+        setDraft(latest.text);
+      } else {
+        setConflict({ version: latest.version });
+      }
+    }
+  }
 
   let status: Status = 'saved';
   if (saving) status = 'saving';
@@ -199,18 +217,18 @@ export function WorkspaceDocumentView({
 }) {
   const ref = workspace.documentRef;
   const readme = useQuery({
-    queryKey: ['notes', ref, 'content'],
+    queryKey: [...NOTES_QUERY_KEY, ref, 'content'],
     // The loaded view keeps its own base, so a reopened view must read fresh content, not a cached read.
     gcTime: 0,
     refetchOnWindowFocus: false,
     queryFn: ({ signal }) => readNote(ref, { content: true }, signal),
   });
   if (readme.data) {
-    // Later reads reach the loaded view only through reload, which it asks for after a conflict.
     return (
       <LoadedDocument
         initial={baseOf(readme.data)}
         key={ref}
+        latest={baseOf(readme.data)}
         onClose={onClose}
         reload={async () => (await readme.refetch({ throwOnError: true })).data!}
         workspace={workspace}

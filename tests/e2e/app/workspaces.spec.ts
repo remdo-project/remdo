@@ -38,3 +38,24 @@ test('a workspace opens from Home as its document, saves, renames and deletes', 
   const account = await (await page.request.get('/api/notes/me')).json() as { children: unknown[] };
   expect(account.children).toEqual([]);
 });
+
+test('Home and an open workspace follow changes made elsewhere', async ({ page }) => {
+  const call = async (operations: object[], expected: object = {}) => {
+    const response = await page.request.post('/api/notes', { data: { operations, expected, dryRun: false } });
+    expect(response.ok()).toBe(true);
+    return await response.json() as { results: Array<{ ref: string }>; changes: Array<{ ref: string; version?: string }> };
+  };
+  await page.goto('/');
+  const currentServer = page.getByRole('group', { name: 'Current Server', exact: true });
+  await expect(page.getByRole('button', { name: 'New workspace', exact: true })).toBeVisible();
+
+  const created = await call([{ op: 'insert', parent: 'me', kind: 'workspace', text: 'From an agent', content: '- a\n' }]);
+  await currentServer.getByRole('button', { name: 'From an agent', exact: true }).click();
+  const text = page.getByRole('textbox', { name: 'From an agent Markdown' });
+  await expect(text).toHaveValue('- a\n');
+
+  const readme = `${created.results[0]!.ref}/README.md`;
+  const version = created.changes.find((change) => change.ref === readme)!.version;
+  await call([{ op: 'setContent', target: readme, content: '- a\n- b\n' }], { [readme]: version });
+  await expect(text).toHaveValue('- a\n- b\n');
+});

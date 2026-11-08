@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from accounts.models import User
 from django.test import TestCase
 from workspaces import store
@@ -132,3 +134,13 @@ class AccountRootAndReferenceTests(TestCase):
             with self.assertRaises(notes.Refusal) as refusal:
                 attempt()
             self.assertEqual(refusal.exception.code, "NOT_FOUND")
+
+    def test_a_change_notifies_the_owners_sessions_after_it_commits(self):
+        insert = {"op": "insert", "kind": "workspace", "text": "Team"}
+        with patch("notes.service.notify_document_list_changed") as notify:
+            notes.call(self.owner, [insert], dry_run=True)
+            notes.read(self.owner, depth=1)
+            notify.assert_not_called()
+
+            notes.call(self.owner, [insert])
+        notify.assert_called_once_with([self.owner.pk])
