@@ -41,6 +41,12 @@ def document_has_children(content):
     return bool(ID_NOTE.sub("", text).strip())
 
 
+def removed_ids(tree, files):
+    """The IDs that deleting `files` removes, reading their contents at once."""
+    tree.load(file.path for file in files if file.holds_ids)
+    return [note_id for file in files for note_id in file.removed_ids()]
+
+
 def _name(path):
     return path.rsplit("/", 1)[-1]
 
@@ -300,8 +306,7 @@ class Workspace(Container):
             self.call.refuse(
                 "INVALID_ARGUMENT", "A workspace holds its document; set withChildren to delete it."
             )
-        files = [self.call.note_at(file) for file in self.files()]
-        removed = [note_id for file in files if file.holds_ids for note_id in file.removed_ids()]
+        removed = removed_ids(self.tree, [self.call.note_at(file) for file in self.files()])
         self.call.deleted = True
         return {"removedIds": removed}
 
@@ -337,15 +342,13 @@ class Movable(Note):
     def delete(self, operation):
         self.call.check(self)
         files = [self.call.note_at(file) for file in self.files()]
-        self.tree.load(file.path for file in files if file.holds_ids)
+        removed = removed_ids(self.tree, files)
         if self.has_children() and not operation.get("withChildren"):
             self.call.refuse(
                 "INVALID_ARGUMENT",
                 f"{self.path!r} has children; set withChildren to delete them too.",
             )
-        removed = []
         for file in files:
-            removed += file.removed_ids()
             self.tree.remove(file.path)
         return {"removedIds": removed}
 
@@ -388,11 +391,10 @@ class File(Movable):
 
     @property
     def content(self):
-        # Only the README of a workspace that hasn't saved it yet is missing; it reads as empty.
-        return self.tree.content(self.path) if self.path in self.tree.files else b""
+        return self.tree.content(self.path)
 
     def version(self):
-        return self.tree.files.get(self.path)
+        return self.tree.files[self.path]
 
     def files(self):
         return [self.path]
@@ -471,6 +473,17 @@ class Document(File):
             self.call.refuse("INVALID_ARGUMENT", "content: Set content can't add or remove IDs.")
 
 
+class Readme(Document):
+    """A workspace's one document, which reads as empty until its first save creates it."""
+
+    @property
+    def content(self):
+        return self.tree.content(self.path) if self.path in self.tree.files else b""
+
+    def version(self):
+        return self.tree.files.get(self.path)
+
+
 KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file": File}
 Container.holds = {"document": Document, "file": File}
 
@@ -491,16 +504,18 @@ def open_call(user, workspace_id, expected=None):
     return WorkspaceCall(user, workspace, expected)
 
 
-def create_workspace(call, name, content=None):
-    """Create a workspace for the call's user, with its README when `content` is given."""
+def create_workspace(call, name, content):
+    """Create a workspace for the call's user, and a call on it that writes any README content.
+
+    The caller commits that call with its own, so the README's revision is part of its result.
+    """
     workspace = models.Workspace.objects.create(name=name, owner=call.user)
-    if content is not None:
-        Document.check_new(call, content)
-        try:
-            store.commit(workspace, call.user, "insert", {README: (None, content)})
-        except store.InvalidContent as error:
-            call.refuse("INVALID_ARGUMENT", f"content: {error}")
-    return workspace.pk
+    files = WorkspaceCall(call.user, workspace)
+    files.index = call.index
+    if content:
+        Document.check_new(files, content)
+        files.put(README, content)
+    return workspace.pk, files
 
 
 class WorkspaceCall(Call):
@@ -539,17 +554,17 @@ class WorkspaceCall(Call):
                 f"{field}: ID references arrive with outline notes; use the path Read returns.",
             )
         path = self.path(path, field)
-        if self.kind(path) is None:
+        if not self.is_readme(path) and self.tree.kind(path) is None:
             self.refuse("NOT_FOUND", f"{field}: no note at {path!r}.")
         return self.note_at(path)
 
     def note_at(self, path):
-        return KINDS[self.kind(path)](self, path)
+        if self.is_readme(path):
+            return Readme(self, path)
+        return KINDS[self.tree.kind(path)](self, path)
 
-    def kind(self, path):
-        if self.single_file and path == README:
-            return "document"
-        return self.tree.kind(path)
+    def is_readme(self, path):
+        return self.single_file and path == README
 
     def commit(self, operations, dry_run):
         if self.deleted:

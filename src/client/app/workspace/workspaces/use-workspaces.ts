@@ -1,7 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { getCachedCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap';
 import { callNotes, readNote } from './notes-api';
+import type { NoteOperation, NoteRead } from './notes-api';
 
 const ACCOUNT_QUERY = ['notes', 'me'] as const;
 
@@ -22,41 +24,37 @@ export function isWorkspaceEntry(entry: object): entry is WorkspaceEntry {
   return 'kind' in entry && entry.kind === 'workspace';
 }
 
-function workspaceEntry(client: QueryClient, ref: string, name: string, documentRef: string): WorkspaceEntry {
-  const refresh = () => client.invalidateQueries({ queryKey: ACCOUNT_QUERY });
+async function change(client: QueryClient, operation: NoteOperation) {
+  try {
+    return await callNotes([operation]);
+  } finally {
+    await client.invalidateQueries({ queryKey: ACCOUNT_QUERY });
+  }
+}
+
+function workspaceEntry(client: QueryClient, workspace: NoteRead): WorkspaceEntry {
+  const { ref, text, operations } = workspace;
   return {
     kind: 'workspace',
-    documentRef,
+    documentRef: workspace.children![0]!.ref,
     getId: () => ref,
-    getText: () => name,
-    canRename: () => true,
+    getText: () => text,
+    canRename: () => operations.includes('setText'),
     canShareWith: () => false,
-    canDelete: () => true,
-    rename: async (text) => {
-      try {
-        await callNotes([{ op: 'setText', target: ref, text }]);
-      } finally {
-        await refresh();
-      }
-    },
-    delete: async () => {
-      try {
-        await callNotes([{ op: 'delete', target: ref, withChildren: true }]);
-      } finally {
-        await refresh();
-      }
-    },
+    canDelete: () => operations.includes('delete'),
+    rename: async (name) => { await change(client, { op: 'setText', target: ref, text: name }); },
+    delete: async () => { await change(client, { op: 'delete', target: ref, withChildren: true }); },
   };
 }
 
 /**
- * The account's workspaces, or null for an account without workspace access, which the
- * current-user bootstrap reports.
- * Home reads them again after its own changes and when the window regains focus;
- * the change stream replaces both.
+ * The account's workspaces, empty for an account without workspace access, which the
+ * current-user bootstrap reports. Home reads them again after its own changes and when the
+ * window regains focus; the change stream replaces both.
  */
 export function useWorkspaces() {
   const client = useQueryClient();
+  // Read each render: the bootstrap that reports access can land after Home mounts.
   const enabled = getCachedCurrentUserBootstrap()?.canUseWorkspaces === true;
   const query = useQuery({
     queryKey: ACCOUNT_QUERY,
@@ -64,19 +62,16 @@ export function useWorkspaces() {
     refetchOnWindowFocus: true,
     queryFn: ({ signal }) => readNote('me', { depth: 2 }, signal),
   });
-  const workspaces = query.data?.children?.map((workspace) => workspaceEntry(
-    client,
-    workspace.ref,
-    workspace.text,
-    workspace.children?.[0]?.ref ?? `${workspace.ref}/README.md`,
-  ));
+  const workspaces = useMemo(
+    () => query.data?.children?.map((workspace) => workspaceEntry(client, workspace)) ?? [],
+    [client, query.data],
+  );
   const create = async (name: string) => {
-    const result = await callNotes([{ op: 'insert', parent: 'me', kind: 'workspace', text: name }]);
-    await client.invalidateQueries({ queryKey: ACCOUNT_QUERY });
+    const result = await change(client, { op: 'insert', parent: 'me', kind: 'workspace', text: name });
     return String(result.results[0]?.ref);
   };
   return {
-    workspaces: enabled ? workspaces ?? [] : null,
+    workspaces,
     enabled,
     error: query.error,
     retry: () => { void query.refetch(); },

@@ -148,12 +148,25 @@ export interface components {
             results: {
                 [key: string]: unknown;
             }[];
-            changes: {
-                [key: string]: unknown;
-            }[];
+            changes: components["schemas"]["Change"][];
             revision: number | null;
             dryRun: boolean;
         };
+        Change: {
+            ref: string;
+            change: components["schemas"]["ChangeEnum"];
+            version?: string | null;
+            text?: string;
+            diff?: string;
+        };
+        /**
+         * @description * `added` - added
+         *     * `changed` - changed
+         *     * `deleted` - deleted
+         *     * `renamed` - renamed
+         * @enum {string}
+         */
+        ChangeEnum: "added" | "changed" | "deleted" | "renamed";
         Config: {
             buildRevision: string;
             csrfCookieName: string;

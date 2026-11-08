@@ -21,7 +21,6 @@ from mcp.server import streamable_http
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from notes import service as notes
-from notes.service import can_use_workspaces
 from rest_framework.renderers import JSONRenderer
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -197,7 +196,7 @@ def create_app():
             ) from error
 
     async def workspaces_allowed(user):
-        return await run_database(can_use_workspaces, user)
+        return await run_database(notes.can_use_workspaces, user)
 
     async def list_tools(ctx, params):
         try:

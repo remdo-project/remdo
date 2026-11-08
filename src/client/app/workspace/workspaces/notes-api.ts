@@ -1,4 +1,4 @@
-import { api, ApiError } from '#platform/http/api-client';
+import { api, requireData } from '#platform/http/api-client';
 import type { components } from '#platform/http/api-schema';
 
 export type NoteRead = components['schemas']['Note'];
@@ -13,12 +13,13 @@ export class NotesRefusal extends Error {
   }
 }
 
-function refusalOrStatus(error: unknown, response: Response): Error {
+function dataOrRefusal<T>(result: { data?: T; error?: unknown; response: Response }): T {
+  const { error } = result;
   if (error && typeof error === 'object' && 'code' in error && 'message' in error) {
     const refusal = error as components['schemas']['Refusal'];
-    return new NotesRefusal(refusal.code, refusal.message, refusal.versions);
+    throw new NotesRefusal(refusal.code, refusal.message, refusal.versions);
   }
-  return new ApiError(response.status);
+  return requireData(result);
 }
 
 export async function readNote(
@@ -26,16 +27,9 @@ export async function readNote(
   query: { depth?: number; content?: boolean },
   signal?: AbortSignal,
 ): Promise<NoteRead> {
-  const { data, error, response } = await api.GET('/api/notes/{ref}', {
-    params: { path: { ref }, query },
-    signal,
-  });
-  if (data) return data;
-  throw refusalOrStatus(error, response);
+  return dataOrRefusal(await api.GET('/api/notes/{ref}', { params: { path: { ref }, query }, signal }));
 }
 
 export async function callNotes(operations: NoteOperation[], expected: Versions = {}): Promise<CallResult> {
-  const { data, error, response } = await api.POST('/api/notes', { body: { operations, expected, dryRun: false } });
-  if (data) return data;
-  throw refusalOrStatus(error, response);
+  return dataOrRefusal(await api.POST('/api/notes', { body: { operations, expected, dryRun: false } }));
 }

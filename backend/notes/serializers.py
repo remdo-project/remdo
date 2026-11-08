@@ -1,9 +1,11 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from workspaces.source import KINDS as WORKSPACE_KINDS
 
 from .core import OPERATIONS
+from .service import AccountRoot
 
-KINDS = ["account", "workspace", "folder", "document", "file"]
+KINDS = [AccountRoot.kind, *WORKSPACE_KINDS]
 
 
 def versions(**kwargs):
@@ -55,9 +57,17 @@ class CallSerializer(serializers.Serializer):
     dryRun = serializers.BooleanField(default=False)
 
 
+class ChangeSerializer(serializers.Serializer):
+    ref = serializers.CharField()
+    change = serializers.ChoiceField(["added", "changed", "deleted", "renamed"])
+    version = serializers.CharField(allow_null=True, required=False)
+    text = serializers.CharField(required=False)
+    diff = serializers.CharField(required=False)
+
+
 class CallResultSerializer(serializers.Serializer):
     results = serializers.ListField(child=serializers.DictField())
-    changes = serializers.ListField(child=serializers.DictField())
+    changes = ChangeSerializer(many=True)
     revision = serializers.IntegerField(allow_null=True)
     dryRun = serializers.BooleanField()
 

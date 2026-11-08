@@ -31,7 +31,7 @@ it('lists the account workspaces when the current user can use them', async () =
   const { result } = renderHook(useWorkspaces, { wrapper });
 
   await waitFor(() => expect(result.current.workspaces).toHaveLength(1));
-  const [workspace] = result.current.workspaces!;
+  const [workspace] = result.current.workspaces;
   expect([workspace!.getText(), workspace!.documentRef]).toEqual(['Trip', 'w1/README.md']);
 });
 
@@ -41,7 +41,7 @@ it('reads no notes for a user without workspace access', async () => {
 
   const { result } = renderHook(useWorkspaces, { wrapper });
 
-  expect(result.current).toMatchObject({ workspaces: null, enabled: false });
+  expect(result.current).toMatchObject({ workspaces: [], enabled: false });
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(fetch).not.toHaveBeenCalled();
 });

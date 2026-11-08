@@ -114,7 +114,7 @@ function LoadedDocument({
     try {
       const result = await callNotes([{ op: 'setContent', target: ref, content: draft }], { [ref]: version });
       const saved = result.changes.find((change) => change.ref === ref);
-      setBase({ text: draft, version: typeof saved?.version === 'string' ? saved.version : version });
+      setBase({ text: draft, version: saved?.version ?? version });
       setConflict(null);
     } catch (failure) {
       if (failure instanceof NotesRefusal && failure.code === 'FAILED_PRECONDITION') {

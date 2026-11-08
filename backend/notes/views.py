@@ -1,5 +1,6 @@
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from documents.errors import UNAVAILABLE
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -19,7 +20,7 @@ REFUSAL_STATUS = {
     "NOT_FOUND": status.HTTP_404_NOT_FOUND,
     "FAILED_PRECONDITION": status.HTTP_409_CONFLICT,
 }
-REFUSALS = {code: RefusalSerializer for code in (400, 404, 409)}
+REFUSALS = {code: RefusalSerializer for code in REFUSAL_STATUS.values()}
 
 
 class CanUseWorkspaces(permissions.BasePermission):
@@ -27,35 +28,22 @@ class CanUseWorkspaces(permissions.BasePermission):
         return service.can_use_workspaces(request.user)
 
 
+def refusal(code, message, http_status, index=None, versions=None):
+    return Response(
+        {"code": code, "message": message, "index": index, "versions": versions or {}},
+        status=http_status,
+    )
+
+
 def refused(error):
-    return Response(
-        {
-            "code": error.code,
-            "message": str(error),
-            "index": error.index,
-            "versions": error.versions,
-        },
-        status=REFUSAL_STATUS[error.code],
-    )
+    return refusal(error.code, str(error), REFUSAL_STATUS[error.code], error.index, error.versions)
 
 
-def unavailable():
-    return Response(
-        {
-            "code": "UNAVAILABLE",
-            "message": "RemDo couldn't reach its database; nothing was written. Try again.",
-            "index": None,
-            "versions": {},
-        },
-        status=status.HTTP_503_SERVICE_UNAVAILABLE,
-    )
-
-
+@method_decorator(never_cache, name="dispatch")
 class NotesView(APIView):
     permission_classes = [permissions.IsAuthenticated, CanUseWorkspaces]
 
 
-@method_decorator(never_cache, name="dispatch")
 class NoteView(NotesView):
     @extend_schema(parameters=[ReadQuerySerializer], responses={200: NoteSerializer, **REFUSALS})
     def get(self, request, ref):
@@ -67,7 +55,6 @@ class NoteView(NotesView):
             return refused(error)
 
 
-@method_decorator(never_cache, name="dispatch")
 class CallView(NotesView):
     @extend_schema(
         request=CallSerializer,
@@ -84,4 +71,4 @@ class CallView(NotesView):
         except service.Refusal as error:
             return refused(error)
         except service.NothingWritten:
-            return unavailable()
+            return refusal("UNAVAILABLE", UNAVAILABLE, status.HTTP_503_SERVICE_UNAVAILABLE)

@@ -40,9 +40,8 @@ class AccountRoot:
     def insert(self, operation):
         new = self.call.new_kind(self, operation["kind"])
         name = new.name_for(self.call, operation["text"])
-        content = self.call.content(operation) if "content" in operation else None
-        ref = workspaces.create_workspace(self.call, name, content)
-        self.call.created.append(ref)
+        ref, files = workspaces.create_workspace(self.call, name, self.call.content(operation))
+        self.call.created.append((ref, files))
         return {"ref": ref, "kind": new.kind}
 
 
@@ -58,7 +57,12 @@ class AccountCall(Call):
         return self.root
 
     def commit(self, operations, dry_run):
-        return [{"ref": ref, "change": "added"} for ref in self.created], None
+        described, revision = [], None
+        for ref, files in self.created:
+            changes, files_revision = files.commit(operations, dry_run)
+            described += [{"ref": ref, "change": "added"}, *changes]
+            revision = files_revision or revision
+        return described, revision
 
 
 def read(user, ref=None, depth=1, content=False):

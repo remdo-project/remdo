@@ -84,6 +84,11 @@ class AccountRootAndReferenceTests(TestCase):
         [created] = result["results"]
         workspace = Workspace.objects.get(pk=created["ref"])
         self.assertEqual(store.read(workspace, "README.md").content, b"- a\n")
+        self.assertEqual(result["revision"], workspace.head_id)
+        self.assertEqual(
+            [(change["ref"], change["change"]) for change in result["changes"]],
+            [(workspace.pk, "added"), (f"{workspace.pk}/README.md", "added")],
+        )
 
     def test_refusals_name_the_account_root_as_an_account(self):
         with self.assertRaises(notes.Refusal) as refusal:

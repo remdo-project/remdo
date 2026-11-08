@@ -22,7 +22,7 @@ export default function Home() {
   const workspaces = useWorkspaces();
   const [openWorkspaceId, setOpenWorkspaceId] = useState<string | null>(null);
   const [createWorkspaceOpen, setCreateWorkspaceOpen] = useState(false);
-  const openWorkspace = workspaces.workspaces?.find((workspace) => workspace.getId() === openWorkspaceId);
+  const openWorkspace = workspaces.workspaces.find((workspace) => workspace.getId() === openWorkspaceId);
   const navigate = useNavigate();
   const location = useLocation();
   // History traversal is a new navigation intent: Back to this entry must not
@@ -87,7 +87,7 @@ export default function Home() {
       )}
       {createWorkspaceOpen && (
         <DocumentCreateDialog
-          existingNames={workspaces.workspaces?.map((workspace) => workspace.getText()) ?? []}
+          existingNames={workspaces.workspaces.map((workspace) => workspace.getText())}
           kind="workspace"
           onClose={() => setCreateWorkspaceOpen(false)}
           onCreate={async (name) => { setOpenWorkspaceId(await workspaces.create(name)); }}

@@ -17,7 +17,7 @@ type HomeEntry = DocumentNote | WorkspaceEntry;
 export interface HomeViewProps {
   focusSearchRequested?: boolean;
   sources: readonly DocumentSourceNote[];
-  workspaces?: readonly WorkspaceEntry[] | null;
+  workspaces?: readonly WorkspaceEntry[];
   onSelectDocument: (docId: string) => void;
   onSelectWorkspace?: (workspace: WorkspaceEntry) => void;
   onCreateDocument: () => void;
@@ -75,11 +75,11 @@ function DocumentGroup({
           const id = note.getId();
           const label = formatNavigationLabel(note.getText());
           const shareable = note.canShareWith();
-          let sharedNote: string | null = null;
-          if (!isWorkspaceEntry(note)) {
-            if (!shareable) sharedNote = 'Shared with you';
-            else if (note.access.getChildren().length > 0) sharedNote = 'Shared by you';
-          }
+          const sharedNote = isWorkspaceEntry(note)
+            ? null
+            : !shareable
+                ? 'Shared with you'
+                : note.access.getChildren().length > 0 ? 'Shared by you' : null;
           const sharedId = `home-doc-shared-${id}`;
           return (
             <li

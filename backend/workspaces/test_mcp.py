@@ -115,7 +115,7 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
         await sync_to_async(self.allow_workspaces)()
 
         with patch("sentry_sdk.capture_exception") as capture:
-            with patch("mcp_server.server.can_use_workspaces", side_effect=DatabaseError):
+            with patch("notes.service.can_use_workspaces", side_effect=DatabaseError):
                 names = await self.tool_names()
 
         self.assertTrue(names)
