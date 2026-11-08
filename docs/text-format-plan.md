@@ -97,16 +97,12 @@ unchanged.
   from Django over REST and stays current through a change stream, outline
   notes as of their last save; only the editor's text is live through Yjs. The
   SDK sends operations and shows results, keeping typed kinds but no kind logic.
-- Each successful call appends a change-log row, naming the changed references,
-  in its own transaction. A server-sent events stream sends a user's new rows
-  and replays from `Last-Event-ID` after a reconnect. `LISTEN/NOTIFY` wakes it
-  on Postgres; SQLite checks every second.
-- Three boundaries stay fixed while the mechanism changes: `useNote(ref)` and
-  `observe(ref)` for consumers; events shaped `{ seq, ref, note? }`, where the
-  SDK writes a given note into its cache and refetches otherwise; and
-  `publish(account, refs)` with `changes(account, after)` on the server. Events
-  start without data. Pushing data, which needs a per-connection subscription
-  registry, or Redis behind `publish`, waits for monitoring to show the need.
+- After a call that changes notes commits, Django sends the affected accounts
+  the bare notice the collaboration hub already relays for their document
+  lists, and each client rereads the notes it holds, as it does after
+  reconnecting. A change log with sequence numbers and replay, or notices
+  naming the changed references, waits until rereading everything costs too
+  much. The channel moves with the relay if Node retires.
 - DRF serializers define the notes API once: OpenAPI and the generated
   TypeScript types come from them, and so do the MCP tools' input schemas.
 - A closed document needs no Node: Django applies the operation, checks it and
@@ -165,8 +161,8 @@ once stage 3 lands.
    - Add the notes REST API on the same entry points as MCP. Home lists
      workspaces in its Current Server list through the SDK, opens a workspace's
      document as plain text, and renames and deletes workspaces.
-   - Add the change log and its stream, and test that the SDK catches up after
-     the stream drops.
+   - Send notes changes through the account's change notice, and test that Home
+     catches up after the channel reconnects.
    - Add search across the account's workspaces, for Home and MCP.
    - Exit: a flagged user creates, edits, renames, finds and deletes
      workspaces on Home and through MCP, and Home shows an agent's changes
@@ -316,7 +312,9 @@ Switch new documents by reseeding from text once all of these hold:
   whether it has any, and Insert into a document and Ensure ID are refused.
 - Until stage 3, a workspace's document opens as its Markdown in a plain text
   box. Save applies Set content with the version read; a stale save keeps the
-  typed text and offers to reload the current content or overwrite it.
+  typed text and offers to reload the current content or overwrite it. A save
+  made elsewhere reloads the box when it holds no unsaved edits, and otherwise
+  offers the same choice at once.
 - Until stage 5, Read of the account root lists its workspaces but not its
   [user-data](specs/outliner/user-data.md#hierarchy) collections, and an open
   workspace has no URL: a reload returns to Home.

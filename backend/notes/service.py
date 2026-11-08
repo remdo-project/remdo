@@ -1,6 +1,7 @@
 """The note service: references resolve from the account root to the source holding the note."""
 
 from django.db import DatabaseError
+from documents.notices import notify_document_list_changed
 from workspaces import source as workspaces
 
 from .core import ACCOUNT_ROOT, Call, NothingWritten, Refusal, parse_ref, with_children
@@ -94,4 +95,8 @@ def call(user, operations, expected=None, dry_run=False):
         target = AccountCall(user) if scope is None else workspaces.open_call(user, scope, expected)
     except DatabaseError as error:
         raise NothingWritten from error
-    return target.run(operations, dry_run)
+    result = target.run(operations, dry_run)
+    # Workspaces have only their owner, whose sessions reread their notes on this notice.
+    if result["changes"] and not dry_run:
+        notify_document_list_changed([user.pk])
+    return result

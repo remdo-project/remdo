@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { TestMantineProvider } from '#tests';
+import { NOTES_QUERY_KEY } from '#client/app/user-data/stored-user-data';
 import type { WorkspaceEntry } from './use-workspaces';
 import { WorkspaceDocumentView } from './WorkspaceDocumentView';
 
@@ -11,7 +12,7 @@ afterEach(() => { vi.unstubAllGlobals(); });
 
 // A notes server holding one README whose saves are refused once someone else saved it.
 function serveReadme(content: string) {
-  const document = { content, version: 'v1', saves: 1, readable: true };
+  const document = { content, version: 'v1', saves: 1, readable: true, responded: Promise.resolve() };
   vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
     const { pathname } = new URL(request.url);
     if (pathname === '/api/config') return Response.json({ csrfCookieName: 'csrftoken' });
@@ -34,9 +35,11 @@ function serveReadme(content: string) {
     }
     document.content = operations[0]!.content;
     document.version = `v${++document.saves}`;
+    const saved = document.version;
+    await document.responded;
     return Response.json({
       results: [{ ref: README }],
-      changes: [{ ref: README, change: 'changed', version: document.version }],
+      changes: [{ ref: README, change: 'changed', version: saved }],
       revision: document.saves,
       dryRun: false,
     });
@@ -62,9 +65,12 @@ const workspace: WorkspaceEntry = {
   delete: async () => {},
 };
 
+let client: QueryClient;
+
 async function open() {
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={client}>
       <TestMantineProvider>
         <WorkspaceDocumentView onClose={() => {}} workspace={workspace} />
       </TestMantineProvider>
@@ -119,4 +125,57 @@ it('keeps typed text when reloading theirs fails', async () => {
   await screen.findByText('Could not reload');
   expect(box).toHaveValue('- mine\n');
   expect(screen.getByRole('alert', { name: /changed this document/u })).toBeInTheDocument();
+});
+
+it('takes over a save made elsewhere when nothing is typed', async () => {
+  const server = serveReadme('- a\n');
+  const box = await open();
+  server.saveAsSomeoneElse('- theirs\n');
+
+  await act(() => client.invalidateQueries({ queryKey: NOTES_QUERY_KEY }));
+
+  await waitFor(() => expect(box).toHaveValue('- theirs\n'));
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.getByRole('status')).toHaveTextContent('Saved');
+});
+
+it('offers the conflict choice at once when a save elsewhere meets typed text', async () => {
+  const server = serveReadme('- a\n');
+  const box = await open();
+  fireEvent.change(box, { target: { value: '- mine\n' } });
+  server.saveAsSomeoneElse('- theirs\n');
+
+  await act(() => client.invalidateQueries({ queryKey: NOTES_QUERY_KEY }));
+
+  await screen.findByRole('alert', { name: /changed this document/u });
+  expect(box).toHaveValue('- mine\n');
+});
+
+it('takes over a save made elsewhere that a read reports while its own save is answered', async () => {
+  const server = serveReadme('- a\n');
+  const box = await open();
+  let respond!: () => void;
+  server.document.responded = new Promise((resolve) => { respond = resolve; });
+  save(box, '- mine\n');
+  await waitFor(() => expect(server.document.content).toBe('- mine\n'));
+
+  server.saveAsSomeoneElse('- theirs\n');
+  await act(() => client.invalidateQueries({ queryKey: NOTES_QUERY_KEY }));
+  respond();
+
+  await waitFor(() => expect(box).toHaveValue('- theirs\n'));
+  expect(screen.queryByRole('alert')).toBeNull();
+});
+
+it('keeps its own later save after a read reported its earlier one', async () => {
+  serveReadme('- a\n');
+  const box = await open();
+  save(box, '- one\n');
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Saved'));
+  await act(() => client.invalidateQueries({ queryKey: NOTES_QUERY_KEY }));
+
+  save(box, '- two\n');
+
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Saved'));
+  expect(box).toHaveValue('- two\n');
 });

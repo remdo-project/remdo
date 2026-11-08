@@ -1,4 +1,5 @@
 import { expect, test } from '#e2e/fixtures';
+import type { components } from '#platform/http/api-schema';
 
 test('a workspace opens from Home as its document, saves, renames and deletes', async ({ page }) => {
   await page.goto('/');
@@ -37,4 +38,28 @@ test('a workspace opens from Home as its document, saves, renames and deletes', 
   await expect(currentServer.getByRole('button', { name: 'Lisbon 2027' })).toHaveCount(0);
   const account = await (await page.request.get('/api/notes/me')).json() as { children: unknown[] };
   expect(account.children).toEqual([]);
+});
+
+test('Home and an open workspace follow changes made elsewhere', async ({ page }) => {
+  const call = async (
+    operations: Array<components['schemas']['OperationRequest']>,
+    expected: Record<string, string | null> = {},
+  ) => {
+    const response = await page.request.post('/api/notes', { data: { operations, expected, dryRun: false } });
+    await expect(response).toBeOK();
+    return await response.json() as components['schemas']['CallResult'];
+  };
+  await page.goto('/');
+  const currentServer = page.getByRole('group', { name: 'Current Server', exact: true });
+  await expect(page.getByRole('button', { name: 'New workspace', exact: true })).toBeVisible();
+
+  const created = await call([{ op: 'insert', parent: 'me', kind: 'workspace', text: 'From an agent', content: '- a\n' }]);
+  await currentServer.getByRole('button', { name: 'From an agent', exact: true }).click();
+  const text = page.getByRole('textbox', { name: 'From an agent Markdown' });
+  await expect(text).toHaveValue('- a\n');
+
+  const readme = `${String(created.results[0]!.ref)}/README.md`;
+  const version = created.changes.find((change) => change.ref === readme)!.version ?? null;
+  await call([{ op: 'setContent', target: readme, content: '- a\n- b\n' }], { [readme]: version });
+  await expect(text).toHaveValue('- a\n- b\n');
 });

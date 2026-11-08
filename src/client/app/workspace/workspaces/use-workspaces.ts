@@ -2,10 +2,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { getCachedCurrentUserBootstrap } from '#client/app/user-data/current-user-bootstrap';
+import { NOTES_QUERY_KEY } from '#client/app/user-data/stored-user-data';
 import { callNotes, readNote } from './notes-api';
 import type { NoteOperation, NoteRead } from './notes-api';
 
-const ACCOUNT_QUERY = ['notes', 'me'] as const;
+const ACCOUNT_QUERY = [...NOTES_QUERY_KEY, 'me'] as const;
 /** Mirrors WORKSPACE_NAME_MAX_LENGTH in backend/workspaces/models.py. */
 export const WORKSPACE_NAME_MAX_LENGTH = 200;
 
@@ -26,11 +27,23 @@ export function isWorkspaceEntry(entry: object): entry is WorkspaceEntry {
   return 'kind' in entry && entry.kind === 'workspace';
 }
 
+// The list is read outside the query, which a notice's reread could cancel and resolve with
+// the old list, so a change resolves only once the list reflects it.
 async function change(client: QueryClient, operation: NoteOperation) {
   try {
     return await callNotes([operation]);
   } finally {
-    await client.invalidateQueries({ queryKey: ACCOUNT_QUERY });
+    await client.cancelQueries({ queryKey: ACCOUNT_QUERY });
+    const landed = () => client.getQueryState(ACCOUNT_QUERY)?.dataUpdatedAt;
+    const before = landed();
+    try {
+      const list = await readNote('me', { depth: 2 });
+      // A query read landing meanwhile started after the change, so it is at least as new.
+      if (landed() === before) client.setQueryData(ACCOUNT_QUERY, list);
+    } catch {
+      // A failed reread must not turn the change's outcome into a failure.
+      void client.invalidateQueries({ queryKey: ACCOUNT_QUERY });
+    }
   }
 }
 
@@ -51,8 +64,7 @@ function workspaceEntry(client: QueryClient, workspace: NoteRead): WorkspaceEntr
 
 /**
  * The account's workspaces, empty for an account without workspace access, which the
- * current-user bootstrap reports. Home reads them again after its own changes and when the
- * window regains focus; the change stream replaces both.
+ * current-user bootstrap reports. The account's change notice keeps them current.
  */
 export function useWorkspaces() {
   const client = useQueryClient();
@@ -61,7 +73,6 @@ export function useWorkspaces() {
   const query = useQuery({
     queryKey: ACCOUNT_QUERY,
     enabled,
-    refetchOnWindowFocus: true,
     queryFn: ({ signal }) => readNote('me', { depth: 2 }, signal),
   });
   const workspaces = useMemo(

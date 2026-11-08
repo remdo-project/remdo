@@ -7,7 +7,11 @@ import { api, requireData } from '#platform/http/api-client';
 import { DOCUMENT_LIST_CHANGED, DOCUMENT_LIST_PATH, DOCUMENT_LIST_SILENCE_LIMIT_MS } from '#platform/net/document-list-socket';
 import { currentUserBootstrapQuery } from './current-user-bootstrap';
 
+/** The root of every notes query, which the account's change notice rereads. */
+export const NOTES_QUERY_KEY = ['notes'] as const;
 const MIN_REOPEN_DELAY_MS = 1000;
+// An agent's note tools change one note per call, so its notices arrive in bursts.
+const REREAD_DELAY_MS = 150;
 const MAX_REOPEN_DELAY_MS = 60_000;
 
 export function createUserDataRuntime(userId: string, client = new QueryClient()) {
@@ -157,11 +161,31 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     let reopenTimer: ReturnType<typeof setTimeout> | undefined;
     let silenceTimer: ReturnType<typeof setTimeout> | undefined;
     let reopenDelay = MIN_REOPEN_DELAY_MS;
+    let rereadTimer: ReturnType<typeof setTimeout> | undefined;
+    let rereading = false;
+    let rereadAgain = false;
     // A listing already in flight may predate the change; TanStack reuses rather
     // than restarts one that has no data yet.
+    const rereadNow = async () => {
+      rereading = true;
+      await Promise.all([documentsQuery.queryKey, NOTES_QUERY_KEY].map(async (queryKey) => {
+        await client.cancelQueries({ queryKey });
+        await client.invalidateQueries({ queryKey });
+      }));
+      rereading = false;
+      if (rereadAgain && !stopped) {
+        rereadAgain = false;
+        void rereadNow();
+      }
+    };
+    // Notices join a pending reread, and those arriving during one start a single next one,
+    // so a steady stream never cancels a reread before it lands.
     const reread = () => {
-      void client.cancelQueries({ queryKey: documentsQuery.queryKey })
-        .then(() => client.invalidateQueries({ queryKey: documentsQuery.queryKey }));
+      if (rereading) rereadAgain = true;
+      else rereadTimer ??= setTimeout(() => {
+        rereadTimer = undefined;
+        void rereadNow();
+      }, REREAD_DELAY_MS);
     };
     const open = () => {
       const opened = new WebSocket(url);
@@ -202,6 +226,7 @@ export function createUserDataRuntime(userId: string, client = new QueryClient()
     const stop = () => {
       stopped = true;
       clearTimeout(reopenTimer);
+      clearTimeout(rereadTimer);
       clearTimeout(silenceTimer);
       // Closing a connecting socket logs a browser warning; its open handler closes it instead.
       if (socket.readyState !== WebSocket.CONNECTING) socket.close();

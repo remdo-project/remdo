@@ -1,11 +1,12 @@
 import { Alert, Button, Group, Stack, Textarea } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { ZoomBreadcrumbs } from '#client/editor/view/workspace';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentMenu } from '../document/DocumentMenu';
 import { useDocumentDialogs } from '../document/useDocumentDialogs';
+import { NOTES_QUERY_KEY } from '#client/app/user-data/stored-user-data';
 import { callNotes, NotesRefusal, readNote } from './notes-api';
 import type { NoteRead } from './notes-api';
 import type { WorkspaceEntry } from './use-workspaces';
@@ -85,23 +86,45 @@ function DocumentShell({
 }
 
 function LoadedDocument({
-  initial,
+  latest,
   onClose,
+  onSaved,
   reload,
   workspace,
 }: {
-  initial: Base;
+  latest: Base;
   onClose: () => void;
+  onSaved: (saved: Base) => Promise<void>;
   reload: () => Promise<NoteRead>;
   workspace: WorkspaceEntry;
 }) {
   const ref = workspace.documentRef;
-  const [base, setBase] = useState(initial);
-  const [draft, setDraft] = useState(initial.text);
+  const [base, setBase] = useState(latest);
+  const [draft, setDraft] = useState(latest.text);
   const [saving, setSaving] = useState(false);
   // The current version a stale save was refused against, which may be null for a missing file.
   const [conflict, setConflict] = useState<{ version: string | null } | null>(null);
   const [error, setError] = useState<{ title: string; message: string } | null>(null);
+  // The latest read already taken over or offered as a conflict, so it is handled once.
+  const [decided, setDecided] = useState(latest.version);
+
+  const adopt = (next: Base) => {
+    setBase(next);
+    setDraft(next.text);
+    setConflict(null);
+    setDecided(next.version);
+  };
+
+  // A read during this view's own save may predate or follow its response; once the save
+  // settles the base version and the latest read, a read that still differs is someone else's save.
+  if (!saving && latest.version !== base.version && latest.version !== decided) {
+    if (draft === base.text) {
+      adopt(latest);
+    } else {
+      setDecided(latest.version);
+      setConflict({ version: latest.version });
+    }
+  }
 
   let status: Status = 'saved';
   if (saving) status = 'saving';
@@ -114,8 +137,9 @@ function LoadedDocument({
     setError(null);
     try {
       const result = await callNotes([{ op: 'setContent', target: ref, content: draft }], { [ref]: version });
-      const saved = result.changes.find((change) => change.ref === ref);
-      setBase({ text: draft, version: saved?.version ?? version });
+      const saved = { text: draft, version: result.changes.find((change) => change.ref === ref)?.version ?? version };
+      await onSaved(saved);
+      setBase(saved);
       setConflict(null);
     } catch (failure) {
       if (failure instanceof NotesRefusal && failure.code === 'FAILED_PRECONDITION') {
@@ -136,10 +160,7 @@ function LoadedDocument({
       setError({ title: 'Could not reload', message: failure instanceof Error ? failure.message : '' });
       return;
     }
-    const theirs = baseOf(current);
-    setBase(theirs);
-    setDraft(theirs.text);
-    setConflict(null);
+    adopt(baseOf(current));
   };
 
   return (
@@ -198,20 +219,27 @@ export function WorkspaceDocumentView({
   onClose: () => void;
 }) {
   const ref = workspace.documentRef;
+  const client = useQueryClient();
+  const queryKey = [...NOTES_QUERY_KEY, ref, 'content'];
   const readme = useQuery({
-    queryKey: ['notes', ref, 'content'],
+    queryKey,
     // The loaded view keeps its own base, so a reopened view must read fresh content, not a cached read.
     gcTime: 0,
-    refetchOnWindowFocus: false,
     queryFn: ({ signal }) => readNote(ref, { content: true }, signal),
   });
   if (readme.data) {
-    // Later reads reach the loaded view only through reload, which it asks for after a conflict.
     return (
       <LoadedDocument
-        initial={baseOf(readme.data)}
         key={ref}
+        latest={baseOf(readme.data)}
         onClose={onClose}
+        onSaved={async (saved) => {
+          // A read in flight may predate the save, or a read it superseded may still be the
+          // latest, so the save becomes the latest read until one started after it lands.
+          await client.cancelQueries({ queryKey });
+          client.setQueryData<NoteRead>(queryKey, (note) => note && { ...note, content: saved.text, version: saved.version });
+          void client.invalidateQueries({ queryKey });
+        }}
         reload={async () => (await readme.refetch({ throwOnError: true })).data!}
         workspace={workspace}
       />
