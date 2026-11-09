@@ -106,8 +106,8 @@ selected update proves its deferral obsolete or approval already defers it.
 
 The [dependency-patch registry](pnpm-workspace.yaml) inventories exact-version patches for upstream runtime
 defects. Each patch records its rationale and a focused regression that fails
-without the correction. Renovate cannot regenerate a patch, so updates to a
-patched dependency are held for Dependency Dashboard approval.
+without the correction. Renovate cannot regenerate a patch, so its version
+updates to a patched dependency are held for Dependency Dashboard approval.
 
 For an affected dependency update, retain the patch, regenerate it for the new
 exact version, or remove it when its focused regression passes without it. New
