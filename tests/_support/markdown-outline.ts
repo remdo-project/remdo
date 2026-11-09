@@ -99,6 +99,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
   for (const token of tokens) {
     const frame = frames.at(-1)!;
     if (token.type === 'list_item_open') {
+      if (frames.length > 1 && !frame.note) throw new Error('An id:: line can\'t hold notes.');
       const line = token.map![0];
       const marker = MARKER.exec(lines[line]!)!;
       const id = ID_NOTE.exec(lines[line]!.slice(marker[0].length).trim());
@@ -115,7 +116,10 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
     } else if (token.type === 'list_item_close') {
       const closed = frames.pop()!;
       if (closed.note && closed.children.length > 0) closed.note.children = closed.children;
-    } else if (token.type === 'inline' && frame.note && !frame.textRead) {
+    } else if (token.type === 'heading_open' && frame.note) {
+      throw new Error('A note\'s text can\'t be a heading; an empty note right after its parent\'s line needs a blank line before it.');
+    } else if (token.type === 'inline' && frame.note) {
+      if (frame.textRead) throw new Error('A note holds one paragraph; Markdown expectations can\'t express bodies yet.');
       frame.textRead = true;
       const parsed = plainText(token.children ?? []);
       // CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
@@ -127,7 +131,10 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
 }
 
 function plainText(tokens: Token[]): string {
-  return tokens.map((token) => (token.type === 'text' || token.type === 'code_inline' ? token.content : '')).join('');
+  return tokens.map((token) => {
+    if (token.type === 'softbreak' || token.type === 'hardbreak') throw new Error('A note\'s text must fit on its marker\'s line.');
+    return token.type === 'text' || token.type === 'code_inline' ? token.content : '';
+  }).join('');
 }
 
 function takeMarks(text: string, note: NotePath, marks: Mark[]): string {

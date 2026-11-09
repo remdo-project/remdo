@@ -12,7 +12,7 @@ import {
   resolveContentListItem,
 } from '#tests';
 import { $getSelection, $isRangeSelection, $getRoot } from 'lexical';
-import type { PointType, RangeSelection, LexicalNode } from 'lexical';
+import type { ElementNode, PointType, RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
@@ -249,14 +249,14 @@ function $pointInNote(point: PointType): NotePoint | null {
   const item = findNearestListItem(node);
   const note = item ? $getNoteId(item) : null;
   if (!item || !note) return null;
-  if (point.type === 'element' && node === item) {
-    const before = item.getChildren().slice(0, point.offset);
-    return { note, offset: before.reduce((sum, child) => sum + child.getTextContentSize(), 0) };
-  }
-  let offset = 0;
-  for (const text of item.getAllTextNodes()) {
-    if (text === node) return { note, offset: offset + point.offset };
-    offset += text.getTextContentSize();
+  if (node !== item && !item.isParentOf(node)) return { note, offset: item.getTextContentSize() };
+  let offset = point.type === 'element'
+    ? (node as ElementNode).getChildren().slice(0, point.offset).reduce((sum, child) => sum + child.getTextContentSize(), 0)
+    : point.offset;
+  for (let current: LexicalNode = node; current !== item; current = current.getParentOrThrow()) {
+    for (let sibling = current.getPreviousSibling(); sibling; sibling = sibling.getPreviousSibling()) {
+      offset += sibling.getTextContentSize();
+    }
   }
   return { note, offset };
 }

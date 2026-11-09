@@ -589,7 +589,7 @@ describe('date nodes', () => {
 
     expectDateBoundarySelection(remdo, 'after');
     expect(remdo).toMatchOutline(`
-      - before Jun 10, 2026 after
+      - before Jun 10, 2026<selection /> after
           - id:: note1
       - note2
       - note3

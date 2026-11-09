@@ -49,6 +49,15 @@ describe('reading expected outlines from Markdown', () => {
     expect(outline.selection).toEqual({ state: 'structural', notes: [[1], [1, 0], [2]] });
   });
 
+  it.each([
+    ['an empty first child, which CommonMark reads as a heading underline', '- note1\n    -\n- note2', /heading/u],
+    ['a second paragraph', '- note1\n\n  more', /one paragraph/u],
+    ['a lazy continuation line', '- note1\ncontinued', /marker's line/u],
+    ['notes under an id:: line', '- note1\n    - id:: first\n        - note2', /id:: line/u],
+  ])('refuses %s instead of dropping it', (_case, source, message) => {
+    expect(() => readMarkdownOutline(source)).toThrow(message);
+  });
+
   it('refuses a range across notes, which the editor turns into a note range', () => {
     expect(() => readMarkdownOutline(`
       - no<selection>te1
