@@ -20,7 +20,7 @@ export interface MarkdownPoint {
 /** The selection a document marks with `<selection>` tags. */
 export type MarkdownSelection =
   | { state: 'caret'; at: MarkdownPoint }
-  | { state: 'inline'; anchor: MarkdownPoint; focus: MarkdownPoint }
+  | { state: 'inline'; start: MarkdownPoint; end: MarkdownPoint }
   | { state: 'structural'; notes: NotePath[] };
 
 export interface MarkdownOutline {
@@ -93,6 +93,11 @@ interface Frame {
   textRead?: boolean;
 }
 
+const STRUCTURE = new Set([
+  'bullet_list_open', 'bullet_list_close', 'ordered_list_open', 'ordered_list_close',
+  'list_item_open', 'list_item_close', 'paragraph_open', 'paragraph_close', 'inline',
+]);
+
 function readList(tokens: Token[], lines: string[], located: Located[], marks: Mark[]): MarkdownNote[] {
   const top: MarkdownNote[] = [];
   const frames: Frame[] = [{ note: null, children: top, path: [] }];
@@ -101,9 +106,11 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
     if (token.type === 'list_item_open') {
       if (frames.length > 1 && !frame.note) throw new Error('An id:: line can\'t hold notes.');
       const line = token.map![0];
-      const marker = MARKER.exec(lines[line]!)!;
+      const marker = MARKER.exec(lines[line]!);
+      if (!marker) throw new Error(`A note's line must start with its list marker: ${lines[line]}`);
       const id = ID_NOTE.exec(lines[line]!.slice(marker[0].length).trim());
       if (id && frame.note) {
+        if (frame.note.id !== undefined) throw new Error(`A note holds one id:: line; it already has ${frame.note.id}.`);
         frame.note.id = id[1]!;
         frames.push({ note: null, children: [], path: frame.path });
         continue;
@@ -118,6 +125,8 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       if (closed.note && closed.children.length > 0) closed.note.children = closed.children;
     } else if (token.type === 'heading_open' && frame.note) {
       throw new Error('A note\'s text can\'t be a heading; an empty note right after its parent\'s line needs a blank line before it.');
+    } else if (!STRUCTURE.has(token.type)) {
+      throw new Error(`An outline holds only list items with plain text; found ${token.type}.`);
     } else if (token.type === 'inline' && frame.note) {
       if (frame.textRead) throw new Error('A note holds one paragraph; Markdown expectations can\'t express bodies yet.');
       frame.textRead = true;
@@ -133,6 +142,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
 function plainText(tokens: Token[]): string {
   return tokens.map((token) => {
     if (token.type === 'softbreak' || token.type === 'hardbreak') throw new Error('A note\'s text must fit on its marker\'s line.');
+    if (token.type === 'html_inline' || token.type === 'image') throw new Error(`A note's text can't hold ${token.type}.`);
     return token.type === 'text' || token.type === 'code_inline' ? token.content : '';
   }).join('');
 }
@@ -166,7 +176,7 @@ function readSelection(
   const [first, second] = marks;
   if (marks.length === 1 && first!.kind === 'caret') return { state: 'caret', at: point(first!) };
   if (marks.length === 2 && first!.kind === 'open' && second!.kind === 'close' && first!.note === second!.note) {
-    return { state: 'inline', anchor: point(first!), focus: point(second!) };
+    return { state: 'inline', start: point(first!), end: point(second!) };
   }
   throw new Error('Mark a caret with <selection />, a range within one note with <selection>…</selection>, or whole notes with tags on their own lines.');
 }

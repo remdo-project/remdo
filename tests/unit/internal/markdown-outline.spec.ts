@@ -31,7 +31,7 @@ describe('reading expected outlines from Markdown', () => {
     expect(readMarkdownOutline(`
       - note1
           - n<selection>ote</selection>2
-    `).selection).toEqual({ state: 'inline', anchor: { note: [0, 0], offset: 1 }, focus: { note: [0, 0], offset: 4 } });
+    `).selection).toEqual({ state: 'inline', start: { note: [0, 0], offset: 1 }, end: { note: [0, 0], offset: 4 } });
   });
 
   it('reads a note range from tags on their own lines, with the notes it wraps', () => {
@@ -54,6 +54,11 @@ describe('reading expected outlines from Markdown', () => {
     ['a second paragraph', '- note1\n\n  more', /one paragraph/u],
     ['a lazy continuation line', '- note1\ncontinued', /marker's line/u],
     ['notes under an id:: line', '- note1\n    - id:: first\n        - note2', /id:: line/u],
+    ['a second id:: line', '- note1\n    - id:: first\n    - id:: second', /one id:: line/u],
+    ['a thematic break', '- ***', /hr/u],
+    ['an indented code block', '-     code', /code_block/u],
+    ['inline HTML', '- a <b> c', /html_inline/u],
+    ['a list inside a quote', '> - note1', /blockquote_open|list marker/u],
   ])('refuses %s instead of dropping it', (_case, source, message) => {
     expect(() => readMarkdownOutline(source)).toThrow(message);
   });

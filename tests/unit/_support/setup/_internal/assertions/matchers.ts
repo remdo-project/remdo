@@ -196,12 +196,12 @@ function $getCaretNoteId(selection: RangeSelection): string | null {
   return $resolveId(selection.focus) ?? $resolveId(selection.anchor);
 }
 
+type ProjectedNote = MarkdownNote & Pick<OutlineNode, 'body' | 'folded'>;
+
 /**
  * The editor's outline in the shape a Markdown expectation has, with IDs only where it declares one.
  * Bodies and fold state stay in, so a document Markdown can't express yet fails instead of passing.
  */
-type ProjectedNote = MarkdownNote & Pick<OutlineNode, 'body' | 'folded'>;
-
 function projectOutline(actual: Outline, expected: MarkdownNote[] | undefined): ProjectedNote[] {
   return actual.map((node, index) => {
     const declared = expected?.[index];
@@ -234,22 +234,23 @@ interface NotePoint {
 type SelectionDetail =
   | { state: 'none' }
   | { state: 'caret'; at: NotePoint }
-  | { state: 'inline'; anchor: NotePoint; focus: NotePoint }
+  | { state: 'inline'; start: NotePoint; end: NotePoint }
   | { state: 'structural'; notes: string[] };
 
 function resolveMarkdownSelection(selection: MarkdownSelection, outline: Outline): SelectionDetail {
   const at = (point: MarkdownPoint) => ({ note: noteIdAt(outline, point.note), offset: point.offset });
   if (selection.state === 'structural') return { state: 'structural', notes: selection.notes.map((path) => noteIdAt(outline, path)) };
   if (selection.state === 'caret') return { state: 'caret', at: at(selection.at) };
-  return { state: 'inline', anchor: at(selection.anchor), focus: at(selection.focus) };
+  return { state: 'inline', start: at(selection.start), end: at(selection.end) };
 }
 
-function $pointInNote(point: PointType): NotePoint | null {
+function $pointInNote(point: PointType): NotePoint {
   const node = point.getNode();
   const item = findNearestListItem(node);
   const note = item ? $getNoteId(item) : null;
-  if (!item || !note) return null;
-  if (node !== item && !item.isParentOf(node)) return { note, offset: item.getTextContentSize() };
+  if (!item || !note || (node !== item && !item.isParentOf(node))) {
+    throw new Error(`A selection point at ${node.getType()} ${node.getKey()} sits outside any note's text, which Markdown can't mark.`);
+  }
   let offset = point.type === 'element'
     ? (node as ElementNode).getChildren().slice(0, point.offset).reduce((sum, child) => sum + child.getTextContentSize(), 0)
     : point.offset;
@@ -266,10 +267,8 @@ function readSelectionDetail(remdo: RemdoTestHelpers): SelectionDetail {
   if (snapshot.state === 'structural' || snapshot.state === 'none') return snapshot;
   return remdo.validate(() => {
     const selection = $getSelection() as RangeSelection;
-    const anchor = $pointInNote(selection.anchor);
-    const focus = $pointInNote(selection.focus);
-    if (!anchor || !focus) return { state: 'none' };
-    return selection.isCollapsed() ? { state: 'caret', at: focus } : { state: 'inline', anchor, focus };
+    const [start, end] = (selection.isBackward() ? [selection.focus, selection.anchor] : [selection.anchor, selection.focus]).map($pointInNote);
+    return selection.isCollapsed() ? { state: 'caret', at: end! } : { state: 'inline', start: start!, end: end! };
   });
 }
 

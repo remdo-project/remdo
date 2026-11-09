@@ -176,6 +176,7 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
       - note1
       - note2
       - note2
+          - id:: note2
       - note3
     `);
   });

@@ -11,6 +11,7 @@ import {
 } from '#tests';
 import { createNoteIdAvoiding } from '#domain/notes/ids';
 import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
+import { REORDER_NOTES_DOWN_COMMAND } from '#client/editor/foundation/commands';
 
 
 
@@ -109,6 +110,65 @@ describe('note id normalization on load', () => {
           - id:: note2
       - note3
           - id:: note3
+    `);
+  });
+});
+
+describe('note ids on structure changes', () => {
+  it('keeps every note ID through a reorder, an indent and an outdent', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2');
+    await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+          - note4
+              - id:: note4
+          - note2
+              - id:: note2
+              - note3
+                  - id:: note3
+      - note5
+          - id:: note5
+      - note6
+          - id:: note6
+          - note7
+              - id:: note7
+    `);
+
+    await pressKey(remdo, { key: 'Tab' });
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+          - note4
+              - id:: note4
+              - note2
+                  - id:: note2
+                  - note3
+                      - id:: note3
+      - note5
+          - id:: note5
+      - note6
+          - id:: note6
+          - note7
+              - id:: note7
+    `);
+
+    await pressKey(remdo, { key: 'Tab', shift: true });
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+          - note4
+              - id:: note4
+          - note2
+              - id:: note2
+              - note3
+                  - id:: note3
+      - note5
+          - id:: note5
+      - note6
+          - id:: note6
+          - note7
+              - id:: note7
     `);
   });
 });
