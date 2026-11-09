@@ -36,10 +36,12 @@ describe('rich clipboard input', () => {
     it(`joins ${name} inside a rich label and prefers HTML over plain text`, meta({ fixture: 'tree' }), async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note2', 2);
       await pasteHtml(remdo, html, 'Alpha\nBeta');
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2', text: 'noAlpha Betate2', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+        - noAlpha Betate2
+            - id:: note2
+            - note3
+      `);
     });
 
   }
@@ -57,13 +59,13 @@ describe('rich clipboard input', () => {
   it('keeps bare text beside an HTML block when no plain-text flavor is supplied', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note2', 0);
     await pasteHtml(remdo, 'Before<p>After<br></p>', '');
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'Before' },
-      { noteId: null, text: 'After' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - Before
+      - After
+      - note2
+      - note3
+    `);
   });
 
   it('retains mixed blocks, hierarchy, formatting and links through middle placement', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -71,14 +73,17 @@ describe('rich clipboard input', () => {
     await pasteHtml(remdo,
       '<p>Before</p><ul><li><b>Alpha</b><br>Beta<ul><li>Child</li></ul></li></ul><p><a href="https://example.com">After</a></p>',
       'Before\nAlpha\nBeta\nChild\nAfter');
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'no' },
-      { noteId: null, text: 'Before' },
-      { noteId: null, text: 'Alpha Beta', children: [{ noteId: null, text: 'Child' }] },
-      { noteId: null, text: 'After' },
-      { noteId: null, text: 'te2', children: [{ noteId: 'note3', text: 'note3' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - no
+          - id:: note2
+      - Before
+      - Alpha Beta
+          - Child
+      - After
+      - te2
+          - note3
+    `);
     expect(readCaretNoteId(remdo)).toBe(readOutline(remdo).at(-2)!.noteId);
     expect(remdo.editor.getRootElement()!.querySelector('a')!.getAttribute('href')).toBe('https://example.com');
     remdo.validate(() => {
@@ -89,13 +94,13 @@ describe('rich clipboard input', () => {
   it('retains rich paragraphs when replacing an inline selection', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
     await pasteHtml(remdo, '<p><b>Alpha</b><br>Beta</p><p><a href="https://example.com">Gamma</a></p>', 'Alpha\nBeta\nGamma');
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'Alpha Beta', children: [
-        { noteId: null, text: 'Gamma' },
-        { noteId: 'note3', text: 'note3' },
-      ] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - Alpha Beta
+          - id:: note2
+          - Gamma
+          - note3
+    `);
     remdo.validate(() => {
       expect($getNoteById('note2').getChildren().filter($isTextNode)[0]!.hasFormat('bold')).toBe(true);
     });
@@ -108,14 +113,15 @@ describe('rich clipboard input', () => {
     await pasteHtml(remdo,
       '<ul><li><p>Alpha</p><p>Beta</p><ul><li>Child</li></ul></li><li>Gamma<ul><li>Grandchild</li></ul></li></ul>',
       'Alpha\nBeta\nChild\nGamma\nGrandchild');
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'Alpha Beta', children: [
-        { noteId: null, text: 'Child' },
-        { noteId: null, text: 'Gamma', children: [{ noteId: null, text: 'Grandchild' }] },
-        { noteId: 'note3', text: 'note3' },
-      ] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - Alpha Beta
+          - id:: note2
+          - Child
+          - Gamma
+              - Grandchild
+          - note3
+    `);
     expect(readCaretNoteId(remdo)).toBe(readOutline(remdo)[1]!.children![1]!.noteId);
     remdo.validate(() => {
       const selection = $getSelection();
@@ -126,11 +132,12 @@ describe('rich clipboard input', () => {
   it('replaces a structural selection with rich blocks and their subtrees', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2', 'note3');
     await pasteHtml(remdo, '<p><b>Before</b></p><ul><li>Alpha<br>Beta<ul><li>Child</li></ul></li></ul>', 'Before\nAlpha\nBeta\nChild');
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'Before' },
-      { noteId: null, text: 'Alpha Beta', children: [{ noteId: null, text: 'Child' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - Before
+      - Alpha Beta
+          - Child
+    `);
     expect(readCaretNoteId(remdo)).toBe(readOutline(remdo)[2]!.noteId);
     remdo.validate(() => {
       expect($getRoot().getAllTextNodes().find(node => node.getTextContent() === 'Before')!.hasFormat('bold')).toBe(true);
@@ -140,27 +147,27 @@ describe('rich clipboard input', () => {
   it('keeps a child-only HTML list following a paragraph over an inline selection', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
     await pasteHtml(remdo, '<p>Before</p><ul><li><ul><li>Child</li></ul></li></ul>', 'Before\nChild');
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'Before', children: [
-        { noteId: null, text: 'Child' },
-        { noteId: 'note3', text: 'note3' },
-      ] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - Before
+          - id:: note2
+          - Child
+          - note3
+    `);
   });
 
   for (const tag of ['div', 'blockquote']) {
     it(`keeps text and a list inside an HTML ${tag} wrapper`, meta({ fixture: 'tree' }), async ({ remdo }) => {
       await selectEntireNote(remdo, 'note2');
       await pasteHtml(remdo, `<${tag}>Before<ul><li>Child</li></ul>After</${tag}>`, 'Before\nChild\nAfter');
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2', text: 'Before', children: [
-          { noteId: null, text: 'Child' },
-          { noteId: null, text: 'After' },
-          { noteId: 'note3', text: 'note3' },
-        ] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+        - Before
+            - id:: note2
+            - Child
+            - After
+            - note3
+      `);
     });
   }
 
@@ -172,20 +179,23 @@ describe('rich clipboard input', () => {
         '<ul><li><ul><li><ul><li>Child<ul><li>Grandchild</li></ul></li></ul></li></ul></li><li>After</li></ul>',
         'Child\nGrandchild\nAfter');
       if (destination === 'inline') {
-        expect(remdo).toMatchOutline([
-          { noteId: 'note1', text: 'Child', children: [
-            { noteId: null, text: 'Grandchild' },
-            { noteId: null, text: 'After' },
-          ] },
-          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-        ]);
+        expect(remdo).toMatchOutline(`
+          - Child
+              - id:: note1
+              - Grandchild
+              - After
+          - note2
+              - note3
+        `);
       } else {
-        expect(remdo).toMatchOutline([
-          { noteId: null, text: 'Child', children: [{ noteId: null, text: 'Grandchild' }] },
-          { noteId: null, text: 'After' },
-          { noteId: 'note1', text: 'note1' },
-          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-        ]);
+        expect(remdo).toMatchOutline(`
+          - Child
+              - Grandchild
+          - After
+          - note1
+          - note2
+              - note3
+        `);
       }
     });
   }
@@ -280,11 +290,13 @@ describe('rich clipboard input', () => {
       const data = createDataTransfer();
       data.setData('text/plain', `Alpha${separator}Beta`);
       await remdo.dispatchCommand(PASTE_COMMAND, new ClipboardEvent('paste', { clipboardData: data }));
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2', text: 'Alpha', children: [{ noteId: null, text: 'Beta' }] },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+        - Alpha
+            - id:: note2
+            - Beta
+        - note3
+      `);
     });
   }
 });

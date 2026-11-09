@@ -1125,11 +1125,11 @@ describe('lexical open document', () => {
 
       openDocument.history.undo();
 
-      await waitFor(() => expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]));
+      await waitFor(() => expect(remdo).toMatchOutline(`
+        - note1
+        - note2
+        - note3
+      `));
     });
 
     it('rejects an unavailable parent or line break without changing the document', meta({ fixture: 'tree' }), async ({ remdo }) => {

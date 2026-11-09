@@ -190,10 +190,11 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await placeCaretAtNote(secondary, 'note1', Number.POSITIVE_INFINITY);
     await typeText(secondary, ' remote');
     await waitFor(() => {
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1 remote' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1 remote
+            - id:: note1
+        - note3
+      `);
     });
 
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);

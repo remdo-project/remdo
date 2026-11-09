@@ -33,11 +33,12 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pastePlainText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'noXte2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - noXte2
+          - id:: note2
+      - note3
+    `);
   });
 
   it('pastes multi-line plain text at start as previous siblings and focuses the last note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -45,13 +46,13 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await pastePlainText(remdo, 'A\nB');
     await typeText(remdo, 'Z');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'A' },
-      { noteId: null, text: 'BZ' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - A
+      - BZ
+      - note2
+      - note3
+    `);
 
     const focusNote = findOutlineNodeByText(readOutline(remdo), 'BZ');
     expect(focusNote?.noteId).toBeTruthy();
@@ -62,14 +63,15 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pastePlainText(remdo, 'A\nB');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'no' },
-      { noteId: null, text: 'A' },
-      { noteId: null, text: 'B' },
-      { noteId: null, text: 'te2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - no
+          - id:: note2
+      - A
+      - B
+      - te2
+      - note3
+    `);
   });
 
   it('pastes between a link boundary and following text', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -113,18 +115,13 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await pastePlainText(remdo, 'A\nB');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      {
-        noteId: 'note2',
-        text: 'note2',
-        children: [
-          { noteId: null, text: 'A' },
-          { noteId: null, text: 'B' },
-          { noteId: 'note3', text: 'note3' },
-        ],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          - A
+          - B
+          - note3
+    `);
 
     const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
     expect(focusNote?.noteId).toBeTruthy();
@@ -136,36 +133,26 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await pastePlainText(remdo, 'A\nB');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      {
-        noteId: 'note2',
-        text: 'note2',
-        children: [
-          { noteId: null, text: 'A' },
-          { noteId: null, text: 'B' },
-          { noteId: 'note3', text: 'note3' },
-        ],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          - A
+          - B
+          - note3
+    `);
   });
 
   it('pastes multi-line plain text at the start of a nested note as previous siblings', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await placeCaretAtNote(remdo, 'note3', 0);
     await pastePlainText(remdo, 'A\nB');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      {
-        noteId: 'note2',
-        text: 'note2',
-        children: [
-          { noteId: null, text: 'A' },
-          { noteId: null, text: 'B' },
-          { noteId: 'note3', text: 'note3' },
-        ],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          - A
+          - B
+          - note3
+    `);
 
     const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
     expect(focusNote?.noteId).toBeTruthy();
@@ -206,18 +193,15 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pastePlainText(remdo, 'A\nB');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      {
-        noteId: 'note2',
-        text: 'no',
-        children: [
-          { noteId: null, text: 'A' },
-          { noteId: null, text: 'B' },
-          { noteId: null, text: 'te2', children: [{ noteId: 'note3', text: 'note3' }] },
-        ],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - no
+          - id:: note2
+          - A
+          - B
+          - te2
+              - note3
+    `);
 
     const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
     expect(focusNote?.noteId).toBeTruthy();
@@ -228,22 +212,24 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await selectEntireNote(remdo, 'note2');
     await pressKey(remdo, { key: 'Backspace' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      -
+          - id:: note2
+      - note3
+    `);
 
     await placeCaretAtNote(remdo, { id: 'note2' }, 0);
     await pastePlainText(remdo, 'A\nB');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'A' },
-      { noteId: null, text: 'B' },
-      { noteId: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - A
+      - B
+      -
+          - id:: note2
+      - note3
+    `);
 
     const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
     expect(focusNote?.noteId).toBeTruthy();
@@ -254,12 +240,12 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await selectStructuralNotes(remdo, 'note2');
     await pastePlainText(remdo, 'A\nB');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'A' },
-      { noteId: null, text: 'B' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - A
+      - B
+      - note3
+    `);
 
     const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
     expect(focusNote?.noteId).toBeTruthy();
@@ -277,29 +263,16 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
 
       await pastePlainText(remdo, 'A\nB');
 
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            {
-              noteId: 'note2',
-              text: 'note2',
-              children: [
-                { noteId: null, text: 'A' },
-                { noteId: null, text: 'B' },
-              ],
-            },
-            { noteId: 'note4', text: 'note4' },
-          ],
-        },
-        { noteId: 'note5', text: 'note5' },
-        {
-          noteId: 'note6',
-          text: 'note6',
-          children: [{ noteId: 'note7', text: 'note7' }],
-        },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - note2
+                - A
+                - B
+            - note4
+        - note5
+        - note6
+            - note7
+      `);
 
       const focusNote = findOutlineNodeByText(readOutline(remdo), 'B');
       expect(focusNote?.noteId).toBeTruthy();
@@ -311,11 +284,13 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await selectEntireNote(remdo, 'note2');
     await pastePlainText(remdo, 'A\nB');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'A', children: [{ noteId: null, text: 'B' }] },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - A
+          - id:: note2
+          - B
+      - note3
+    `);
   });
 
   it(
@@ -339,17 +314,13 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
 
       // NOTE: Pragmatic for now — we keep children intact and insert extra lines as first children,
       // even though the ordering is debatable. This may change as paste UX is refined.
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        {
-          noteId: 'note2',
-          text: 'nAe2',
-          children: [
-            { noteId: null, text: 'B' },
-            { noteId: 'note3', text: 'note3' },
-          ],
-        },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+        - nAe2
+            - id:: note2
+            - B
+            - note3
+      `);
     }
   );
 
@@ -417,11 +388,11 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     const payload = buildClipboardPayload(remdo, ['note2']);
     await pastePayload(remdo, payload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+      - note3
+    `);
   });
 });
 

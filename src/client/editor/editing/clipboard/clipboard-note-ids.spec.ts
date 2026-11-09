@@ -112,12 +112,12 @@ describe('note ids on paste', () => {
 
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: null, text: 'note2' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+      - note3
+      - note2
+    `);
 
     const outline = readOutline(remdo);
     const noteIds = outline.map((note) => note.noteId);
@@ -162,13 +162,13 @@ describe('note ids on paste', () => {
 
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: null, text: 'note1' },
-      { noteId: null, text: 'note2' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+      - note3
+      - note1
+      - note2
+    `);
 
     const outline = readOutline(remdo);
     const noteIds = outline.map((note) => note.noteId);
@@ -339,11 +339,11 @@ describe('note ids on paste', () => {
     const clipboardPayload = await copySelection(remdo);
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+      - note3
+    `);
 
     const outline = readOutline(remdo);
     expect(outline[1]?.noteId).not.toBe('note2');
@@ -360,12 +360,12 @@ describe('note ids on paste', () => {
 
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'note2' },
-      { noteId: null, text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+      - note2
+      - note3
+    `);
 
     const outline = readOutline(remdo);
     const noteIds = outline.map((note) => note.noteId);
@@ -412,10 +412,10 @@ describe('note ids on paste', () => {
 
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: null, text: 'note2' },
-      { noteId: null, text: 'note7' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note2
+      - note7
+    `);
   });
 
   it('regenerates ids for range selections that span notes (snaps to structural)', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -427,10 +427,10 @@ describe('note ids on paste', () => {
 
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: null, text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note2
+      - note3
+    `);
   });
 
   it('regenerates duplicate noteIds across parent/child clipboard nodes', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -470,12 +470,12 @@ describe('note ids on paste', () => {
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: null, text: 'doc-id' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+      - note3
+      - doc-id
+    `);
 
     const insertedId = findOutlineNodeByText(readOutline(remdo), 'doc-id')?.noteId;
     expect(insertedId).toBeTruthy();
@@ -490,13 +490,13 @@ describe('note ids on paste', () => {
     await pastePayload(remdo, clipboardPayload);
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: null, text: 'note2' },
-      { noteId: null, text: 'note2' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+      - note3
+      - note2
+      - note2
+    `);
 
     const outline = readOutline(remdo);
     const first = outline[3]?.noteId;
@@ -513,20 +513,21 @@ describe('note ids on paste', () => {
     await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
     await typeText(remdo, ' edited');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2 edited' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2 edited
+          - id:: note2
+      - note3
+    `);
 
     await selectStructuralNotes(remdo, 'note2 edited');
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+      - note3
+    `);
 
     const outline = readOutline(remdo);
     expect(outline[1]?.noteId).not.toBe('note2');
@@ -535,15 +536,19 @@ describe('note ids on paste', () => {
   it('keeps cut descendant IDs when a note label replaces partial inline text', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2', 'note3');
     const payload = await cutSelection(remdo);
-    expect(remdo).toMatchOutline([{ noteId: 'note1', text: 'note1' }]);
+    expect(remdo).toMatchOutline(`
+      - note1
+    `);
 
     const destination = getNoteTextNode(remdo, 'note1');
     await dragDomSelectionBetween(destination, 1, destination, 3);
     await pastePayload(remdo, payload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'nnote2e1', children: [{ noteId: 'note3', text: 'note3' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - nnote2e1
+          - id:: note1
+          - note3
+    `);
   });
 
   it('keeps inline text cuts within a single note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -588,9 +593,9 @@ describe('note ids on paste', () => {
 
     const clipboardPayload = await cutSelection(remdo);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
 
     await pastePayload(remdo, clipboardPayload);
@@ -605,10 +610,10 @@ describe('note ids on paste', () => {
     await selectStructuralNotes(remdo, 'note3');
     const clipboardPayload = await cutSelection(remdo);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
 
     await pastePayload(remdo, clipboardPayload);
@@ -668,7 +673,9 @@ describe('note ids on paste', () => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note1', 'note2', 'note3'] });
     });
     const clipboardPayload = await cutSelection(remdo);
-    expect(remdo).toMatchOutline([{ noteId: null }]);
+    expect(remdo).toMatchOutline(`
+      -
+    `);
 
     await pastePayload(remdo, clipboardPayload);
 
@@ -679,19 +686,22 @@ describe('note ids on paste', () => {
     await selectStructuralNotes(remdo, 'note2', 'note3');
     const clipboardPayload = await cutSelection(remdo);
 
-    expect(remdo).toMatchOutline([{ noteId: 'note1', text: 'note1' }]);
+    expect(remdo).toMatchOutline(`
+      - note1
+    `);
 
     await placeCaretAtNote(remdo, 'note1', 1);
 
     await pastePayload(remdo, clipboardPayload);
 
     // Expected: split at the caret offset and insert the cut notes between prefix/suffix.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'n' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: null, text: 'ote1' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - n
+          - id:: note1
+      - note2
+      - note3
+      - ote1
+    `);
   });
 
   it('moves a subtree away and back with exact editor-state round-trip', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -704,18 +714,15 @@ describe('note ids on paste', () => {
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, firstCutPayload);
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note6
+              - note7
+          - note2
+              - note3
+          - note4
+      - note5
+    `);
 
     await selectStructuralNotes(remdo, 'note6', 'note7');
     const secondCutPayload = await cutSelection(remdo);
@@ -742,12 +749,12 @@ describe('note ids on paste', () => {
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: null, text: 'note2' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+      - note3
+      - note2
+    `);
 
     const outline = readOutline(remdo);
     const pastedId = outline.at(-1)?.noteId;
@@ -769,18 +776,17 @@ describe('note ids on paste', () => {
     });
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-          { noteId: null, text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5', children: [{ noteId: 'note4', text: 'collision' }] },
-      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+              - note3
+          - note4
+      - note5
+          - collision
+              - id:: note4
+      - note6
+          - note7
+    `);
 
     const restoredId = findOutlineNodeByText(readOutline(remdo), 'note4')!.noteId;
     expect(restoredId).toEqual(expect.any(String));
@@ -851,21 +857,21 @@ describe('note ids on paste', () => {
     );
     expect(findSerializedListItem((clipboardPayload.nodes as SerializedLexicalNode[])[0]!, 'note2')).not.toBeNull();
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note3
+    `);
 
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: null, text: 'note2' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note3
+      - note2
+      - note2
+    `);
 
     const outline = readOutline(remdo);
     const firstPasteId = outline[2]?.noteId;

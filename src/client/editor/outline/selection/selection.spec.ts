@@ -380,24 +380,15 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'Tab' });
 
     await waitFor(() => {
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            {
-              noteId: 'note2',
-              text: 'note2',
-              children: [
-                { noteId: 'note3', text: 'note3' },
-                { noteId: 'note4', text: 'note4' },
-              ],
-            },
-          ],
-        },
-        { noteId: 'note5', text: 'note5' },
-        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - note2
+                - note3
+                - note4
+        - note5
+        - note6
+            - note7
+      `);
     });
   });
 
@@ -410,18 +401,15 @@ describe('selection plugin', () => {
     await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND);
 
     await waitFor(() => {
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            { noteId: 'note4', text: 'note4' },
-            { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-          ],
-        },
-        { noteId: 'note5', text: 'note5' },
-        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - note4
+            - note2
+                - note3
+        - note5
+        - note6
+            - note7
+      `);
     });
   });
 
@@ -434,18 +422,15 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'Tab', shift: true });
 
     await waitFor(() => {
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-          ],
-        },
-        { noteId: 'note4', text: 'note4' },
-        { noteId: 'note5', text: 'note5' },
-        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - note2
+                - note3
+        - note4
+        - note5
+        - note6
+            - note7
+      `);
     });
   });
 
@@ -458,18 +443,15 @@ describe('selection plugin', () => {
     await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND);
 
     await waitFor(() => {
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-            { noteId: 'note4', text: 'note4' },
-          ],
-        },
-        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-        { noteId: 'note5', text: 'note5' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - note2
+                - note3
+            - note4
+        - note6
+            - note7
+        - note5
+      `);
     });
   });
 
@@ -483,11 +465,13 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'Delete' });
 
     await waitFor(() => {
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1', children: [{ noteId: 'note4', text: 'note4' }] },
-        { noteId: 'note5', text: 'note5' },
-        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - note4
+        - note5
+        - note6
+            - note7
+      `);
     });
   });
 
@@ -501,17 +485,13 @@ describe('selection plugin', () => {
     await pressKey(remdo, { key: 'Backspace' });
 
     await waitFor(() => {
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-            { noteId: 'note4', text: 'note4' },
-          ],
-        },
-        { noteId: 'note5', text: 'note5' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - note2
+                - note3
+            - note4
+        - note5
+      `);
     });
   });
 

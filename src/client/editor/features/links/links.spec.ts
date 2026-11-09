@@ -119,11 +119,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     const url = `/n/${remdo.getCollabDocId()}_note2`;
     await pastePlainText(remdo, url);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1note2' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1note2
+          - id:: note1
+      - note2
+      - note3
+    `);
 
     remdo.validate(() => {
       const note = $getNoteById('note1');
@@ -591,11 +592,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     expect(emptyRow!.textContent.trim()).toBe('No results...');
 
     await pressKey(remdo, { key: 'Enter' });
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 @note2 !' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 @note2 !
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('keeps filtered results in document order', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -632,11 +634,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await typeText(remdo, ' @missing');
     await pressKey(remdo, { key: 'Enter' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 @missing' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 @missing
+          - id:: note1
+      - note2
+      - note3
+    `);
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
   });
 
@@ -645,11 +648,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await typeText(remdo, ' @missing');
     await pressKey(remdo, { key: 'Tab' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 @missing' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 @missing
+          - id:: note1
+      - note2
+      - note3
+    `);
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
   });
 
@@ -696,11 +700,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 @note' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 @note
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('closes link mode on outside mouse down', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -712,11 +717,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 @note' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 @note
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('clamps ArrowUp and ArrowDown picker navigation at boundaries', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -792,11 +798,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await pressKey(remdo, { key: 'Escape' });
 
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 @note2' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 @note2
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('deletes the bare @ on Backspace and closes', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -821,11 +828,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await typeText(remdo, '@note2');
 
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1@note2' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1@note2
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('does not reopen link mode when the caret returns beside an existing @', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -850,11 +858,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await typeText(remdo, 'n');
 
     // The @ was deleted by Backspace; typing 'n' is ordinary text, no reopen.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 n' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 n
+          - id:: note1
+      - note2
+      - note3
+    `);
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
   });
 });

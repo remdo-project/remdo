@@ -289,11 +289,12 @@ describe('date nodes', () => {
     // Mirrors Lexical typeahead trigger boundaries, avoiding prose punctuation false positives.
     // https://lexical.dev/docs/react/plugins
     expect(document.querySelector('[data-date-picker]')).toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1done!' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1done!
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('opens the picker when ! follows whitespace', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -303,11 +304,12 @@ describe('date nodes', () => {
     // Mirrors Lexical typeahead trigger boundaries: start, whitespace, or opening punctuation.
     // https://lexical.dev/docs/react/plugins
     expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 !' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 !
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('opens the picker when ! starts a note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -317,11 +319,12 @@ describe('date nodes', () => {
     // Mirrors Lexical typeahead trigger boundaries: start, whitespace, or opening punctuation.
     // https://lexical.dev/docs/react/plugins
     expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: '!note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - !note1
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('opens the picker when ! immediately follows a date token', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -344,11 +347,12 @@ describe('date nodes', () => {
     await typeText(remdo, '!t');
 
     expect(document.querySelector('[data-date-picker]')).toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1!t' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1!t
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('updates an existing date node when clicked', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -368,11 +372,12 @@ describe('date nodes', () => {
     const updatedDateElement = document.querySelector('[data-date-node-key]');
     expect(updatedDateElement).toHaveAttribute('data-iso-date', '2026-06-11');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'Jun 11, 2026' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - Jun 11, 2026
+          - id:: note1
+      - note2
+      - note3
+    `);
 
     remdo.validate(() => {
       const note = $getNoteById('note1');
@@ -467,19 +472,21 @@ describe('date nodes', () => {
     await pressKey(remdo, { key: 'Backspace' });
 
     expect(document.querySelector('[data-date-picker-mode="edit"]')).not.toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'before Jun 10, 2026 after' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - before Jun 10, 2026 after
+          - id:: note1
+      - note2
+      - note3
+    `);
 
     await clickPickerDay('2026-06-11');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'before Jun 11, 2026 after' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - before Jun 11, 2026 after
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('keeps an edit picker valid when Delete is pressed on a selected date token', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -492,19 +499,21 @@ describe('date nodes', () => {
     await pressKey(remdo, { key: 'Delete' });
 
     expect(document.querySelector('[data-date-picker-mode="edit"]')).not.toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'before Jun 10, 2026 after' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - before Jun 10, 2026 after
+          - id:: note1
+      - note2
+      - note3
+    `);
 
     await clickPickerDay('2026-06-11');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'before Jun 11, 2026 after' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - before Jun 11, 2026 after
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('selects a date token on mousedown before the browser can place an inner caret', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -547,11 +556,12 @@ describe('date nodes', () => {
     expect(document.querySelector('[data-date-picker-mode="edit"]')).not.toBeNull();
     await clickPickerDay('2026-06-11');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'before Jun 11, 2026 after' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - before Jun 11, 2026 after
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('opens the edit picker with Space on a selected date token without inserting text', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -562,11 +572,12 @@ describe('date nodes', () => {
     await pressSpaceKey(remdo);
 
     expect(document.querySelector('[data-date-picker-mode="edit"]')).not.toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'before Jun 10, 2026 after' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - before Jun 10, 2026 after
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('clears selected date token focus after the date on Escape without changing the date', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -577,11 +588,12 @@ describe('date nodes', () => {
     await pressKey(remdo, { key: 'Escape' });
 
     expectDateBoundarySelection(remdo, 'after');
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'before Jun 10, 2026 after' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - before Jun 10, 2026 after
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('selects a date token before deleting it with Backspace', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -590,18 +602,20 @@ describe('date nodes', () => {
 
     await pressKey(remdo, { key: 'Backspace' });
     expectDateTokenSelected(remdo);
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'before Jun 10, 2026 after' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - before Jun 10, 2026 after
+          - id:: note1
+      - note2
+      - note3
+    `);
 
     await pressKey(remdo, { key: 'Backspace' });
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'before  after' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - before  after
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('selects a date token before deleting it with Delete', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -610,18 +624,20 @@ describe('date nodes', () => {
 
     await pressKey(remdo, { key: 'Delete' });
     expectDateTokenSelected(remdo);
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'before Jun 10, 2026 after' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - before Jun 10, 2026 after
+          - id:: note1
+      - note2
+      - note3
+    `);
 
     await pressKey(remdo, { key: 'Delete' });
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'before  after' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - before  after
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('closes insert picker on outside click while keeping the typed !', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -634,11 +650,12 @@ describe('date nodes', () => {
     await mouseDownElement(document.body);
 
     expect(document.querySelector('[data-date-picker]')).toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 !' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 !
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('closes edit picker on outside click without changing the date', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -656,11 +673,12 @@ describe('date nodes', () => {
     await mouseDownElement(document.body);
 
     expect(document.querySelector('[data-date-picker]')).toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'Jun 10, 2026' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - Jun 10, 2026
+          - id:: note1
+      - note2
+      - note3
+    `);
 
     remdo.validate(() => {
       const note = $getNoteById('note1');
@@ -677,11 +695,12 @@ describe('date nodes', () => {
     // Escape dismisses an open popup without clearing editable text.
     // https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
     expect(document.querySelector('[data-date-picker]')).toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 !' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 !
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('lets Backspace delete the typed ! while closing the insert picker', meta({ fixture: 'flat' }), async ({ remdo }) => {

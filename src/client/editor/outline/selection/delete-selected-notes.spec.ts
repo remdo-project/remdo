@@ -15,11 +15,13 @@ describe('deleteSelectedNotes helper', () => {
     });
 
     expect(deleted).toBe(true);
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', children: [{ noteId: 'note4', text: 'note4' }] },
-      { noteId: 'note5', text: 'note5' },
-      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note4
+      - note5
+      - note6
+          - note7
+    `);
   });
 
   it('no-ops without a note range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
