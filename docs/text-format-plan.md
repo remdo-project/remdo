@@ -194,7 +194,8 @@ once stage 3 lands.
         wrapping text for a range within or across notes, and wrapping whole
         note lines for a note range. Pilot it on a few specs before scripting
         the rest; expectations with bodies or fold state stay objects until
-        the spike.
+        the spike. Checks of only the selection keep `toMatchSelection`,
+        which names notes by ID, so they need no outline.
      3. Write fixtures in the format, checked against the JSON they replace,
         keeping an existing ID only where it differs from its note's text,
         since tests name those notes by ID. Fixtures with bodies wait for the

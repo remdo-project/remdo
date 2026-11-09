@@ -594,9 +594,8 @@ describe('note ids on paste', () => {
     const clipboardPayload = await cutSelection(remdo);
 
     expect(remdo).toMatchOutline(`
-      - note3
+      - <selection />note3
     `);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
 
     await pastePayload(remdo, clipboardPayload);
     await remdo.waitForSynced();
@@ -612,9 +611,8 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
-      - note2
+      - note2<selection />
     `);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
 
     await pastePayload(remdo, clipboardPayload);
     await remdo.waitForSynced();

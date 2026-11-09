@@ -277,12 +277,11 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
         - note1
             - note2
                 - note3
-            - note4 note5
+            - note4 <selection />note5
                 - id:: note4
         - note6
             - note7
       `);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note4' });
     });
 
     it('drops a previous empty leaf and keeps the caret on the current note when Backspace is pressed at column 0', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -294,10 +293,9 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
 
       expect(remdo).toMatchOutline(`
         - note1
-        - note2
+        - <selection />note2
         - note3
       `);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     });
 
     it('drops a previous empty leaf even when the current note has children', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -453,11 +451,10 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline(`
-        - note1 note2
+        - note1 <selection />note2
             - id:: note1
         - note3
       `);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('merges with the next note in document order even when it is not a same-depth sibling', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -467,13 +464,12 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       expect(remdo).toMatchOutline(`
         - note1
             - note2
-                - note3 note4
+                - note3 <selection />note4
                     - id:: note3
         - note5
         - note6
             - note7
       `);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
     it('merges the next note and reparents its children when Delete is pressed before a parent', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -481,11 +477,10 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline(`
-        - note1 note2
+        - note1 <selection />note2
             - id:: note1
             - note3
       `);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('treats Delete at the end of the last note as a no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -519,11 +514,10 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline(`
-        - note1 note2
+        - note1 <selection />note2
             - id:: note1
         - note3
       `);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('avoids adding extra space on Backspace when the right fragment already starts with whitespace', meta({ fixture: 'edge-spaces' }), async ({ remdo }) => {
@@ -616,9 +610,8 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline(`
-        - note3
+        - <selection />note3
       `);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
     it('deletes only the selected empty note after Cmd/Ctrl+A', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
@@ -655,9 +648,8 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline(`
-        - note1
+        - note1<selection />
       `);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('keeps the document non-empty when structural deletion removes every note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -680,10 +672,9 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Delete' });
 
       expect(remdo).toMatchOutline(`
-        - note1
+        - note1<selection />
         - note3
       `);
-      expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('restores text and structure via undo/redo after structural deletion', meta({ fixture: 'flat' }), async ({ remdo }) => {
