@@ -11,7 +11,7 @@ import {
   isChildrenWrapper,
   resolveContentListItem,
 } from '#tests';
-import { $getSelection, $isRangeSelection, $getRoot } from 'lexical';
+import { $getSelection, $isNodeSelection, $isRangeSelection, $getRoot } from 'lexical';
 import type { ElementNode, PointType, RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
@@ -244,25 +244,48 @@ function resolveMarkdownSelection(selection: MarkdownSelection, outline: Outline
   return { state: 'inline', start: at(selection.start), end: at(selection.end) };
 }
 
-function $pointInNote(point: PointType): NotePoint {
-  const node = point.getNode();
+function $noteContaining(node: LexicalNode): { item: ListItemNode; note: string } {
   const item = findNearestListItem(node);
   const note = item ? $getNoteId(item) : null;
   if (!item || !note || (node !== item && !item.isParentOf(node))) {
-    throw new Error(`A selection point at ${node.getType()} ${node.getKey()} sits outside any note's text, which Markdown can't mark.`);
+    throw new Error(`A selection at ${node.getType()} ${node.getKey()} sits outside any note's text, which Markdown can't mark.`);
   }
-  let offset = point.type === 'element'
-    ? (node as ElementNode).getChildren().slice(0, point.offset).reduce((sum, child) => sum + child.getTextContentSize(), 0)
-    : point.offset;
+  return { item, note };
+}
+
+function $textBefore(node: LexicalNode, item: ListItemNode): number {
+  let offset = 0;
   for (let current: LexicalNode = node; current !== item; current = current.getParentOrThrow()) {
     for (let sibling = current.getPreviousSibling(); sibling; sibling = sibling.getPreviousSibling()) {
       offset += sibling.getTextContentSize();
     }
   }
-  return { note, offset };
+  return offset;
+}
+
+function $pointInNote(point: PointType): NotePoint {
+  const node = point.getNode();
+  const { item, note } = $noteContaining(node);
+  const within = point.type === 'element'
+    ? (node as ElementNode).getChildren().slice(0, point.offset).reduce((sum, child) => sum + child.getTextContentSize(), 0)
+    : point.offset;
+  return { note, offset: $textBefore(node, item) + within };
+}
+
+/** A selected inline token, such as a date, reads as a range over its label. */
+function $readTokenSelection(): SelectionDetail | null {
+  const selection = $getSelection();
+  if (!$isNodeSelection(selection)) return null;
+  const [token, ...rest] = selection.getNodes();
+  if (!token || rest.length > 0 || $isListItemNode(token)) return null;
+  const { item, note } = $noteContaining(token);
+  const start = $textBefore(token, item);
+  return { state: 'inline', start: { note, offset: start }, end: { note, offset: start + token.getTextContentSize() } };
 }
 
 function readSelectionDetail(remdo: RemdoTestHelpers): SelectionDetail {
+  const token = remdo.validate($readTokenSelection);
+  if (token) return token;
   const snapshot = readSelectionSnapshot(remdo);
   if (snapshot.state === 'structural' || snapshot.state === 'none') return snapshot;
   return remdo.validate(() => {

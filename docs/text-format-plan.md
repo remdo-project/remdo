@@ -195,8 +195,9 @@ once stage 3 lands.
         note lines for a note range. Pilot it on a few specs before scripting
         the rest; expectations with bodies or fold state stay objects until
         the spike. Checks of only the selection keep `toMatchSelection`,
-        which names notes by ID, unless the selection's shape in the tree is
-        what the test checks.
+        which names notes by ID, unless the test checks the selection's
+        shape in the tree or its place in the text. A selected inline token,
+        such as a date, is marked as a range over its label.
      3. Let the browser tests' outline matcher read the same Markdown with the
         same reader, then script their expectations onto it, so browser and
         unit tests share one expected form before the editor changes.
