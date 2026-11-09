@@ -188,7 +188,9 @@ once stage 3 lands.
      shared helpers, then in the lookups specs make inside editor updates, the
      clipboard helper and the test bridge, and in selection expectations; then
      write fixtures in the format with only the IDs tests rely on, checked
-     against the JSON they replace; then expected outlines. A JavaScript reader
+     against the JSON they replace, keeping an existing ID only where it
+     differs from its note's text, since tests name those notes by ID; then
+     expected outlines. A JavaScript reader
      in test support reads what migrated fixtures use and moves into the app
      when paste needs it; expected outlines compare as trees, so tests need no
      second writer. Fixtures with bodies wait for the spike. The step ends by

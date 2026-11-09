@@ -49,7 +49,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
   });
 
   it('enter at the start of a later text node splits the note (multi-text)', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-    await placeCaretAtNoteTextNode(remdo, 'plain bold italic underline plain', 1, 0);
+    await placeCaretAtNoteTextNode(remdo, { id: 'mixedFormatting' }, 1, 0);
 
     await pressKey(remdo, { key: 'Enter' });
     const trailingNoteId = readCaretNoteId(remdo);
@@ -522,7 +522,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     });
 
     it('splits when the selection spans several text nodes', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-      await selectAcrossNoteTextNodes(remdo, 'plain bold italic underline plain', 0, 3, 2, 3);
+      await selectAcrossNoteTextNodes(remdo, { id: 'mixedFormatting' }, 0, 3, 2, 3);
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
 

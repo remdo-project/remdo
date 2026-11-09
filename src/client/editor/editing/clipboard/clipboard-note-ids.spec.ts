@@ -214,7 +214,7 @@ describe('note ids on paste', () => {
       $addNoteBody(destination).append($createTextNode('destination '));
     });
 
-    await selectNoteRange(remdo, 'plain bold italic underline plain', 'owned child');
+    await selectNoteRange(remdo, { id: 'mixedFormatting' }, { id: 'ownedChild' });
     await waitFor(() => {
       expect(remdo.editor.selection.isStructural()).toBe(true);
     });
@@ -653,7 +653,7 @@ describe('note ids on paste', () => {
   it('round-trips formatted note content exactly', meta({ fixture: 'formatted' }), async ({ remdo }) => {
     const initialState = remdo.getEditorState();
 
-    await selectStructuralNotes(remdo, 'plain bold italic underline plain');
+    await selectStructuralNotes(remdo, { id: 'mixedFormatting' });
     const clipboardPayload = await cutSelection(remdo);
     expect(flattenOutline(readOutline(remdo)).some((note) => note.noteId === 'mixedFormatting')).toBe(false);
 
