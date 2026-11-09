@@ -1,14 +1,4 @@
-import { $createListItemNode } from '@lexical/list';
-import { describe, expect, it } from 'vitest';
-import { $createTextNode, $isLineBreakNode, $isTextNode, $setState, UNDO_COMMAND } from 'lexical';
-import { waitFor } from '@testing-library/react';
-
-import type { SerializedLexicalNode, SerializedTextNode } from 'lexical';
-import type { SerializedNoteLinkNode } from '#client/editor/features/links/note-link-node';
-import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
-import type { RemdoTestApi } from '#client/editor/dev';
-import { collectOutlineNoteIds, flattenOutline } from '#tests-common/outline';
-import {
+import { $getNoteById, $getNoteByText,
   buildClipboardPayload,
   buildCustomClipboardPayload,
   collectSerializedNodes,
@@ -27,10 +17,18 @@ import {
   selectStructuralNotes,
   selectNoteRange,
   typeText,
-  meta,
-} from '#tests';
+  meta } from '#tests';
+import { $createListItemNode } from '@lexical/list';
+import { describe, expect, it } from 'vitest';
+import { $createTextNode, $isLineBreakNode, $isTextNode, $setState, UNDO_COMMAND } from 'lexical';
+import { waitFor } from '@testing-library/react';
+
+import type { SerializedLexicalNode, SerializedTextNode } from 'lexical';
+import type { SerializedNoteLinkNode } from '#client/editor/features/links/note-link-node';
+import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
+import type { RemdoTestApi } from '#client/editor/dev';
+import { collectOutlineNoteIds, flattenOutline } from '#tests-common/outline';
 import { createUniqueNoteId } from '#domain/notes/ids';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getNoteBody } from '#client/editor/outline/selection/body-region';
 import { $getOrCreateChildList } from '#client/editor/outline/list-structure';
 import { $addNoteBody } from '#client/editor/features/note-body/note-body-ops';
@@ -143,7 +141,7 @@ describe('note ids on paste', () => {
 
     // Select all of note1's body text, then paste the copied note onto it.
     await remdo.mutate(() => {
-      const body = getNoteBody($findNoteById('note1')!)!;
+      const body = getNoteBody($getNoteByText('note1'))!;
       body.select(0, body.getChildrenSize());
     });
     await pastePayload(remdo, clipboardPayload);
@@ -202,7 +200,7 @@ describe('note ids on paste', () => {
 
   it('pastes only one structural note label into a body and preserves its formatting', meta({ fixture: 'formatted' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const source = $findNoteById('mixedFormatting')!;
+      const source = $getNoteById('mixedFormatting');
       $addNoteBody(source).append($createTextNode('owned body'));
 
       const child = $createListItemNode();
@@ -210,7 +208,7 @@ describe('note ids on paste', () => {
       $setState(child, noteIdState, 'ownedChild');
       $getOrCreateChildList(source).append(child);
 
-      const destination = $findNoteById('underline')!;
+      const destination = $getNoteByText('underline');
       $addNoteBody(destination).append($createTextNode('destination '));
     });
 
@@ -225,12 +223,12 @@ describe('note ids on paste', () => {
     ).toBe(true);
 
     await remdo.mutate(() => {
-      getNoteBody($findNoteById('underline')!)!.selectEnd();
+      getNoteBody($getNoteByText('underline'))!.selectEnd();
     });
     await pastePayload(remdo, clipboardPayload);
 
     const destinationBody = remdo.editor.getEditorState().read(() => {
-      const body = getNoteBody($findNoteById('underline')!)!;
+      const body = getNoteBody($getNoteByText('underline'))!;
       return {
         text: body.getTextContent(),
         hasBoldLabelText: body.getChildren().some(
@@ -260,7 +258,7 @@ describe('note ids on paste', () => {
     await pastePayload(remdo, clipboardPayload);
 
     const lineBreaks = remdo.editor.getEditorState().read(() => {
-      const body = getNoteBody($findNoteById('note3')!)!;
+      const body = getNoteBody($getNoteByText('note3'))!;
       return body.getChildren().filter($isLineBreakNode).length;
     });
     expect(lineBreaks).toBeGreaterThan(0);
@@ -569,7 +567,7 @@ describe('note ids on paste', () => {
     expect(flattenOutline(readOutline(remdo)).some((note) => note.noteId === 'note2')).toBe(false);
 
     await remdo.mutate(() => {
-      getNoteBody($findNoteById('note1')!)!.selectEnd();
+      getNoteBody($getNoteByText('note1'))!.selectEnd();
     });
     await pastePayload(remdo, clipboardPayload);
 
@@ -767,7 +765,7 @@ describe('note ids on paste', () => {
       const collision = $createListItemNode();
       collision.append($createTextNode('collision'));
       $setState(collision, noteIdState, 'note4');
-      $getOrCreateChildList($findNoteById('note5')!).append(collision);
+      $getOrCreateChildList($getNoteByText('note5')).append(collision);
     });
     await pastePayload(remdo, clipboardPayload);
 
@@ -831,7 +829,7 @@ describe('note ids on paste', () => {
       const collision = $createListItemNode();
       collision.append($createTextNode('collision'));
       $setState(collision, noteIdState, 'note1');
-      $findNoteById('note3')!.insertAfter(collision);
+      $getNoteByText('note3').insertAfter(collision);
     });
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);

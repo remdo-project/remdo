@@ -1,8 +1,4 @@
-import { waitFor } from '@testing-library/react';
-import { $createListItemNode } from '@lexical/list';
-import { describe, expect, it } from 'vitest';
-import { $createTextNode, $setState } from 'lexical';
-import {
+import { $getNoteByText,
   copySelection,
   cutSelection,
   pastePayload,
@@ -11,9 +7,11 @@ import {
   readOutline,
   selectStructuralNotes,
   typeText,
-  meta,
-} from '#tests';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
+  meta } from '#tests';
+import { waitFor } from '@testing-library/react';
+import { $createListItemNode } from '@lexical/list';
+import { describe, expect, it } from 'vitest';
+import { $createTextNode, $setState } from 'lexical';
 import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
@@ -226,7 +224,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       const collision = $createListItemNode();
       collision.append($createTextNode('collision'));
       $setState(collision, noteIdState, 'note2');
-      $findNoteById('note3')!.insertAfter(collision);
+      $getNoteByText('note3').insertAfter(collision);
     });
     await waitFor(() => {
       expect(remdo).toMatchOutline(readOutline(secondary));

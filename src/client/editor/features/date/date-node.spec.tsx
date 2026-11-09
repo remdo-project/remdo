@@ -1,12 +1,11 @@
+import { $getNoteById, $getNoteByText, findSerializedNode, meta, placeCaretAtNote, placeCaretAtNoteTextNode, pressKey, typeText } from '#tests';
 import { getLocalTimeZone, today } from '@internationalized/date';
 import { act } from '@testing-library/react';
 import { $createTextNode, $getSelection, $isNodeSelection, $isRangeSelection, $isTextNode } from 'lexical';
 import type { SerializedLexicalNode } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import type { RemdoTestApi } from '#client/editor/dev';
-import { findSerializedNode, meta, placeCaretAtNote, placeCaretAtNoteTextNode, pressKey, typeText } from '#tests';
 import type { SerializedDateNode } from './date-node';
 import { $createDateNode, $isDateNode } from './date-node';
 import { formatDateNodeLabel } from './date-label';
@@ -63,7 +62,7 @@ async function pressKeyOnActiveElement(remdo: RemdoTestApi, key: string) {
 
 async function setupInlineDate(remdo: RemdoTestApi) {
   await remdo.mutate(() => {
-    const note = $findNoteById('note1')!;
+    const note = $getNoteByText('note1');
     note.clear();
     note.append($createTextNode('before '), $createDateNode('2026-06-10'), $createTextNode(' after'));
   });
@@ -71,7 +70,7 @@ async function setupInlineDate(remdo: RemdoTestApi) {
 
 async function placeCaretNextToDate(remdo: RemdoTestApi, side: 'after' | 'before') {
   await remdo.mutate(() => {
-    const note = $findNoteById('note1')!;
+    const note = $getNoteById('note1');
     const dateNode = note.getChildren().find($isDateNode)!;
     const offset = dateNode.getIndexWithinParent() + (side === 'after' ? 1 : 0);
     note.select(offset, offset);
@@ -98,7 +97,7 @@ function expectDateTokenSelected(remdo: RemdoTestApi) {
 function expectDateBoundarySelection(remdo: RemdoTestApi, side: 'after' | 'before') {
   expect(getDateElement()).not.toHaveAttribute('data-date-token-selected');
   remdo.validate(() => {
-    const note = $findNoteById('note1')!;
+    const note = $getNoteById('note1');
     const dateNode = note.getChildren().find($isDateNode)!;
     const selection = $getSelection();
     expect($isRangeSelection(selection)).toBe(true);
@@ -129,13 +128,13 @@ function expectDateBoundarySelection(remdo: RemdoTestApi, side: 'after' | 'befor
 describe('date nodes', () => {
   it('serializes date identity separately from the readable label', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear();
       note.append($createDateNode('2026-06-10'));
     });
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const dateNode = note.getChildren().find($isDateNode)!;
       expect(dateNode.getIsoDate()).toBe('2026-06-10');
       expect(dateNode.getTextContent()).toBe('Jun 10, 2026');
@@ -154,7 +153,7 @@ describe('date nodes', () => {
 
   it('round-trips date identity through editor JSON import and export', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear();
       note.append($createTextNode('before '), $createDateNode('2026-06-10'), $createTextNode(' after'));
     });
@@ -179,7 +178,7 @@ describe('date nodes', () => {
     expect(roundTrippedDateNode).not.toHaveProperty('text');
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const dateNode = note.getChildren().find($isDateNode)!;
       expect(dateNode.getIsoDate()).toBe('2026-06-10');
       expect(dateNode.getTextContent()).toBe('Jun 10, 2026');
@@ -188,7 +187,7 @@ describe('date nodes', () => {
 
   it('rejects invalid dates when importing editor JSON', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear();
       note.append($createDateNode('2026-06-10'));
     });
@@ -219,7 +218,7 @@ describe('date nodes', () => {
     ]);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const dateNode = note.getChildren().find($isDateNode)!;
       expect(dateNode.getIsoDate()).toBe(isoDate);
       expect(dateNode.getTextContent()).toBe(label);
@@ -238,7 +237,7 @@ describe('date nodes', () => {
 
     expect(document.querySelector('[data-date-picker]')).toBeNull();
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       expect(note.getChildren().some($isDateNode)).toBe(false);
       expect(note.getTextContent()).toContain('!');
     });
@@ -274,7 +273,7 @@ describe('date nodes', () => {
       await clickPickerDay('2031-01-02');
 
       remdo.validate(() => {
-        const note = $findNoteById('note1')!;
+        const note = $getNoteById('note1');
         const dateNode = note.getChildren().find($isDateNode)!;
         expect(dateNode.getIsoDate()).toBe('2031-01-02');
       });
@@ -330,7 +329,7 @@ describe('date nodes', () => {
     // with no whitespace between it and the `!`. Its rendered label must not be
     // read as non-boundary prose.
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear();
       note.append($createDateNode('2026-06-10'));
     });
@@ -354,7 +353,7 @@ describe('date nodes', () => {
 
   it('updates an existing date node when clicked', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear();
       note.append($createDateNode('2026-06-10'));
     });
@@ -376,7 +375,7 @@ describe('date nodes', () => {
     ]);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const dateNode = note.getChildren().find($isDateNode)!;
       expect(dateNode.getIsoDate()).toBe('2026-06-11');
       expect(dateNode.getTextContent()).toBe('Jun 11, 2026');
@@ -644,7 +643,7 @@ describe('date nodes', () => {
 
   it('closes edit picker on outside click without changing the date', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear();
       note.append($createDateNode('2026-06-10'));
     });
@@ -664,7 +663,7 @@ describe('date nodes', () => {
     ]);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const dateNode = note.getChildren().find($isDateNode)!;
       expect(dateNode.getIsoDate()).toBe('2026-06-10');
     });
@@ -733,7 +732,7 @@ describe('date nodes', () => {
     // means the user left the query. The insert session must close rather than
     // linger under the edit picker and steal its Escape/Enter handling.
     await remdo.mutate(() => {
-      const note = $findNoteById('note2')!;
+      const note = $getNoteByText('note2');
       note.clear();
       note.append($createDateNode('2026-06-10'));
     });

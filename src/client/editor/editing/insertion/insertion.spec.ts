@@ -1,5 +1,4 @@
-import { describe, expect, it } from 'vitest';
-import {
+import { $getNoteById, $getNoteByText,
   placeCaretAtNote,
   placeCaretAtNoteTextNode,
   pressKey,
@@ -9,14 +8,13 @@ import {
   selectEntireNote,
   selectNoteTextRange,
   typeText,
-  meta,
-} from '#tests';
+  meta } from '#tests';
+import { describe, expect, it } from 'vitest';
 import { $createTextNode, $getSelection, $isTextNode, UNDO_COMMAND } from 'lexical';
 import type { $createRangeSelection } from 'lexical';
 import { $createLinkNode, $isLinkNode } from '@lexical/link';
 import { $setNoteFolded } from '#client/editor/outline/fold-state';
 import { $createDateNode } from '#client/editor/features/date/date-node';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $isNoteLinkNode } from '#client/editor/features/links/note-link-node';
 
 describe('insertion semantics (docs/insertion.md)', () => {
@@ -96,7 +94,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
   it('enter at end of a folded parent inserts a next sibling', meta({ fixture: 'basic' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       $setNoteFolded(note, true);
     });
 
@@ -156,7 +154,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
   it('moves zoom-root state and descendants to the trailing first child and restores them on Backspace', meta({ fixture: 'tree', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const note = $findNoteById('note2')!;
+      const note = $getNoteByText('note2');
       note.clear();
       note.append($createTextNode('left right'));
     });
@@ -166,7 +164,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await setRawNoteCheckedState(remdo, 'left right', true);
     await setRawNoteCheckedState(remdo, 'note3', true);
     await remdo.mutate(() => {
-      $setNoteFolded($findNoteById('note2')!, true);
+      $setNoteFolded($getNoteById('note2'), true);
     });
 
     await placeCaretAtNote(remdo, 'left right', 5);
@@ -346,7 +344,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
   it('moves body, descendants, and fold state to the fresh suffix while keeping identity and checked state leading', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const note = $findNoteById('note2')!;
+      const note = $getNoteByText('note2');
       note.clear();
       note.append($createTextNode('left right'));
     });
@@ -356,7 +354,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await setRawNoteCheckedState(remdo, 'left right', true);
     await setRawNoteCheckedState(remdo, 'note3', true);
     await remdo.mutate(() => {
-      $setNoteFolded($findNoteById('note2')!, true);
+      $setNoteFolded($getNoteById('note2'), true);
     });
 
     await placeCaretAtNote(remdo, 'left right', 5);
@@ -394,7 +392,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
   it('restores a whitespace-leading split without retiring the original identity', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear();
       note.append($createTextNode(' note'));
     });
@@ -543,7 +541,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     it('inserts a note when removal leaves only a decorator', meta({ fixture: 'tree' }), async ({ remdo }) => {
       await remdo.mutate(() => {
-        $findNoteById('note1')!.append($createDateNode('2026-01-02'));
+        $getNoteByText('note1').append($createDateNode('2026-01-02'));
       });
       await selectNoteTextRange(remdo, { id: 'note1' }, 0, Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Enter' });
@@ -558,7 +556,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     it('splits between decorators when removal empties the text between them', meta({ fixture: 'tree' }), async ({ remdo }) => {
       await remdo.mutate(() => {
-        const item = $findNoteById('note1')!;
+        const item = $getNoteByText('note1');
         item.clear();
         item.append($createDateNode('2026-01-02'));
         item.append($createTextNode('mid'));
@@ -577,7 +575,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     it('splits a link at the exact caret after removing a selection inside it', meta({ fixture: 'tree' }), async ({ remdo }) => {
       await remdo.mutate(() => {
-        const note = $findNoteById('note1')!;
+        const note = $getNoteByText('note1');
         note.clear();
         const link = $createLinkNode('https://example.com/', {
           rel: 'noopener',
@@ -592,7 +590,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await placeCaretAtNote(remdo, { id: 'note1' }, 0);
       await remdo.mutate(() => {
         const selection = $getSelection() as ReturnType<typeof $createRangeSelection>;
-        const link = $findNoteById('note1')!.getChildren().find($isLinkNode)!;
+        const link = $getNoteById('note1').getChildren().find($isLinkNode)!;
         const linkText = link.getChildren().filter($isTextNode)[0]!;
         selection.setTextNodeRange(linkText, 2, linkText, 6);
       });
@@ -606,8 +604,8 @@ describe('insertion semantics (docs/insertion.md)', () => {
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
       remdo.validate(() => {
-        const leadingLink = $findNoteById('note1')!.getChildren().find($isLinkNode)!;
-        const trailingLink = $findNoteById(trailingNoteId)!.getChildren().find($isLinkNode)!;
+        const leadingLink = $getNoteById('note1').getChildren().find($isLinkNode)!;
+        const trailingLink = $getNoteById(trailingNoteId).getChildren().find($isLinkNode)!;
         expect(leadingLink.getURL()).toBe('https://example.com/');
         expect(trailingLink.getURL()).toBe('https://example.com/');
         expect(leadingLink.getRel()).toBe('noopener noreferrer');
@@ -623,7 +621,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await placeCaretAtNote(remdo, { id: 'note1' }, 0);
       await remdo.mutate(() => {
         const selection = $getSelection() as ReturnType<typeof $createRangeSelection>;
-        const noteLink = $findNoteById('note1')!.getChildren().find($isNoteLinkNode)!;
+        const noteLink = $getNoteById('note1').getChildren().find($isNoteLinkNode)!;
         const linkText = noteLink.getChildren().filter($isTextNode)[0]!;
         selection.setTextNodeRange(linkText, 2, linkText, 2);
       });
@@ -639,8 +637,8 @@ describe('insertion semantics (docs/insertion.md)', () => {
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
       remdo.validate(() => {
-        const leadingLink = $findNoteById('note1')!.getChildren().find($isNoteLinkNode)!;
-        const trailingLink = $findNoteById(trailingNoteId)!.getChildren().find($isNoteLinkNode)!;
+        const leadingLink = $getNoteById('note1').getChildren().find($isNoteLinkNode)!;
+        const trailingLink = $getNoteById(trailingNoteId).getChildren().find($isNoteLinkNode)!;
         expect(leadingLink.getLinkRef()).toEqual(trailingLink.getLinkRef());
         expect(leadingLink.getNoteId()).toBe('note2');
       });
@@ -648,7 +646,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     it('splits after a link when following text remains', meta({ fixture: 'tree' }), async ({ remdo }) => {
       await remdo.mutate(() => {
-        const note = $findNoteById('note1')!;
+        const note = $getNoteByText('note1');
         note.clear();
         const link = $createLinkNode('https://example.com/');
         link.append($createTextNode('link'));
@@ -657,7 +655,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await placeCaretAtNote(remdo, { id: 'note1' }, 0);
       await remdo.mutate(() => {
         const selection = $getSelection() as ReturnType<typeof $createRangeSelection>;
-        const link = $findNoteById('note1')!.getChildren().find($isLinkNode)!;
+        const link = $getNoteById('note1').getChildren().find($isLinkNode)!;
         const linkText = link.getChildren().filter($isTextNode)[0]!;
         selection.setTextNodeRange(linkText, 4, linkText, 4);
       });
@@ -671,7 +669,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       ]);
       expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
       remdo.validate(() => {
-        const link = $findNoteById('note1')!.getChildren().find($isLinkNode)!;
+        const link = $getNoteById('note1').getChildren().find($isLinkNode)!;
         expect(link.getURL()).toBe('https://example.com/');
       });
     });
@@ -680,7 +678,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await placeCaretAtNote(remdo, { id: 'note1' }, 0);
       await remdo.mutate(() => {
         const selection = $getSelection() as ReturnType<typeof $createRangeSelection>;
-        const link = $findNoteById('note1')!.getChildren().find($isNoteLinkNode)!;
+        const link = $getNoteById('note1').getChildren().find($isNoteLinkNode)!;
         const linkText = link.getChildren().filter($isTextNode)[0]!;
         selection.setTextNodeRange(linkText, 2, linkText, 5);
       });

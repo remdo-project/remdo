@@ -1,8 +1,7 @@
+import { $getNoteByText, meta } from '#tests';
 import { $createTextNode, $getNodeByKey, $isTextNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
-import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { meta } from '#tests';
 import { $openTriggerSession, $resolvePinnedSession } from './session';
 
 // Pinned-session resolution (docs/specs/outliner/popups.md): an open session is
@@ -15,7 +14,7 @@ describe('trigger session resolution', () => {
   it('re-resolves an open session against its pinned span while the caret stays in it', meta({ fixture: 'flat' }), async ({ remdo }) => {
     let result: unknown;
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear();
       const node = $createTextNode('@ali');
       note.append(node);
@@ -31,7 +30,7 @@ describe('trigger session resolution', () => {
   it('closes an open session instead of retargeting onto an earlier trigger', meta({ fixture: 'flat' }), async ({ remdo }) => {
     let result: unknown;
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear();
       const node = $createTextNode('@old @new');
       note.append(node);
@@ -51,7 +50,7 @@ describe('trigger session resolution', () => {
     // latch onto an earlier trigger. Passing a stale key models the node-gone case.
     let result: unknown;
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear();
       note.append($createTextNode('@old @new'));
       const anchor = note.getFirstChild();
@@ -65,7 +64,7 @@ describe('trigger session resolution', () => {
   it('opens a fresh session by scanning to the just-typed trigger', meta({ fixture: 'flat' }), async ({ remdo }) => {
     let result: unknown;
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear();
       const node = $createTextNode('hi @');
       note.append(node);

@@ -1,3 +1,4 @@
+import { $getNoteById, $getNoteByText, createMountedLexicalEditor, getNoteKey, meta, placeCaretAtNote, selectNoteRange, typeText } from '#tests';
 /* eslint-disable ts/no-deprecated -- drives the undo-availability commands the open document observes, where the deprecation is tracked. */
 import { waitFor } from '@testing-library/react';
 import { $createListItemNode, $createListNode } from '@lexical/list';
@@ -14,7 +15,6 @@ import {
 } from 'lexical';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
-import { createMountedLexicalEditor, getNoteKey, meta, placeCaretAtNote, selectNoteRange, typeText } from '#tests';
 import { editorConfig } from '#client/editor/runtime/config';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 import { $addNoteBody } from '#client/editor/features/note-body/note-body-ops';
@@ -27,7 +27,6 @@ import {
   SET_NOTE_CHECKED_COMMAND,
   SET_NOTE_FOLD_COMMAND,
 } from '#client/editor/foundation/commands';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
 import { $resolveViewRoot, setViewRoot } from '#client/editor/outline/view-root';
 import { editorNodes } from '#client/editor/runtime/nodes';
@@ -238,7 +237,7 @@ describe('lexical open document', () => {
 
   it('reads parent references through body wrappers and returns the root for top-level notes', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      $addNoteBody($findNoteById('note1')!).append($createTextNode('Parent details'));
+      $addNoteBody($getNoteByText('note1')).append($createTextNode('Parent details'));
     });
     const { openDocument } = remdo;
     const parent = openDocument.noteRef('note2').getParent();
@@ -285,7 +284,7 @@ describe('lexical open document', () => {
     expect(note.getFolded()).toBe(false);
 
     await remdo.mutate(() => {
-      $addNoteBody($findNoteById('note2')!).append($createTextNode('details'));
+      $addNoteBody($getNoteByText('note2')).append($createTextNode('details'));
     });
     expect(note.getText()).toBe('note2');
     expect(note.getBody()).toBe('details');
@@ -348,7 +347,7 @@ describe('lexical open document', () => {
     expect(note.getChildListType()).toBe('number');
 
     expect(note.getFolded()).toBe(true);
-    expect(remdo.editor.read(() => $isNoteFolded($findNoteById('note2')!))).toBe(true);
+    expect(remdo.editor.read(() => $isNoteFolded($getNoteByText('note2')))).toBe(true);
   });
 
   it('publishes focus, fold, deletion, view, and eager history capability', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -393,7 +392,7 @@ describe('lexical open document', () => {
     await placeCaretAtNote(remdo, 'note5');
     runtime.openDocument.selection.toggleChecked();
     await waitFor(() => {
-      expect(remdo.editor.read(() => $getNoteChecked($findNoteById('note5')!))).toBe(true);
+      expect(remdo.editor.read(() => $getNoteChecked($getNoteByText('note5')))).toBe(true);
     });
 
     await runtime.openDocument.noteRef('note6').toggleFold();
@@ -459,7 +458,7 @@ describe('lexical open document', () => {
     await note.toggleFold();
 
     expect(note.getFolded()).toBe(true);
-    expect(remdo.editor.read(() => $isNoteFolded($findNoteById('note2')!))).toBe(true);
+    expect(remdo.editor.read(() => $isNoteFolded($getNoteByText('note2')))).toBe(true);
   });
 
   it('notifies an addressed-note subscriber only when that note changes', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -489,7 +488,7 @@ describe('lexical open document', () => {
 
     listener.mockClear();
     await remdo.mutate(() => {
-      $setNoteFolded($findNoteById('note2')!, true);
+      $setNoteFolded($getNoteById('note2'), true);
     });
     await waitFor(() => {
       expect(note.getFolded()).toBe(true);
@@ -498,7 +497,7 @@ describe('lexical open document', () => {
 
     listener.mockClear();
     await remdo.mutate(() => {
-      $addNoteBody($findNoteById('note2')!).append($createTextNode('details'));
+      $addNoteBody($getNoteById('note2')).append($createTextNode('details'));
     });
     await waitFor(() => {
       expect(note.getBody()).toBe('details');
@@ -1089,7 +1088,7 @@ describe('lexical open document', () => {
 
       await remdo.mutate(() => {
         $setSingleNoteDocument('blank', '');
-        $addNoteBody($findNoteById('blank')!).append($createTextNode('details'));
+        $addNoteBody($getNoteById('blank')).append($createTextNode('details'));
       });
       const [appended] = await remdo.openDocument.root.content.appendChildren([{ text: 'Appended' }]);
       expect(remdo.openDocument.root.content.getChildren().map((note) => note.getId())).toEqual(['blank', appended]);

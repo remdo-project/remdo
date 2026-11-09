@@ -1,7 +1,6 @@
+import { $getNoteById, $getNoteByText, meta } from '#tests';
 import { $createRangeSelection } from 'lexical';
 import { describe, expect, it } from 'vitest';
-import { meta } from '#tests';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { emptyLadder } from './rungs';
 import { $computeOutlineSelectionSnapshot } from './snapshot';
 
@@ -12,8 +11,8 @@ describe('selection snapshot handoff', () => {
   ] as const) {
     it(`accepts a replacement inline range in another note during a ${handoff} handoff`, meta({ fixture: 'flat' }), ({ remdo }) => {
       remdo.validate(() => {
-        const anchor = $findNoteById(anchorId)!;
-        const replacement = $findNoteById(replacementId)!.getAllTextNodes()[0]!;
+        const anchor = $getNoteById(anchorId);
+        const replacement = $getNoteById(replacementId).getAllTextNodes()[0]!;
         const selection = $createRangeSelection();
         selection.setTextNodeRange(replacement, 2, replacement, 4);
         const snapshot = $computeOutlineSelectionSnapshot({
@@ -36,9 +35,9 @@ describe('selection snapshot handoff', () => {
 
   it('preserves the ladder anchor when a whole-sibling range normalizes to its first note', meta({ fixture: 'flat' }), ({ remdo }) => {
     remdo.validate(() => {
-      const anchor = $findNoteById('note2')!;
-      const first = $findNoteById('note1')!.getAllTextNodes()[0]!;
-      const last = $findNoteById('note3')!.getAllTextNodes()[0]!;
+      const anchor = $getNoteByText('note2');
+      const first = $getNoteByText('note1').getAllTextNodes()[0]!;
+      const last = $getNoteByText('note3').getAllTextNodes()[0]!;
       const selection = $createRangeSelection();
       selection.setTextNodeRange(first, 0, last, 5);
       const snapshot = $computeOutlineSelectionSnapshot({

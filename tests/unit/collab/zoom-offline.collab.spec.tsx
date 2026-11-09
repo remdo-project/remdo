@@ -1,9 +1,8 @@
+import { $getNoteByText, getNoteElement, resetTestUserData } from '#tests';
 import { act, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { CollabSession } from '#collaboration/session';
 import { createDocumentPath } from '#document-routes';
-import { getNoteElement, resetTestUserData } from '#tests';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { renderZoomNavigation } from '../_support/zoom-navigation-harness';
 
 vi.mock('#client/app/user-data/user-data', async () => {
@@ -25,7 +24,7 @@ it('leaves zoom when its resolved root is deleted while disconnected', async () 
     await waitFor(() => expect(session.snapshot().synced).toBe(false));
 
     await act(async () => {
-      api.editor.update(() => $findNoteById('note7')!.remove(), { discrete: true });
+      api.editor.update(() => $getNoteByText('note7').remove(), { discrete: true });
     });
 
     await waitFor(() => expect(router.state.location.pathname).toBe(createDocumentPath(docId)));

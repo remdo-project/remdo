@@ -1,9 +1,4 @@
-import { describe, expect, it } from 'vitest';
-import { act } from '@testing-library/react';
-import { $createListItemNode, $createListNode } from '@lexical/list';
-import { REDO_COMMAND, UNDO_COMMAND, $createTextNode, $getRoot, $getSelection, $isTextNode, $setState  } from 'lexical';
-import { $normalizeOutlineRoot } from '#client/editor/outline/normalization';
-import {
+import { $getNoteByText,
   collapseDomSelectionAtNode,
   copySelection,
   copySelectionClipboardData,
@@ -18,10 +13,13 @@ import {
   selectEntireNote,
   selectStructuralNotes,
   typeText,
-  meta,
-} from '#tests';
+  meta } from '#tests';
+import { describe, expect, it } from 'vitest';
+import { act } from '@testing-library/react';
+import { $createListItemNode, $createListNode } from '@lexical/list';
+import { REDO_COMMAND, UNDO_COMMAND, $createTextNode, $getRoot, $getSelection, $isTextNode, $setState  } from 'lexical';
+import { $normalizeOutlineRoot } from '#client/editor/outline/normalization';
 import type { RemdoTestApi } from '#client/editor/dev';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getBodyWrapper } from '#client/editor/outline/list-structure';
 import { getSubtreeTail } from '#client/editor/outline/selection/tree';
 import { $createBodyWrapper, $isNoteBodyNode, isBodyWrapper } from '#client/editor/outline/note-body-node';
@@ -204,7 +202,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await typeText(remdo, 'keepme');
 
     await remdo.mutate(() => {
-      const note = $findNoteById('note2')!;
+      const note = $getNoteByText('note2');
       for (const child of note.getChildren()) {
         if ($isTextNode(child)) {
           child.remove();
@@ -229,7 +227,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
 
     // Caret at the very start of the body, then Backspace.
     await remdo.mutate(() => {
-      getNoteBody($findNoteById('note1')!)!.selectStart();
+      getNoteBody($getNoteByText('note1'))!.selectStart();
     });
     await pressKey(remdo, { key: 'Backspace' });
 
@@ -254,7 +252,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     const clipboardPayload = await copySelection(remdo);
 
     await remdo.mutate(() => {
-      getNoteBody($findNoteById('note1')!)!.selectEnd();
+      getNoteBody($getNoteByText('note1'))!.selectEnd();
     });
     await pastePayload(remdo, clipboardPayload);
 
@@ -310,7 +308,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await typeText(remdo, 'cbody');
 
     const tail = remdo.validate(() => {
-      const note2 = $findNoteById('note2')!;
+      const note2 = $getNoteByText('note2');
       const tailItem = getSubtreeTail(note2);
       return { isBody: getBodyWrapper(tailItem) !== null, isWrapper: isBodyWrapper(tailItem), text: tailItem.getTextContent() };
     });
@@ -336,7 +334,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     });
 
     const wrapperHasNoId = remdo.validate(() => {
-      const wrapper = getBodyWrapper($findNoteById('note1')!)!;
+      const wrapper = getBodyWrapper($getNoteByText('note1'))!;
       return $getNoteId(wrapper) === null;
     });
     expect(wrapperHasNoId).toBe(true);
@@ -481,7 +479,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     // so the at-most-one-body invariant holds and the second body is not orphaned.
     await act(async () => {
       remdo.editor.update(() => {
-        const firstWrapper = getBodyWrapper($findNoteById('note1')!)!;
+        const firstWrapper = getBodyWrapper($getNoteByText('note1'))!;
         const second = $createBodyWrapper();
         const body = second.getFirstChild();
         if ($isNoteBodyNode(body)) {
@@ -512,7 +510,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     // to immediately after note2, keeping the body reachable.
     await act(async () => {
       remdo.editor.update(() => {
-        const note2 = $findNoteById('note2')!;
+        const note2 = $getNoteByText('note2');
         const bodyWrapper = getBodyWrapper(note2)!;
         const childrenWrapper = bodyWrapper.getNextSibling()!;
         childrenWrapper.insertAfter(bodyWrapper);
@@ -559,7 +557,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
 
     // Caret stays inside note2's body, then Tab.
     await remdo.mutate(() => {
-      getNoteBody($findNoteById('note2')!)!.selectEnd();
+      getNoteBody($getNoteByText('note2'))!.selectEnd();
     });
     await pressKey(remdo, { key: 'Tab' });
 
@@ -717,7 +715,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
 
     // Select a few characters inside the body (an inline, non-structural range).
     await remdo.mutate(() => {
-      getNoteBody($findNoteById('note1')!)!.select(0, 0);
+      getNoteBody($getNoteByText('note1'))!.select(0, 0);
     });
     const bodyTextNode = getNoteBodyTextNode(remdo, 'note1');
     await collapseDomSelectionAtNode(bodyTextNode, 0);
@@ -865,7 +863,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
     remdo.validate(() => {
       // No link was inserted: the literal @query text remains in the body.
-      const body = getNoteBody($findNoteById('note1')!)!;
+      const body = getNoteBody($getNoteByText('note1'))!;
       expect(body.getTextContent()).toContain('@note3');
     });
   });
@@ -991,7 +989,7 @@ describe('note body vertical navigation (docs/specs/outliner/body.md)', () => {
 
     let handled = false;
     await remdo.mutate(() => {
-      const boundaryRoot = $findNoteById('note1')!;
+      const boundaryRoot = $getNoteByText('note1');
       handled = $skipBodyForNav(remdo.editor, 'down', boundaryRoot);
     });
     expect(handled).toBe(true);

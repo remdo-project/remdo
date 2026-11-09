@@ -1,16 +1,15 @@
+import { $getNoteById, meta } from '#tests';
 /* eslint-disable node/no-process-env */
 import path from 'node:path';
 import { readFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import type { SerializedEditorState } from 'lexical';
 import type { TestContext } from 'vitest';
-import { meta } from '#tests';
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import type { Buffer } from 'node:buffer';
 import { $isNoteLinkNode } from '#client/editor/features/links/note-link-node';
 import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
 describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
@@ -89,7 +88,7 @@ describe('snapshot CLI', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     await waitFor(() => {
       remdo.validate(() => {
-        const note = $findNoteById('note1')!;
+        const note = $getNoteById('note1');
         const links = note.getChildren().filter($isNoteLinkNode);
         expect(links).toHaveLength(2);
         const runtimeSameDocLink = links[0]!;

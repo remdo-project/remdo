@@ -50,7 +50,7 @@ export function $getListItemByKeyOrThrow(key: string, label = key): ListItemNode
  */
 export type NoteRef = string | { id: string };
 
-function $findNote(note: NoteRef): ListItemNode {
+function $getNote(note: NoteRef): ListItemNode {
   const matches: ListItemNode[] = [];
   // A malformed root, as a schema-bypass fixture holds before normalization, has no notes to
   // find; the editor's own root helper would also report it as a runtime invariant.
@@ -96,6 +96,16 @@ function focusEditorRootElement(remdo: RemdoTestApi): void {
   }
 }
 
+/** The one note whose own text is `text`; throws when none or several match. */
+export function $getNoteByText(text: string): ListItemNode {
+  return $getNote(text);
+}
+
+/** The one note with this ID; throws when none or several match. */
+export function $getNoteById(id: string): ListItemNode {
+  return $getNote({ id });
+}
+
 export async function placeCaretAtNote(remdo: RemdoTestApi, note: NoteRef, offset = 0) {
   // Places a collapsed caret in the note, using text content when available.
   // Limitations: if the note has no text node, selection snaps to list item boundaries; selection may be promoted later by the app.
@@ -105,7 +115,7 @@ export async function placeCaretAtNote(remdo: RemdoTestApi, note: NoteRef, offse
 
   let noteId = '';
   await remdo.mutate(() => {
-    const item = $findNote(note);
+    const item = $getNote(note);
     noteId = $getNoteIdOrThrow(item);
     placeCaretAtListItem(item, offset);
   });
@@ -130,7 +140,7 @@ export async function placeCaretAtNoteTextNode(
 
   let noteId = '';
   await remdo.mutate(() => {
-    const item = $findNote(note);
+    const item = $getNote(note);
     noteId = $getNoteIdOrThrow(item);
     const textNodes = item.getChildren().filter($isTextNode);
     const target = textNodes[textNodeIndex]!;
@@ -151,7 +161,7 @@ export async function placeCaretAtNoteTextNode(
 }
 
 export function getNoteKey(remdo: RemdoTestApi, note: NoteRef): string {
-  return remdo.validate(() => $findNote(note).getKey());
+  return remdo.validate(() => $getNote(note).getKey());
 }
 
 export function isSameNote(remdo: RemdoTestApi, a: NoteRef, b: NoteRef): boolean {
@@ -159,14 +169,14 @@ export function isSameNote(remdo: RemdoTestApi, a: NoteRef, b: NoteRef): boolean
 }
 
 export function getNoteIdOf(remdo: RemdoTestApi, note: NoteRef): string {
-  return remdo.validate(() => $getNoteIdOrThrow($findNote(note)));
+  return remdo.validate(() => $getNoteIdOrThrow($getNote(note)));
 }
 
 // Test-only helper for precise fixture setup. This bypasses recursive checklist
 // command semantics and writes per-note storage state directly.
 export async function setRawNoteCheckedState(remdo: RemdoTestApi, note: NoteRef, checked: boolean) {
   await remdo.mutate(() => {
-    $setNoteCheckedRaw($findNote(note), checked);
+    $setNoteCheckedRaw($getNote(note), checked);
   });
 }
 
@@ -218,7 +228,7 @@ export async function selectAcrossNoteTextNodes(
   await placeCaretAtNote(remdo, note);
 
   await remdo.mutate(() => {
-    const textNodes = $findNote(note).getChildren().filter($isTextNode);
+    const textNodes = $getNote(note).getChildren().filter($isTextNode);
     const selection = $getSelection();
     expect($isRangeSelection(selection)).toBe(true);
 
@@ -312,8 +322,8 @@ export async function selectNoteRange(
   focusEditorRootElement(remdo);
 
   await remdo.mutate(() => {
-    const startItem = $findNote(start);
-    const endItem = $findNote(end);
+    const startItem = $getNote(start);
+    const endItem = $getNote(end);
     const startTextNode = findContentTextNode(startItem);
     const endTextNode = findContentTextNode(endItem);
 

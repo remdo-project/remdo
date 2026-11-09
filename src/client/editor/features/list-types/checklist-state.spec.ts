@@ -1,3 +1,4 @@
+import { $getNoteById, $getNoteByText, getNoteElement, meta, placeCaretAtNote, selectNoteRange, setRawNoteCheckedState } from '#tests';
 import type { ListNode } from '@lexical/list';
 import { $isListItemNode } from '@lexical/list';
 import { $createTextNode, $getRoot } from 'lexical';
@@ -9,17 +10,15 @@ import { $addNoteBody } from '#client/editor/features/note-body/note-body-ops';
 import { SET_NOTE_CHECKED_COMMAND } from '#client/editor/foundation/commands';
 import { isContentItem } from '#client/editor/outline/list-structure';
 import { getWrapperForContent } from '#client/editor/outline/selection/tree';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { getNoteElement, meta, placeCaretAtNote, selectNoteRange, setRawNoteCheckedState } from '#tests';
 
 const checkedStates = (remdo: RemdoTestApi, ...noteIds: string[]) =>
-  remdo.editor.getEditorState().read(() => noteIds.map((id) => $getNoteChecked($findNoteById(id)!)));
+  remdo.editor.getEditorState().read(() => noteIds.map((id) => $getNoteChecked($getNoteById(id))));
 
 it('stores checked state on bullet list items', meta({ fixture: 'flat' }), async ({ remdo }) => {
   await setRawNoteCheckedState(remdo, 'note1', true);
 
   const checked = remdo.editor.getEditorState().read(() => {
-    const item = $findNoteById('note1')!;
+    const item = $getNoteByText('note1');
     return $getNoteChecked(item);
   });
 
@@ -38,7 +37,7 @@ it('restores checked state when list type toggles', meta({ fixture: 'flat' }), a
   });
 
   const checkedInChecklist = remdo.editor.getEditorState().read(() => {
-    const item = $findNoteById('note1')!;
+    const item = $getNoteByText('note1');
     return item.getChecked();
   });
   expect(checkedInChecklist).toBe(true);
@@ -49,7 +48,7 @@ it('restores checked state when list type toggles', meta({ fixture: 'flat' }), a
   });
 
   const storedInBullet = remdo.editor.getEditorState().read(() => {
-    const item = $findNoteById('note1')!;
+    const item = $getNoteByText('note1');
     return $getNoteChecked(item);
   });
   expect(storedInBullet).toBe(true);
@@ -60,7 +59,7 @@ it('restores checked state when list type toggles', meta({ fixture: 'flat' }), a
   });
 
   const checkedAgain = remdo.editor.getEditorState().read(() => {
-    const item = $findNoteById('note1')!;
+    const item = $getNoteByText('note1');
     return item.getChecked();
   });
   expect(checkedAgain).toBe(true);
@@ -71,7 +70,7 @@ it('toggles checked state for the caret note on non-checklist lists', meta({ fix
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
 
   const checked = remdo.editor.getEditorState().read(() => {
-    const item = $findNoteById('note1')!;
+    const item = $getNoteByText('note1');
     return $getNoteChecked(item);
   });
   expect(checked).toBe(true);
@@ -79,7 +78,7 @@ it('toggles checked state for the caret note on non-checklist lists', meta({ fix
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
 
   const unchecked = remdo.editor.getEditorState().read(() => {
-    const item = $findNoteById('note1')!;
+    const item = $getNoteByText('note1');
     return $getNoteChecked(item);
   });
   expect(unchecked).toBe(undefined);
@@ -94,9 +93,9 @@ it('toggles checked state recursively for the caret note subtree', meta({ fixtur
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
 
   const afterCheckedToggle = remdo.editor.getEditorState().read(() => {
-    const note2 = $findNoteById('note2')!;
-    const note3 = $findNoteById('note3')!;
-    const note4 = $findNoteById('note4')!;
+    const note2 = $getNoteByText('note2');
+    const note3 = $getNoteByText('note3');
+    const note4 = $getNoteByText('note4');
     return [$getNoteChecked(note2), $getNoteChecked(note3), $getNoteChecked(note4)];
   });
   expect(afterCheckedToggle).toEqual([undefined, undefined, undefined]);
@@ -104,9 +103,9 @@ it('toggles checked state recursively for the caret note subtree', meta({ fixtur
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
 
   const afterUncheckedToggle = remdo.editor.getEditorState().read(() => {
-    const note2 = $findNoteById('note2')!;
-    const note3 = $findNoteById('note3')!;
-    const note4 = $findNoteById('note4')!;
+    const note2 = $getNoteByText('note2');
+    const note3 = $getNoteByText('note3');
+    const note4 = $getNoteByText('note4');
     return [$getNoteChecked(note2), $getNoteChecked(note3), $getNoteChecked(note4)];
   });
   expect(afterUncheckedToggle).toEqual([true, true, undefined]);
@@ -120,7 +119,7 @@ it('excludes the location heading from selection toggling while its body still t
   expect(checkedStates(remdo, 'note2', 'note3')).toEqual([undefined, undefined]);
 
   await remdo.mutate(() => {
-    $addNoteBody($findNoteById('note2')!).append($createTextNode('details')).selectStart();
+    $addNoteBody($getNoteByText('note2')).append($createTextNode('details')).selectStart();
   });
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
   expect(checkedStates(remdo, 'note2', 'note3')).toEqual([true, true]);
@@ -213,13 +212,13 @@ it('keeps the open-work marking when a checked note also has a body', meta({ fix
   // sibling is the children-wrapper above, so resolving a wrapper for it would
   // target — and clear — that same element.
   const resolvedFromBodyWrapper = remdo.editor.getEditorState().read(() => {
-    const note = $findNoteById('n2')!;
+    const note = $getNoteById('n2');
     const bodyWrapper = note.getNextSibling();
     expect(isContentItem(bodyWrapper)).toBe(false);
     return $isListItemNode(bodyWrapper) ? getWrapperForContent(bodyWrapper)?.getKey() ?? null : null;
   });
   const childrenWrapperKey = remdo.editor.getEditorState().read(() =>
-    getWrapperForContent($findNoteById('n2')!)?.getKey() ?? null
+    getWrapperForContent($getNoteById('n2'))?.getKey() ?? null
   );
   expect(resolvedFromBodyWrapper).toBe(childrenWrapperKey);
 });
@@ -234,9 +233,9 @@ it('applies one target state to every note in the range when toggling', meta({ f
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
 
   const afterMixedToggle = remdo.editor.getEditorState().read(() => {
-    const note2 = $findNoteById('note2')!;
-    const note3 = $findNoteById('note3')!;
-    const note4 = $findNoteById('note4')!;
+    const note2 = $getNoteByText('note2');
+    const note3 = $getNoteByText('note3');
+    const note4 = $getNoteByText('note4');
     return [$getNoteChecked(note2), $getNoteChecked(note3), $getNoteChecked(note4)];
   });
   expect(afterMixedToggle).toEqual([true, true, true]);
@@ -246,9 +245,9 @@ it('applies one target state to every note in the range when toggling', meta({ f
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle' });
 
   const afterAllCheckedToggle = remdo.editor.getEditorState().read(() => {
-    const note2 = $findNoteById('note2')!;
-    const note3 = $findNoteById('note3')!;
-    const note4 = $findNoteById('note4')!;
+    const note2 = $getNoteByText('note2');
+    const note3 = $getNoteByText('note3');
+    const note4 = $getNoteByText('note4');
     return [$getNoteChecked(note2), $getNoteChecked(note3), $getNoteChecked(note4)];
   });
   expect(afterAllCheckedToggle).toEqual([undefined, undefined, undefined]);
@@ -256,7 +255,7 @@ it('applies one target state to every note in the range when toggling', meta({ f
 
 it('targets the selected range when the payload note is inside it', meta({ fixture: 'flat' }), async ({ remdo }) => {
   await selectNoteRange(remdo, 'note1', 'note2');
-  const note2Key = remdo.editor.getEditorState().read(() => $findNoteById('note2')!.getKey());
+  const note2Key = remdo.editor.getEditorState().read(() => $getNoteByText('note2').getKey());
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteItemKey: note2Key });
 
   expect(checkedStates(remdo, 'note1', 'note2', 'note3')).toEqual([true, true, undefined]);
@@ -269,7 +268,7 @@ it('targets the selected range when the payload note is inside it', meta({ fixtu
 it('targets the whole range when the payload note is a selected descendant', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
   await setRawNoteCheckedState(remdo, 'note3', true);
   await selectNoteRange(remdo, 'note2', 'note4');
-  const note3Key = remdo.editor.getEditorState().read(() => $findNoteById('note3')!.getKey());
+  const note3Key = remdo.editor.getEditorState().read(() => $getNoteByText('note3').getKey());
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteItemKey: note3Key });
 
   expect(checkedStates(remdo, 'note1', 'note2', 'note3', 'note4', 'note5')).toEqual([
@@ -279,7 +278,7 @@ it('targets the whole range when the payload note is a selected descendant', met
 
 it('targets only the payload subtree when it is outside the selected range', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
   await selectNoteRange(remdo, 'note2', 'note4');
-  const note6Key = remdo.editor.getEditorState().read(() => $findNoteById('note6')!.getKey());
+  const note6Key = remdo.editor.getEditorState().read(() => $getNoteByText('note6').getKey());
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'toggle', noteItemKey: note6Key });
 
   expect(checkedStates(remdo, 'note2', 'note3', 'note4', 'note6', 'note7')).toEqual([
@@ -295,8 +294,8 @@ it('sets checked state explicitly for selected notes', meta({ fixture: 'flat' })
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'unchecked' });
 
   const afterUnchecked = remdo.editor.getEditorState().read(() => {
-    const note1 = $findNoteById('note1')!;
-    const note2 = $findNoteById('note2')!;
+    const note1 = $getNoteByText('note1');
+    const note2 = $getNoteByText('note2');
     return [$getNoteChecked(note1), $getNoteChecked(note2)];
   });
   expect(afterUnchecked).toEqual([undefined, undefined]);
@@ -306,8 +305,8 @@ it('sets checked state explicitly for selected notes', meta({ fixture: 'flat' })
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'checked' });
 
   const afterChecked = remdo.editor.getEditorState().read(() => {
-    const note1 = $findNoteById('note1')!;
-    const note2 = $findNoteById('note2')!;
+    const note1 = $getNoteByText('note1');
+    const note2 = $getNoteByText('note2');
     return [$getNoteChecked(note1), $getNoteChecked(note2)];
   });
   expect(afterChecked).toEqual([true, true]);
@@ -323,9 +322,9 @@ it('sets checked state recursively for every note in the range', meta({ fixture:
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'unchecked' });
 
   const afterUnchecked = remdo.editor.getEditorState().read(() => {
-    const note2 = $findNoteById('note2')!;
-    const note3 = $findNoteById('note3')!;
-    const note4 = $findNoteById('note4')!;
+    const note2 = $getNoteByText('note2');
+    const note3 = $getNoteByText('note3');
+    const note4 = $getNoteByText('note4');
     return [$getNoteChecked(note2), $getNoteChecked(note3), $getNoteChecked(note4)];
   });
   expect(afterUnchecked).toEqual([undefined, undefined, undefined]);
@@ -335,9 +334,9 @@ it('sets checked state recursively for every note in the range', meta({ fixture:
   await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, { state: 'checked' });
 
   const afterChecked = remdo.editor.getEditorState().read(() => {
-    const note2 = $findNoteById('note2')!;
-    const note3 = $findNoteById('note3')!;
-    const note4 = $findNoteById('note4')!;
+    const note2 = $getNoteByText('note2');
+    const note3 = $getNoteByText('note3');
+    const note4 = $getNoteByText('note4');
     return [$getNoteChecked(note2), $getNoteChecked(note3), $getNoteChecked(note4)];
   });
   expect(afterChecked).toEqual([true, true, true]);

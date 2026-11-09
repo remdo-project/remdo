@@ -1,9 +1,8 @@
+import { $getNoteById, $getNoteByText, meta } from '#tests';
 import { $createTextNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { $createNoteLinkNode, $isNoteLinkNode, NoteLinkNode } from '#client/editor/features/links/note-link-node';
-import { meta } from '#tests';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 
 describe('note link node (NoteLinkNode)', () => {
   it(
@@ -15,7 +14,7 @@ describe('note link node (NoteLinkNode)', () => {
       let crossDocUrl = '';
 
       await remdo.mutate(() => {
-        const note = $findNoteById('note1')!;
+        const note = $getNoteByText('note1');
         note.clear();
         const sameDoc = $createNoteLinkNode({ docId: currentDocId, noteId: 'note2' }, {});
         sameDoc.append($createTextNode('same-doc'));
@@ -29,7 +28,7 @@ describe('note link node (NoteLinkNode)', () => {
       });
 
       remdo.validate(() => {
-        const note = $findNoteById('note1')!;
+        const note = $getNoteById('note1');
         const links = note.getChildren().filter($isNoteLinkNode);
         const sameDoc = links[0]!;
         const crossDoc = links[1]!;

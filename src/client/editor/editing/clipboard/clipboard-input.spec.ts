@@ -1,11 +1,9 @@
+import { $getNoteById, $getNoteByText,
+  copySelection, createDataTransfer, meta, pastePayload, placeCaretAtNote, pressKey,
+  readCaretNoteId, readOutline, selectEntireNote, selectStructuralNotes, typeText } from '#tests';
 import { describe, expect, it } from 'vitest';
 import { $getRoot, $getSelection, $isRangeSelection, $isTextNode, PASTE_COMMAND } from 'lexical';
-import {
-  copySelection, createDataTransfer, meta, pastePayload, placeCaretAtNote, pressKey,
-  readCaretNoteId, readOutline, selectEntireNote, selectStructuralNotes, typeText,
-} from '#tests';
 import type { RemdoTestApi } from '#client/editor/dev';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getNoteBody } from '#client/editor/outline/selection/body-region';
 import { $isNoteLinkNode } from '#client/editor/features/links/note-link-node';
 
@@ -22,7 +20,7 @@ describe('rich clipboard input', () => {
     const url = new URL(`/n/${remdo.getCollabDocId()}_note2`, globalThis.location.href).toString();
     await pasteHtml(remdo, `<a href="${url}">${url}</a>`, url);
     remdo.validate(() => {
-      const link = $findNoteById('note1')!.getChildren().find($isNoteLinkNode)!;
+      const link = $getNoteById('note1').getChildren().find($isNoteLinkNode)!;
       expect(link.getDocId()).toBe(remdo.getCollabDocId());
       expect(link.getNoteId()).toBe('note2');
       expect(link.getTextContent()).toBe('note2');
@@ -50,7 +48,7 @@ describe('rich clipboard input', () => {
     await selectEntireNote(remdo, 'note2');
     await pasteHtml(remdo, '<p><code>Alpha<br>Beta</code></p>', 'Alpha\nBeta');
     remdo.validate(() => {
-      const note = $findNoteById('note2')!;
+      const note = $getNoteById('note2');
       expect(note.getTextContent()).toBe('Alpha Beta');
       expect(note.getAllTextNodes().every(node => node.hasFormat('code'))).toBe(true);
     });
@@ -99,7 +97,7 @@ describe('rich clipboard input', () => {
       ] },
     ]);
     remdo.validate(() => {
-      expect($findNoteById('note2')!.getChildren().filter($isTextNode)[0]!.hasFormat('bold')).toBe(true);
+      expect($getNoteById('note2').getChildren().filter($isTextNode)[0]!.hasFormat('bold')).toBe(true);
     });
     expect(remdo.editor.getRootElement()!.querySelector('a')!.getAttribute('href')).toBe('https://example.com');
     expect(readCaretNoteId(remdo)).toBe(readOutline(remdo)[1]!.children![0]!.noteId);
@@ -217,7 +215,7 @@ describe('rich clipboard input', () => {
       { noteId: 'note3', text: 'note3' },
     ]);
     remdo.validate(() => {
-      const body = getNoteBody($findNoteById('note2')!)!;
+      const body = getNoteBody($getNoteByText('note2'))!;
       expect(remdo.editor.getElementByKey(body.getKey())!.querySelector('ul, ol, li')).toBeNull();
     });
   });

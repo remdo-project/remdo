@@ -1,9 +1,4 @@
-import { act, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import { $getNodeByKey, $getSelection, $isRangeSelection, $isTextNode, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
-
-import type { RemdoTestApi } from '#client/editor/dev';
-import {
+import { $getNoteByText,
   findNearestListItem,
   getNoteKey,
   placeCaretAtNote,
@@ -14,9 +9,12 @@ import {
   readOutline,
   selectNoteRange,
   typeText,
-  meta,
-} from '#tests';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
+  meta } from '#tests';
+import { act, waitFor } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { $getNodeByKey, $getSelection, $isRangeSelection, $isTextNode, REDO_COMMAND, UNDO_COMMAND } from 'lexical';
+
+import type { RemdoTestApi } from '#client/editor/dev';
 import { DELETE_SELECTED_NOTES_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import { $canDeleteFocusedOrSelectedNotes } from '#client/editor/outline/selection/delete-selection';
 import { $setNoteFolded } from '#client/editor/outline/fold-state';
@@ -124,7 +122,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
 
     it('delete at the end of an empty zoom root at document end is a no-op', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note3' } }), async ({ remdo }) => {
       await remdo.mutate(() => {
-        const note3 = $findNoteById('note3')!;
+        const note3 = $getNoteByText('note3');
         const textNode = note3.getFirstChild();
         if (!$isTextNode(textNode)) {
           throw new TypeError('Expected note3 to contain a text node');
@@ -157,7 +155,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       const transferredChildId = readCaretNoteId(remdo);
       await pressKey(remdo, { key: 'Tab' });
       await remdo.mutate(() => {
-        $setNoteFolded($findNoteById('note2')!, true);
+        $setNoteFolded($getNoteByText('note2'), true);
       });
 
       await placeCaretAtNote(remdo, 'note3', 0);

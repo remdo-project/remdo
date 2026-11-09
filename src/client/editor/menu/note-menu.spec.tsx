@@ -1,10 +1,9 @@
+import { $getNoteByText, getNoteElement, getNoteKey, meta, placeCaretAtNote } from '#tests';
 import { fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { OPEN_NOTE_MENU_COMMAND } from '#client/editor/foundation/commands';
 import { handleNoteMenuShortcut } from '#client/editor/menu/note-menu-shortcuts';
-import { getNoteElement, getNoteKey, meta, placeCaretAtNote } from '#tests';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 
 const createShortcutEvent = (key: string) => ({
   key,
@@ -80,7 +79,7 @@ describe('quick action menu (docs/specs/outliner/menu.md)', () => {
     await remdo.dispatchCommand(OPEN_NOTE_MENU_COMMAND, { noteItemKey: getNoteKey(remdo, 'note3') });
     await waitFor(() => expect(document.querySelector('[data-note-menu]')).not.toBeNull());
 
-    await remdo.mutate(() => $findNoteById('note3')!.remove());
+    await remdo.mutate(() => $getNoteByText('note3').remove());
 
     await waitFor(() => expect(document.querySelector('[data-note-menu]')).toBeNull());
   });
@@ -175,7 +174,7 @@ describe('quick action menu (docs/specs/outliner/menu.md)', () => {
       return element as HTMLElement;
     });
 
-    remdo.editor.update(() => $findNoteById('note3')!.remove(), { discrete: true });
+    remdo.editor.update(() => $getNoteByText('note3').remove(), { discrete: true });
     fireEvent.click(convert);
 
     await waitFor(() => expect(document.querySelector('[data-note-menu]')).toBeNull());

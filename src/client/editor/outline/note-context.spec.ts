@@ -1,3 +1,4 @@
+import { $getNoteByText, getNoteElement, getNoteTextNode, meta } from '#tests';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -6,13 +7,11 @@ import {
   $resolveNoteIdFromNode,
 } from '#client/editor/outline/note-context';
 import { resolveContentItemFromNode } from '#client/editor/outline/schema';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
-import { getNoteElement, getNoteTextNode, meta } from '#tests';
 
 describe('note context helpers', () => {
   it('resolves content note and noteId from lexical nodes', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const resolved = remdo.validate(() => {
-      const note = $findNoteById('note2')!;
+      const note = $getNoteByText('note2');
       const textNode = note.getFirstChild()!;
       return {
         noteKey: note.getKey(),
