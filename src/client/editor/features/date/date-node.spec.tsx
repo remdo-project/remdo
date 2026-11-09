@@ -350,6 +350,7 @@ describe('date nodes', () => {
     await placeCaretNextToDate(remdo, 'after');
 
     await pressKey(remdo, { key: 'ArrowLeft' });
+    expect(getDateElement()).toHaveAttribute('data-date-token-selected', 'true');
     expect(remdo).toMatchOutline(`
       - before <selection>Jun 10, 2026</selection> after
           - id:: note1
@@ -358,6 +359,7 @@ describe('date nodes', () => {
     `);
 
     await pressKey(remdo, { key: 'ArrowLeft' });
+    expect(getDateElement()).not.toHaveAttribute('data-date-token-selected');
     expect(remdo).toMatchOutline(`
       - before <selection />Jun 10, 2026 after
           - id:: note1

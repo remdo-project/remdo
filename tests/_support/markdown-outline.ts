@@ -126,9 +126,11 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       throw new Error('A note\'s text can\'t be a heading; an empty note right after its parent\'s line needs a blank line before it.');
     } else if (!STRUCTURE.has(token.type)) {
       throw new Error(`An outline holds only list items with plain text; found ${token.type}.`);
-    } else if (token.type === 'inline' && frame.note) {
+    } else if (token.type === 'inline') {
+      if (frames.length === 1) throw new Error('Every line of an outline is a list item; found text outside any note.');
       if (frame.textRead) throw new Error('A note holds one paragraph; Markdown expectations can\'t express bodies yet.');
       frame.textRead = true;
+      if (!frame.note) continue;
       const parsed = plainText(token.children ?? []);
       // CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
       const text = takeMarks(frame.checkbox ? parsed.replace(/^\[[ x]\] ?/, '') : parsed, frame.path, marks);
