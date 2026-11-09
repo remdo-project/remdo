@@ -32,7 +32,7 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
         await remdo.mutate(() => {
           $findNoteById('note2')!.clear().append($createTextNode(text));
         });
-        await selectNoteTextRange(remdo, 'note2', 0, end);
+        await selectNoteTextRange(remdo, { id: 'note2' }, 0, end);
         const copied = await copySelectionClipboardData(remdo);
         expect(copied.getData('text/plain')).toBe(text.slice(0, end));
         const html = document.createElement('div');

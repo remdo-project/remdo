@@ -37,10 +37,10 @@ describe('zoom plugin', () => {
 
   function expectVisibleNotes(remdo: RemdoTestApi, visibleNoteIds: string[], hiddenNoteIds: string[]) {
     for (const noteId of visibleNoteIds) {
-      expect(getNoteElement(remdo, noteId)).not.toHaveClass('zoom-hidden');
+      expect(getNoteElement(remdo, { id: noteId })).not.toHaveClass('zoom-hidden');
     }
     for (const noteId of hiddenNoteIds) {
-      expect(getNoteElement(remdo, noteId)).toHaveClass('zoom-hidden');
+      expect(getNoteElement(remdo, { id: noteId })).toHaveClass('zoom-hidden');
     }
   }
 

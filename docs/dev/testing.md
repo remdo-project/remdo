@@ -117,6 +117,11 @@ Tests may rely on their declared fixture shape. Do not add guards or assertions
 that only revalidate that setup; use a non-null assertion when TypeScript cannot
 infer that a fixture value exists.
 
+Editor fixtures are documents in the [RemDo text format](../format.md) and
+declare only the note IDs tests rely on. A test sets up any state the format
+doesn't hold from such a document, such as folding, whitespace at a note's
+edges, or a deliberately invalid editor schema.
+
 Account workflows reuse the [account fixture](../../tests/_support/account-fixture.ts), with ordinary owner and recipient
 accounts, known editor fixtures, and preset sharing. Each test gets an isolated
 copy and explicitly chooses which user signs in and which document opens. Use

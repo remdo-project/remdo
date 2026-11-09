@@ -1,11 +1,12 @@
 import type { RemdoTestApi } from '#client/editor/dev';
 import { getNoteKey } from './note';
+import type { NoteRef } from './note';
 
-export function getNoteElement(remdo: RemdoTestApi, noteId: string) {
-  const key = getNoteKey(remdo, noteId);
+export function getNoteElement(remdo: RemdoTestApi, note: NoteRef) {
+  const key = getNoteKey(remdo, note);
   const element = remdo.editor.getElementByKey(key);
   if (!element) {
-    throw new TypeError(`Expected element for noteId: ${noteId}`);
+    throw new TypeError(`Expected element for note: ${JSON.stringify(note)}`);
   }
   return element;
 }
@@ -21,15 +22,15 @@ function firstTextNodeIn(element: Element | null | undefined, label: string): Te
   return textNode;
 }
 
-export function getNoteTextNode(remdo: RemdoTestApi, noteId: string): Text {
-  const textElement = getNoteElement(remdo, noteId).querySelector('[data-lexical-text="true"]');
-  return firstTextNodeIn(textElement, `noteId: ${noteId}`);
+export function getNoteTextNode(remdo: RemdoTestApi, note: NoteRef): Text {
+  const textElement = getNoteElement(remdo, note).querySelector('[data-lexical-text="true"]');
+  return firstTextNodeIn(textElement, `note: ${JSON.stringify(note)}`);
 }
 
-// The first text node inside the body attached to `noteId`. The body lives in a
+// The first text node inside the body attached to `note`. The body lives in a
 // body-wrapper, the note element's next `li` sibling; its `.note-body` holds the
 // body text.
-export function getNoteBodyTextNode(remdo: RemdoTestApi, noteId: string): Text {
-  const bodyElement = getNoteElement(remdo, noteId).nextElementSibling?.querySelector('.note-body');
-  return firstTextNodeIn(bodyElement, `body of noteId: ${noteId}`);
+export function getNoteBodyTextNode(remdo: RemdoTestApi, note: NoteRef): Text {
+  const bodyElement = getNoteElement(remdo, note).nextElementSibling?.querySelector('.note-body');
+  return firstTextNodeIn(bodyElement, `body of note: ${JSON.stringify(note)}`);
 }

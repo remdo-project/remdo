@@ -1054,7 +1054,7 @@ describe('lexical open document', () => {
 
     it('replaces an empty document placeholder with appended top-level notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
       await remdo.mutate(() => $setSingleNoteDocument('blank', ''));
-      await placeCaretAtNote(remdo, 'blank');
+      await placeCaretAtNote(remdo, { id: 'blank' });
 
       const [first, second] = await remdo.openDocument.root.content.appendChildren([{ text: 'First' }, { text: 'Second' }]);
 

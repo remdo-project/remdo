@@ -2,7 +2,8 @@ import { act, waitFor } from '@testing-library/react';
 import { expect } from 'vitest';
 
 import type { RemdoTestApi } from '#client/editor/dev';
-import { placeCaretAtNote, selectNoteRange } from './note';
+import { getNoteIdOf, isSameNote, placeCaretAtNote, selectNoteRange } from './note';
+import type { NoteRef } from './note';
 import { stepSelectionLadder } from './keyboard';
 import { getNoteElement } from './dom-note';
 
@@ -35,9 +36,9 @@ export async function dragDomSelectionBetween(start: Node, startOffset: number, 
 // DOM list-item boundary selection for a pointer-created note range.
 // Limitations: requires sibling notes under the same list parent and can over-select
 // in nested lists due to DOM range semantics (use only when testing pointer paths).
-async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: string, endNoteId: string) {
-  const startElement = getNoteElement(remdo, startNoteId);
-  const endElement = getNoteElement(remdo, endNoteId);
+async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, start: NoteRef, end: NoteRef) {
+  const startElement = getNoteElement(remdo, start);
+  const endElement = getNoteElement(remdo, end);
   const parent = startElement.parentElement;
 
   if (!parent || parent !== endElement.parentElement) {
@@ -63,8 +64,8 @@ async function dragDomSelectionBetweenNotes(remdo: RemdoTestApi, startNoteId: st
   }, startElement);
 }
 
-export async function selectNoteSubtree(remdo: RemdoTestApi, noteId: string): Promise<void> {
-  await placeCaretAtNote(remdo, noteId, 0);
+export async function selectNoteSubtree(remdo: RemdoTestApi, note: NoteRef): Promise<void> {
+  await placeCaretAtNote(remdo, note, 0);
   await stepSelectionLadder(remdo, 'down');
   // An empty label skips the inline rung, so the first press is already structural.
   if (!remdo.editor.selection.isStructural()) await stepSelectionLadder(remdo, 'down');
@@ -76,18 +77,19 @@ export async function selectNoteSubtree(remdo: RemdoTestApi, noteId: string): Pr
 // simulate DOM pointer selection; use selectStructuralNotesByDomRange for that path.
 export async function selectStructuralNotes(
   remdo: RemdoTestApi,
-  startNoteId: string,
-  endNoteId: string = startNoteId
+  start: NoteRef,
+  end: NoteRef = start
 ): Promise<void> {
-  if (startNoteId === endNoteId) {
-    await selectNoteSubtree(remdo, startNoteId);
+  if (isSameNote(remdo, start, end)) {
+    await selectNoteSubtree(remdo, start);
+    const startId = getNoteIdOf(remdo, start);
     await waitFor(() => {
-      expect(remdo).toMatchSelection({ state: 'structural', notes: [startNoteId] });
+      expect(remdo).toMatchSelection({ state: 'structural', notes: [startId] });
     });
     return;
   }
 
-  await selectNoteRange(remdo, startNoteId, endNoteId);
+  await selectNoteRange(remdo, start, end);
   await waitFor(() => {
     expect(remdo.editor.selection.isStructural()).toBe(true);
   });
@@ -98,15 +100,15 @@ export async function selectStructuralNotes(
 // extra siblings in nested lists; assert the resulting selection explicitly.
 export async function selectStructuralNotesByDomRange(
   remdo: RemdoTestApi,
-  startNoteId: string,
-  endNoteId: string = startNoteId
+  start: NoteRef,
+  end: NoteRef = start
 ): Promise<void> {
-  if (startNoteId === endNoteId) {
-    await selectStructuralNotes(remdo, startNoteId);
+  if (isSameNote(remdo, start, end)) {
+    await selectStructuralNotes(remdo, start);
     return;
   }
 
-  await dragDomSelectionBetweenNotes(remdo, startNoteId, endNoteId);
+  await dragDomSelectionBetweenNotes(remdo, start, end);
 }
 
 // DOM range selection that avoids Selection.extend (e.g. touch-handle drags).
