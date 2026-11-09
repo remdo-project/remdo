@@ -58,7 +58,7 @@ describe('reading expected outlines from Markdown', () => {
     ['a thematic break', '- ***', /hr/u],
     ['an indented code block', '-     code', /code_block/u],
     ['inline HTML', '- a <b> c', /html_inline/u],
-    ['a list inside a quote', '> - note1', /blockquote_open|list marker/u],
+    ['a list inside a quote', '> - note1', /blockquote_open/u],
   ])('refuses %s instead of dropping it', (_case, source, message) => {
     expect(() => readMarkdownOutline(source)).toThrow(message);
   });

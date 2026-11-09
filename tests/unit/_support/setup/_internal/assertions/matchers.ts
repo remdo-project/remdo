@@ -272,7 +272,6 @@ function $pointInNote(point: PointType): NotePoint {
   return { note, offset: $textBefore(node, item) + within };
 }
 
-/** A selected inline token, such as a date, reads as a range over its label. */
 function $readTokenSelection(): SelectionDetail | null {
   const selection = $getSelection();
   if (!$isNodeSelection(selection)) return null;
@@ -290,8 +289,10 @@ function readSelectionDetail(remdo: RemdoTestHelpers): SelectionDetail {
   if (snapshot.state === 'structural' || snapshot.state === 'none') return snapshot;
   return remdo.validate(() => {
     const selection = $getSelection() as RangeSelection;
-    const [start, end] = (selection.isBackward() ? [selection.focus, selection.anchor] : [selection.anchor, selection.focus]).map($pointInNote);
-    return selection.isCollapsed() ? { state: 'caret', at: end! } : { state: 'inline', start: start!, end: end! };
+    const backward = selection.isBackward();
+    const start = $pointInNote(backward ? selection.focus : selection.anchor);
+    const end = $pointInNote(backward ? selection.anchor : selection.focus);
+    return selection.isCollapsed() ? { state: 'caret', at: end } : { state: 'inline', start, end };
   });
 }
 

@@ -106,8 +106,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
     if (token.type === 'list_item_open') {
       if (frames.length > 1 && !frame.note) throw new Error('An id:: line can\'t hold notes.');
       const line = token.map![0];
-      const marker = MARKER.exec(lines[line]!);
-      if (!marker) throw new Error(`A note's line must start with its list marker: ${lines[line]}`);
+      const marker = MARKER.exec(lines[line]!)!;
       const id = ID_NOTE.exec(lines[line]!.slice(marker[0].length).trim());
       if (id && frame.note) {
         if (frame.note.id !== undefined) throw new Error(`A note holds one id:: line; it already has ${frame.note.id}.`);
