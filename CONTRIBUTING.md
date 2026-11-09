@@ -91,8 +91,7 @@ dependencies.
 
 Non-major updates and lock file maintenance open as pull requests that the
 developer merges after review. Majors and held updates wait for approval on the
-Dependency Dashboard, and security updates open immediately. A hold exists only
-for an update that would otherwise open a pull request.
+Dependency Dashboard, and security updates open immediately.
 
 The developer triages dependency work with
 [`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md). Commits added
@@ -107,7 +106,8 @@ selected update proves its deferral obsolete or approval already defers it.
 
 The [dependency-patch registry](pnpm-workspace.yaml) inventories exact-version patches for upstream runtime
 defects. Each patch records its rationale and a focused regression that fails
-without the correction.
+without the correction. Renovate cannot regenerate a patch, so updates to a
+patched dependency are held for Dependency Dashboard approval.
 
 For an affected dependency update, retain the patch, regenerate it for the new
 exact version, or remove it when its focused regression passes without it. New

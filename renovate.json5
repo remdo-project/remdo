@@ -8,10 +8,9 @@
     "security:minimumReleaseAgeNpm",
     "security:minimumReleaseAgePypi",
     ":approveMajorUpdates",
+    ":rebaseStalePrs",
   ],
   "timezone": "Europe/Warsaw",
-  // Without automerge, Renovate rebases only conflicted branches, so a PR's CI would otherwise lag main.
-  "rebaseWhen": "behind-base-branch",
   // A rate limit would hold an update back without a PR to show for it.
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
