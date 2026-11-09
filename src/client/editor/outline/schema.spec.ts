@@ -1,19 +1,18 @@
+import { $getNoteByText, meta } from '#tests';
 import { describe, expect, it } from 'vitest';
 
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import {
   requireContentItem,
   requireContentItemFromNode,
   $requireContentItemNoteId,
   $requireRootContentList,
 } from '#client/editor/outline/schema';
-import { meta } from '#tests';
 
 describe('outline schema helpers', () => {
   it('resolve canonical runtime nodes without nullable fallbacks', meta({ fixture: 'flat' }), async ({ remdo }) => {
     const resolved = remdo.validate(() => {
       const rootList = $requireRootContentList();
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       const text = note.getFirstChild()!;
       const contentFromItem = requireContentItem(note);
       const contentFromNode = requireContentItemFromNode(text);

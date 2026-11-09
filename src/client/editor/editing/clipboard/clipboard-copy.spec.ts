@@ -1,12 +1,10 @@
+import { $getNoteById, $getNoteByText,
+  copySelectionClipboardData, createDataTransfer, meta, placeCaretAtNote, pressKey,
+  selectEntireNote, selectNoteTextRange, selectStructuralNotes, typeText } from '#tests';
 import { describe, expect, it } from 'vitest';
 import { $createLinkNode, $isLinkNode } from '@lexical/link';
 import { $createRangeSelection, $createTextNode, $getSelection, $isRangeSelection, $setSelection, PASTE_COMMAND } from 'lexical';
-import {
-  copySelectionClipboardData, createDataTransfer, meta, placeCaretAtNote, pressKey,
-  selectEntireNote, selectNoteTextRange, selectStructuralNotes, typeText,
-} from '#tests';
 import type { RemdoTestApi } from '#client/editor/dev';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $createNoteLinkNode, $isNoteLinkNode } from '#client/editor/features/links/note-link-node';
 
 async function pasteClipboard(remdo: RemdoTestApi, data: DataTransfer) {
@@ -30,7 +28,7 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
     ] as const) {
       it(`keeps ${JSON.stringify(text.slice(0, end))} inline through replacement and repeated ${flavor} paste`, meta({ fixture: 'flat' }), async ({ remdo }) => {
         await remdo.mutate(() => {
-          $findNoteById('note2')!.clear().append($createTextNode(text));
+          $getNoteByText('note2').clear().append($createTextNode(text));
         });
         await selectNoteTextRange(remdo, { id: 'note2' }, 0, end);
         const copied = await copySelectionClipboardData(remdo);
@@ -62,7 +60,7 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
     it(`preserves formatting, links and trailing whitespace through ${flavor} copy and repeated paste`, meta({ fixture: 'flat' }), async ({ remdo }) => {
       await placeCaretAtNote(remdo, 'note2');
       await remdo.mutate(() => {
-        $findNoteById('note2')!.clear().append(
+        $getNoteByText('note2').clear().append(
           $createTextNode('bold ').toggleFormat('bold'),
           $createTextNode('italic ').toggleFormat('italic'),
           $createTextNode('underlined ').toggleFormat('underline'),
@@ -73,7 +71,7 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
           $createNoteLinkNode({ docId: remdo.getCollabDocId(), noteId: 'note3' }).append($createTextNode('reference')),
           $createTextNode('  '),
         );
-        const texts = $findNoteById('note2')!.getAllTextNodes();
+        const texts = $getNoteById('note2').getAllTextNodes();
         const selection = $createRangeSelection();
         selection.setTextNodeRange(texts[0]!, 0, texts.at(-1)!, 2);
         $setSelection(selection);
@@ -92,7 +90,7 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
         ]);
         expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
         remdo.validate(() => {
-          const note = $findNoteById('note2')!;
+          const note = $getNoteById('note2');
           for (const [format, text] of [
             ['bold', 'bold '], ['italic', 'italic '], ['underline', 'underlined '],
             ['strikethrough', 'struck '], ['code', 'code '],
@@ -120,7 +118,7 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
       await placeCaretAtNote(remdo, 'note2');
       await remdo.mutate(() => {
         const text = $createTextNode('Example').toggleFormat('bold');
-        $findNoteById('note2')!.clear().append(
+        $getNoteByText('note2').clear().append(
           $createTextNode('before '), $createLinkNode('https://example.com/').append(text), $createTextNode(' after'),
         );
         const selection = $createRangeSelection();
@@ -141,7 +139,7 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
         ]);
         expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
         remdo.validate(() => {
-          const links = $findNoteById('note1')!.getChildren().filter($isLinkNode);
+          const links = $getNoteById('note1').getChildren().filter($isLinkNode);
           expect(links.map(link => link.getTextContent()).join('')).toBe(text);
           for (const link of links) {
             expect(link.getURL()).toBe('https://example.com/');

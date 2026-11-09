@@ -4,6 +4,8 @@ import type { RemdoTestApi } from '#client/editor/dev';
 import type { SerializedLexicalNode } from 'lexical';
 import { COPY_COMMAND, CUT_COMMAND, PASTE_COMMAND } from 'lexical';
 import { findSerializedNode, getSerializedNodeChildren } from './serialized';
+import { getNoteIdOf } from './note';
+import type { NoteRef } from './note';
 
 function getListNode(state: RemdoTestApi['getEditorState'] extends () => infer R ? R : never): SerializedListNode {
   const root = (state as { root?: { children?: unknown } }).root;
@@ -54,14 +56,9 @@ function findSerializedListItem(node: SerializedLexicalNode, noteId: string): Se
   ));
 }
 
-export function buildClipboardPayload(remdo: RemdoTestApi, noteIds: string[]) {
+export function buildClipboardPayload(remdo: RemdoTestApi, notes: NoteRef[]) {
   const listNode = getListNode(remdo.getEditorState()) as SerializedLexicalNode;
-  const selectedItems: SerializedNoteListItemNode[] = [];
-
-  for (const noteId of noteIds) {
-    const match = findSerializedListItem(listNode, noteId)!;
-    selectedItems.push(match);
-  }
+  const selectedItems = notes.map((note) => findSerializedListItem(listNode, getNoteIdOf(remdo, note))!);
 
   return {
     namespace: (remdo.editor as { _config?: { namespace?: string } })._config?.namespace ?? 'remdo',

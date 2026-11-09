@@ -29,20 +29,22 @@ export const datePickerWeekdays = (page: Page): Locator =>
 export const dateTokens = (page: Page): Locator =>
   editorLocator(page).locator('[data-date-node-key]');
 
+const exactly = (text: string) => new RegExp(`^${text.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)}$`);
+
 // The `:not(.list-nested-item)` guard excludes children-wrappers, so this matches
-// the note's own row rather than the wrapper that holds its subtree.
+// the note's own row rather than the wrapper that holds its subtree. Playwright's
+// strict mode fails an action when the text names several notes.
 export const noteRow = (page: Page, label: string): Locator =>
   editorLocator(page)
     .locator('li.list-item:not(.list-nested-item)')
-    .filter({ hasText: label })
-    .first();
+    .filter({ hasText: exactly(label) });
 
 export async function setCaretAtText(
   page: Page,
   label: string,
   offset: number | typeof Number.POSITIVE_INFINITY = 0
 ): Promise<void> {
-  const text = editorLocator(page).locator('[data-lexical-text="true"]').filter({ hasText: label }).first();
+  const text = editorLocator(page).locator('[data-lexical-text="true"]').filter({ hasText: label });
   const inputHandle = await text.evaluateHandle((el) => el.closest('.editor-input'));
   const input = inputHandle.asElement()!;
   await input.evaluate((el) => {
@@ -89,7 +91,7 @@ export async function selectInlineRange(page: Page, label: string, startOffset: 
     return;
   }
 
-  const text = editorLocator(page).locator('[data-lexical-text="true"]').filter({ hasText: label }).first();
+  const text = editorLocator(page).locator('[data-lexical-text="true"]').filter({ hasText: label });
   const inputHandle = await text.evaluateHandle((el) => el.closest('.editor-input'));
   const input = inputHandle.asElement()!;
   const expectedText = label.slice(start, end);

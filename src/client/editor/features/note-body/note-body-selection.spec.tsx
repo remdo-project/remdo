@@ -1,5 +1,4 @@
-import { describe, expect, it } from 'vitest';
-import {
+import { $getNoteByText,
   collapseDomSelectionAtNode,
   extendDomSelectionToNode,
   getNoteBodyTextNode,
@@ -7,10 +6,9 @@ import {
   placeCaretAtNote,
   pressKey,
   typeText,
-  meta,
-} from '#tests';
+  meta } from '#tests';
+import { describe, expect, it } from 'vitest';
 import type { RemdoTestApi } from '#client/editor/dev';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getBodyWrapper } from '#client/editor/outline/list-structure';
 
 // Selection contract for note bodies (docs/specs/outliner/body.md "Selection and
@@ -44,7 +42,7 @@ describe('note body selection contract (docs/specs/outliner/body.md)', () => {
 
     // The structural range's visual tail reaches note1's body-wrapper, so the
     // highlight covers the body that a structural delete would also remove.
-    const bodyWrapperKey = remdo.validate(() => getBodyWrapper($findNoteById('note1')!)!.getKey());
+    const bodyWrapperKey = remdo.validate(() => getBodyWrapper($getNoteByText('note1'))!.getKey());
     expect(remdo.editor.selection.get()?.range?.visualEndKey).toBe(bodyWrapperKey);
   });
 
@@ -91,7 +89,7 @@ describe('note body selection contract (docs/specs/outliner/body.md)', () => {
     await typeText(remdo, 'line three');
 
     const bodyElement = remdo.validate(() =>
-      getBodyWrapper($findNoteById('note1')!)!.getKey()
+      getBodyWrapper($getNoteByText('note1'))!.getKey()
     );
     const wrapperEl = remdo.editor.getElementByKey(bodyElement)!;
     const textNodes: Text[] = [];

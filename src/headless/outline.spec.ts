@@ -1,17 +1,16 @@
+import { $getNoteByText, meta } from '#tests';
 import { $createTextNode } from 'lexical';
 import { expect, it } from 'vitest';
 import { NoteUnavailableError } from '#note-sdk';
 import type { OpenDocumentNote } from '#note-sdk';
-import { meta } from '#tests';
 import { $addNoteBody } from '#client/editor/features/note-body/note-body-ops';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { renderOutline } from './outline';
 
 const url = (noteId: string) => `https://remdo.example/n/doc_${noteId}`;
 
 it('renders list types, checked state, bodies, and note links as nested Markdown', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
   await remdo.mutate(() => {
-    $addNoteBody($findNoteById('note3')!).append($createTextNode('- details'));
+    $addNoteBody($getNoteByText('note3')).append($createTextNode('- details'));
   });
   await remdo.updateNoteText('note5', 'see [ref]');
   await remdo.openDocument.noteRef('note3').toggleChecked();

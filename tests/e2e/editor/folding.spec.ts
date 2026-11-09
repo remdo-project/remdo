@@ -46,7 +46,7 @@ test.describe('Folding', () => {
 
     await setCaretAtText(page, 'note2', Number.POSITIVE_INFINITY);
     await page.keyboard.press('Shift+Enter');
-    await page.keyboard.type('note2 body');
+    await page.keyboard.type('its body');
 
     const listItem = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note2' }).first();
     const childItem = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note3' }).first();

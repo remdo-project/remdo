@@ -1,10 +1,9 @@
+import { $getNoteByText, getNoteKey, meta } from '#tests';
 import { $createListItemNode, $createListNode, ListItemNode, ListNode } from '@lexical/list';
 import { $createTextNode, $getRoot, $setState, createEditor } from 'lexical';
 import { describe, expect, it } from 'vitest';
-import { getNoteKey, meta } from '#tests';
 import { $addNoteBody } from '#client/editor/features/note-body/note-body-ops';
 import { SET_NOTE_CHECKED_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/foundation/commands';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { collectLexicalDocumentSearchResults } from './lexical-document-search';
 
@@ -81,7 +80,7 @@ describe('lexical document search', () => {
 
   it('keeps a body out of the note list while matching its text', meta({ fixture: 'basic' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      $addNoteBody($findNoteById('note1')!).append($createTextNode('body-only-token'));
+      $addNoteBody($getNoteByText('note1')).append($createTextNode('body-only-token'));
     });
 
     const { flatResults } = collectLexicalDocumentSearchResults(remdo.editor, ALL);
@@ -111,7 +110,7 @@ describe('lexical document search', () => {
     // own note, so it must not pull the whole subtree into the results the way
     // an ancestor label legitimately can.
     await remdo.mutate(() => {
-      $addNoteBody($findNoteById('note1')!).append($createTextNode('ancestoronly'));
+      $addNoteBody($getNoteByText('note1')).append($createTextNode('ancestoronly'));
     });
 
     expect(collectLexicalDocumentSearchResults(remdo.editor, { ...ALL, query: 'ancestoronly' })
@@ -121,7 +120,7 @@ describe('lexical document search', () => {
   it('matches one token on a body and another on an ancestor label', meta({ fixture: 'basic' }), async ({ remdo }) => {
     await remdo.updateNoteText('note1', 'Work');
     await remdo.mutate(() => {
-      $addNoteBody($findNoteById('note2')!).append($createTextNode('quarterly review'));
+      $addNoteBody($getNoteByText('note2')).append($createTextNode('quarterly review'));
     });
 
     // Path scoping is unchanged: 'work' comes from the ancestor label, while

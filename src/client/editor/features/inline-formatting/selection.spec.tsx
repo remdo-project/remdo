@@ -1,8 +1,7 @@
+import { $getNoteById, $getNoteByText, meta, placeCaretAtNote, pressKey, selectNoteTextRange, selectStructuralNotes, typeText } from '#tests';
 import { describe, expect, it } from 'vitest';
 import { $createRangeSelection, $createTextNode, $getSelection, $isRangeSelection, $setSelection } from 'lexical';
 import type { ElementNode } from 'lexical';
-import { meta, placeCaretAtNote, pressKey, selectNoteTextRange, selectStructuralNotes, typeText } from '#tests';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { getBodyWrapper } from '#client/editor/outline/list-structure';
 import { getWrapperForContent } from '#client/editor/outline/selection/tree';
 import { $createDateNode } from '#client/editor/features/date/date-node';
@@ -14,10 +13,10 @@ describe('inline formatting target', () => {
   it('formats selected text through the keymap without the floating presentation', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteTextRange(remdo, 'note1', 0, 4);
     await pressKey(remdo, { key: 'e', ctrl: true });
-    expect(remdo.validate(() => $findNoteById('note1')!.getAllTextNodes().map(node => ({ text: node.getTextContent(), code: node.hasFormat('code') }))))
+    expect(remdo.validate(() => $getNoteByText('note1').getAllTextNodes().map(node => ({ text: node.getTextContent(), code: node.hasFormat('code') }))))
       .toEqual([{ text: 'note', code: true }, { text: '1', code: false }]);
     await pressKey(remdo, { key: 'e', ctrl: true });
-    expect(remdo.validate(() => $findNoteById('note1')!.getAllTextNodes().map(node => ({ text: node.getTextContent(), code: node.hasFormat('code') }))))
+    expect(remdo.validate(() => $getNoteByText('note1').getAllTextNodes().map(node => ({ text: node.getTextContent(), code: node.hasFormat('code') }))))
       .toEqual([{ text: 'note1', code: false }]);
   });
 
@@ -26,7 +25,7 @@ describe('inline formatting target', () => {
     const fingerprint = remdo.validate(() => $readInlineFormatTarget(remdo.editor)!.fingerprint);
     await selectNoteTextRange(remdo, 'note2', 0, 4);
     await remdo.dispatchCommand(TOGGLE_INLINE_FORMAT_COMMAND, { format: 'code', fingerprint }, { expect: 'noop' });
-    expect(remdo.validate(() => ['note1', 'note2'].map(id => $findNoteById(id)!.getAllTextNodes().some(node => node.hasFormat('code')))))
+    expect(remdo.validate(() => ['note1', 'note2'].map(id => $getNoteById(id).getAllTextNodes().some(node => node.hasFormat('code')))))
       .toEqual([false, false]);
   });
 
@@ -45,7 +44,7 @@ describe('inline formatting target', () => {
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'body text');
     await remdo.mutate(() => {
-      const body = getBodyWrapper($findNoteById('note1')!)!.getFirstChild()! as ElementNode;
+      const body = getBodyWrapper($getNoteByText('note1'))!.getFirstChild()! as ElementNode;
       const text = body.getFirstChild()!;
       const selection = $createRangeSelection();
       selection.anchor.set(text.getKey(), 1, 'text');
@@ -57,7 +56,7 @@ describe('inline formatting target', () => {
     await remdo.mutate(() => {
       const selection = $getSelection();
       if (!$isRangeSelection(selection)) throw new Error('Expected body range');
-      selection.anchor.set($findNoteById('note1')!.getFirstChild()!.getKey(), 1, 'text');
+      selection.anchor.set($getNoteByText('note1').getFirstChild()!.getKey(), 1, 'text');
     });
     expect(remdo.validate(() => $readInlineFormatTarget(remdo.editor))).toBeNull();
   });
@@ -67,7 +66,7 @@ describe('inline formatting target', () => {
       const before = $createTextNode('plain ');
       const bold = $createTextNode('bold').toggleFormat('bold');
       const italic = $createTextNode('italic').toggleFormat('italic');
-      $findNoteById('note1')!.clear().append(before, bold, italic);
+      $getNoteByText('note1').clear().append(before, bold, italic);
       const selection = $createRangeSelection();
       selection.setTextNodeRange(italic, 0, before, 6);
       $setSelection(selection);
@@ -77,7 +76,7 @@ describe('inline formatting target', () => {
     await remdo.mutate(() => {
       const selection = $getSelection();
       if (!$isRangeSelection(selection)) throw new Error('Expected inline range');
-      selection.anchor.set($findNoteById('note1')!.getLastChild()!.getKey(), 6, 'text');
+      selection.anchor.set($getNoteById('note1').getLastChild()!.getKey(), 6, 'text');
     });
     expect(remdo.validate(() => $readInlineFormatTarget(remdo.editor)?.states))
       .toEqual({ bold: 'some', italic: 'some', underline: 'none', code: 'none' });
@@ -99,7 +98,7 @@ describe('inline formatting target', () => {
     await placeCaretAtNote(remdo, 'note1');
     let offered = true;
     await remdo.mutate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteByText('note1');
       note.clear().append($createDateNode('2026-10-08'));
       note.select(0, 1);
       offered = $readInlineFormatTarget(remdo.editor) !== null;
@@ -111,7 +110,7 @@ describe('inline formatting target', () => {
     await placeCaretAtNote(remdo, 'note1');
     let offered = true;
     await remdo.mutate(() => {
-      getWrapperForContent($findNoteById('note1')!)!.select(0, 1);
+      getWrapperForContent($getNoteByText('note1'))!.select(0, 1);
       offered = $readInlineFormatTarget(remdo.editor) !== null;
     });
     expect(offered).toBe(false);

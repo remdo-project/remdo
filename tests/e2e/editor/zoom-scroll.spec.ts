@@ -130,7 +130,7 @@ test('editing outside the zoom boundary does not change zoom or scroll state', a
   });
 
   await expect(page).toHaveURL(createEditorDocumentPathRegExp(docId, 'note1'));
-  await expect(note7).toBeHidden();
+  await expect(noteRow(page, 'note7!')).toBeHidden();
 
   const endScrollTop = await scrollContainer.evaluate((element) => element.scrollTop);
   expect(endScrollTop).toBe(0);
@@ -141,7 +141,7 @@ test('zoom-root split keeps zoom and keeps the caret visible', async ({ page, ed
 
   await editor.load('tree-complex');
 
-  const { note7, docId } = getCommonLocators(page, editor);
+  const { docId } = getCommonLocators(page, editor);
 
   const longText = Array.from(
     { length: 40 },
@@ -154,6 +154,7 @@ test('zoom-root split keeps zoom and keeps the caret visible', async ({ page, ed
     if (!api) throw new Error('remdo bridge is not available');
     await api.updateNoteText('note7', text);
   }, longText);
+  const note7 = noteRow(page, longText);
 
   await expect(note7).toContainText(longText);
   await page.evaluate((path) => {

@@ -1,13 +1,11 @@
-import { waitFor } from '@testing-library/react';
-import type { TextNode } from 'lexical';
-import { describe, expect, it } from 'vitest';
-import {
+import { $getNoteByText,
   getNoteElement,
   meta,
   placeCaretAtNote,
-  readCaretNoteId,
-} from '#tests';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
+  readCaretNoteId } from '#tests';
+import { waitFor } from '@testing-library/react';
+import type { TextNode } from 'lexical';
+import { describe, expect, it } from 'vitest';
 import { ZOOM_OUT_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import { $resolveViewRoot } from '#client/editor/outline/view-root';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
@@ -100,7 +98,7 @@ describe('zoom plugin', () => {
       await remdo.waitForSynced();
 
       await remdo.mutate(() => {
-        const note4 = $findNoteById('note4')!;
+        const note4 = $getNoteByText('note4');
         const textNode = note4.getFirstChild()!;
         (textNode as TextNode).setTextContent('note4!');
       });

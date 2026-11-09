@@ -1,6 +1,4 @@
-import { describe, expect, it } from 'vitest';
-import { $createLinkNode, $isLinkNode } from '@lexical/link';
-import {
+import { $getNoteById, $getNoteByText,
   createDataTransfer,
   buildClipboardPayload,
   copySelection,
@@ -14,8 +12,9 @@ import {
   readOutline,
   selectEntireNote,
   selectStructuralNotes,
-  typeText,
-} from '#tests';
+  typeText } from '#tests';
+import { describe, expect, it } from 'vitest';
+import { $createLinkNode, $isLinkNode } from '@lexical/link';
 import type { Outline, OutlineNode } from '#tests';
 import { flattenOutline } from '#tests-common/outline';
 import type { ListItemNode } from '@lexical/list';
@@ -27,7 +26,6 @@ import {
   $setSelection,
   PASTE_COMMAND,
 } from 'lexical';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { SET_NOTE_FOLD_COMMAND } from '#client/editor/foundation/commands';
 
 describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
@@ -76,7 +74,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
 
   it('pastes between a link boundary and following text', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await remdo.mutate(() => {
-      const note = $findNoteById('note2')!;
+      const note = $getNoteByText('note2');
       note.clear();
       const link = $createLinkNode('https://example.com/');
       link.append($createTextNode('link'));
@@ -84,7 +82,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     });
     await placeCaretAtNote(remdo, { id: 'note2' }, 0);
     await remdo.mutate(() => {
-      const link = $findNoteById('note2')!.getChildren().find($isLinkNode)!;
+      const link = $getNoteById('note2').getChildren().find($isLinkNode)!;
       const linkText = link.getChildren().filter($isTextNode)[0]!;
       const selection = $createRangeSelection();
       selection.setTextNodeRange(linkText, 4, linkText, 4);
@@ -102,7 +100,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
       { noteId: 'note3', text: 'note3' },
     ]);
     remdo.validate(() => {
-      const link = $findNoteById('note2')!.getChildren().find($isLinkNode)!;
+      const link = $getNoteById('note2').getChildren().find($isLinkNode)!;
       expect(link.getURL()).toBe('https://example.com/');
     });
 
@@ -359,7 +357,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await remdo.mutate(() => {
       const linkNode = $createLinkNode('https://example.com/');
       linkNode.append($createTextNode('Example'));
-      const note = $findNoteById('note2')!;
+      const note = $getNoteByText('note2');
       note.clear();
       note.append(linkNode);
     });
@@ -372,7 +370,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await pastePayload(remdo, payload);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       expect(note.getTextContent()).toBe('Example');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('Example');
@@ -387,7 +385,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
       const linkNode = $createLinkNode('https://example.com/');
       const linkText = $createTextNode('Example');
       linkNode.append(linkText);
-      const note = $findNoteById('note2')!;
+      const note = $getNoteByText('note2');
       note.clear();
       note.append(linkNode, $createTextNode(' tail'));
 
@@ -402,7 +400,7 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
     await pastePayload(remdo, payload);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       expect(note.getTextContent()).toBe('Example');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('Example');

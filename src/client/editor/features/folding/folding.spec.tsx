@@ -1,10 +1,9 @@
+import { $getNoteByText, getNoteElement, getNoteKey, meta, placeCaretAtNote, pressKey, readCaretNoteId } from '#tests';
 import { act, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { FOLD_VIEW_TO_LEVEL_COMMAND, SET_NOTE_FOLD_COMMAND } from '#client/editor/foundation/commands';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
-import { getNoteElement, getNoteKey, meta, placeCaretAtNote, pressKey, readCaretNoteId } from '#tests';
 
 describe('folding (docs/specs/outliner/folding.md)', () => {
   it('stores folded only when true', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -38,7 +37,7 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
     await remdo.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: noteKey });
 
     await remdo.mutate(() => {
-      const child = $findNoteById('note2')!;
+      const child = $getNoteByText('note2');
       removeNoteSubtree(child);
     });
 

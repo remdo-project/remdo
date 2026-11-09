@@ -1,12 +1,4 @@
-import { $createAutoLinkNode, $createLinkNode, $isAutoLinkNode, $isLinkNode } from '@lexical/link';
-import { act } from '@testing-library/react';
-import { $createTextNode, $isTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
-import { describe, expect, it } from 'vitest';
-
-import { $isNoteLinkNode } from '#client/editor/features/links/note-link-node';
-import type { RemdoTestApi } from '#client/editor/dev';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
-import {
+import { $getNoteById, $getNoteByText,
   collapseDomSelectionAtNode,
   createDataTransfer,
   extendDomSelectionToNode,
@@ -15,8 +7,14 @@ import {
   placeCaretAtNote,
   pressKey,
   selectEntireNote,
-  typeText,
-} from '#tests';
+  typeText } from '#tests';
+import { $createAutoLinkNode, $createLinkNode, $isAutoLinkNode, $isLinkNode } from '@lexical/link';
+import { act } from '@testing-library/react';
+import { $createTextNode, $isTextNode, CONTROLLED_TEXT_INSERTION_COMMAND, PASTE_COMMAND } from 'lexical';
+import { describe, expect, it } from 'vitest';
+
+import { $isNoteLinkNode } from '#client/editor/features/links/note-link-node';
+import type { RemdoTestApi } from '#client/editor/dev';
 import { getNoteBody } from '#client/editor/outline/selection/body-region';
 
 async function pastePlainText(remdo: RemdoTestApi, text: string) {
@@ -61,7 +59,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     ]);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('note2');
       expect($isNoteLinkNode(linkNode)).toBe(true);
@@ -95,7 +93,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       expect(note.getChildren().some($isLinkNode)).toBe(false);
       expect(note.getTextContent()).toContain('@note3');
     });
@@ -111,7 +109,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
     expect(document.querySelector('[data-note-link-picker]')).not.toBeNull();
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       expect(note.getChildren().some($isLinkNode)).toBe(false);
     });
   });
@@ -128,7 +126,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     ]);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('note2');
       expect($isNoteLinkNode(linkNode)).toBe(true);
@@ -153,7 +151,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await pastePlainText(remdo, `/n/${remdo.getCollabDocId()}_note2`);
 
     remdo.validate(() => {
-      const body = getNoteBody($findNoteById('note1')!)!;
+      const body = getNoteBody($getNoteByText('note1'))!;
       const linkNode = body.getChildren().find($isLinkNode)!;
       expect($isNoteLinkNode(linkNode)).toBe(true);
       if ($isNoteLinkNode(linkNode)) {
@@ -168,7 +166,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await pastePlainText(remdo, url);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('note2');
       expect($isNoteLinkNode(linkNode)).toBe(true);
@@ -185,7 +183,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await pastePlainText(remdo, url);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('note2');
       expect($isNoteLinkNode(linkNode)).toBe(true);
@@ -202,7 +200,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await pastePlainText(remdo, url);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(url);
       expect($isNoteLinkNode(linkNode)).toBe(true);
@@ -219,7 +217,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await pastePlainText(remdo, url);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(url);
       expect($isNoteLinkNode(linkNode)).toBe(false);
@@ -239,7 +237,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       await selectEntireNote(remdo, 'note1');
       await act(async () => {
         remdo.editor.update(() => {
-          const note = $findNoteById('note1')!;
+          const note = $getNoteByText('note1');
           note.clear();
           const linkNode = $createLinkNode(url);
           linkNode.append($createTextNode('Example'));
@@ -249,7 +247,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       await remdo.waitForSynced();
 
       remdo.validate(() => {
-        const note = $findNoteById('note1')!;
+        const note = $getNoteById('note1');
         const linkNode = note.getChildren().find($isLinkNode)!;
         expect(linkNode.getTextContent()).toBe('Example');
         expect($isNoteLinkNode(linkNode)).toBe(false);
@@ -301,7 +299,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('Example');
       expect($isNoteLinkNode(linkNode)).toBe(false);
@@ -315,7 +313,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await selectEntireNote(remdo, 'note1');
     await act(async () => {
       remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
+        const note = $getNoteByText('note1');
         note.clear();
         const autoLink = $createAutoLinkNode('https://example.com/');
         autoLink.append($createTextNode('https://example.com/'));
@@ -328,7 +326,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     // the node stays an AutoLinkNode so AutoLinkPlugin can re-sync or unlink it.
     await act(async () => {
       remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
+        const note = $getNoteById('note1');
         const autoLink = note.getChildren().find($isAutoLinkNode)!;
         const linkText = autoLink.getFirstChild();
         if (!$isTextNode(linkText)) {
@@ -340,7 +338,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const autoLink = note.getChildren().find($isAutoLinkNode);
       expect(autoLink).toBeDefined();
       expect(autoLink!.getURL()).not.toBe('https://example.com/');
@@ -351,7 +349,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await selectEntireNote(remdo, 'note1');
     await act(async () => {
       remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
+        const note = $getNoteByText('note1');
         note.clear();
         const linkNode = $createLinkNode('javascript:alert(1)');
         linkNode.append($createTextNode('Example'));
@@ -361,7 +359,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       expect(note.getTextContent()).toBe('Example');
       expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
@@ -371,7 +369,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await selectEntireNote(remdo, 'note1');
     await act(async () => {
       remdo.editor.update(() => {
-        const note = $findNoteById('note1')!;
+        const note = $getNoteByText('note1');
         note.clear();
         const linkNode = $createAutoLinkNode('javascript:alert(1)');
         linkNode.append($createTextNode('Example'));
@@ -381,7 +379,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       expect(note.getTextContent()).toBe('Example');
       expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
@@ -393,7 +391,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await pastePlainText(remdo, url);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(url);
       expect($isNoteLinkNode(linkNode)).toBe(false);
@@ -412,7 +410,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(url);
       expect($isNoteLinkNode(linkNode)).toBe(false);
@@ -431,7 +429,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(url);
       expect($isNoteLinkNode(linkNode)).toBe(false);
@@ -450,7 +448,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(url);
       expect($isNoteLinkNode(linkNode)).toBe(false);
@@ -469,7 +467,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(url);
       expect(linkNode.getURL()).toBe(url);
@@ -485,7 +483,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(text);
       expect($isNoteLinkNode(linkNode)).toBe(false);
@@ -504,7 +502,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       expect(note.getTextContent()).toBe(text);
       expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
@@ -519,7 +517,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       expect(note.getTextContent()).toBe(text);
       expect(note.getChildren().find($isLinkNode)).toBeUndefined();
     });
@@ -534,7 +532,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await remdo.waitForSynced();
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe(url);
       expect($isNoteLinkNode(linkNode)).toBe(false);
@@ -559,7 +557,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     ]);
 
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const linkNode = note.getChildren().find($isLinkNode)!;
       expect(linkNode.getTextContent()).toBe('note2');
     });
@@ -567,7 +565,7 @@ describe('note links (docs/specs/outliner/links.md)', () => {
 
   it('rehydrates same-document fixture links with current docId in runtime state', meta({ fixture: 'links' }), async ({ remdo }) => {
     remdo.validate(() => {
-      const note = $findNoteById('note1')!;
+      const note = $getNoteById('note1');
       const links = note.getChildren().filter($isNoteLinkNode);
       const sameDocLink = links[0]!;
       const crossDocLink = links[1]!;

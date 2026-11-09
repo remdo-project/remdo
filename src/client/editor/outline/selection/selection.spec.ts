@@ -1,7 +1,4 @@
-import { act, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import type { Outline } from '#tests';
-import {
+import { $getNoteByText,
   collectSelectedListItems,
   collapseDomSelectionAtNode,
   dragDomSelectionBetween,
@@ -19,11 +16,12 @@ import {
   stepSelectionLadder,
   readOutline,
   typeText,
-  meta,
-} from '#tests';
+  meta } from '#tests';
+import { act, waitFor } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import type { Outline } from '#tests';
 import { $createRangeSelection, $setSelection, $createTextNode, $getSelection, $isRangeSelection, SELECT_ALL_COMMAND } from 'lexical';
 import type { RangeSelection } from 'lexical';
-import { $findNoteById } from '#client/editor/outline/note-traversal';
 import { $restoreInlineSelection } from '#client/editor/outline/selection/progressive';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '#client/editor/foundation/commands';
 
@@ -69,13 +67,13 @@ describe('selection plugin', () => {
     await act(async () => {
       remdo.editor.update(() => {
         const selection = $createRangeSelection();
-        const first = $findNoteById('note1')!.getAllTextNodes()[0]!;
-        const second = $findNoteById('note2')!.getAllTextNodes()[0]!;
+        const first = $getNoteByText('note1').getAllTextNodes()[0]!;
+        const second = $getNoteByText('note2').getAllTextNodes()[0]!;
         selection.setTextNodeRange(first, 1, second, 1);
         $setSelection(selection);
       }, { discrete: true });
       remdo.editor.update(() => {
-        $findNoteById('note3')!.getAllTextNodes()[0]!.select(2, 2);
+        $getNoteByText('note3').getAllTextNodes()[0]!.select(2, 2);
       }, { discrete: true });
     });
     await remdo.waitForSynced();
@@ -698,7 +696,7 @@ describe('selection plugin', () => {
       expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2'] });
 
       await remdo.mutate(() => {
-        const note = $findNoteById('note2')!;
+        const note = $getNoteByText('note2');
         if (edit === 'shortened') note.getAllTextNodes()[0]!.setTextContent('x');
         else note.clear().append($createTextNode('replacement'));
         $restoreInlineSelection(entry);
