@@ -195,7 +195,8 @@ once stage 3 lands.
         note lines for a note range. Pilot it on a few specs before scripting
         the rest; expectations with bodies or fold state stay objects until
         the spike. Checks of only the selection keep `toMatchSelection`,
-        which names notes by ID, so they need no outline.
+        which names notes by ID, unless the selection's shape in the tree is
+        what the test checks.
      3. Write fixtures in the format, checked against the JSON they replace,
         keeping an existing ID only where it differs from its note's text,
         since tests name those notes by ID. Fixtures with bodies wait for the
