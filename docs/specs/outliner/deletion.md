@@ -17,8 +17,9 @@ to the caret and selection. Selection semantics are defined in
          note when deleting the current note, start of the current note when
          deleting the previous note). No surrounding text is altered.
       2. Otherwise: delete the current note and append its text to the end of
-         the previous note (spacing rule). Caret lands at the join point in the
-         previous note. If the current note has children, reparent them to the
+         the previous note (spacing rule). Caret lands in the previous note at
+         the start of the appended text, after any space the spacing rule
+         inserts. If the current note has children, reparent them to the
          surviving note:
          1. If the previous note is the parent of the current note, the current
             note's children take the current note's position in that child list.
