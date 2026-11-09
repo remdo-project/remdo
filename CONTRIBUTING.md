@@ -82,8 +82,8 @@ removed.
 Use [Mend-hosted Renovate](https://docs.renovatebot.com/mend-hosted/overview/) with [renovate.json5](renovate.json5) for dependency updates.
 Keep [Dependabot alerts](https://docs.github.com/en/code-security/concepts/supply-chain-security/about-dependabot-alerts) and
 [Dependabot security updates](https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/about-dependabot-security-updates)
-enabled. Renovate produces version update pull requests, and Dependabot covers
-security fixes Renovate does not raise.
+enabled. Renovate produces version update pull requests, and Dependabot produces
+security fix pull requests.
 
 Dependency changes preserve workspace catalogs, applicable trust and
 build-approval policy, package-manager integrity, and locked runtime and project
@@ -91,7 +91,7 @@ dependencies.
 
 Non-major updates and lock file maintenance open as pull requests that the
 developer merges after review. Majors and held updates wait for approval on the
-Dependency Dashboard, and security updates open immediately.
+Dependency Dashboard.
 
 The developer triages dependency work with
 [`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md). Commits added
@@ -106,8 +106,8 @@ selected update proves its deferral obsolete or approval already defers it.
 
 The [dependency-patch registry](pnpm-workspace.yaml) inventories exact-version patches for upstream runtime
 defects. Each patch records its rationale and a focused regression that fails
-without the correction. Renovate cannot regenerate a patch, so its version
-updates to a patched dependency are held for Dependency Dashboard approval.
+without the correction. Renovate cannot regenerate a patch, so a Renovate
+rule holds each patched dependency's updates for Dependency Dashboard approval.
 
 For an affected dependency update, retain the patch, regenerate it for the new
 exact version, or remove it when its focused regression passes without it. New

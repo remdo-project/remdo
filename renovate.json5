@@ -10,6 +10,10 @@
     ":approveMajorUpdates",
     ":rebaseStalePrs",
   ],
+  // Dependabot security updates raise every fix this would, including transitive ones.
+  "vulnerabilityAlerts": {
+    "enabled": false,
+  },
   "timezone": "Europe/Warsaw",
   // A rate limit would hold an update back without a PR to show for it.
   "prHourlyLimit": 0,
