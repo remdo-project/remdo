@@ -34,7 +34,7 @@ This guide owns manual and agent investigation of mobile behavior on
    docker run -d --name tb-tunnel --network host \
      --add-host app.test:127.0.0.1 \
      -e TESTINGBOT_KEY="$TB_KEY" -e TESTINGBOT_SECRET="$TB_SECRET" \
-     testingbot/tunnel:5.0 -i device-tunnel --bind-address 127.0.0.1 \
+     testingbot/tunnel:5.1 -i device-tunnel --bind-address 127.0.0.1 \
      --nobump --nocache
    ```
 
