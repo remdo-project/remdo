@@ -183,19 +183,24 @@ once stage 3 lands.
      Home and through MCP, and Home shows an agent's changes without a reload.
 3. **Editor on text**, in this order, each step one or a few PRs
    - Before changing editor internals, move editor tests onto the text format
-     so the same tests check behavior before and after: first find notes by
-     their text, expecting exactly one match, against today's fixtures, in the
-     shared helpers, then in the lookups specs make inside editor updates, the
-     clipboard helper and the test bridge, and in selection expectations; then
-     write fixtures in the format with only the IDs tests rely on, checked
-     against the JSON they replace, keeping an existing ID only where it
-     differs from its note's text, since tests name those notes by ID; then
-     expected outlines. A JavaScript reader
-     in test support reads what migrated fixtures use and moves into the app
-     when paste needs it; expected outlines compare as trees, so tests need no
-     second writer. Fixtures with bodies wait for the spike. The step ends by
-     deleting the JSON fixtures, including the invalid-schema ones, once tests
-     build editor-only and broken states from Markdown documents.
+     so the same tests check behavior before and after:
+     1. Find notes by their text, expecting exactly one match, in the shared
+        helpers, the lookups specs make inside editor updates, the clipboard
+        helper and the test bridge.
+     2. Express expected outlines and selections as Markdown, compared as trees
+        by a JavaScript reader in test support that moves into the app when
+        paste needs it, so tests need no second writer. A `<selection>` tag
+        marks the selection, removed before parsing: empty for a caret,
+        wrapping text for a range within or across notes, and wrapping whole
+        note lines for a note range. Pilot it on a few specs before scripting
+        the rest; expectations with bodies or fold state stay objects until
+        the spike.
+     3. Write fixtures in the format, checked against the JSON they replace,
+        keeping an existing ID only where it differs from its note's text,
+        since tests name those notes by ID. Fixtures with bodies wait for the
+        spike.
+     4. Delete the JSON fixtures, including the invalid-schema ones, once tests
+        build editor-only and broken states from Markdown documents.
    - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and
      the corpus, with a throwaway writer, keeps every byte, reports what it
      loses, and settles the schema, including how editor bodies map to
