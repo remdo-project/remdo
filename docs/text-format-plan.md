@@ -191,8 +191,9 @@ once stage 3 lands.
      against the JSON they replace; then expected outlines. A JavaScript reader
      in test support reads what migrated fixtures use and moves into the app
      when paste needs it; expected outlines compare as trees, so tests need no
-     second writer. JSON fixtures stay for states the format can't express, and
-     fixtures with bodies wait for the spike.
+     second writer. Fixtures with bodies wait for the spike. The step ends by
+     deleting the JSON fixtures, including the invalid-schema ones, once tests
+     build editor-only and broken states from Markdown documents.
    - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and
      the corpus, with a throwaway writer, keeps every byte, reports what it
      loses, and settles the schema, including how editor bodies map to
