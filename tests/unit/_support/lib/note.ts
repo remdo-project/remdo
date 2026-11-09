@@ -45,8 +45,8 @@ export function $getListItemByKeyOrThrow(key: string, label = key): ListItemNode
 }
 
 /**
- * A note in a test: its text, or `{ id }` when the test is about identity, its text repeats, or
- * its text is awkward to spell, such as a link label.
+ * A note in a test: its text, which must match exactly one note, or `{ id }` when the test is
+ * about identity, its text repeats, or its text is awkward to spell, such as a link label.
  */
 export type NoteRef = string | { id: string };
 
