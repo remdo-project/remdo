@@ -27,13 +27,13 @@ declare module 'vitest' {
   }
 
   interface Assertion<T = any> {
-    toMatchOutline: (expected: Outline) => void;
+    toMatchOutline: (expected: Outline | string) => void;
     toMatchSelection: (expected: SelectionSnapshot) => void;
     toMatchEditorState: (expected: unknown) => void;
   }
 
   interface AsymmetricMatchersContaining {
-    toMatchOutline: (expected: Outline) => void;
+    toMatchOutline: (expected: Outline | string) => void;
     toMatchSelection: (expected: SelectionSnapshot) => void;
     toMatchEditorState: (expected: unknown) => void;
   }

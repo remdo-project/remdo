@@ -211,15 +211,43 @@ describe('selection plugin', () => {
         await placeCaretAtNote(remdo, 'note2');
 
     await stepSelectionLadder(remdo, 'down');
-    expect(remdo).toMatchSelection({ state: 'inline', note: 'note2' });
+    expect(remdo).toMatchOutline(`
+      - note1
+          - <selection>note2</selection>
+              - note3
+          - note4
+      - note5
+      - note6
+          - note7
+    `);
 
     // Stage 2: note + descendants
     await stepSelectionLadder(remdo, 'down');
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
+    expect(remdo).toMatchOutline(`
+      - note1
+      <selection>
+          - note2
+              - note3
+      </selection>
+          - note4
+      - note5
+      - note6
+          - note7
+    `);
 
     // Stage 3: extend the note range to the next sibling.
     await stepSelectionLadder(remdo, 'down');
-    expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3', 'note4'] });
+    expect(remdo).toMatchOutline(`
+      - note1
+      <selection>
+          - note2
+              - note3
+          - note4
+      </selection>
+      - note5
+      - note6
+          - note7
+    `);
 
     // Stage 4: hoist parent subtree
     await stepSelectionLadder(remdo, 'down');

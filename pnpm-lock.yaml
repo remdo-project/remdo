@@ -634,6 +634,9 @@ importers:
       knip:
         specifier: 'catalog:'
         version: 6.42.1
+      markdown-it:
+        specifier: '>=14.2.0'
+        version: 15.0.2
       markdownlint:
         specifier: 'catalog:'
         version: 0.42.0(supports-color@10.2.2)
