@@ -197,11 +197,14 @@ once stage 3 lands.
         the spike. Checks of only the selection keep `toMatchSelection`,
         which names notes by ID, unless the selection's shape in the tree is
         what the test checks.
-     3. Write fixtures in the format, checked against the JSON they replace,
+     3. Let the browser tests' outline matcher read the same Markdown with the
+        same reader, then script their expectations onto it, so browser and
+        unit tests share one expected form before the editor changes.
+     4. Write fixtures in the format, checked against the JSON they replace,
         keeping an existing ID only where it differs from its note's text,
         since tests name those notes by ID. Fixtures with bodies wait for the
         spike.
-     4. Delete the JSON fixtures, including the invalid-schema ones, once tests
+     5. Delete the JSON fixtures, including the invalid-schema ones, once tests
         build editor-only and broken states from Markdown documents.
    - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and
      the corpus, with a throwaway writer, keeps every byte, reports what it
