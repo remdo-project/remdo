@@ -53,6 +53,12 @@
       "groupName": "pre-1.0 minors",
     },
     {
+      "description": "Each stylelint-config-recommended major accepts only the matching stylelint major.",
+      "extends": ["packages:stylelint"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "stylelint",
+    },
+    {
       "matchPackageNames": ["astral-sh/uv", "ghcr.io/astral-sh/uv"],
       "groupName": "uv",
     },
