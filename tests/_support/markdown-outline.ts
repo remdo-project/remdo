@@ -33,53 +33,49 @@ const TAG = /<selection\s*\/>|<selection>|<\/selection>/g;
 const MARKER = /^\s*(?:[-*+]|\d+[.)])(?:\s+\[([ x])\])?(?:\s+|$)/;
 const ID_NOTE = /^id::\s*(\S+)$/;
 
-interface Mark {
-  kind: 'caret' | 'open' | 'close';
-  line: number;
-  column: number;
+// Inline tags become private-use characters so the note's parsed text says where they sat.
+const SENTINEL = { caret: '', open: '', close: '' } as const;
+type MarkKind = keyof typeof SENTINEL;
+const KIND_BY_SENTINEL = new Map<string, MarkKind>(Object.entries(SENTINEL).map(([kind, char]) => [char, kind as MarkKind]));
+
+interface Mark extends MarkdownPoint {
+  kind: MarkKind;
 }
 
 interface Located {
-  note: MarkdownNote;
   path: NotePath;
   line: number;
-  contentColumn: number;
 }
 
 /**
  * Reads an outline from Markdown, and the selection its `<selection>` tags mark: an empty tag is a
  * caret, a tag wrapping text in one note is a range, and tags on their own lines around whole notes
- * are a note range. Tags are removed before parsing, so they may sit anywhere.
+ * are a note range.
  */
 export function readMarkdownOutline(source: string): MarkdownOutline {
   const lines: string[] = [];
-  const marks: Mark[] = [];
   const blockStarts: number[] = [];
   const blockEnds: number[] = [];
+  let inlineTags = 0;
   for (const raw of dedent(source).split('\n')) {
     const trimmed = raw.trim();
     if (trimmed === '<selection>') {
       blockStarts.push(lines.length);
-      continue;
-    }
-    if (trimmed === '</selection>') {
+    } else if (trimmed === '</selection>') {
       blockEnds.push(lines.length);
-      continue;
+    } else {
+      lines.push(raw.replace(TAG, (tag) => {
+        inlineTags += 1;
+        return SENTINEL[tag === '</selection>' ? 'close' : tag === '<selection>' ? 'open' : 'caret'];
+      }));
     }
-    let line = '';
-    let last = 0;
-    for (const match of raw.matchAll(TAG)) {
-      line += raw.slice(last, match.index);
-      const kind = match[0] === '</selection>' ? 'close' : match[0] === '<selection>' ? 'open' : 'caret';
-      marks.push({ kind, line: lines.length, column: line.length });
-      last = match.index + match[0].length;
-    }
-    lines.push(line + raw.slice(last));
   }
 
   const located: Located[] = [];
-  const notes = readList(markdown.parse(lines.join('\n'), {}), lines, located);
-  return { notes, selection: readSelection(marks, blockStarts, blockEnds, located, lines) };
+  const marks: Mark[] = [];
+  const notes = readList(markdown.parse(lines.join('\n'), {}), lines, located, marks);
+  if (marks.length !== inlineTags) throw new Error('<selection> must sit in a note\'s own text.');
+  return { notes, selection: readSelection(marks, blockStarts, blockEnds, located) };
 }
 
 function dedent(source: string): string {
@@ -94,9 +90,10 @@ interface Frame {
   children: MarkdownNote[];
   path: NotePath;
   checkbox?: boolean;
+  textRead?: boolean;
 }
 
-function readList(tokens: Token[], lines: string[], located: Located[]): MarkdownNote[] {
+function readList(tokens: Token[], lines: string[], located: Located[], marks: Mark[]): MarkdownNote[] {
   const top: MarkdownNote[] = [];
   const frames: Frame[] = [{ note: null, children: top, path: [] }];
   for (const token of tokens) {
@@ -113,14 +110,16 @@ function readList(tokens: Token[], lines: string[], located: Located[]): Markdow
       const note: MarkdownNote = marker[1] === 'x' ? { checked: true } : {};
       const path = [...frame.path, frame.children.length];
       frame.children.push(note);
-      located.push({ note, path, line, contentColumn: marker[0].length });
+      located.push({ path, line });
       frames.push({ note, children: [], path, checkbox: marker[1] !== undefined });
     } else if (token.type === 'list_item_close') {
       const closed = frames.pop()!;
       if (closed.note && closed.children.length > 0) closed.note.children = closed.children;
-    } else if (token.type === 'inline' && frame.note && frame.note.text === undefined) {
+    } else if (token.type === 'inline' && frame.note && !frame.textRead) {
+      frame.textRead = true;
+      const parsed = plainText(token.children ?? []);
       // CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
-      const text = plainText(token.children ?? []).replace(frame.checkbox ? /^\[[ x]\] ?/ : /^$/, '');
+      const text = takeMarks(frame.checkbox ? parsed.replace(/^\[[ x]\] ?/, '') : parsed, frame.path, marks);
       if (text) frame.note.text = text;
     }
   }
@@ -131,15 +130,14 @@ function plainText(tokens: Token[]): string {
   return tokens.map((token) => (token.type === 'text' || token.type === 'code_inline' ? token.content : '')).join('');
 }
 
-function offsetIn(located: Located, lines: string[], column: number): number {
-  const prefix = lines[located.line]!.slice(located.contentColumn, column);
-  return plainText(markdown.parseInline(prefix, {})[0]?.children ?? []).length;
-}
-
-function noteAt(located: Located[], line: number): Located {
-  const found = located.find((entry) => entry.line === line);
-  if (!found) throw new Error(`<selection> must sit on a note's own line; line ${line + 1} holds no note.`);
-  return found;
+function takeMarks(text: string, note: NotePath, marks: Mark[]): string {
+  let kept = '';
+  for (const char of text) {
+    const kind = KIND_BY_SENTINEL.get(char);
+    if (kind) marks.push({ kind, note, offset: kept.length });
+    else kept += char;
+  }
+  return kept;
 }
 
 function readSelection(
@@ -147,7 +145,6 @@ function readSelection(
   blockStarts: number[],
   blockEnds: number[],
   located: Located[],
-  lines: string[],
 ): MarkdownSelection | null {
   if (blockStarts.length > 0 || blockEnds.length > 0) {
     if (blockStarts.length !== 1 || blockEnds.length !== 1 || marks.length > 0) {
@@ -158,13 +155,11 @@ function readSelection(
     return { state: 'structural', notes: covered.map((entry) => entry.path) };
   }
   if (marks.length === 0) return null;
-  const point = (mark: Mark): MarkdownPoint => {
-    const entry = noteAt(located, mark.line);
-    return { note: entry.path, offset: offsetIn(entry, lines, mark.column) };
-  };
-  if (marks.length === 1 && marks[0]!.kind === 'caret') return { state: 'caret', at: point(marks[0]!) };
-  if (marks.length === 2 && marks[0]!.kind === 'open' && marks[1]!.kind === 'close' && marks[0]!.line === marks[1]!.line) {
-    return { state: 'inline', anchor: point(marks[0]!), focus: point(marks[1]!) };
+  const point = ({ note, offset }: Mark): MarkdownPoint => ({ note, offset });
+  const [first, second] = marks;
+  if (marks.length === 1 && first!.kind === 'caret') return { state: 'caret', at: point(first!) };
+  if (marks.length === 2 && first!.kind === 'open' && second!.kind === 'close' && first!.note === second!.note) {
+    return { state: 'inline', anchor: point(first!), focus: point(second!) };
   }
   throw new Error('Mark a caret with <selection />, a range within one note with <selection>…</selection>, or whole notes with tags on their own lines.');
 }

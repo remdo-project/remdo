@@ -114,8 +114,11 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note2
+          - id:: note2
       - note3
+          - id:: note3
       - note2
     `);
 
@@ -164,8 +167,11 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note2
+          - id:: note2
       - note3
+          - id:: note3
       - note1
       - note2
     `);
@@ -341,8 +347,10 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note2
       - note3
+          - id:: note3
     `);
 
     const outline = readOutline(remdo);
@@ -362,9 +370,11 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note2
       - note2
       - note3
+          - id:: note3
     `);
 
     const outline = readOutline(remdo);
@@ -430,6 +440,7 @@ describe('note ids on paste', () => {
     expect(remdo).toMatchOutline(`
       - note2
       - note3
+          - id:: note3
     `);
   });
 
@@ -472,8 +483,11 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note2
+          - id:: note2
       - note3
+          - id:: note3
       - doc-id
     `);
 
@@ -492,8 +506,11 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note2
+          - id:: note2
       - note3
+          - id:: note3
       - note2
       - note2
     `);
@@ -515,9 +532,11 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note2 edited
           - id:: note2
       - note3
+          - id:: note3
     `);
 
     await selectStructuralNotes(remdo, 'note2 edited');
@@ -525,8 +544,10 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note2
       - note3
+          - id:: note3
     `);
 
     const outline = readOutline(remdo);
@@ -538,6 +559,7 @@ describe('note ids on paste', () => {
     const payload = await cutSelection(remdo);
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
     `);
 
     const destination = getNoteTextNode(remdo, 'note1');
@@ -548,6 +570,7 @@ describe('note ids on paste', () => {
       - nnote2e1
           - id:: note1
           - note3
+              - id:: note3
     `);
   });
 
@@ -595,6 +618,7 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - <selection />note3
+          - id:: note3
     `);
 
     await pastePayload(remdo, clipboardPayload);
@@ -611,7 +635,9 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note2<selection />
+          - id:: note2
     `);
 
     await pastePayload(remdo, clipboardPayload);
@@ -686,6 +712,7 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
     `);
 
     await placeCaretAtNote(remdo, 'note1', 1);
@@ -697,7 +724,9 @@ describe('note ids on paste', () => {
       - n
           - id:: note1
       - note2
+          - id:: note2
       - note3
+          - id:: note3
       - ote1
     `);
   });
@@ -714,12 +743,19 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
           - note6
+              - id:: note6
               - note7
+                  - id:: note7
           - note2
+              - id:: note2
               - note3
+                  - id:: note3
           - note4
+              - id:: note4
       - note5
+          - id:: note5
     `);
 
     await selectStructuralNotes(remdo, 'note6', 'note7');
@@ -749,8 +785,11 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note2
+          - id:: note2
       - note3
+          - id:: note3
       - note2
     `);
 
@@ -776,14 +815,20 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
           - note2
+              - id:: note2
               - note3
+                  - id:: note3
           - note4
       - note5
+          - id:: note5
           - collision
               - id:: note4
       - note6
+          - id:: note6
           - note7
+              - id:: note7
     `);
 
     const restoredId = findOutlineNodeByText(readOutline(remdo), 'note4')!.noteId;
@@ -857,7 +902,9 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note3
+          - id:: note3
     `);
 
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
@@ -866,8 +913,11 @@ describe('note ids on paste', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note3
+          - id:: note3
       - note2
+          - id:: note2
       - note2
     `);
 

@@ -194,6 +194,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
         - note1 remote
             - id:: note1
         - note3
+            - id:: note3
       `);
     });
 

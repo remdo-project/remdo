@@ -104,8 +104,11 @@ describe('note id normalization on load', () => {
   it('keeps existing unique noteIds unchanged', meta({ fixture: 'flat' }), async ({ remdo }) => {
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - note2
+          - id:: note2
       - note3
+          - id:: note3
     `);
   });
 });
@@ -117,10 +120,12 @@ describe('note ids on split', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - no
           - id:: note2
           - te2
       - note3
+          - id:: note3
     `);
 
     const outline = readOutline(remdo);
@@ -137,10 +142,12 @@ describe('note ids on split', () => {
 
     expect(remdo).toMatchOutline(`
       - note1
+          - id:: note1
       - no
           - id:: note2
       - te2
           - note3
+              - id:: note3
     `);
 
     const outline = readOutline(remdo);

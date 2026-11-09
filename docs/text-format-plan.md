@@ -191,7 +191,7 @@ once stage 3 lands.
         by a JavaScript reader in test support that moves into the app when
         paste needs it, so tests need no second writer. A `<selection>` tag
         marks the selection, removed before parsing: empty for a caret,
-        wrapping text for a range within or across notes, and wrapping whole
+        wrapping text for a range within a note, and wrapping whole
         note lines for a note range. Pilot it on a few specs before scripting
         the rest; expectations with bodies or fold state stay objects until
         the spike. Checks of only the selection keep `toMatchSelection`,

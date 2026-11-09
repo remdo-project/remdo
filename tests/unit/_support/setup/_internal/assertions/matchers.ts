@@ -4,7 +4,7 @@ import { expect } from 'vitest';
 import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
 import type { OutlineNode } from '#tests-common/outline';
 import { readMarkdownOutline } from '#tests-common/markdown-outline';
-import type { MarkdownNote, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
+import type { MarkdownNote, MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
 import {
   collectSelectedListItems,
   findNearestListItem,
@@ -196,14 +196,21 @@ function $getCaretNoteId(selection: RangeSelection): string | null {
   return $resolveId(selection.focus) ?? $resolveId(selection.anchor);
 }
 
-/** The editor's outline in the shape a Markdown expectation has: IDs only where it declares one. */
-function projectOutline(actual: Outline, expected: MarkdownNote[] | undefined): MarkdownNote[] {
+/**
+ * The editor's outline in the shape a Markdown expectation has, with IDs only where it declares one.
+ * Bodies and fold state stay in, so a document Markdown can't express yet fails instead of passing.
+ */
+type ProjectedNote = MarkdownNote & Pick<OutlineNode, 'body' | 'folded'>;
+
+function projectOutline(actual: Outline, expected: MarkdownNote[] | undefined): ProjectedNote[] {
   return actual.map((node, index) => {
     const declared = expected?.[index];
-    const projected: MarkdownNote = {};
+    const projected: ProjectedNote = {};
     if (node.text) projected.text = node.text;
     if (node.checked) projected.checked = true;
     if (declared?.id !== undefined) projected.id = node.noteId ?? undefined;
+    if (node.body !== undefined) projected.body = node.body;
+    if (node.folded) projected.folded = true;
     if (node.children) projected.children = projectOutline(node.children, declared?.children);
     return projected;
   });
@@ -219,21 +226,25 @@ function noteIdAt(outline: Outline, path: NotePath): string {
   return node?.noteId ?? `<no note at ${path.join('.')}>`;
 }
 
+interface NotePoint {
+  note: string;
+  offset: number;
+}
+
 type SelectionDetail =
   | { state: 'none' }
-  | { state: 'caret'; at: { note: string; offset: number } }
-  | { state: 'inline'; anchor: { note: string; offset: number }; focus: { note: string; offset: number } }
+  | { state: 'caret'; at: NotePoint }
+  | { state: 'inline'; anchor: NotePoint; focus: NotePoint }
   | { state: 'structural'; notes: string[] };
 
 function resolveMarkdownSelection(selection: MarkdownSelection, outline: Outline): SelectionDetail {
-  const at = (point: { note: NotePath; offset: number }) => ({ note: noteIdAt(outline, point.note), offset: point.offset });
+  const at = (point: MarkdownPoint) => ({ note: noteIdAt(outline, point.note), offset: point.offset });
   if (selection.state === 'structural') return { state: 'structural', notes: selection.notes.map((path) => noteIdAt(outline, path)) };
   if (selection.state === 'caret') return { state: 'caret', at: at(selection.at) };
   return { state: 'inline', anchor: at(selection.anchor), focus: at(selection.focus) };
 }
 
-/** A point's offset in its note's own text, counting the text before it. */
-function $pointInNote(point: PointType): { note: string; offset: number } | null {
+function $pointInNote(point: PointType): NotePoint | null {
   const node = point.getNode();
   const item = findNearestListItem(node);
   const note = item ? $getNoteId(item) : null;
@@ -252,8 +263,7 @@ function $pointInNote(point: PointType): { note: string; offset: number } | null
 
 function readSelectionDetail(remdo: RemdoTestHelpers): SelectionDetail {
   const snapshot = readSelectionSnapshot(remdo);
-  if (snapshot.state === 'structural') return snapshot;
-  if (snapshot.state === 'none') return snapshot;
+  if (snapshot.state === 'structural' || snapshot.state === 'none') return snapshot;
   return remdo.validate(() => {
     const selection = $getSelection() as RangeSelection;
     const anchor = $pointInNote(selection.anchor);
@@ -267,8 +277,8 @@ function matchMarkdownOutline(ctx: any, remdo: RemdoTestHelpers, expected: strin
   const read = attemptRead(ctx, '.toMatchOutline', () => {
     const parsed = readMarkdownOutline(expected);
     const outline = extractOutlineFromEditorState(remdo.getEditorState());
-    const actual: { outline: MarkdownNote[]; selection?: SelectionDetail } = { outline: projectOutline(outline, parsed.notes) };
-    const wanted: { outline: MarkdownNote[]; selection?: SelectionDetail } = { outline: parsed.notes };
+    const actual: { outline: ProjectedNote[]; selection?: SelectionDetail } = { outline: projectOutline(outline, parsed.notes) };
+    const wanted: typeof actual = { outline: parsed.notes };
     if (parsed.selection) {
       actual.selection = readSelectionDetail(remdo);
       wanted.selection = resolveMarkdownSelection(parsed.selection, outline);
