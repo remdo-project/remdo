@@ -5,6 +5,7 @@ ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "${ROOT_DIR}/tools/lib/docker.sh"
 remdo_load_dotenv "${ROOT_DIR}"
 remdo_load_env_defaults "${ROOT_DIR}" development
+mkdir -p "${TMPDIR}"
 POSTGRES_PORT="$((PORT_BASE + 9))"
 export POSTGRES_PORT
 if [ -z "${PG_RUNTIME:-}" ]; then
