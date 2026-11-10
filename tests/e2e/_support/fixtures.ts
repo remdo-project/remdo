@@ -1,7 +1,8 @@
 import type { ConsoleMessage, Page, Response, TestInfo } from '@playwright/test';
 import { expect, test as base } from '@playwright/test';
 import type { Outline } from '#tests-common/outline';
-import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
+import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards, projectOutline } from '#tests-common/outline';
+import { readMarkdownOutline } from '#tests-common/markdown-outline';
 import { createAuthenticatedContext } from './auth-context';
 
 interface EditorLike {
@@ -243,7 +244,10 @@ export function collectCurrentUserRequests(page: Page): string[] {
 }
 
 expect.extend({
-  async toMatchOutline(received: unknown, expected: Outline) {
+  // TODO: Object expectations remain for bodies and fold state until the text-format spike
+  // settles how Markdown holds them (docs/text-format-plan.md). Probe: narrow `expected` to
+  // `string`; nothing fails to compile.
+  async toMatchOutline(received: unknown, expected: Outline | string) {
     if (this.isNot) {
       return {
         pass: true,
@@ -260,13 +264,18 @@ expect.extend({
     }
 
     try {
+      const wanted = typeof expected === 'string' ? readMarkdownOutline(expected) : null;
+      if (wanted?.selection) {
+        throw new Error('Browser outline expectations read no selection yet; drop the <selection> tags.');
+      }
       await expect
         .poll(async () => {
           const actual = extractOutlineFromEditorState(await target.getEditorState!());
-          mutateOutlineNoteIdWildcards(actual, expected);
+          if (wanted) return projectOutline(actual, wanted.notes);
+          mutateOutlineNoteIdWildcards(actual, expected as Outline);
           return actual;
         })
-        .toEqual(expected);
+        .toEqual(wanted ? wanted.notes : expected);
       return { pass: true, message: () => 'Expected outlines not to match.' };
     } catch (error) {
       return {

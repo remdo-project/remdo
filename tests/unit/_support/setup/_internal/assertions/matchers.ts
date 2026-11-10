@@ -1,10 +1,10 @@
 import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
-import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
-import type { OutlineNode } from '#tests-common/outline';
+import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards, projectOutline } from '#tests-common/outline';
+import type { OutlineNode, ProjectedNote } from '#tests-common/outline';
 import { readMarkdownOutline } from '#tests-common/markdown-outline';
-import type { MarkdownNote, MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
+import type { MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
 import {
   collectSelectedListItems,
   findNearestListItem,
@@ -194,26 +194,6 @@ function $getCaretNoteId(selection: RangeSelection): string | null {
   };
 
   return $resolveId(selection.focus) ?? $resolveId(selection.anchor);
-}
-
-type ProjectedNote = MarkdownNote & Pick<OutlineNode, 'body' | 'folded'>;
-
-/**
- * The editor's outline in the shape a Markdown expectation has, with IDs only where it declares one.
- * Bodies and fold state stay in, so a document Markdown can't express yet fails instead of passing.
- */
-function projectOutline(actual: Outline, expected: MarkdownNote[] | undefined): ProjectedNote[] {
-  return actual.map((node, index) => {
-    const declared = expected?.[index];
-    const projected: ProjectedNote = {};
-    if (node.text) projected.text = node.text;
-    if (node.checked) projected.checked = true;
-    if (declared?.id !== undefined) projected.id = node.noteId ?? undefined;
-    if (node.body !== undefined) projected.body = node.body;
-    if (node.folded) projected.folded = true;
-    if (node.children) projected.children = projectOutline(node.children, declared?.children);
-    return projected;
-  });
 }
 
 function noteIdAt(outline: Outline, path: NotePath): string {

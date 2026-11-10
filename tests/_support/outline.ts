@@ -1,4 +1,5 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
+import type { MarkdownNote } from './markdown-outline';
 
 import { formatDateNodeLabel } from '#client/editor/features/date/date-label';
 import type { SerializedOutlineNote } from '#client/editor/dev/schema/traverseSerializedOutline';
@@ -131,4 +132,24 @@ export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline)
   };
 
   walk(actual, expected);
+}
+
+export type ProjectedNote = MarkdownNote & Pick<OutlineNode, 'body' | 'folded'>;
+
+/**
+ * The editor's outline in the shape a Markdown expectation has, with IDs only where it declares one.
+ * Bodies and fold state stay in, so a document Markdown can't express yet fails instead of passing.
+ */
+export function projectOutline(actual: Outline, expected: MarkdownNote[] | undefined): ProjectedNote[] {
+  return actual.map((node, index) => {
+    const declared = expected?.[index];
+    const projected: ProjectedNote = {};
+    if (node.text) projected.text = node.text;
+    if (node.checked) projected.checked = true;
+    if (declared?.id !== undefined) projected.id = node.noteId ?? undefined;
+    if (node.body !== undefined) projected.body = node.body;
+    if (node.folded) projected.folded = true;
+    if (node.children) projected.children = projectOutline(node.children, declared?.children);
+    return projected;
+  });
 }

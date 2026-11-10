@@ -6,7 +6,7 @@ declare global {
 
   namespace PlaywrightTest {
     interface Matchers<R> {
-      toMatchOutline: (expected: Outline) => Promise<R>;
+      toMatchOutline: (expected: Outline | string) => Promise<R>;
     }
   }
 }
