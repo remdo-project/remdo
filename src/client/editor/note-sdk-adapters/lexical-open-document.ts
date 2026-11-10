@@ -435,9 +435,9 @@ export function createLexicalOpenDocumentRuntime({
       return;
     }
     historyObserved = true;
-    // TODO(deps): Lexical 0.51 deprecates CAN_UNDO/REDO_COMMAND for HistoryExtension's canUndo/canRedo
-    // signals, but its Yjs collaboration still reports undo availability only through these commands.
-    // Probe: switch to the signals once @lexical/yjs exposes them and test:collab stays green.
+    // TODO(deps): Lexical 0.49 deprecates CAN_UNDO/REDO_COMMAND for HistoryExtension's canUndo/canRedo
+    // signals, but @lexical/react's CollaborationPlugin still reports Yjs undo availability only through these commands.
+    // Probe: switch every CAN_UNDO/REDO_COMMAND user to the signals once CollaborationPlugin updates them.
     unregisterHistory = mergeRegister(
       editor.registerCommand(
         // eslint-disable-next-line ts/no-deprecated -- collaboration still dispatches it; tracked above.

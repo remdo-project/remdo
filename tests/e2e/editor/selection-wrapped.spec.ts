@@ -218,6 +218,7 @@ for (const style of ['plain', 'link', 'bold'] as const) {
         }
         const prefix: SerializedTextNode = { ...text, text: text.text.slice(0, split) };
         const suffix: SerializedTextNode = { ...text, text: text.text.slice(split), format: style === 'bold' ? 1 : text.format };
+        // eslint-disable-next-line ts/no-deprecated -- Lexical's legacy serialized form still requires `version`.
         const link: SerializedLinkNode = { type: 'link', version: 1, url: 'https://example.test', children: [suffix],
           direction: null, format: '', indent: 0, rel: null, target: null, title: null };
         note.children = [prefix, style === 'bold' ? suffix : link];

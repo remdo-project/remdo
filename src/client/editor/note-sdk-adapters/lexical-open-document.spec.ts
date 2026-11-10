@@ -1,8 +1,6 @@
 import { $getNoteById, $getNoteByText, createMountedLexicalEditor, getNoteKey, meta, placeCaretAtNote, selectNoteRange, typeText } from '#tests';
-/* eslint-disable ts/no-deprecated -- drives the undo-availability commands the open document observes, where the deprecation is tracked. */
 import { waitFor } from '@testing-library/react';
 import { $createListItemNode, $createListNode } from '@lexical/list';
-import type { ListNode } from '@lexical/list';
 import {
   $createTextNode,
   $getRoot,
@@ -13,6 +11,7 @@ import {
   REDO_COMMAND,
   UNDO_COMMAND,
 } from 'lexical';
+import type { LexicalEditor } from 'lexical';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { IneligibleOperationError, NoteUnavailableError } from '#note-sdk';
 import { editorConfig } from '#client/editor/runtime/config';
@@ -28,6 +27,7 @@ import {
   SET_NOTE_FOLD_COMMAND,
 } from '#client/editor/foundation/commands';
 import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
+import { $requireRootContentList } from '#client/editor/outline/schema';
 import { $resolveViewRoot, setViewRoot } from '#client/editor/outline/view-root';
 import { editorNodes } from '#client/editor/runtime/nodes';
 import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
@@ -36,6 +36,17 @@ import { createLexicalOpenDocumentRuntime } from './lexical-open-document';
 async function flushObservations(): Promise<void> {
   await Promise.resolve();
   await Promise.resolve();
+}
+
+// The open document observes these deprecated commands; see the TODO(deps) in lexical-open-document.ts.
+function setCanUndo(editor: LexicalEditor, available: boolean): void {
+  // eslint-disable-next-line ts/no-deprecated -- tracked by the TODO(deps) in lexical-open-document.ts.
+  editor.dispatchCommand(CAN_UNDO_COMMAND, available);
+}
+
+function setCanRedo(editor: LexicalEditor, available: boolean): void {
+  // eslint-disable-next-line ts/no-deprecated -- tracked by the TODO(deps) in lexical-open-document.ts.
+  editor.dispatchCommand(CAN_REDO_COMMAND, available);
 }
 
 function $createNote(noteId: string, text: string) {
@@ -65,15 +76,15 @@ describe('lexical open document', () => {
     await placeCaretAtNote(remdo, 'note2');
     expect(openDocument.focus.canToggleFold()).toBe(true);
 
-    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
-    remdo.editor.dispatchCommand(CAN_REDO_COMMAND, true);
+    setCanUndo(remdo.editor, true);
+    setCanRedo(remdo.editor, true);
     expect(openDocument.history.canUndo()).toBe(true);
     expect(openDocument.history.canRedo()).toBe(true);
 
     const unsubscribe = openDocument.subscribeCapabilities(() => {});
     unsubscribe();
     await placeCaretAtNote(remdo, 'note3');
-    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, false);
+    setCanUndo(remdo.editor, false);
     expect(openDocument.focus.canToggleFold()).toBe(false);
     expect(openDocument.history.canUndo()).toBe(false);
   });
@@ -107,7 +118,7 @@ describe('lexical open document', () => {
     const values: boolean[] = [];
     runtime.openDocument.subscribeCapabilities(() => values.push(runtime.openDocument.history.canUndo()));
     runtime.start();
-    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    setCanUndo(remdo.editor, true);
     runtime.setSourceReady(true);
     await flushObservations();
     expect(values).toEqual([true]);
@@ -145,18 +156,18 @@ describe('lexical open document', () => {
     const second = runtime.openDocument.subscribeCapabilities(listener);
     first();
     first();
-    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    setCanUndo(remdo.editor, true);
     await flushObservations();
     expect(listener).toHaveBeenCalledOnce();
 
     second();
     const third = runtime.openDocument.subscribeCapabilities(listener);
     second();
-    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, false);
+    setCanUndo(remdo.editor, false);
     await flushObservations();
     expect(listener).toHaveBeenCalledTimes(2);
     third();
-    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    setCanUndo(remdo.editor, true);
     await flushObservations();
     expect(listener).toHaveBeenCalledTimes(2);
     expect(runtime.openDocument.history.canUndo()).toBe(true);
@@ -181,7 +192,7 @@ describe('lexical open document', () => {
     onTestFinished(unsubscribe);
 
     read.mockRestore();
-    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    setCanUndo(remdo.editor, true);
     await flushObservations();
     expect(values).toEqual([true]);
   });
@@ -202,13 +213,13 @@ describe('lexical open document', () => {
     });
     onTestFinished(unsubscribe);
     const failure = new Error('Capability read failed');
-    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    setCanUndo(remdo.editor, true);
     const read = vi.spyOn(remdo.editor.getEditorState(), 'read').mockImplementation(() => { throw failure; });
     await flushObservations();
     expect(values).toEqual([failure]);
 
     read.mockRestore();
-    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, false);
+    setCanUndo(remdo.editor, false);
     await flushObservations();
     expect(values).toEqual([failure, true]);
   });
@@ -363,7 +374,7 @@ describe('lexical open document', () => {
     });
 
     // History events are cached for a toolbar that subscribes later.
-    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    setCanUndo(remdo.editor, true);
     const capabilityListener = vi.fn();
     runtime.openDocument.subscribeCapabilities(capabilityListener);
     await placeCaretAtNote(remdo, 'note2');
@@ -869,7 +880,7 @@ describe('lexical open document', () => {
     expect(runtime.openDocument.history.canUndo).not.toThrow();
 
     stop();
-    remdo.editor.dispatchCommand(CAN_UNDO_COMMAND, true);
+    setCanUndo(remdo.editor, true);
     expect(runtime.openDocument.history.canUndo()).toBe(false);
 
     runtime.start();
@@ -1076,7 +1087,7 @@ describe('lexical open document', () => {
 
       const [first] = await runtime.openDocument.root.content.appendChildren([{ text: 'First' }]);
 
-      expect(editor.getEditorState().read(() => $getRoot().getFirstChild<ListNode>()!.getChildren().map((item) => item.getTextContent())))
+      expect(editor.getEditorState().read(() => $requireRootContentList().getChildren().map((item) => item.getTextContent())))
         .toEqual(['First']);
       expect(runtime.openDocument.root.content.getChildren().map((note) => note.getId())).toEqual([first]);
     });
