@@ -87,20 +87,20 @@ test.describe('clipboard (structural cut)', () => {
     const cutCombo = process.platform === 'darwin' ? 'Meta+X' : 'Control+X';
     await page.keyboard.press(cutCombo);
 
-    await expect(editor).toMatchOutline([
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note2
+      - note3
+    `);
 
     await setCaretAtText(page, 'note3', Number.POSITIVE_INFINITY);
     const pasteCombo = process.platform === 'darwin' ? 'Meta+V' : 'Control+V';
     await page.keyboard.press(pasteCombo);
 
-    await expect(editor).toMatchOutline([
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: 'note1', text: 'note1' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note2
+      - note3
+      - note1
+    `);
     await expect(input).not.toHaveClass(/editor-input--structural/);
   });
 });
@@ -113,18 +113,13 @@ test.describe('clipboard (caret paste placement)', () => {
     await pastePlainText(page, 'A\nB');
     await page.keyboard.type('Z');
 
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      {
-        noteId: 'note2',
-        text: 'note2',
-        children: [
-          { noteId: null, text: 'A' },
-          { noteId: null, text: 'BZ' },
-          { noteId: 'note3', text: 'note3' },
-        ],
-      },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - note2
+          - A
+          - BZ
+          - note3
+    `);
   });
 
   test('pastes multi-line plain text in the middle of a formatted note', async ({ page, editor }) => {
@@ -134,24 +129,17 @@ test.describe('clipboard (caret paste placement)', () => {
     await pastePlainText(page, 'A\nB');
     await page.keyboard.type('Z');
 
-    await expect(editor).toMatchOutline([
-      {
-        noteId: 'bold',
-        text: 'bold',
-        children: [
-          {
-            noteId: 'italic',
-            text: 'italic',
-            children: [{ noteId: 'target', text: 'target' }],
-          },
-        ],
-      },
-      { noteId: 'underline', text: 'underline' },
-      { noteId: 'mixedFormatting', text: 'plain bold it' },
-      { noteId: null, text: 'A' },
-      { noteId: null, text: 'BZ' },
-      { noteId: null, text: 'alic underline plain' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - bold
+          - italic
+              - target
+      - underline
+      - plain bold it
+          - id:: mixedFormatting
+      - A
+      - BZ
+      - alic underline plain
+    `);
   });
 
   test('treats multi-line plain text as multi-note paste for inline selections', async ({ page, editor }) => {
@@ -160,11 +148,12 @@ test.describe('clipboard (caret paste placement)', () => {
 
     await pastePlainText(page, 'A\nB');
 
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'nA2', children: [{ noteId: null, text: 'B' }] },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - nA2
+          - B
+      - note3
+    `);
   });
 });
 

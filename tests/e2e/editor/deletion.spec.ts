@@ -9,11 +9,12 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'ote1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - ote1
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   test('Backspace in the middle of a note deletes the previous character', async ({ page, editor }) => {
@@ -22,11 +23,12 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Backspace');
 
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'nte1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - nte1
+          - id:: note1
+      - note2
+      - note3
+    `);
 
     const snapshot = await captureEditorSnapshot(page);
     expect(snapshot.selection).toMatchObject({
@@ -54,9 +56,11 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Backspace');
 
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2', children: [ { noteId: 'note3', text: 'note3' } ] },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1 note2
+          - id:: note1
+          - note3
+    `);
   });
 
   test('Backspace merges a leaf into its previous sibling', async ({ page, editor }) => {
@@ -65,10 +69,11 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Backspace');
 
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1 note2
+          - id:: note1
+      - note3
+    `);
   });
 
   test('Delete at end merges next leaf', async ({ page, editor }) => {
@@ -77,10 +82,11 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1 note2
+          - id:: note1
+      - note3
+    `);
   });
 
   test('Delete respects spacing when right fragment already starts with space', async ({ page, editor }) => {
@@ -121,9 +127,9 @@ test.describe('deletion (native browser behavior)', () => {
     await page.keyboard.press('Delete');
 
     await expect(editorLocator(page).locator('li.list-item')).toHaveCount(2);
-    await expect(editor).toMatchOutline([
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note2
+      - note3
+    `);
   });
 });

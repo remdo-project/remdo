@@ -292,11 +292,12 @@ test.describe('note links', () => {
     await page.keyboard.press('Enter');
 
     await expect(picker).toHaveCount(0);
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1 @missing' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1 @missing
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   test('outside click closes link-query mode', async ({ page, editor }) => {
@@ -313,11 +314,12 @@ test.describe('note links', () => {
     });
 
     await expect(picker).toHaveCount(0);
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1 @note' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1 @note
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   test('editor blur closes link-query mode', async ({ page, editor }) => {
@@ -336,11 +338,12 @@ test.describe('note links', () => {
     });
 
     await expect(picker).toHaveCount(0);
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1 @note' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1 @note
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   test('searches the whole document while zoomed into a subtree', async ({ page, editor }) => {

@@ -258,9 +258,12 @@ test('expires a completed native no-op before another programmatic caret selecti
   await setCaretAtText(page, 'note2', 2);
   await expect.poll(async () => (await selectionState(page)).kind).toBe('caret');
   await page.keyboard.type('Z');
-  await expect(editor).toMatchOutline([
-    { noteId: 'note1', text: 'note1' }, { noteId: 'note2', text: 'noZte2' }, { noteId: 'note3', text: 'note3' },
-  ]);
+  await expect(editor).toMatchOutline(`
+    - note1
+    - noZte2
+        - id:: note2
+    - note3
+  `);
 });
 
 for (const side of ['before', 'after'] as const) {
@@ -494,9 +497,12 @@ for (const ranged of [false, true]) {
     await expectWholeLabel(page, 'note1');
     await page.keyboard.press('Shift+ArrowUp');
     await expect.poll(() => selectionState(page)).toEqual(before);
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' }, { noteId: 'note2', text: 'note2' }, { noteId: 'note3', text: 'remote edit' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - note2
+      - remote edit
+          - id:: note3
+    `);
   });
 
   test(`keeps a replacement ${ranged ? 'inline range' : 'caret'} after a pending native crossing`, async ({ page, editor }) => {
