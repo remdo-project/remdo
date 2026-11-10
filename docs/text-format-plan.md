@@ -193,9 +193,7 @@ once stage 3 lands.
         paste needs it, so tests need no second writer. Pilot it on a few
         specs before scripting the rest. A body is compared literally with its
         plain text, one `>` line per body line. Notes built from variables
-        move to interpolated Markdown, and spaces at a note's edges, which
-        tools trim when they write the format, are written as character
-        references such as `&#32;`. Checks of only the selection keep
+        move to interpolated Markdown. Checks of only the selection keep
         `toMatchSelection`, which names notes by ID, unless the test checks
         the selection's shape in the tree or its place in the text.
      3. Let the browser tests' outline matcher read the same Markdown with the
