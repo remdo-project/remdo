@@ -87,5 +87,12 @@
       "matchUpdateTypes": ["major"],
       "enabled": false,
     },
+    {
+      // TODO(deps): move to Node 26 once a dependency requires it or by 2027-10 (Node 24 support ends 2028-04); it also needs the Dockerfile's esbuild --target bumped and libatomic checked on the runner image.
+      // Probe: a dependency update failing pnpm install under engineStrict, or the date.
+      "matchPackageNames": ["node"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false,
+    },
   ],
 }
