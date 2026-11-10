@@ -94,8 +94,6 @@ unchanged.
   else as verbatim source, and each note's cache ID. Three calls carry it: save
   to a tree, apply a tree to live Yjs by cache ID, and read the live tree.
   Retiring Node later means replacing the relay.
-- The cache row keeps each document's last-saved tree, so the writer keeps
-  untouched text byte-identical.
 - The editor runs note operations for the person typing; Python runs them for
   everyone else. Shared cases check that both give the same result.
 - The browser's SDK keeps its note API, observation included. Every kind reads
@@ -212,21 +210,21 @@ once stage 3 lands.
      5. Delete the JSON fixtures, including the invalid-schema ones, once tests
         build editor-only and broken states from Markdown documents.
    - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and
-     the corpus, with a throwaway writer, keeps every byte, reports what it
+     the corpus, with a throwaway writer, keeps what each document reads as,
+     writes text that a second round trip leaves unchanged, reports what it
      loses, and settles the schema, including how editor bodies map to
      Markdown blocks.
-   - Add the Python reader and canonical writer, with write-time alignment to
-     the saved text, and let Read list a document's outline notes and blocks.
-     Test the writer on edits beside unusual Markdown, not only on text that
-     round-trips unchanged.
+   - Add the Python reader and canonical writer, and let Read list a document's
+     outline notes and blocks. Test that the writer keeps what unusual Markdown
+     reads as, not only text that round-trips unchanged.
    - Write operation cases once, as text before, operations, and text after or
      the refusal. Test them on Python's note operations, and check each other
      surface, such as MCP or the editor, with only a few of the same cases. Add
      this rule to the [testing policy](dev/testing.md) once it has worked.
    - Extend the editor schema with headings, `block` lines, per-note markers and
      independent checkboxes. Use `line` or `group` storage with no body wrapper.
-   - Add Node's three calls, the cache row with the last-saved tree, the
-     one-transaction save and hash recovery.
+   - Add Node's three calls, the cache row, the one-transaction save and hash
+     recovery.
    - Add cache IDs on RemDo's own node state, with three sync steps: transfer to
      a recreated identical note, repair duplicates, and clear a holder when a
      text `id::` claims its value.
@@ -245,7 +243,7 @@ once stage 3 lands.
      operand of Move and Delete.
    - Test that each editor action changes the document as some sequence of
      note operations would.
-   - Exit: a flagged document edits and saves byte-stably in the real editor,
+   - Exit: a flagged document edits and saves stably in the real editor,
      passing the randomized test and a real process kill, and an agent changes
      it through note operations without disturbing other notes or IDs.
 4. **Live safety**
