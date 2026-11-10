@@ -187,33 +187,30 @@ once stage 3 lands.
      1. Find notes by their text, expecting exactly one match, in the shared
         helpers, the lookups specs make inside editor updates, the clipboard
         helper and the test bridge.
-     2. Express expected outlines and selections as Markdown, compared as trees
+     2. Express expected outlines and selections as
+        [test documents](specs/testing/test-documents.md), compared as trees
         by a JavaScript reader in test support that moves into the app when
-        paste needs it, so tests need no second writer. A `<selection>` tag
-        marks the selection, removed before parsing: empty for a caret,
-        wrapping text for a range within a note, and wrapping whole
-        note lines for a note range. Pilot it on a few specs before scripting
-        the rest. A body is its `>` lines before the note's children, one per
-        body line, compared literally with the body's plain text. State the
-        text doesn't hold keeps a test-only meaning: a note's own state is a
-        named note after its body and before its children, `id::` for its ID
-        and then `folded:: true` when it is folded, while session state such
-        as the selection is tags removed before parsing. Production readers
-        give these names no such meaning, so fold state stays out of the
-        format. Notes built from variables move to interpolated Markdown, and
-        spaces at a note's edges, which tools trim when they write the format,
-        are written as character references such as `&#32;`. Checks of only
-        the selection keep `toMatchSelection`, which names notes by ID,
-        unless the test checks the selection's shape in the tree or its place
-        in the text. A selected inline token, such as a date, is marked as a
-        range over its label.
+        paste needs it, so tests need no second writer. Pilot it on a few
+        specs before scripting the rest. A body is compared literally with its
+        plain text, one `>` line per body line. Notes built from variables
+        move to interpolated Markdown, and spaces at a note's edges, which
+        tools trim when they write the format, are written as character
+        references such as `&#32;`. Checks of only the selection keep
+        `toMatchSelection`, which names notes by ID, unless the test checks
+        the selection's shape in the tree or its place in the text.
      3. Let the browser tests' outline matcher read the same Markdown with the
         same reader, then script their expectations onto it, so browser and
         unit tests share one expected form before the editor changes.
-     4. Write fixtures in the format, checked against the JSON they replace,
-        keeping an existing ID only where it differs from its note's text,
-        since tests name those notes by ID. The helper that loads a fixture
-        applies its `folded:: true` notes as node state.
+     4. Write fixtures as test documents, checked against the JSON they
+        replace, declaring only the IDs tests rely on: those that differ from
+        their note's text, since tests name those notes by ID, and those
+        identity checks follow, such as merge survivors and copied originals.
+        Until notes follow the
+        [workspace ID rules](specs/outliner/note-ids.md#ids-in-workspaces),
+        IDs the editor generates count as internal, and expected outlines
+        don't state them. Once a suite's fixtures are Markdown, its expected
+        outlines state every other ID their notes carry; until then they
+        compare only the IDs they state.
      5. Delete the JSON fixtures, including the invalid-schema ones, once tests
         build editor-only and broken states from Markdown documents.
    - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and
