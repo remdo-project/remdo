@@ -713,10 +713,12 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter', shift: true });
       await typeText(remdo, 'in body');
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1', body: 'in body' },
-        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            > in body
+        - note2
+            - note3
+      `);
     });
 
     it('keeps insertion inside the zoom boundary', meta({ fixture: 'tree', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {

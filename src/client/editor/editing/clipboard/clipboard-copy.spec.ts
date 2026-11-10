@@ -166,10 +166,13 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
       if (flavor === 'html') data.setData('text/html', copied.getData('text/html'));
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       await pasteClipboard(remdo, data);
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1note2' },
-        { noteId: 'note2', text: 'note2', body: 'Body', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1note2
+            - id:: note1
+        - note2
+            > Body
+            - note3
+      `);
     });
   }
 

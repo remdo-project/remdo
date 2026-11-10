@@ -16,11 +16,12 @@ describe('note body collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await typeText(remdo, 'shared body');
 
     await waitFor(() => {
-      expect(secondary).toMatchOutline([
-        { noteId: 'note1', text: 'note1', body: 'shared body' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      expect(secondary).toMatchOutline(`
+        - note1
+            > shared body
+        - note2
+        - note3
+      `);
     });
   });
 
@@ -33,11 +34,12 @@ describe('note body collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await typeText(remdo, 'shared');
     await remdo.waitForSynced();
     await waitFor(() => {
-      expect(secondary).toMatchOutline([
-        { noteId: 'note1', text: 'note1', body: 'shared' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      expect(secondary).toMatchOutline(`
+        - note1
+            > shared
+        - note2
+        - note3
+      `);
     });
 
     // Secondary edits inside the body; primary removes the body. Deleting the

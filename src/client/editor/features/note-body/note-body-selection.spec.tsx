@@ -151,10 +151,12 @@ describe('note body command targeting (docs/specs/outliner/body.md)', () => {
 
     await pressKey(remdo, { key: 'Tab' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', children: [{ noteId: 'note2', text: 'note2', body: 'bodytwo' }] },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+              > bodytwo
+      - note3
+    `);
   });
 
   it('indents the owning note from an inline selection in its body', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -165,10 +167,12 @@ describe('note body command targeting (docs/specs/outliner/body.md)', () => {
 
     await pressKey(remdo, { key: 'Tab' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', children: [{ noteId: 'note2', text: 'note2', body: 'bodytwo' }] },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+              > bodytwo
+      - note3
+    `);
   });
 
   it('outdents the owning note from an inline selection in its body', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -181,11 +185,12 @@ describe('note body command targeting (docs/specs/outliner/body.md)', () => {
     await extendDomSelectionToNode(body, 4);
     await pressKey(remdo, { key: 'Tab', shift: true });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', body: 'bodytwo' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          > bodytwo
+      - note3
+    `);
   });
 
 });

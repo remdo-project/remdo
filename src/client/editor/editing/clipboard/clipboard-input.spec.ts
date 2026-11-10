@@ -204,11 +204,14 @@ describe('rich clipboard input', () => {
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'Enter', shift: true });
     await pasteHtml(remdo, '<p><b>Alpha</b><br>Beta</p><p><a href="https://example.com">Gamma</a></p>', 'Alpha\nBeta\nGamma');
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', body: 'Alpha\nBeta\nGamma' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          > Alpha
+          > Beta
+          > Gamma
+      - note3
+    `);
     expect(remdo.editor.getRootElement()!.querySelector('a')!.getAttribute('href')).toBe('https://example.com');
     remdo.validate(() => {
       expect($getRoot().getAllTextNodes().find(node => node.getTextContent() === 'Alpha')!.hasFormat('bold')).toBe(true);
@@ -219,11 +222,15 @@ describe('rich clipboard input', () => {
     await placeCaretAtNote(remdo, 'note2');
     await pressKey(remdo, { key: 'Enter', shift: true });
     await pasteHtml(remdo, '<p>Before</p><ul><li>Alpha<br>Beta</li></ul><p>After</p>', 'Before\nAlpha\nBeta\nAfter');
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', body: 'Before\nAlpha\nBeta\nAfter' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          > Before
+          > Alpha
+          > Beta
+          > After
+      - note3
+    `);
     remdo.validate(() => {
       const body = getNoteBody($getNoteByText('note2'))!;
       expect(remdo.editor.getElementByKey(body.getKey())!.querySelector('ul, ol, li')).toBeNull();
@@ -240,11 +247,17 @@ describe('rich clipboard input', () => {
     const payload = await copySelection(remdo);
     await placeCaretAtNote(remdo, 'note1', 0);
     await pastePayload(remdo, payload);
-    expect(remdo).toMatchOutline([
-      { noteId: null, text: 'note2', body: 'one\ntwo', children: [{ noteId: null, text: 'note3' }] },
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', body: 'one\ntwo', children: [{ noteId: 'note3', text: 'note3' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note2
+          > one
+          > two
+          - note3
+      - note1
+      - note2
+          > one
+          > two
+          - note3
+    `);
   });
 
   it('keeps body text when a copied subtree replaces inline text', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -257,14 +270,17 @@ describe('rich clipboard input', () => {
     const payload = await copySelection(remdo);
     await selectEntireNote(remdo, 'note1');
     await pastePayload(remdo, payload);
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note2', children: [
-        { noteId: null, text: 'one' },
-        { noteId: null, text: 'two' },
-        { noteId: null, text: 'note3' },
-      ] },
-      { noteId: 'note2', text: 'note2', body: 'one\ntwo', children: [{ noteId: 'note3', text: 'note3' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note2
+          - id:: note1
+          - one
+          - two
+          - note3
+      - note2
+          > one
+          > two
+          - note3
+    `);
   });
 
   it('keeps a descendant body in the plain-text form when replacing inline text', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -275,13 +291,15 @@ describe('rich clipboard input', () => {
     const payload = await copySelection(remdo);
     await selectEntireNote(remdo, 'note1');
     await pastePayload(remdo, payload);
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note2', children: [
-        { noteId: null, text: 'note3' },
-        { noteId: null, text: 'body' },
-      ] },
-      { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3', body: 'body' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note2
+          - id:: note1
+          - note3
+          - body
+      - note2
+          - note3
+              > body
+    `);
   });
 
   for (const separator of ['\n', '\r\n', '\r']) {
