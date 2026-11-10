@@ -107,6 +107,7 @@ describe('reading expected outlines from Markdown', () => {
     ['an id:: line holding two words', '- note1\n    - id:: first second', /holds one ID/u],
     ['a folded:: line after children', '- note1\n    - note2\n    - folded:: true', /before its children/u],
     ['a body after folded::', '- note1\n    - folded:: true\n    > late', /one > block, before/u],
+    ['a checkbox on a folded:: line', '- note1\n    - [x] folded:: true\n    - note2', /no checkbox/u],
     ['a second id:: line', '- note1\n    - id:: first\n    - id:: second', /one id:: line/u],
     ['a thematic break', '- ***', /hr/u],
     ['an indented code block', '-     code', /code_block/u],

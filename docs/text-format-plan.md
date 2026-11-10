@@ -204,7 +204,7 @@ once stage 3 lands.
      4. Write fixtures as test documents, checked against the JSON they
         replace, declaring only the IDs tests rely on: those that differ from
         their note's text, since tests name those notes by ID, and those
-        identity checks follow, such as merge survivors and copied originals.
+        that identity checks follow, such as merge survivors and copied originals.
         Until notes follow the
         [workspace ID rules](specs/outliner/note-ids.md#ids-in-workspaces),
         IDs the editor generates count as internal, and expected outlines

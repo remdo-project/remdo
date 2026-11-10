@@ -36,7 +36,7 @@ const TAG = /<selection\s*\/>|<selection>|<\/selection>/g;
 const MARKER = /^\s*(?:[-*+]|\d+[.)])(?:\s+\[([ x])\])?(?:\s+|$)/;
 /** The lines stating a note's own state, in the order a note holds them before its children. */
 const STATE_LINES = ['id', 'folded'] as const;
-const STATE_LINE = /^(id|folded)::(?: (.*))?$/;
+const STATE_LINE = new RegExp(`^(${STATE_LINES.join('|')})::(?: (.*))?$`);
 
 // Inline tags become private-use characters so the note's parsed text says where they sat.
 const SENTINEL = { caret: '', open: '', close: '' } as const;
@@ -130,6 +130,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       if (state && frame.note) {
         const position = STATE_LINES.indexOf(state[1] as typeof STATE_LINES[number]);
         const value = state[2] ?? '';
+        if (marker[1] !== undefined) throw new Error('An id:: or folded:: line holds no checkbox.');
         if (frame.children.length > 0) throw new Error('A note\'s id:: and folded:: lines come before its children.');
         if (position <= (frame.lastState ?? -1)) throw new Error('A note holds at most one id:: line, then at most one folded:: line.');
         frame.lastState = position;

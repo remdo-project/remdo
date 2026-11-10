@@ -249,6 +249,23 @@ describe('toMatchOutline smoke coverage', () => {
     }).toThrow(/differs from the expected Markdown/u);
   });
 
+  it('compares the IDs an expectation declares', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+      - note2
+      - note3
+    `);
+    expect(() => {
+      expect(remdo).toMatchOutline(`
+        - note1
+            - id:: other
+        - note2
+        - note3
+      `);
+    }).toThrow(/differs from the expected Markdown/u);
+  });
+
   it('reports selection mismatches', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await selectStructuralNotes(remdo, 'note2', 'note3');
 
