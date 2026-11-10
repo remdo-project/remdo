@@ -126,7 +126,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       const line = token.map![0];
       const marker = MARKER.exec(lines[line]!)!;
       const content = lines[line]!.slice(marker[0].length).trim();
-      const state = STATE_LINE.exec(content);
+      const state = STATE_LINE.exec([...content].filter((char) => !KIND_BY_SENTINEL.has(char)).join(''));
       if (state && frame.note) {
         if (state[1] === 'id') {
           if (marker[1] !== undefined) throw new Error('An id:: line holds no checkbox.');
