@@ -2,6 +2,7 @@ import { expect, test } from '#editor/fixtures';
 import { ensureReady } from '#editor/bridge';
 import { editorLocator, setCaretAtNoteTextNode, setCaretAtText } from '#editor/locators';
 import { captureEditorSnapshot } from '#editor/state';
+import { markdownNoteText } from '#tests-common/markdown-outline';
 
 test('native inline copy replaces then inserts at the caret, including trailing whitespace', async ({ page, editor }) => {
   const events = await page.evaluateHandle(() => {
@@ -37,7 +38,7 @@ test('native inline copy replaces then inserts at the caret, including trailing 
     await page.keyboard.press('ControlOrMeta+v');
     await expect(editor).toMatchOutline(`
       - note1
-      - ${text}
+      - ${markdownNoteText(text)}
           - id:: note2
       - note3
     `);
@@ -47,7 +48,7 @@ test('native inline copy replaces then inserts at the caret, including trailing 
     await page.keyboard.press('ControlOrMeta+v');
     await expect(editor).toMatchOutline(`
       - note1
-      - ${repeated}
+      - ${markdownNoteText(repeated)}
           - id:: note2
       - note3
     `);
