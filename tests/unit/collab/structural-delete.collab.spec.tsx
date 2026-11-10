@@ -13,11 +13,13 @@ describe('collab structural delete regression', { timeout: COLLAB_LONG_TIMEOUT_M
 
     await selectStructuralNotes(remdo, 'note2', 'note3');
 
-    const expectedAfterRemoteDelete = [
-      { noteId: 'note1', text: 'note1', children: [ { noteId: 'note4', text: 'note4' } ] },
-      { noteId: 'note5', text: 'note5' },
-      { noteId: 'note6', text: 'note6', children: [ { noteId: 'note7', text: 'note7' } ] },
-    ];
+    const expectedAfterRemoteDelete = `
+      - note1
+          - note4
+      - note5
+      - note6
+          - note7
+    `;
 
     await selectStructuralNotes(secondary, 'note2', 'note3');
     await pressKey(secondary, { key: 'Backspace' });

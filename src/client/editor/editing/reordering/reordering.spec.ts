@@ -32,14 +32,14 @@ describe('keyboard reordering (command path)', () => {
     const outlineBefore = readOutline(remdo);
     await placeCaretAtNote(remdo, 'note3');
     await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND, undefined, { expect: 'noop' });
-    expect(remdo).toMatchOutline(outlineBefore);
+    expect(readOutline(remdo)).toEqual(outlineBefore);
   });
 
   it('move up from root-level head is a no-op at document boundary', meta({ fixture: 'basic' }), async ({ remdo }) => {
     const outlineBefore = readOutline(remdo);
     await placeCaretAtNote(remdo, 'note1');
     await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND, undefined, { expect: 'noop' });
-    expect(remdo).toMatchOutline(outlineBefore);
+    expect(readOutline(remdo)).toEqual(outlineBefore);
   });
 
   it('reordering the zoom root is a no-op when the fallback would leave the zoom boundary', meta({ fixture: 'flat', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
@@ -49,7 +49,7 @@ describe('keyboard reordering (command path)', () => {
     await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND, undefined, { expect: 'noop' });
     await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND, undefined, { expect: 'noop' });
 
-    expect(remdo).toMatchOutline(before);
+    expect(readOutline(remdo)).toEqual(before);
   });
 
   it('reordering a zoom-subtree tail note is a no-op when fallback steps leave the zoom boundary', meta({ fixture: 'tree-complex', viewProps: { zoomNoteId: 'note2' } }), async ({ remdo }) => {
@@ -59,7 +59,7 @@ describe('keyboard reordering (command path)', () => {
     await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND, undefined, { expect: 'noop' });
     await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND, undefined, { expect: 'noop' });
 
-    expect(remdo).toMatchOutline(before);
+    expect(readOutline(remdo)).toEqual(before);
   });
 
   it('move down from only child outdents when parent has no next sibling', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -242,7 +242,7 @@ describe('keyboard reordering (command path)', () => {
     const outlineBefore = readOutline(remdo);
     await placeCaretAtNote(remdo, 'note3');
     await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND, undefined, { expect: 'noop' });
-    expect(remdo).toMatchOutline(outlineBefore);
+    expect(readOutline(remdo)).toEqual(outlineBefore);
   });
 
   it('move up no-ops at absolute document head after cascade outdents', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -264,7 +264,7 @@ describe('keyboard reordering (command path)', () => {
     const outlineBefore = readOutline(remdo);
     await placeCaretAtNote(remdo, 'note3');
     await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND, undefined, { expect: 'noop' });
-    expect(remdo).toMatchOutline(outlineBefore);
+    expect(readOutline(remdo)).toEqual(outlineBefore);
   });
 
   it('ignores selections spanning different parents', meta({ fixture: 'tree' }), async ({ remdo }) => {

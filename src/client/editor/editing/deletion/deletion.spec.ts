@@ -299,7 +299,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await placeCaretAtNote(remdo, 'note6', 0);
       await pressKey(remdo, { key: 'Backspace' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note6' });
     });
 
@@ -371,7 +371,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
@@ -382,7 +382,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Enter' }); // create empty sibling under note2
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
@@ -393,7 +393,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Enter' }); // create empty leaf after note3
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
@@ -404,7 +404,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Enter' }); // create empty leaf between note5 and note6
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note6' });
     });
 
@@ -437,7 +437,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 

@@ -16,11 +16,13 @@ describe('note-range delete regression (local)', () => {
   it('bubbles Delete when structural heads were removed remotely', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
         await selectStructuralNotes(remdo, 'note2', 'note3');
 
-    const expectedAfterRemoteDelete = [
-      { noteId: 'note1', text: 'note1', children: [{ noteId: 'note4', text: 'note4' }] },
-      { noteId: 'note5', text: 'note5' },
-      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-    ];
+    const expectedAfterRemoteDelete = `
+      - note1
+          - note4
+      - note5
+      - note6
+          - note7
+    `;
 
     await remdo.mutate(() => {
       const root = $getRoot();
@@ -54,16 +56,13 @@ describe('note-range delete regression (local)', () => {
   it('bubbles Backspace when structural heads were removed remotely', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
         await selectStructuralNotes(remdo, 'note6', 'note7');
 
-    const expectedAfterRemoteDelete = [
-      {
-        noteId: 'note1', text: 'note1',
-        children: [
-          { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-    ];
+    const expectedAfterRemoteDelete = `
+      - note1
+          - note2
+              - note3
+          - note4
+      - note5
+    `;
 
     await remdo.mutate(() => {
       const root = $getRoot();

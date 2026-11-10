@@ -55,11 +55,11 @@ describe('note body collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     await pressKey(remdo, { key: 'Delete' });
 
-    const expected = [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ];
+    const expected = `
+      - note1
+      - note2
+      - note3
+    `;
     await waitFor(() => {
       expect(remdo).toMatchOutline(expected);
       expect(secondary).toMatchOutline(expected);

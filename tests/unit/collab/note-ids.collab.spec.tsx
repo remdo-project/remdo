@@ -25,7 +25,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     await waitFor(() => {
       const outlineA = readOutline(remdo);
-      expect(secondary).toMatchOutline(outlineA);
+      expect(readOutline(secondary)).toEqual(outlineA);
     });
 
     const outlineA = readOutline(remdo);
@@ -35,7 +35,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       .filter((noteId): noteId is string => typeof noteId === 'string' && !baseline.has(noteId));
 
     expect(newIds).toHaveLength(1);
-    expect(secondary).toMatchOutline(outlineA);
+    expect(readOutline(secondary)).toEqual(outlineA);
   });
 
   it('keeps ids unique after inserts from multiple clients', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -49,7 +49,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await pressKey(secondary, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(secondary).toMatchOutline(readOutline(remdo));
+      expect(readOutline(secondary)).toEqual(readOutline(remdo));
     });
 
     const outlineA = readOutline(remdo);
@@ -59,7 +59,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const uniqueIds = new Set(noteIds);
 
     expect(uniqueIds.size).toBe(noteIds.length);
-    expect(secondary).toMatchOutline(outlineA);
+    expect(readOutline(secondary)).toEqual(outlineA);
   });
 
   it('keeps ids unique after concurrent inserts at the same location', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -88,7 +88,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(newIds).toHaveLength(2);
       expect(new Set(noteIds).size).toBe(noteIds.length);
     });
-    expect(secondary).toMatchOutline(outlineA);
+    expect(readOutline(secondary)).toEqual(outlineA);
   });
 
   it('regenerates ids for paste across clients', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -98,17 +98,19 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const clipboardPayload = await copySelection(remdo);
     await pressKey(remdo, { key: 'Delete' });
     await waitFor(() => {
-      expect(secondary).toMatchOutline(readOutline(remdo));
+      expect(readOutline(secondary)).toEqual(readOutline(remdo));
     });
 
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
 
-    const expected = [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ];
+    const expected = `
+      - note1
+          - id:: note1
+      - note2
+      - note3
+          - id:: note3
+    `;
 
     await waitFor(() => {
       expect(remdo).toMatchOutline(expected);
@@ -138,7 +140,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(outlineA[1]?.noteId).toBe('note2');
       expect(noteIds.filter((noteId) => noteId === 'note2')).toHaveLength(1);
       expect(new Set(noteIds).size).toBe(noteIds.length);
-      expect(secondary).toMatchOutline(outlineA);
+      expect(readOutline(secondary)).toEqual(outlineA);
     });
   });
 
@@ -152,7 +154,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const clipboardPayload = await copySelection(remdo);
     await pressKey(remdo, { key: 'Delete' });
     await waitFor(() => {
-      expect(secondary).toMatchOutline(readOutline(remdo));
+      expect(readOutline(secondary)).toEqual(readOutline(remdo));
     });
 
     await placeCaretAtNote(remdo, 'note5', Number.POSITIVE_INFINITY);
@@ -167,7 +169,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(noteIds.filter((noteId) => noteId === 'note2')).toHaveLength(0);
       expect(noteIds.filter((noteId) => noteId === 'note4')).toHaveLength(0);
       expect(new Set(noteIds).size).toBe(noteIds.length);
-      expect(secondary).toMatchOutline(outlineA);
+      expect(readOutline(secondary)).toEqual(outlineA);
     });
   });
 
@@ -177,10 +179,12 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
 
-    const afterCut = [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
-    ];
+    const afterCut = `
+      - note1
+          - id:: note1
+      - note3
+          - id:: note3
+    `;
     expect(remdo).toMatchOutline(afterCut);
 
     await waitFor(() => {
@@ -201,11 +205,14 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
     await pastePayload(remdo, clipboardPayload);
 
-    const expectedOutline = [
-      { noteId: 'note1', text: 'note1 remote' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: 'note2', text: 'note2' },
-    ];
+    const expectedOutline = `
+      - note1 remote
+          - id:: note1
+      - note3
+          - id:: note3
+      - note2
+          - id:: note2
+    `;
 
     await waitFor(() => {
       expect(remdo).toMatchOutline(expectedOutline);
@@ -219,7 +226,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await selectStructuralNotes(remdo, 'note2');
     const clipboardPayload = await cutSelection(remdo);
     await waitFor(() => {
-      expect(secondary).toMatchOutline(readOutline(remdo));
+      expect(readOutline(secondary)).toEqual(readOutline(remdo));
     });
 
     await secondary.mutate(() => {
@@ -229,7 +236,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       $getNoteByText('note3').insertAfter(collision);
     });
     await waitFor(() => {
-      expect(remdo).toMatchOutline(readOutline(secondary));
+      expect(readOutline(remdo)).toEqual(readOutline(secondary));
     });
 
     await placeCaretAtNote(remdo, 'note3', Number.POSITIVE_INFINITY);
@@ -247,7 +254,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       expect(original.noteId).not.toBe('note2');
       expect(collision.noteId).toBe('note2');
       expect(new Set(noteIds).size).toBe(noteIds.length);
-      expect(secondary).toMatchOutline(outline);
+      expect(readOutline(secondary)).toEqual(outline);
     });
   });
 });

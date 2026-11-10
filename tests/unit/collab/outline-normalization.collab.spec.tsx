@@ -164,22 +164,14 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
         }),
       ]);
 
-      const expected = [
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            { noteId: 'note3', text: 'note3' },
-            // note4 is dropped due to the delete+indent conflict.
-          ],
-        },
-        { noteId: 'note5', text: 'note5' },
-        {
-          noteId: 'note6',
-          text: 'note6',
-          children: [{ noteId: 'note7', text: 'note7' }],
-        },
-      ];
+      // note4 is dropped due to the delete+indent conflict.
+      const expected = `
+        - note1
+            - note3
+        - note5
+        - note6
+            - note7
+      `;
 
       await waitFor(() => {
         expect(remdo).toMatchOutline(expected);

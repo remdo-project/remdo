@@ -19,24 +19,20 @@ import { $getNoteByText,
   meta } from '#tests';
 import { act, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { Outline } from '#tests';
 import { $createRangeSelection, $setSelection, $createTextNode, $getSelection, $isRangeSelection, SELECT_ALL_COMMAND } from 'lexical';
 import type { RangeSelection } from 'lexical';
 import { $restoreInlineSelection } from '#client/editor/outline/selection/progressive';
 import { REORDER_NOTES_DOWN_COMMAND, REORDER_NOTES_UP_COMMAND } from '#client/editor/foundation/commands';
 
-const TREE_COMPLEX_OUTLINE: Outline = [
-  {
-    noteId: 'note1',
-    text: 'note1',
-    children: [
-      { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-      { noteId: 'note4', text: 'note4' },
-    ],
-  },
-  { noteId: 'note5', text: 'note5' },
-  { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-];
+const TREE_COMPLEX_OUTLINE = `
+  - note1
+      - note2
+          - note3
+      - note4
+  - note5
+  - note6
+      - note7
+`;
 
 describe('selection plugin', () => {
   it('snaps pointer drags across note boundaries to contiguous structural slices', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -367,7 +363,7 @@ describe('selection plugin', () => {
     const stateAfter = remdo.editor.getEditorState();
     expect(stateAfter.toJSON()).toEqual(stateBefore.toJSON());
 
-    expect(remdo).toMatchOutline(outlineBefore);
+    expect(readOutline(remdo)).toEqual(outlineBefore);
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
