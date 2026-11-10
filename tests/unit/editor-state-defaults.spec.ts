@@ -1,3 +1,4 @@
+/* eslint-disable ts/no-deprecated -- Lexical's legacy serialized form still requires the deprecated `version` field. */
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 

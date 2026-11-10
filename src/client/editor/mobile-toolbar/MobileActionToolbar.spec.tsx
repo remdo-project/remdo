@@ -1,9 +1,9 @@
 import { act, fireEvent, render, within } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setCoarsePointer } from '#tests';
 import { MobileActionToolbar } from './MobileActionToolbar';
 import type { ToolbarCapabilities, ToolbarOpenDocument } from './useToolbarCapabilities';
 
-const browser = vi.hoisted(() => ({ coarsePointer: true }));
 const originalDocumentFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
 
 vi.mock('#client/browser/useVisualViewportBottom', () => ({
@@ -104,17 +104,7 @@ describe('mobile action toolbar', () => {
   });
 
   beforeEach(() => {
-    browser.coarsePointer = true;
-    vi.mocked(globalThis.matchMedia).mockImplementation((query) => ({
-      matches: browser.coarsePointer,
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
+    setCoarsePointer(true);
   });
 
   afterEach(() => {
@@ -132,7 +122,7 @@ describe('mobile action toolbar', () => {
   });
 
   it('does not subscribe or render for a fine pointer', () => {
-    browser.coarsePointer = false;
+    setCoarsePointer(false);
     const { capabilities, openDocument } = createOpenDocument(readyCapabilities());
 
     const { view } = renderToolbar(openDocument);

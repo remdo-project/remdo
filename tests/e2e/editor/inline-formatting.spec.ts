@@ -71,6 +71,7 @@ async function richLabel(page: Page) {
     const children: (SerializedTextNode | SerializedLinkNode)[] = [
       { ...plain, text: 'before ' },
       { ...plain, text: 'bold', format: 1, style: 'color: rgb(230, 80, 90);' },
+      // eslint-disable-next-line ts/no-deprecated -- Lexical's legacy serialized form still requires `version`.
       { type: 'link', version: 1, url: 'https://example.com/', target: '_blank', rel: 'noopener noreferrer',
         title: null, direction: null, format: '', indent: 0, children: [linkText] },
       { ...plain, text: ' after' },

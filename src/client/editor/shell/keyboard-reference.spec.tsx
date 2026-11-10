@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { TestMantineProvider } from '#tests';
+import { setCoarsePointer, TestMantineProvider } from '#tests';
 import { KeyboardReference } from './KeyboardReference';
 
-const browser = vi.hoisted(() => ({ apple: true, coarsePointer: false }));
+const browser = vi.hoisted(() => ({ apple: true }));
 
 vi.mock('lexical', async (importOriginal) => ({
   ...await importOriginal<typeof import('lexical')>(),
@@ -40,17 +40,7 @@ function keysOf(dialog: HTMLElement, action: string): (string | null)[] {
 describe('keyboard reference', () => {
   beforeEach(() => {
     browser.apple = true;
-    browser.coarsePointer = false;
-    vi.mocked(globalThis.matchMedia).mockImplementation((query) => ({
-      matches: query === '(prefers-reduced-motion: reduce)' || (browser.coarsePointer && query.includes('pointer: coarse')),
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
+    setCoarsePointer(false);
   });
 
   it('offers only its control until opened', () => {
@@ -148,7 +138,7 @@ describe('keyboard reference', () => {
   });
 
   it('is absent on touch devices', () => {
-    browser.coarsePointer = true;
+    setCoarsePointer(true);
     renderReference();
 
     expect(screen.queryByRole('button', { name: 'Keyboard reference' })).toBeNull();

@@ -60,12 +60,9 @@ test.describe('date picker (docs/specs/outliner/dates.md)', () => {
     // A collapsed-anchor regression rendered the panel at ~18px; its natural
     // width is well above that. Anything far above the trigger width proves it
     // is not pinned to the anchor.
-    const width = await anyDay(page).evaluate((el) => {
-      const panel = el.closest('[data-date-picker]');
-      if (!(panel instanceof HTMLElement)) throw new Error('date picker panel not found');
-      return panel.getBoundingClientRect().width;
-    });
-    expect(width).toBeGreaterThan(150);
+    const box = await datePickerPanel(page).boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThan(150);
   });
 
   test('the ! calendar is keyboard-navigable and commits the focused day', async ({ page, editor }) => {
