@@ -39,7 +39,6 @@ const PROPERTY_LINE = /^(id|folded)::(?: .*)?$/;
 // Inline tags become private-use characters so the note's parsed text says where they sat.
 const SENTINEL = { caret: '', open: '', close: '' } as const;
 type MarkKind = keyof typeof SENTINEL;
-const ANY_SENTINEL = new RegExp(`[${Object.values(SENTINEL).join('')}]`);
 const KIND_BY_SENTINEL = new Map<string, MarkKind>(Object.entries(SENTINEL).map(([kind, char]) => [char, kind as MarkKind]));
 
 interface Mark extends MarkdownPoint {
@@ -97,16 +96,14 @@ function dedent(source: string): string {
 }
 
 interface Frame {
-  /** The note this list item holds; null for the document, property lines and what they hold. */
+  /** The note this list item holds; null for the document. */
   note: MarkdownNote | null;
   children: MarkdownNote[];
   path: NotePath;
   checkbox?: boolean;
   textRead?: boolean;
-  /** Names of the properties this note's children have stated so far. */
+  /** Names of the properties stated under this note so far. */
   properties?: Set<string>;
-  /** Set on the first line of a property among a note's children, the one that takes effect. */
-  property?: { name: string; of: Frame };
 }
 
 const STRUCTURE = new Set([
@@ -120,9 +117,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index]!;
     const frame = frames.at(-1)!;
-    if (!frame.note && frames.length > 1) {
-      readInProperty(token, frame, frames);
-    } else if (token.type === 'blockquote_open' && frame.note) {
+    if (token.type === 'blockquote_open' && frame.note) {
       index = readBody(tokens, index, frame, lines);
     } else if (token.type === 'list_item_open') {
       const line = token.map![0];
@@ -132,11 +127,15 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       if (property) {
         const name = property[1]!;
         const stated = (frame.properties ??= new Set());
-        frames.push({
-          note: null, children: [], path: frame.path, checkbox: marker[1] !== undefined,
-          property: stated.has(name) ? undefined : { name, of: frame },
-        });
+        if (frame.note && !stated.has(name)) {
+          const text = withoutCheckbox(plainText(tokens[index + 2]!.children ?? []), marker[1] !== undefined);
+          const value = text.slice(text.indexOf('::') + 2).trim();
+          if (name === 'id' && /^\S+$/.test(value)) frame.note.id = value;
+          if (name === 'folded' && value === 'true') frame.note.folded = true;
+        }
         stated.add(name);
+        // Whatever a property line holds is ignored; a selection tag in it then fails the tag count.
+        index = closeOf(tokens, index);
         continue;
       }
       const note: MarkdownNote = marker[1] === 'x' ? { checked: true } : {};
@@ -156,37 +155,24 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       if (frame.textRead) throw new Error('A note holds one paragraph; write a body as > lines before its children.');
       frame.textRead = true;
       const parsed = plainText(token.children ?? []);
-      const text = takeMarks(withoutCheckbox(parsed, frame), frame.path, marks);
+      const text = takeMarks(withoutCheckbox(parsed, frame.checkbox), frame.path, marks);
       if (text) frame.note!.text = text;
     }
   }
   return top;
 }
 
-/**
- * Follows the format's properties: only a property's first line among a note's children takes effect,
- * and whatever is nested under one is ignored. A selection tag left unread there fails the tag count.
- */
-function readInProperty(token: Token, frame: Frame, frames: Frame[]): void {
-  if (token.type === 'list_item_open') {
-    frames.push({ note: null, children: [], path: frame.path });
-  } else if (token.type === 'list_item_close') {
-    frames.pop();
-  } else if (token.type === 'inline' && frame.property && !frame.textRead) {
-    frame.textRead = true;
-    const text = withoutCheckbox(plainText(token.children ?? []), frame);
-    if (ANY_SENTINEL.test(text)) throw new Error('<selection> must sit in a note\'s own text.');
-    const value = text.slice(text.indexOf('::') + 2).trim();
-    const note = frame.property.of.note;
-    if (!note) return;
-    if (frame.property.name === 'id' && /^\S+$/.test(value)) note.id = value;
-    if (frame.property.name === 'folded' && value === 'true') note.folded = true;
-  }
+// CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
+function withoutCheckbox(text: string, checkbox: boolean | undefined): string {
+  return checkbox ? text.replace(/^\[[ x]\] ?/, '') : text;
 }
 
-// CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
-function withoutCheckbox(text: string, frame: Frame): string {
-  return frame.checkbox ? text.replace(/^\[[ x]\] ?/, '') : text;
+/** Returns the index of the token that closes the one at `open`. */
+function closeOf(tokens: Token[], open: number): number {
+  const close = tokens[open]!.type.replace(/_open$/, '_close');
+  let index = open + 1;
+  while (tokens[index]!.type !== close || tokens[index]!.level !== tokens[open]!.level) index += 1;
+  return index;
 }
 
 /** Reads a body from its source lines and returns the index of the token that closes it. */
@@ -202,9 +188,7 @@ function readBody(tokens: Token[], open: number, frame: Frame, lines: string[]):
   }
   note.body = source.map((line) => line.replace(/^\s*> ?/, '')).join('\n');
   frame.textRead = true;
-  for (let index = open + 1; ; index += 1) {
-    if (tokens[index]!.type === 'blockquote_close' && tokens[index]!.level === tokens[open]!.level) return index;
-  }
+  return closeOf(tokens, open);
 }
 
 function plainText(tokens: Token[]): string {

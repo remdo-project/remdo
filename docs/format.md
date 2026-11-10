@@ -67,9 +67,8 @@ An outline note holds:
 - ID:: optional and added lazily, such as when a note is first referenced
     > - An ID is the `id` [property](#properties), such as the one below
     > - A document's ID is a top-level note before its first heading
-    > - Among notes sharing an ID, the first in file order holds it; across
-    >   documents it is ambiguous, and tools may report it or give the other
-    >   notes new IDs
+    > - [Note IDs](specs/outliner/note-ids.md#ids-in-workspaces) own how notes
+    >   sharing one resolve
     - id:: k3x9
 
 ## Properties
@@ -78,9 +77,7 @@ A property is a name the format gives a meaning, written as a named note under
 the note it applies to.
 
 - A note's first line with a property's name takes effect, wherever it sits
-  under the note
-- Later lines with that name are ignored, as is anything nested under a
-  property line
+  under the note; later ones, and anything nested under a property line, are ignored
 - Property lines aren't among the note's children, so they don't decide which
   block comes first
 - A value the property doesn't define has no effect
