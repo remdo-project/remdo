@@ -1,8 +1,7 @@
 import type { ConsoleMessage, Page, Response, TestInfo } from '@playwright/test';
 import { expect, test as base } from '@playwright/test';
 import type { Outline } from '#tests-common/outline';
-import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards, projectOutline } from '#tests-common/outline';
-import { readMarkdownOutline } from '#tests-common/markdown-outline';
+import { extractOutlineFromEditorState, readOutlineExpectation } from '#tests-common/outline';
 import { createAuthenticatedContext } from './auth-context';
 
 interface EditorLike {
@@ -245,8 +244,9 @@ export function collectCurrentUserRequests(page: Page): string[] {
 
 expect.extend({
   // TODO: Object expectations remain for bodies and fold state until the text-format spike
-  // settles how Markdown holds them (docs/text-format-plan.md). Probe: narrow `expected` to
-  // `string`; nothing fails to compile.
+  // settles how Markdown holds them (docs/text-format-plan.md), and where specs build notes from
+  // variables or expect spaces at a note's edge. Probe: narrow `expected` to `string`; nothing
+  // fails to compile.
   async toMatchOutline(received: unknown, expected: Outline | string) {
     if (this.isNot) {
       return {
@@ -264,18 +264,13 @@ expect.extend({
     }
 
     try {
-      const wanted = typeof expected === 'string' ? readMarkdownOutline(expected) : null;
-      if (wanted?.selection) {
+      const { wanted, selection, project } = readOutlineExpectation(expected);
+      if (selection) {
         throw new Error('Browser outline expectations read no selection yet; drop the <selection> tags.');
       }
       await expect
-        .poll(async () => {
-          const actual = extractOutlineFromEditorState(await target.getEditorState!());
-          if (wanted) return projectOutline(actual, wanted.notes);
-          mutateOutlineNoteIdWildcards(actual, expected as Outline);
-          return actual;
-        })
-        .toEqual(wanted ? wanted.notes : expected);
+        .poll(async () => project(extractOutlineFromEditorState(await target.getEditorState!())))
+        .toEqual(wanted);
       return { pass: true, message: () => 'Expected outlines not to match.' };
     } catch (error) {
       return {
