@@ -71,6 +71,15 @@ describe('reading expected outlines from Markdown', () => {
     ]);
   });
 
+  it('reads id:: and folded:: values as text, after escapes and character references', () => {
+    expect(readMarkdownOutline(`
+      - note1
+          - id:: a\\_b
+          - folded:: &#116;rue
+          - note2
+    `).notes).toEqual([{ text: 'note1', id: 'a_b', folded: true, children: [{ text: 'note2' }] }]);
+  });
+
   it('keeps spaces at a note\'s edges written as character references', () => {
     expect(markdownNoteText('  two words ')).toBe('&#32;&#32;two words&#32;');
     expect(readMarkdownOutline(`- ${markdownNoteText('  two words ')}`).notes).toEqual([{ text: '  two words ' }]);
@@ -120,6 +129,10 @@ describe('reading expected outlines from Markdown', () => {
     ['a body on its note\'s line', '- > quoted', /Every body line starts with >/u],
     ['a selection in a body','- note1\n    > bo<selection />dy', /own text/u],
     ['a selection in a folded:: line', '- note1\n    - folded:: true<selection />\n    - note2', /own text/u],
+    ['a selection before a folded:: line\'s name', '- note1\n    - <selection />folded:: true', /own text/u],
+    ['an id:: line with a checkbox', '- note1\n    - [ ] id:: first', /holds no checkbox/u],
+    ['an id:: line after children', '- note1\n    - note2\n    - id:: first', /before its children/u],
+    ['a body after an id:: line', '- note1\n    - id:: first\n    > late', /one > block, before/u],
     ['an id:: line holding two words', '- note1\n    - id:: first second', /holds one ID/u],
     ['a second id:: line', '- note1\n    - id:: first\n    - id:: second', /one id:: line/u],
     ['an id:: line continued on the next line', '- note1\n    - id:: first\n      second', /marker's line/u],
