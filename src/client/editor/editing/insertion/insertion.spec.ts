@@ -24,11 +24,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
     const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      { noteId: newNoteId, text: 'X' },
-      { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - X
+          - id:: ${newNoteId}
+      - note1
+          - note2
+      - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
@@ -38,11 +40,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
     const trailingNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'no' },
-      { noteId: trailingNoteId, text: 'Xte1' },
-      { noteId: 'note2', text: 'note2', children: [ { noteId: 'note3', text: 'note3' } ] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - no
+          - id:: note1
+      - Xte1
+          - id:: ${trailingNoteId}
+      - note2
+          - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
   });
 
@@ -52,22 +57,16 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await pressKey(remdo, { key: 'Enter' });
     const trailingNoteId = readCaretNoteId(remdo);
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'bold',
-        text: 'bold',
-        children: [
-          {
-            noteId: 'italic',
-            text: 'italic',
-            children: [{ noteId: 'target', text: 'target' }],
-          },
-        ],
-      },
-      { noteId: 'underline', text: 'underline' },
-      { noteId: 'mixedFormatting', text: 'plain ' },
-      { noteId: trailingNoteId, text: 'bold italic underline plain' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - bold
+          - italic
+              - target
+      - underline
+      - plain&#32;
+          - id:: mixedFormatting
+      - bold italic underline plain
+          - id:: ${trailingNoteId}
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
   });
 
@@ -78,17 +77,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
 
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          { noteId: newNoteId, text: 'X' },
-          { noteId: 'note2', text: 'note2' },
-        ],
-      },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - X
+              - id:: ${newNoteId}
+          - note2
+      - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
@@ -117,11 +112,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
     const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', children: [{ noteId: newNoteId, text: 'X' }] },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          - X
+              - id:: ${newNoteId}
+      - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
@@ -131,11 +128,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
     const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', children: [{ noteId: newNoteId, text: 'X' }] },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          - X
+              - id:: ${newNoteId}
+      - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
@@ -144,11 +143,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await pressKey(remdo, { key: 'Enter' });
     const newChildId = readCaretNoteId(remdo);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'no', children: [{ noteId: newChildId, text: 'te2' }] },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - no
+          - id:: note2
+          - te2
+              - id:: ${newChildId}
+      - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: newChildId });
   });
 
@@ -225,11 +227,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
     const trailingNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'no' },
-      { noteId: trailingNoteId, text: 'Xte2', children: [ { noteId: 'note3', text: 'note3' } ] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - no
+          - id:: note2
+      - Xte2
+          - id:: ${trailingNoteId}
+          - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
   });
 
@@ -239,17 +244,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
     const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      {
-        noteId: 'note2',
-        text: 'note2',
-        children: [
-          { noteId: newNoteId, text: 'X' },
-          { noteId: 'note3', text: 'note3' },
-        ],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          - X
+              - id:: ${newNoteId}
+          - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
@@ -259,17 +260,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
     const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      {
-        noteId: 'note2',
-        text: 'note2',
-        children: [
-          { noteId: newNoteId, text: 'X' },
-          { noteId: 'note3', text: 'note3' },
-        ],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          - X
+              - id:: ${newNoteId}
+          - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
@@ -279,11 +276,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
     const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: newNoteId, text: 'X' },
-      { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - X
+          - id:: ${newNoteId}
+      - note2
+          - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
@@ -293,23 +292,17 @@ describe('insertion semantics (docs/insertion.md)', () => {
     const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          {
-            noteId: 'note2',
-            text: 'note2',
-            children: [{ noteId: 'note3', text: 'note3' }],
-          },
-          { noteId: newNoteId, text: 'X' },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+              - note3
+          - X
+              - id:: ${newNoteId}
+          - note4
+      - note5
+      - note6
+          - note7
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
@@ -319,26 +312,18 @@ describe('insertion semantics (docs/insertion.md)', () => {
     const trailingNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          {
-            noteId: 'note2',
-            text: 'no',
-          },
-          {
-            noteId: trailingNoteId,
-            text: 'Xte2',
-            children: [{ noteId: 'note3', text: 'note3' }],
-          },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - no
+              - id:: note2
+          - Xte2
+              - id:: ${trailingNoteId}
+              - note3
+          - note4
+      - note5
+      - note6
+          - note7
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
   });
 
@@ -402,20 +387,23 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await pressKey(remdo, { key: 'Enter' });
     const trailingNoteId = readCaretNoteId(remdo);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: ' ', checked: true },
-      { noteId: trailingNoteId, text: 'note' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - [x] &#32;
+          - id:: note1
+      - note
+          - id:: ${trailingNoteId}
+      - note2
+      - note3
+    `);
 
     await pressKey(remdo, { key: 'Backspace' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: ' note', checked: true },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - [x] &#32;note
+          - id:: note1
+      - note2
+      - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
   });
 
@@ -426,11 +414,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
       const trailingNoteId = readCaretNoteId(remdo);
       await typeText(remdo, 'X');
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'no' },
-        { noteId: trailingNoteId, text: 'X1' },
-        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - no
+            - id:: note1
+        - X1
+            - id:: ${trailingNoteId}
+        - note2
+            - note3
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
     });
 
@@ -439,19 +430,18 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
 
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            { noteId: 'note2', text: 'no' },
-            { noteId: trailingNoteId, text: '2', children: [{ noteId: 'note3', text: 'note3' }] },
-            { noteId: 'note4', text: 'note4' },
-          ],
-        },
-        { noteId: 'note5', text: 'note5' },
-        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - no
+                - id:: note2
+            - 2
+                - id:: ${trailingNoteId}
+                - note3
+            - note4
+        - note5
+        - note6
+            - note7
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
     });
 
@@ -475,11 +465,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
       const newNoteId = readCaretNoteId(remdo);
       await typeText(remdo, 'X');
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'not' },
-        { noteId: newNoteId, text: 'X' },
-        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - not
+            - id:: note1
+        - X
+            - id:: ${newNoteId}
+        - note2
+            - note3
+      `);
     });
 
     it('clears the note and applies the end rule when the whole text is selected', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -488,11 +481,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
       const newNoteId = readCaretNoteId(remdo);
       await typeText(remdo, 'X');
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1' },
-        { noteId: newNoteId, text: 'X' },
-        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        -
+            - id:: note1
+        - X
+            - id:: ${newNoteId}
+        - note2
+            - note3
+      `);
     });
 
     it('creates a first child when the whole text of a parent is selected', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -501,24 +497,19 @@ describe('insertion semantics (docs/insertion.md)', () => {
       const newNoteId = readCaretNoteId(remdo);
       await typeText(remdo, 'X');
 
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            {
-              noteId: 'note2',
-              children: [
-                { noteId: newNoteId, text: 'X' },
-                { noteId: 'note3', text: 'note3' },
-              ],
-            },
-            { noteId: 'note4', text: 'note4' },
-          ],
-        },
-        { noteId: 'note5', text: 'note5' },
-        { noteId: 'note6', text: 'note6', children: [{ noteId: 'note7', text: 'note7' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+
+            -
+                - id:: note2
+                - X
+                    - id:: ${newNoteId}
+                - note3
+            - note4
+        - note5
+        - note6
+            - note7
+      `);
     });
 
     it('splits when the selection spans several text nodes', meta({ fixture: 'formatted' }), async ({ remdo }) => {
@@ -526,18 +517,16 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
 
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'bold',
-          text: 'bold',
-          children: [
-            { noteId: 'italic', text: 'italic', children: [{ noteId: 'target', text: 'target' }] },
-          ],
-        },
-        { noteId: 'underline', text: 'underline' },
-        { noteId: 'mixedFormatting', text: 'pla' },
-        { noteId: trailingNoteId, text: 'lic underline plain' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - bold
+            - italic
+                - target
+        - underline
+        - pla
+            - id:: mixedFormatting
+        - lic underline plain
+            - id:: ${trailingNoteId}
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
     });
 
@@ -570,11 +559,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'Jan 2, 2026' },
-        { noteId: trailingNoteId, text: 'Mar 4, 2026' },
-        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - Jan 2, 2026
+            - id:: note1
+        - Mar 4, 2026
+            - id:: ${trailingNoteId}
+        - note2
+            - note3
+      `);
     });
 
     it('splits a link at the exact caret after removing a selection inside it', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -601,11 +593,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'before li' },
-        { noteId: trailingNoteId, text: 'xt after' },
-        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - before li
+            - id:: note1
+        - xt after
+            - id:: ${trailingNoteId}
+        - note2
+            - note3
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
       remdo.validate(() => {
         const leadingLink = $getNoteById('note1').getChildren().find($isLinkNode)!;
@@ -633,12 +628,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'same no' },
-        { noteId: trailingNoteId, text: 'te2 cross /n/otherDoc_remoteNote' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - same no
+            - id:: note1
+        - te2 cross /n/otherDoc_remoteNote
+            - id:: ${trailingNoteId}
+        - note2
+        - note3
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
       remdo.validate(() => {
         const leadingLink = $getNoteById('note1').getChildren().find($isNoteLinkNode)!;
@@ -666,11 +663,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'before link' },
-        { noteId: trailingNoteId, text: ' after' },
-        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - before link
+            - id:: note1
+        - &#32;after
+            - id:: ${trailingNoteId}
+        - note2
+            - note3
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
       remdo.validate(() => {
         const link = $getNoteById('note1').getChildren().find($isLinkNode)!;
@@ -689,20 +689,23 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'same no' },
-        { noteId: trailingNoteId, text: ' cross /n/otherDoc_remoteNote' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - same no
+            - id:: note1
+        - &#32;cross /n/otherDoc_remoteNote
+            - id:: ${trailingNoteId}
+        - note2
+        - note3
+      `);
 
       await remdo.dispatchCommand(UNDO_COMMAND);
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'same note2 cross /n/otherDoc_remoteNote' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - same note2 cross /n/otherDoc_remoteNote
+            - id:: note1
+        - note2
+        - note3
+      `);
     });
 
     it('leaves shift+enter to the note body, keeping the selected text', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -721,16 +724,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       const newChildId = readCaretNoteId(remdo);
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        {
-          noteId: 'note2',
-          text: 'no',
-          children: [
-            { noteId: newChildId, text: '2', children: [{ noteId: 'note3', text: 'note3' }] },
-          ],
-        },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+        - no
+            - id:: note2
+            - 2
+                - id:: ${newChildId}
+                - note3
+      `);
     });
   });
 });

@@ -2,6 +2,7 @@ import { expect, test } from '#editor/fixtures';
 import { ensureReady } from '#editor/bridge';
 import { editorLocator, setCaretAtNoteTextNode, setCaretAtText } from '#editor/locators';
 import { captureEditorSnapshot } from '#editor/state';
+import { markdownNoteText } from '#tests-common/markdown-outline';
 
 test('native inline copy replaces then inserts at the caret, including trailing whitespace', async ({ page, editor }) => {
   const events = await page.evaluateHandle(() => {
@@ -35,20 +36,22 @@ test('native inline copy replaces then inserts at the caret, including trailing 
 
     await page.keyboard.press('ControlOrMeta+c');
     await page.keyboard.press('ControlOrMeta+v');
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - ${markdownNoteText(text)}
+          - id:: note2
+      - note3
+    `);
     expect((await captureEditorSnapshot(page)).selection).toMatchObject({
       anchorOffset: end, focusOffset: end, isCollapsed: true,
     });
     await page.keyboard.press('ControlOrMeta+v');
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: repeated },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - ${markdownNoteText(repeated)}
+          - id:: note2
+      - note3
+    `);
     expect((await captureEditorSnapshot(page)).selection).toMatchObject({
       anchorOffset: end * 2, focusOffset: end * 2, isCollapsed: true,
     });
@@ -101,14 +104,17 @@ test('rich paste preserves content, hierarchy, focus and undo on a narrow viewpo
     element.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
   });
 
-  await expect(editor).toMatchOutline([
-    { noteId: 'note1', text: 'note1' },
-    { noteId: 'note2', text: 'no' },
-    { noteId: null, text: 'Before' },
-    { noteId: null, text: 'Alpha Beta', children: [{ noteId: null, text: 'Child' }] },
-    { noteId: null, text: 'After' },
-    { noteId: null, text: 'te2', children: [{ noteId: 'note3', text: 'note3' }] },
-  ]);
+  await expect(editor).toMatchOutline(`
+    - note1
+    - no
+        - id:: note2
+    - Before
+    - Alpha Beta
+        - Child
+    - After
+    - te2
+        - note3
+  `);
   await expect(editorLocator(page).getByRole('link', { name: 'After' })).toHaveAttribute('href', 'https://example.com');
   await expect(editorLocator(page).locator('code')).toHaveText('Alpha Beta');
   expect((await captureEditorSnapshot(page)).selection).toMatchObject({

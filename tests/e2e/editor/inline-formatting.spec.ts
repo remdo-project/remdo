@@ -184,10 +184,11 @@ test('keeps formatting shortcuts in the editor and leaves Alt+F10 unclaimed', as
   await expect(page.getByRole('tooltip')).toHaveText('Inline code (Ctrl+E)');
   await page.keyboard.press('Tab');
   await expect(input(page).locator('.list-nested-item')).toHaveCount(1);
-  await expect(editor).toMatchOutline([
-    { noteId: 'note1', text: 'note1', children: [{ noteId: 'note2', text: 'note2' }] },
-    { noteId: 'note3', text: 'note3' },
-  ]);
+  await expect(editor).toMatchOutline(`
+    - note1
+        - note2
+    - note3
+  `);
 });
 
 for (const mac of [false, true]) {

@@ -1042,20 +1042,19 @@ describe('lexical open document', () => {
       }]);
       const [first, second] = await openDocument.root.content.appendChildren([{ text: 'First' }, { text: 'Second' }]);
 
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [{
-            noteId: summary!,
-            text: 'Summary',
-            children: [{ noteId: null, text: 'Done', checked: true }, { noteId: null, text: 'Open' }],
-          }],
-        },
-        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-        { noteId: first!, text: 'First' },
-        { noteId: second!, text: 'Second' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - Summary
+                - id:: ${summary!}
+                - [x] Done
+                - Open
+        - note2
+            - note3
+        - First
+            - id:: ${first!}
+        - Second
+            - id:: ${second!}
+      `);
       expect(openDocument.noteRef('note1').getChildListType()).toBe('bullet');
       expect(openDocument.noteRef(summary!).getChildListType()).toBe('check');
       expect(openDocument.root.content.getChildren().map((note) => note.getId())).toEqual(['note1', 'note2', first, second]);
@@ -1068,7 +1067,12 @@ describe('lexical open document', () => {
 
       const [first, second] = await remdo.openDocument.root.content.appendChildren([{ text: 'First' }, { text: 'Second' }]);
 
-      expect(remdo).toMatchOutline([{ noteId: first!, text: 'First' }, { noteId: second!, text: 'Second' }]);
+      expect(remdo).toMatchOutline(`
+        - First
+            - id:: ${first!}
+        - Second
+            - id:: ${second!}
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: first! });
     });
 
@@ -1095,7 +1099,12 @@ describe('lexical open document', () => {
     it('keeps a sole empty note that has a body or receives the append', meta({ fixture: 'flat' }), async ({ remdo }) => {
       await remdo.mutate(() => $setSingleNoteDocument('blank', ''));
       const [child] = await remdo.openDocument.noteRef('blank').appendChildren([{ text: 'Child' }]);
-      expect(remdo).toMatchOutline([{ noteId: 'blank', children: [{ noteId: child!, text: 'Child' }] }]);
+      expect(remdo).toMatchOutline(`
+        -
+            - id:: blank
+            - Child
+                - id:: ${child!}
+      `);
 
       await remdo.mutate(() => {
         $setSingleNoteDocument('blank', '');

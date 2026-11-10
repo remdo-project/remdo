@@ -10,10 +10,11 @@ test.describe('Folding', () => {
     const childItem = editorLocator(page).locator('li.list-item:not(.list-nested-item)').filter({ hasText: 'note3' }).first();
     await expect(listItem).toBeVisible();
     await expect(childItem).toBeVisible();
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - note2
+          - note3
+    `);
 
     await setCaretAtText(page, 'note2', 0);
     const foldMenu = await openNoteMenu(page, 'note2', { anchor: 'caret', openMethod: 'shortcut' });
@@ -32,10 +33,11 @@ test.describe('Folding', () => {
     await unfoldMenu.expectClosed();
     await expect(listItem).not.toHaveAttribute('data-folded', 'true');
     await expect(childItem).toBeVisible();
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - note2
+          - note3
+    `);
   });
 
   test('folding a note that has a body still hides its children', async ({ page, editor }) => {

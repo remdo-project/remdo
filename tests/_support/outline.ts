@@ -1,4 +1,6 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
+import { readMarkdownOutline } from './markdown-outline';
+import type { MarkdownNote, MarkdownSelection } from './markdown-outline';
 
 import { formatDateNodeLabel } from '#client/editor/features/date/date-label';
 import type { SerializedOutlineNote } from '#client/editor/dev/schema/traverseSerializedOutline';
@@ -131,4 +133,52 @@ export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline)
   };
 
   walk(actual, expected);
+}
+
+export type ProjectedNote = MarkdownNote & Pick<OutlineNode, 'body' | 'folded'>;
+
+/**
+ * The editor's outline in the shape a Markdown expectation has, with IDs only where it declares one.
+ * Bodies and fold state stay in, so a document Markdown can't express yet fails instead of passing.
+ */
+export function projectOutline(actual: Outline, expected: MarkdownNote[] | undefined): ProjectedNote[] {
+  return actual.map((node, index) => {
+    const declared = expected?.[index];
+    const projected: ProjectedNote = {};
+    if (node.text) projected.text = node.text;
+    if (node.checked) projected.checked = true;
+    if (declared?.id !== undefined) projected.id = node.noteId ?? undefined;
+    if (node.body !== undefined) projected.body = node.body;
+    if (node.folded) projected.folded = true;
+    if (node.children) projected.children = projectOutline(node.children, declared?.children);
+    return projected;
+  });
+}
+
+export interface OutlineExpectation<Shape extends Outline | ProjectedNote[]> {
+  wanted: Shape;
+  selection: MarkdownSelection | null;
+  project: (actual: Outline) => Shape;
+}
+
+// TODO: Object expectations remain for bodies and fold state until the text-format spike settles
+// how Markdown holds them (docs/text-format-plan.md). Probe: narrow `expected` to `string` in the
+// `toMatchOutline` declarations (tests/unit/_support/types/vitest.d.ts,
+// tests/e2e/_support/expect.d.ts); nothing fails to compile.
+/** An expected outline, as Markdown or objects, with the projection that makes the editor's comparable. */
+export function readOutlineExpectation(expected: string): OutlineExpectation<ProjectedNote[]>;
+export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<ProjectedNote[]>;
+export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<ProjectedNote[]> {
+  if (typeof expected !== 'string') {
+    return {
+      wanted: expected,
+      selection: null,
+      project: (actual) => {
+        mutateOutlineNoteIdWildcards(actual, expected);
+        return actual;
+      },
+    };
+  }
+  const { notes, selection } = readMarkdownOutline(expected);
+  return { wanted: notes, selection, project: (actual) => projectOutline(actual, notes) };
 }

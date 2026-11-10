@@ -1,7 +1,7 @@
 import type { ConsoleMessage, Page, Response, TestInfo } from '@playwright/test';
 import { expect, test as base } from '@playwright/test';
 import type { Outline } from '#tests-common/outline';
-import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
+import { extractOutlineFromEditorState, readOutlineExpectation } from '#tests-common/outline';
 import { createAuthenticatedContext } from './auth-context';
 
 interface EditorLike {
@@ -243,7 +243,7 @@ export function collectCurrentUserRequests(page: Page): string[] {
 }
 
 expect.extend({
-  async toMatchOutline(received: unknown, expected: Outline) {
+  async toMatchOutline(received: unknown, expected: Outline | string) {
     if (this.isNot) {
       return {
         pass: true,
@@ -260,13 +260,13 @@ expect.extend({
     }
 
     try {
+      const { wanted, selection, project } = readOutlineExpectation(expected);
+      if (selection) {
+        throw new Error('Browser outline expectations read no selection yet; drop the <selection> tags.');
+      }
       await expect
-        .poll(async () => {
-          const actual = extractOutlineFromEditorState(await target.getEditorState!());
-          mutateOutlineNoteIdWildcards(actual, expected);
-          return actual;
-        })
-        .toEqual(expected);
+        .poll(async () => project(extractOutlineFromEditorState(await target.getEditorState!())))
+        .toEqual(wanted);
       return { pass: true, message: () => 'Expected outlines not to match.' };
     } catch (error) {
       return {

@@ -52,11 +52,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await typeText(remdo, ' @note2');
     await pressKey(remdo, { key: 'Enter' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2 ' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 note2&#32;
+          - id:: note1
+      - note2
+      - note3
+    `);
 
     remdo.validate(() => {
       const note = $getNoteById('note1');
@@ -551,11 +552,13 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await selectEntireNote(remdo, 'note2');
     await typeText(remdo, 'renamed note2');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2 ' },
-      { noteId: 'note2', text: 'renamed note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 note2&#32;
+          - id:: note1
+      - renamed note2
+          - id:: note2
+      - note3
+    `);
 
     remdo.validate(() => {
       const note = $getNoteById('note1');
@@ -753,11 +756,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     option.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true, cancelable: true }));
     await remdo.waitForSynced();
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note3 ' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 note3&#32;
+          - id:: note1
+      - note2
+      - note3
+    `);
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
   });
 
@@ -779,14 +783,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
       await typeText(remdo, ' @note1');
       await pressKey(remdo, { key: 'Enter' });
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        {
-          noteId: 'note2',
-          text: 'note2',
-          children: [{ noteId: 'note3', text: 'note3 note1 ' }],
-        },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+        - note2
+            - note3 note1&#32;
+                - id:: note3
+      `);
     }
   );
 
@@ -814,11 +816,12 @@ describe('note links (docs/specs/outliner/links.md)', () => {
     await pressKey(remdo, { key: 'Backspace' });
 
     expect(document.querySelector('[data-note-link-picker]')).toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 ' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1&#32;
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('does not open link mode when @ follows non-whitespace text', meta({ fixture: 'flat' }), async ({ remdo }) => {

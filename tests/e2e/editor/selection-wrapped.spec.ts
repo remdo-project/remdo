@@ -244,10 +244,12 @@ for (const style of ['plain', 'link', 'bold'] as const) {
       const low = Math.min(selected.anchor.offset, selected.focus.offset);
       const high = Math.max(selected.anchor.offset, selected.focus.offset);
       await page.keyboard.type('Z');
-      await expect(editor).toMatchOutline([
-        { noteId: 'note3', text: 'note3' }, { noteId: 'note1', text: `${LABEL.slice(0, low)}Z${LABEL.slice(high)}` },
-        { noteId: 'note2', text: 'note2' },
-      ]);
+      await expect(editor).toMatchOutline(`
+        - note3
+        - ${LABEL.slice(0, low)}Z${LABEL.slice(high)}
+            - id:: note1
+        - note2
+      `);
     });
   }
 }
@@ -259,9 +261,12 @@ test('expires a completed native no-op before another programmatic caret selecti
   await setCaretAtText(page, 'note2', 2);
   await expect.poll(async () => (await selectionState(page)).kind).toBe('caret');
   await page.keyboard.type('Z');
-  await expect(editor).toMatchOutline([
-    { noteId: 'note1', text: 'note1' }, { noteId: 'note2', text: 'noZte2' }, { noteId: 'note3', text: 'note3' },
-  ]);
+  await expect(editor).toMatchOutline(`
+    - note1
+    - noZte2
+        - id:: note2
+    - note3
+  `);
 });
 
 for (const side of ['before', 'after'] as const) {
@@ -452,13 +457,27 @@ for (const input of ['type', 'Enter', 'ArrowRight', 'Home'] as const) {
     await page.keyboard.press('Shift+ArrowDown');
     if (input === 'type') await page.keyboard.type('Z');
     else await page.keyboard.press(input);
-    const untouched = [{ noteId: 'note2', text: 'note2' }, { noteId: 'note3', text: 'note3' }];
     if (input === 'type') {
-      await expect(editor).toMatchOutline([{ noteId: 'note1', text: 'Z' }, ...untouched]);
+      await expect(editor).toMatchOutline(`
+        - Z
+            - id:: note1
+        - note2
+        - note3
+      `);
     } else if (input === 'Enter') {
-      await expect(editor).toMatchOutline([{ noteId: 'note1' }, { noteId: null }, ...untouched]);
+      await expect(editor).toMatchOutline(`
+        -
+            - id:: note1
+        -
+        - note2
+        - note3
+      `);
     } else {
-      await expect(editor).toMatchOutline([{ noteId: 'note1', text: 'note1' }, ...untouched]);
+      await expect(editor).toMatchOutline(`
+        - note1
+        - note2
+        - note3
+      `);
       await expect.poll(async () => {
         const { kind, focus } = await selectionState(page);
         return { kind, focus };
@@ -495,9 +514,12 @@ for (const ranged of [false, true]) {
     await expectWholeLabel(page, 'note1');
     await page.keyboard.press('Shift+ArrowUp');
     await expect.poll(() => selectionState(page)).toEqual(before);
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' }, { noteId: 'note2', text: 'note2' }, { noteId: 'note3', text: 'remote edit' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - note2
+      - remote edit
+          - id:: note3
+    `);
   });
 
   test(`keeps a replacement ${ranged ? 'inline range' : 'caret'} after a pending native crossing`, async ({ page, editor }) => {

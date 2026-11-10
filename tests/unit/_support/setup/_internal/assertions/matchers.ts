@@ -1,10 +1,9 @@
 import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
-import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
-import type { OutlineNode } from '#tests-common/outline';
-import { readMarkdownOutline } from '#tests-common/markdown-outline';
-import type { MarkdownNote, MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
+import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards, readOutlineExpectation } from '#tests-common/outline';
+import type { OutlineNode, ProjectedNote } from '#tests-common/outline';
+import type { MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
 import {
   collectSelectedListItems,
   findNearestListItem,
@@ -196,26 +195,6 @@ function $getCaretNoteId(selection: RangeSelection): string | null {
   return $resolveId(selection.focus) ?? $resolveId(selection.anchor);
 }
 
-type ProjectedNote = MarkdownNote & Pick<OutlineNode, 'body' | 'folded'>;
-
-/**
- * The editor's outline in the shape a Markdown expectation has, with IDs only where it declares one.
- * Bodies and fold state stay in, so a document Markdown can't express yet fails instead of passing.
- */
-function projectOutline(actual: Outline, expected: MarkdownNote[] | undefined): ProjectedNote[] {
-  return actual.map((node, index) => {
-    const declared = expected?.[index];
-    const projected: ProjectedNote = {};
-    if (node.text) projected.text = node.text;
-    if (node.checked) projected.checked = true;
-    if (declared?.id !== undefined) projected.id = node.noteId ?? undefined;
-    if (node.body !== undefined) projected.body = node.body;
-    if (node.folded) projected.folded = true;
-    if (node.children) projected.children = projectOutline(node.children, declared?.children);
-    return projected;
-  });
-}
-
 function noteIdAt(outline: Outline, path: NotePath): string {
   let notes: Outline | undefined = outline;
   let node: OutlineNode | undefined;
@@ -298,13 +277,13 @@ function readSelectionDetail(remdo: RemdoTestHelpers): SelectionDetail {
 
 function matchMarkdownOutline(ctx: any, remdo: RemdoTestHelpers, expected: string): MatcherResult {
   const read = attemptRead(ctx, '.toMatchOutline', () => {
-    const parsed = readMarkdownOutline(expected);
+    const { wanted: notes, selection, project } = readOutlineExpectation(expected);
     const outline = extractOutlineFromEditorState(remdo.getEditorState());
-    const actual: { outline: ProjectedNote[]; selection?: SelectionDetail } = { outline: projectOutline(outline, parsed.notes) };
-    const wanted: typeof actual = { outline: parsed.notes };
-    if (parsed.selection) {
+    const actual: { outline: ProjectedNote[]; selection?: SelectionDetail } = { outline: project(outline) };
+    const wanted: typeof actual = { outline: notes };
+    if (selection) {
       actual.selection = readSelectionDetail(remdo);
-      wanted.selection = resolveMarkdownSelection(parsed.selection, outline);
+      wanted.selection = resolveMarkdownSelection(selection, outline);
     }
     return { actual, wanted };
   });
@@ -319,9 +298,6 @@ function matchMarkdownOutline(ctx: any, remdo: RemdoTestHelpers, expected: strin
 }
 
 expect.extend({
-  // TODO: Object expectations remain while specs migrate to Markdown, and for bodies and fold
-  // state until the text-format spike settles how Markdown holds them
-  // (docs/text-format-plan.md). Probe: narrow `expected` to `string`; nothing fails to compile.
   toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: Outline | string) {
     if (typeof expected === 'string') return matchMarkdownOutline(this, remdo, expected);
     assertOutlineExpectation(expected);

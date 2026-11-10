@@ -169,11 +169,12 @@ describe('date nodes', () => {
     expect(document.querySelector('[data-date-picker-mode="insert"]')).not.toBeNull();
     await clickPickerDay(isoDate);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: `note1 ${label} ` },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 ${label}&#32;
+          - id:: note1
+      - note2
+      - note3
+    `);
 
     remdo.validate(() => {
       const note = $getNoteById('note1');
@@ -749,11 +750,12 @@ describe('date nodes', () => {
     // Backspace in editable popup flows deletes the character before the cursor.
     // https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
     expect(document.querySelector('[data-date-picker]')).toBeNull();
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 ' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1&#32;
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   it('does not reopen the picker when the caret returns beside an existing !', meta({ fixture: 'flat' }), async ({ remdo }) => {
