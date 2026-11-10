@@ -1,3 +1,4 @@
+import { markdownNoteText } from '#tests-common/markdown-outline';
 import { $getNoteById, $getNoteByText,
   copySelectionClipboardData, createDataTransfer, meta, placeCaretAtNote, pressKey,
   selectEntireNote, selectNoteTextRange, selectStructuralNotes, typeText } from '#tests';
@@ -40,19 +41,21 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
         if (flavor === 'html') data.setData('text/html', copied.getData('text/html'));
 
         await pasteClipboard(remdo, data);
-        expect(remdo).toMatchOutline([
-          { noteId: 'note1', text: 'note1' },
-          { noteId: 'note2', text },
-          { noteId: 'note3', text: 'note3' },
-        ]);
+        expect(remdo).toMatchOutline(`
+          - note1
+          - ${markdownNoteText(text)}
+              - id:: note2
+          - note3
+        `);
         expectCaret(remdo, end);
 
         await pasteClipboard(remdo, data);
-        expect(remdo).toMatchOutline([
-          { noteId: 'note1', text: 'note1' },
-          { noteId: 'note2', text: repeated },
-          { noteId: 'note3', text: 'note3' },
-        ]);
+        expect(remdo).toMatchOutline(`
+          - note1
+          - ${markdownNoteText(repeated)}
+              - id:: note2
+          - note3
+        `);
         expectCaret(remdo, end * 2);
       });
     }
@@ -83,11 +86,12 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
       if (flavor === 'html') data.setData('text/html', copied.getData('text/html'));
       for (const repetitions of [1, 2]) {
         await pasteClipboard(remdo, data);
-        expect(remdo).toMatchOutline([
-          { noteId: 'note1', text: 'note1' },
-          { noteId: 'note2', text: label.repeat(repetitions) },
-          { noteId: 'note3', text: 'note3' },
-        ]);
+        expect(remdo).toMatchOutline(`
+          - note1
+          - ${markdownNoteText(label.repeat(repetitions))}
+              - id:: note2
+          - note3
+        `);
         expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
         remdo.validate(() => {
           const note = $getNoteById('note2');
@@ -132,11 +136,13 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
       await selectEntireNote(remdo, 'note1');
       for (const text of ['xam', 'xamxam']) {
         await pasteClipboard(remdo, data);
-        expect(remdo).toMatchOutline([
-          { noteId: 'note1', text },
-          { noteId: 'note2', text: 'before Example after' },
-          { noteId: 'note3', text: 'note3' },
-        ]);
+        expect(remdo).toMatchOutline(`
+          - ${text}
+              - id:: note1
+          - before Example after
+              - id:: note2
+          - note3
+        `);
         expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
         remdo.validate(() => {
           const links = $getNoteById('note1').getChildren().filter($isLinkNode);

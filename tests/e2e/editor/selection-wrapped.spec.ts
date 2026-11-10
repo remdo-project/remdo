@@ -243,10 +243,12 @@ for (const style of ['plain', 'link', 'bold'] as const) {
       const low = Math.min(selected.anchor.offset, selected.focus.offset);
       const high = Math.max(selected.anchor.offset, selected.focus.offset);
       await page.keyboard.type('Z');
-      await expect(editor).toMatchOutline([
-        { noteId: 'note3', text: 'note3' }, { noteId: 'note1', text: `${LABEL.slice(0, low)}Z${LABEL.slice(high)}` },
-        { noteId: 'note2', text: 'note2' },
-      ]);
+      await expect(editor).toMatchOutline(`
+        - note3
+        - ${LABEL.slice(0, low)}Z${LABEL.slice(high)}
+            - id:: note1
+        - note2
+      `);
     });
   }
 }
@@ -454,13 +456,27 @@ for (const input of ['type', 'Enter', 'ArrowRight', 'Home'] as const) {
     await page.keyboard.press('Shift+ArrowDown');
     if (input === 'type') await page.keyboard.type('Z');
     else await page.keyboard.press(input);
-    const untouched = [{ noteId: 'note2', text: 'note2' }, { noteId: 'note3', text: 'note3' }];
     if (input === 'type') {
-      await expect(editor).toMatchOutline([{ noteId: 'note1', text: 'Z' }, ...untouched]);
+      await expect(editor).toMatchOutline(`
+        - Z
+            - id:: note1
+        - note2
+        - note3
+      `);
     } else if (input === 'Enter') {
-      await expect(editor).toMatchOutline([{ noteId: 'note1' }, { noteId: null }, ...untouched]);
+      await expect(editor).toMatchOutline(`
+        -
+            - id:: note1
+        -
+        - note2
+        - note3
+      `);
     } else {
-      await expect(editor).toMatchOutline([{ noteId: 'note1', text: 'note1' }, ...untouched]);
+      await expect(editor).toMatchOutline(`
+        - note1
+        - note2
+        - note3
+      `);
       await expect.poll(async () => {
         const { kind, focus } = await selectionState(page);
         return { kind, focus };

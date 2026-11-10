@@ -95,12 +95,14 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2SpaceLeft' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
-      { noteId: 'note5', text: 'note5' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1 note2SpaceLeft
+          - id:: note1
+      - note3
+      - note4SpaceRight&#32;
+          - id:: note4SpaceRight
+      - note5
+    `);
   });
 
   test('Delete respects spacing when left fragment already ends with space', async ({ page, editor }) => {
@@ -109,12 +111,14 @@ test.describe('deletion (native browser behavior)', () => {
 
     await page.keyboard.press('Delete');
 
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2SpaceLeft', text: ' note2SpaceLeft' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: 'note4SpaceRight', text: 'note4SpaceRight note5' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - &#32;note2SpaceLeft
+          - id:: note2SpaceLeft
+      - note3
+      - note4SpaceRight note5
+          - id:: note4SpaceRight
+    `);
   });
 
   test('Delete removes a note range and focuses the next sibling', async ({ page, editor }) => {

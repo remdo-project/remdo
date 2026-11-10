@@ -57,22 +57,16 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await pressKey(remdo, { key: 'Enter' });
     const trailingNoteId = readCaretNoteId(remdo);
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'bold',
-        text: 'bold',
-        children: [
-          {
-            noteId: 'italic',
-            text: 'italic',
-            children: [{ noteId: 'target', text: 'target' }],
-          },
-        ],
-      },
-      { noteId: 'underline', text: 'underline' },
-      { noteId: 'mixedFormatting', text: 'plain ' },
-      { noteId: trailingNoteId, text: 'bold italic underline plain' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - bold
+          - italic
+              - target
+      - underline
+      - plain&#32;
+          - id:: mixedFormatting
+      - bold italic underline plain
+          - id:: ${trailingNoteId}
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
   });
 
@@ -393,20 +387,23 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await pressKey(remdo, { key: 'Enter' });
     const trailingNoteId = readCaretNoteId(remdo);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: ' ', checked: true },
-      { noteId: trailingNoteId, text: 'note' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - [x] &#32;
+          - id:: note1
+      - note
+          - id:: ${trailingNoteId}
+      - note2
+      - note3
+    `);
 
     await pressKey(remdo, { key: 'Backspace' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: ' note', checked: true },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - [x] &#32;note
+          - id:: note1
+      - note2
+      - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
   });
 
@@ -666,11 +663,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'before link' },
-        { noteId: trailingNoteId, text: ' after' },
-        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - before link
+            - id:: note1
+        - &#32;after
+            - id:: ${trailingNoteId}
+        - note2
+            - note3
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
       remdo.validate(() => {
         const link = $getNoteById('note1').getChildren().find($isLinkNode)!;
@@ -689,12 +689,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       const trailingNoteId = readCaretNoteId(remdo);
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'same no' },
-        { noteId: trailingNoteId, text: ' cross /n/otherDoc_remoteNote' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - same no
+            - id:: note1
+        - &#32;cross /n/otherDoc_remoteNote
+            - id:: ${trailingNoteId}
+        - note2
+        - note3
+      `);
 
       await remdo.dispatchCommand(UNDO_COMMAND);
 

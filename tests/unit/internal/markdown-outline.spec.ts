@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readMarkdownOutline } from '#tests-common/markdown-outline';
+import { markdownNoteText, readMarkdownOutline } from '#tests-common/markdown-outline';
 
 describe('reading expected outlines from Markdown', () => {
   it('reads nesting, checked notes, empty notes and declared IDs', () => {
@@ -18,6 +18,11 @@ describe('reading expected outlines from Markdown', () => {
       ],
       selection: null,
     });
+  });
+
+  it('keeps spaces at a note\'s edges written as character references', () => {
+    expect(markdownNoteText('  two words ')).toBe('&#32;&#32;two words&#32;');
+    expect(readMarkdownOutline(`- ${markdownNoteText('  two words ')}`).notes).toEqual([{ text: '  two words ' }]);
   });
 
   it('reads a caret at its offset in the note text, past inline markup', () => {

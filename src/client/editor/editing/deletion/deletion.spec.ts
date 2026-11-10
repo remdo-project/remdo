@@ -315,20 +315,23 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
     });
 
     it('merges a whitespace-only leaf on Delete so its content and identity survive', meta({ fixture: 'empty-labels' }), async ({ remdo }) => {
-            expect(remdo).toMatchOutline([
-        { noteId: 'alpha', text: 'alpha' },
-        { noteId: 'space', text: ' ' },
-        { noteId: 'beta', text: 'beta' },
-        {
-          noteId: 'parent',
-          children: [
-            { noteId: 'nestedEmpty' },
-            { noteId: 'child', text: 'child-of-empty' },
-            { noteId: 'nestedAfterChild' },
-          ],
-        },
-        { noteId: 'trailing' },
-      ]);
+            expect(remdo).toMatchOutline(`
+              - alpha
+              - &#32;
+                  - id:: space
+              - beta
+              -
+                  - id:: parent
+
+                  -
+                      - id:: nestedEmpty
+                  - child-of-empty
+                      - id:: child
+                  -
+                      - id:: nestedAfterChild
+              -
+                  - id:: trailing
+            `);
 
       await placeCaretAtNote(remdo, { id: 'space' }, Number.POSITIVE_INFINITY);
 
@@ -337,19 +340,22 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
 
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'alpha', text: 'alpha' },
-        { noteId: 'space', text: ' beta' },
-        {
-          noteId: 'parent',
-          children: [
-            { noteId: 'nestedEmpty' },
-            { noteId: 'child', text: 'child-of-empty' },
-            { noteId: 'nestedAfterChild' },
-          ],
-        },
-        { noteId: 'trailing' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - alpha
+        - &#32;beta
+            - id:: space
+        -
+            - id:: parent
+
+            -
+                - id:: nestedEmpty
+            - child-of-empty
+                - id:: child
+            -
+                - id:: nestedAfterChild
+        -
+            - id:: trailing
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'space' });
 
       expect(isNodeAttached(remdo, whitespaceNoteKey)).toBe(true);
@@ -510,82 +516,98 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
     });
 
     it('avoids adding extra space on Backspace when the right fragment already starts with whitespace', meta({ fixture: 'edge-spaces' }), async ({ remdo }) => {
-            expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2SpaceLeft', text: ' note2SpaceLeft' },
-        { noteId: 'note3', text: 'note3' },
-        { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
-        { noteId: 'note5', text: 'note5' },
-      ]);
+            expect(remdo).toMatchOutline(`
+              - note1
+              - &#32;note2SpaceLeft
+                  - id:: note2SpaceLeft
+              - note3
+              - note4SpaceRight&#32;
+                  - id:: note4SpaceRight
+              - note5
+            `);
       await placeCaretAtNote(remdo, { id: 'note2SpaceLeft' }, 0);
       await pressKey(remdo, { key: 'Backspace' });
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1 note2SpaceLeft' },
-        { noteId: 'note3', text: 'note3' },
-        { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
-        { noteId: 'note5', text: 'note5' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1 note2SpaceLeft
+            - id:: note1
+        - note3
+        - note4SpaceRight&#32;
+            - id:: note4SpaceRight
+        - note5
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('avoids adding extra space on Backspace when the left fragment already ends with whitespace', meta({ fixture: 'edge-spaces' }), async ({ remdo }) => {
-            expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2SpaceLeft', text: ' note2SpaceLeft' },
-        { noteId: 'note3', text: 'note3' },
-        { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
-        { noteId: 'note5', text: 'note5' },
-      ]);
+            expect(remdo).toMatchOutline(`
+              - note1
+              - &#32;note2SpaceLeft
+                  - id:: note2SpaceLeft
+              - note3
+              - note4SpaceRight&#32;
+                  - id:: note4SpaceRight
+              - note5
+            `);
       await placeCaretAtNote(remdo, 'note5', 0);
       await pressKey(remdo, { key: 'Backspace' });
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2SpaceLeft', text: ' note2SpaceLeft' },
-        { noteId: 'note3', text: 'note3' },
-        { noteId: 'note4SpaceRight', text: 'note4SpaceRight note5' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+        - &#32;note2SpaceLeft
+            - id:: note2SpaceLeft
+        - note3
+        - note4SpaceRight note5
+            - id:: note4SpaceRight
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note4SpaceRight' });
     });
 
     it('avoids adding extra space when the right fragment already starts with whitespace', meta({ fixture: 'edge-spaces' }), async ({ remdo }) => {
-            expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2SpaceLeft', text: ' note2SpaceLeft' },
-        { noteId: 'note3', text: 'note3' },
-        { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
-        { noteId: 'note5', text: 'note5' },
-      ]);
+            expect(remdo).toMatchOutline(`
+              - note1
+              - &#32;note2SpaceLeft
+                  - id:: note2SpaceLeft
+              - note3
+              - note4SpaceRight&#32;
+                  - id:: note4SpaceRight
+              - note5
+            `);
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1 note2SpaceLeft' },
-        { noteId: 'note3', text: 'note3' },
-        { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
-        { noteId: 'note5', text: 'note5' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1 note2SpaceLeft
+            - id:: note1
+        - note3
+        - note4SpaceRight&#32;
+            - id:: note4SpaceRight
+        - note5
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
     it('avoids adding extra space when the left fragment already ends with whitespace', meta({ fixture: 'edge-spaces' }), async ({ remdo }) => {
-            expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2SpaceLeft', text: ' note2SpaceLeft' },
-        { noteId: 'note3', text: 'note3' },
-        { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
-        { noteId: 'note5', text: 'note5' },
-      ]);
+            expect(remdo).toMatchOutline(`
+              - note1
+              - &#32;note2SpaceLeft
+                  - id:: note2SpaceLeft
+              - note3
+              - note4SpaceRight&#32;
+                  - id:: note4SpaceRight
+              - note5
+            `);
       await placeCaretAtNote(remdo, { id: 'note4SpaceRight' }, Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2SpaceLeft', text: ' note2SpaceLeft' },
-        { noteId: 'note3', text: 'note3' },
-        { noteId: 'note4SpaceRight', text: 'note4SpaceRight note5' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+        - &#32;note2SpaceLeft
+            - id:: note2SpaceLeft
+        - note3
+        - note4SpaceRight note5
+            - id:: note4SpaceRight
+      `);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note4SpaceRight' });
     });
   });
@@ -614,19 +636,21 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
 
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline([
-        { noteId: 'alpha', text: 'alpha' },
-        { noteId: 'space', text: ' ' },
-        { noteId: 'beta', text: 'beta' },
-        {
-          noteId: 'parent',
-          children: [
-            { noteId: 'nestedEmpty' },
-            { noteId: 'child', text: 'child-of-empty' },
-            { noteId: 'nestedAfterChild' },
-          ],
-        },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - alpha
+        - &#32;
+            - id:: space
+        - beta
+        -
+            - id:: parent
+
+            -
+                - id:: nestedEmpty
+            - child-of-empty
+                - id:: child
+            -
+                - id:: nestedAfterChild
+      `);
     });
 
     it('focuses the previous sibling when no next sibling survives the structural delete', meta({ fixture: 'flat' }), async ({ remdo }) => {

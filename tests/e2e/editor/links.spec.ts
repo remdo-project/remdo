@@ -21,11 +21,12 @@ test.describe('note links', () => {
 
     await expect(picker).toHaveCount(0);
     await expect(editorLocator(page).getByRole('link', { name: 'note2' })).toHaveCount(1);
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2 ' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1 note2&#32;
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   test('swallows Ctrl/Cmd+Enter while the @ picker is open (no toggle-checked underneath)', async ({ page, editor }) => {
@@ -195,11 +196,12 @@ test.describe('note links', () => {
 
     await expect(picker).toHaveCount(0);
     await expect(editorLocator(page).getByRole('link', { name: 'note3' })).toHaveCount(1);
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note3 ' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1 note3&#32;
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 
   test('updates listbox active descendant for keyboard and hover', async ({ page, editor }) => {
