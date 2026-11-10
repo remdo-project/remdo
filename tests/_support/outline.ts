@@ -135,16 +135,11 @@ export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline)
   walk(actual, expected);
 }
 
-export type ProjectedNote = MarkdownNote & Pick<OutlineNode, 'folded'>;
-
-/**
- * The editor's outline in the shape a Markdown expectation has, with IDs only where it declares one.
- * Fold state stays in, so a folded note fails until Markdown expectations can state it.
- */
-export function projectOutline(actual: Outline, expected: MarkdownNote[] | undefined): ProjectedNote[] {
+/** The editor's outline in the shape a Markdown expectation has, with IDs only where it declares one. */
+export function projectOutline(actual: Outline, expected: MarkdownNote[] | undefined): MarkdownNote[] {
   return actual.map((node, index) => {
     const declared = expected?.[index];
-    const projected: ProjectedNote = {};
+    const projected: MarkdownNote = {};
     if (node.text) projected.text = node.text;
     if (node.checked) projected.checked = true;
     if (declared?.id !== undefined) projected.id = node.noteId ?? undefined;
@@ -155,7 +150,7 @@ export function projectOutline(actual: Outline, expected: MarkdownNote[] | undef
   });
 }
 
-export interface OutlineExpectation<Shape extends Outline | ProjectedNote[]> {
+export interface OutlineExpectation<Shape extends Outline | MarkdownNote[]> {
   wanted: Shape;
   selection: MarkdownSelection | null;
   project: (actual: Outline) => Shape;
@@ -166,9 +161,9 @@ export interface OutlineExpectation<Shape extends Outline | ProjectedNote[]> {
 // declarations (tests/unit/_support/types/vitest.d.ts, tests/e2e/_support/expect.d.ts); nothing
 // fails to compile.
 /** An expected outline, as Markdown or objects, with the projection that makes the editor's comparable. */
-export function readOutlineExpectation(expected: string): OutlineExpectation<ProjectedNote[]>;
-export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<ProjectedNote[]>;
-export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<ProjectedNote[]> {
+export function readOutlineExpectation(expected: string): OutlineExpectation<MarkdownNote[]>;
+export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<MarkdownNote[]>;
+export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<MarkdownNote[]> {
   if (typeof expected !== 'string') {
     return {
       wanted: expected,

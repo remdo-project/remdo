@@ -2,8 +2,8 @@ import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
 import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards, readOutlineExpectation } from '#tests-common/outline';
-import type { OutlineNode, ProjectedNote } from '#tests-common/outline';
-import type { MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
+import type { OutlineNode } from '#tests-common/outline';
+import type { MarkdownNote, MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
 import {
   collectSelectedListItems,
   findNearestListItem,
@@ -279,7 +279,7 @@ function matchMarkdownOutline(ctx: any, remdo: RemdoTestHelpers, expected: strin
   const read = attemptRead(ctx, '.toMatchOutline', () => {
     const { wanted: notes, selection, project } = readOutlineExpectation(expected);
     const outline = extractOutlineFromEditorState(remdo.getEditorState());
-    const actual: { outline: ProjectedNote[]; selection?: SelectionDetail } = { outline: project(outline) };
+    const actual: { outline: MarkdownNote[]; selection?: SelectionDetail } = { outline: project(outline) };
     const wanted: typeof actual = { outline: notes };
     if (selection) {
       actual.selection = readSelectionDetail(remdo);
