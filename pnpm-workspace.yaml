@@ -44,19 +44,7 @@ packageExtensions:
 patchedDependencies:
   # Lexical V2 must ignore remote cursors mapped only to deleted text nodes.
   # Regression: tests/unit/collab/lexical-yjs-cursor-sync.collab.spec.ts.
-  '@lexical/yjs@0.51.0': patches/@lexical__yjs@0.51.0.patch
-  # Lexical must not warn when its own commit machinery dispatches a mutating
-  # command: $updateDOMSelection sets the DOM selection during a commit, the
-  # browser fires selectionchange, and Lexical dispatches
-  # SELECTION_CHANGE_COMMAND while the committed state is still frozen. The
-  # v0.49.0 warning (facebook/lexical#8863) targets application code
-  # dispatching from editor.read() and does not exclude that internal path.
-  # The patch applies the fix from facebook/lexical#9230, which still warns
-  # inside an explicit editor.read().
-  # Regression: tests/e2e/editor/checklist.spec.ts structural-selection cases.
-  # TODO(deps): drop this patch on the first Lexical release containing
-  # facebook/lexical@c23a367. Probe: remove it and run the regression above.
-  lexical@0.51.0: patches/lexical@0.51.0.patch
+  '@lexical/yjs@0.53.0': patches/@lexical__yjs@0.53.0.patch
 allowBuilds:
   '@ast-grep/cli': true
   esbuild: true
@@ -70,15 +58,15 @@ catalog:
   '@hocuspocus/provider': 4.8.0
   '@hocuspocus/server': 4.8.0
   '@internationalized/date': ^3.12.4
-  '@lexical/clipboard': 0.51.0
-  '@lexical/eslint-plugin': 0.51.0
-  '@lexical/extension': 0.51.0
-  '@lexical/link': 0.51.0
-  '@lexical/list': 0.51.0
-  '@lexical/markdown': 0.51.0
-  '@lexical/react': 0.51.0
-  '@lexical/rich-text': 0.51.0
-  '@lexical/yjs': 0.51.0
+  '@lexical/clipboard': 0.53.0
+  '@lexical/eslint-plugin': 0.53.0
+  '@lexical/extension': 0.53.0
+  '@lexical/link': 0.53.0
+  '@lexical/list': 0.53.0
+  '@lexical/markdown': 0.53.0
+  '@lexical/react': 0.53.0
+  '@lexical/rich-text': 0.53.0
+  '@lexical/yjs': 0.53.0
   '@mantine/core': ^9.6.2
   '@mantine/hooks': ^9.6.2
   '@modelcontextprotocol/sdk': ^1.30.1
@@ -113,7 +101,7 @@ catalog:
   jscpd: ^5.3.2
   jsdom: ^31.0.0
   knip: ^6.38.0
-  lexical: 0.51.0
+  lexical: 0.53.0
   linkify-it: ^6.1.0
   markdown-it: ^15.0.2
   markdownlint: ^0.42.0
