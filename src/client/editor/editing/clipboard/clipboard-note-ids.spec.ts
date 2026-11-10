@@ -296,7 +296,7 @@ describe('note ids on paste', () => {
     await pastePayload(remdo, clipboardPayload);
 
     const copiedNotes = flattenOutline(readOutline(remdo)).filter((node) => node.text === 'note1 note2 ');
-    const pastedNoteId = copiedNotes.at(-1)!.noteId!;
+    const pastedNoteId = copiedNotes.at(-1)!.noteId;
     const rootListNode = getSerializedRootListNode(remdo) as SerializedLexicalNode;
     const pastedListItem = findSerializedListItem(rootListNode, pastedNoteId)!;
     const pastedLink = findSerializedNoteLink(pastedListItem)!;
@@ -324,11 +324,11 @@ describe('note ids on paste', () => {
       await createCollabTestDocument(destinationDocId);
       const { api: destination, unmount } = await renderRemdoEditor(destinationDocId);
       try {
-        const insertionNoteId = readOutline(destination).at(-1)!.noteId!;
+        const insertionNoteId = readOutline(destination).at(-1)!.noteId;
         await placeCaretAtNote(destination, { id: insertionNoteId }, Number.POSITIVE_INFINITY);
         await pastePayload(destination, clipboardPayload);
 
-        const pastedNoteId = readOutline(destination).at(-1)!.noteId!;
+        const pastedNoteId = readOutline(destination).at(-1)!.noteId;
         expect(pastedNoteId).not.toBe('note1');
 
         const rootListNode = getSerializedRootListNode(destination) as SerializedLexicalNode;

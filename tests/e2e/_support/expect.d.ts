@@ -1,4 +1,4 @@
-import type { Outline } from '#tests-common/outline';
+export {};
 
 declare global {
   // eslint-disable-next-line vars-on-top
@@ -6,7 +6,7 @@ declare global {
 
   namespace PlaywrightTest {
     interface Matchers<R> {
-      toMatchOutline: (expected: Outline | string) => Promise<R>;
+      toMatchOutline: (expected: string) => Promise<R>;
     }
   }
 }

@@ -1,6 +1,5 @@
 import type { ConsoleMessage, Page, Response, TestInfo } from '@playwright/test';
 import { expect, test as base } from '@playwright/test';
-import type { Outline } from '#tests-common/outline';
 import { extractOutlineFromEditorState, readOutlineExpectation } from '#tests-common/outline';
 import { createAuthenticatedContext } from './auth-context';
 
@@ -243,7 +242,7 @@ export function collectCurrentUserRequests(page: Page): string[] {
 }
 
 expect.extend({
-  async toMatchOutline(received: unknown, expected: Outline | string) {
+  async toMatchOutline(received: unknown, expected: string) {
     if (this.isNot) {
       return {
         pass: true,

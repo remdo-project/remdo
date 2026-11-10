@@ -7,7 +7,7 @@ import type { SerializedOutlineNote } from '#client/editor/dev/schema/traverseSe
 import { traverseSerializedOutline } from '#client/editor/dev/schema/traverseSerializedOutline';
 
 export interface OutlineNode {
-  noteId: string | null;
+  noteId: string;
   text?: string;
   body?: string;
   folded?: boolean;
@@ -16,10 +16,6 @@ export interface OutlineNode {
 }
 
 export type Outline = OutlineNode[];
-
-function isValidOutlineNoteId(noteId: string | null): noteId is string {
-  return typeof noteId === 'string' && noteId.length > 0;
-}
 
 function getChildren(node: SerializedLexicalNode | null | undefined): SerializedLexicalNode[] {
   const children = (node as { children?: unknown } | null | undefined)?.children;
@@ -100,39 +96,7 @@ export function flattenOutline(outline: Outline): OutlineNode[] {
 }
 
 export function collectOutlineNoteIds(outline: Outline): string[] {
-  return flattenOutline(outline)
-    .map((node) => node.noteId)
-    .filter((noteId): noteId is string => typeof noteId === 'string');
-}
-
-export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline): void {
-  // Normalize actuals before comparison so we keep vitest's diff output while still allowing
-  // `noteId: null` in expected outlines to mean "a valid generated noteId exists here, but don't care about the value".
-  //
-  // Checked-state expectations are strict by default:
-  // - `checked: true` -> strict checked match
-  // - `checked` omitted/undefined -> unchecked match
-  // - `checked: false` -> unchecked match (explicit form)
-  const walk = (actualNodes: Outline, expectedNodes: Outline) => {
-    for (let index = 0; index < actualNodes.length; index += 1) {
-      const actualNode = actualNodes[index]!;
-      const expectedNode = expectedNodes[index];
-      if (expectedNode?.noteId === null) {
-        if (!isValidOutlineNoteId(actualNode.noteId)) {
-          throw new TypeError('Expected wildcard noteId matches to resolve against a non-empty string noteId.');
-        }
-        actualNode.noteId = null;
-      }
-      if (expectedNode?.checked === false && actualNode.checked !== true) {
-        actualNode.checked = false;
-      }
-      if (actualNode.children) {
-        walk(actualNode.children, expectedNode?.children ?? []);
-      }
-    }
-  };
-
-  walk(actual, expected);
+  return flattenOutline(outline).map((node) => node.noteId);
 }
 
 /** The editor's outline in the shape a Markdown expectation has, with IDs only where it declares one. */
@@ -142,7 +106,7 @@ export function projectOutline(actual: Outline, expected: MarkdownNote[] | undef
     const projected: MarkdownNote = {};
     if (node.text) projected.text = node.text;
     if (node.checked) projected.checked = true;
-    if (declared?.id !== undefined) projected.id = node.noteId ?? undefined;
+    if (declared?.id !== undefined) projected.id = node.noteId;
     if (node.body !== undefined) projected.body = node.body;
     if (node.folded) projected.folded = true;
     if (node.children) projected.children = projectOutline(node.children, declared?.children);
@@ -150,30 +114,14 @@ export function projectOutline(actual: Outline, expected: MarkdownNote[] | undef
   });
 }
 
-export interface OutlineExpectation<Shape extends Outline | MarkdownNote[]> {
-  wanted: Shape;
+export interface OutlineExpectation {
+  wanted: MarkdownNote[];
   selection: MarkdownSelection | null;
-  project: (actual: Outline) => Shape;
+  project: (actual: Outline) => MarkdownNote[];
 }
 
-// TODO: Object expectations remain for fold state until a notation for it is chosen
-// (docs/text-format-plan.md). Probe: narrow `expected` to `string` in the `toMatchOutline`
-// declarations (tests/unit/_support/types/vitest.d.ts, tests/e2e/_support/expect.d.ts); nothing
-// fails to compile.
-/** An expected outline, as Markdown or objects, with the projection that makes the editor's comparable. */
-export function readOutlineExpectation(expected: string): OutlineExpectation<MarkdownNote[]>;
-export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<MarkdownNote[]>;
-export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<MarkdownNote[]> {
-  if (typeof expected !== 'string') {
-    return {
-      wanted: expected,
-      selection: null,
-      project: (actual) => {
-        mutateOutlineNoteIdWildcards(actual, expected);
-        return actual;
-      },
-    };
-  }
+/** An expected outline in Markdown, with the projection that makes the editor's comparable. */
+export function readOutlineExpectation(expected: string): OutlineExpectation {
   const { notes, selection } = readMarkdownOutline(expected);
   return { wanted: notes, selection, project: (actual) => projectOutline(actual, notes) };
 }
