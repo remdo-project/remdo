@@ -167,10 +167,15 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
       // note4 is dropped due to the delete+indent conflict.
       const expected = `
         - note1
+            - id:: note1
             - note3
+                - id:: note3
         - note5
+            - id:: note5
         - note6
+            - id:: note6
             - note7
+                - id:: note7
       `;
 
       await waitFor(() => {
