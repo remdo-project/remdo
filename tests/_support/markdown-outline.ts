@@ -100,6 +100,7 @@ interface Frame {
   note: MarkdownNote | null;
   children: MarkdownNote[];
   path: NotePath;
+  line?: number;
   checkbox?: boolean;
   textRead?: boolean;
   /** Names of the properties stated under this note so far. */
@@ -124,7 +125,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       const marker = MARKER.exec(lines[line]!)!;
       const content = lines[line]!.slice(marker[0].length).trim();
       const property = PROPERTY_LINE.exec([...content].filter((char) => !KIND_BY_SENTINEL.has(char)).join(''));
-      if (property) {
+      if (property && tokens[index + 1]!.type === 'paragraph_open') {
         const name = property[1]!;
         const stated = (frame.properties ??= new Set());
         if (frame.note && !stated.has(name)) {
@@ -142,7 +143,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       const path = [...frame.path, frame.children.length];
       frame.children.push(note);
       located.push({ path, line });
-      frames.push({ note, children: [], path, checkbox: marker[1] !== undefined });
+      frames.push({ note, children: [], path, line, checkbox: marker[1] !== undefined });
     } else if (token.type === 'list_item_close') {
       const closed = frames.pop()!;
       if (closed.note && closed.children.length > 0) closed.note.children = closed.children;
@@ -153,6 +154,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
     } else if (token.type === 'inline') {
       if (frames.length === 1) throw new Error('Every line of an outline is a list item; found text outside any note.');
       if (frame.textRead) throw new Error('A note holds one paragraph; write a body as > lines before its children.');
+      if (token.map![0] !== frame.line) throw new Error('A note\'s text must fit on its marker\'s line.');
       frame.textRead = true;
       const parsed = plainText(token.children ?? []);
       const text = takeMarks(withoutCheckbox(parsed, frame.checkbox), frame.path, marks);
@@ -167,7 +169,6 @@ function withoutCheckbox(text: string, checkbox: boolean | undefined): string {
   return checkbox ? text.replace(/^\[[ x]\] ?/, '') : text;
 }
 
-/** Returns the index of the token that closes the one at `open`. */
 function closeOf(tokens: Token[], open: number): number {
   const close = tokens[open]!.type.replace(/_open$/, '_close');
   let index = open + 1;

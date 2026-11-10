@@ -148,6 +148,8 @@ describe('reading expected outlines from Markdown', () => {
     ['a folded:: line continued on the next line', '- note1\n    - folded:: true\n      more', /marker's line/u],
     ['a thematic break', '- ***', /hr/u],
     ['an indented code block', '-     code', /code_block/u],
+    ['an indented code block that looks like a property', '- note1\n    -     id:: first', /code_block/u],
+    ['a paragraph after an empty note\'s children', '-\n    - note2\n\n    more', /marker's line/u],
     ['inline HTML', '- a <b> c', /html_inline/u],
     ['a list inside a quote', '> - note1', /blockquote_open/u],
   ])('refuses %s instead of dropping it', (_case, source, message) => {
