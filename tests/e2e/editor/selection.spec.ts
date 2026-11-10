@@ -100,6 +100,7 @@ test.describe('clipboard (structural cut)', () => {
       - note2
       - note3
       - note1
+          - id:: note1
     `);
     await expect(input).not.toHaveClass(/editor-input--structural/);
   });

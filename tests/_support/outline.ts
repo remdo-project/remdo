@@ -155,14 +155,17 @@ export function projectOutline(actual: Outline, expected: MarkdownNote[] | undef
   });
 }
 
-export interface OutlineExpectation {
-  wanted: Outline | ProjectedNote[];
+export interface OutlineExpectation<Shape extends Outline | ProjectedNote[]> {
+  wanted: Shape;
   selection: MarkdownSelection | null;
-  project: (actual: Outline) => Outline | ProjectedNote[];
+  project: (actual: Outline) => Shape;
 }
 
 /** An expected outline, as Markdown or objects, with the projection that makes the editor's comparable. */
-export function readOutlineExpectation(expected: Outline | string): OutlineExpectation {
+export function readOutlineExpectation(expected: Outline): OutlineExpectation<Outline>;
+export function readOutlineExpectation(expected: string): OutlineExpectation<ProjectedNote[]>;
+export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<ProjectedNote[]>;
+export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<ProjectedNote[]> {
   if (typeof expected !== 'string') {
     return {
       wanted: expected,

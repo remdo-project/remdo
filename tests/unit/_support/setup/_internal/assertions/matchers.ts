@@ -80,7 +80,7 @@ function compareWithExpected<T>(
   };
 }
 
-function formatOutlineForMessage(outline: unknown): string {
+function formatOutlineForMessage(outline: Outline): string {
   return JSON.stringify(outline, null, 2);
 }
 
@@ -279,7 +279,7 @@ function matchMarkdownOutline(ctx: any, remdo: RemdoTestHelpers, expected: strin
   const read = attemptRead(ctx, '.toMatchOutline', () => {
     const { wanted: notes, selection, project } = readOutlineExpectation(expected);
     const outline = extractOutlineFromEditorState(remdo.getEditorState());
-    const actual: { outline: Outline | ProjectedNote[]; selection?: SelectionDetail } = { outline: project(outline) };
+    const actual: { outline: ProjectedNote[]; selection?: SelectionDetail } = { outline: project(outline) };
     const wanted: typeof actual = { outline: notes };
     if (selection) {
       actual.selection = readSelectionDetail(remdo);
@@ -298,9 +298,10 @@ function matchMarkdownOutline(ctx: any, remdo: RemdoTestHelpers, expected: strin
 }
 
 expect.extend({
-  // TODO: Object expectations remain while specs migrate to Markdown, and for bodies and fold
-  // state until the text-format spike settles how Markdown holds them
-  // (docs/text-format-plan.md). Probe: narrow `expected` to `string`; nothing fails to compile.
+  // TODO: Object expectations remain for bodies and fold state until the text-format spike
+  // settles how Markdown holds them (docs/text-format-plan.md), and where specs build notes from
+  // variables or expect spaces at a note's edge. Probe: narrow `expected` to `string`; nothing
+  // fails to compile.
   toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: Outline | string) {
     if (typeof expected === 'string') return matchMarkdownOutline(this, remdo, expected);
     assertOutlineExpectation(expected);
@@ -309,7 +310,7 @@ expect.extend({
       readOutlineExpectation(expected).project(extractOutlineFromEditorState(remdo.getEditorState())));
     if (!outline.ok) return outline.result;
 
-    return compareWithExpected<unknown>(this, outline.value, expected, {
+    return compareWithExpected(this, outline.value, expected, {
       matcher: 'toMatchOutline',
       args: ['lexical', 'expectedOutline'],
       passMessage: 'Expected outlines not to match, but readOutline produced the same structure.',
