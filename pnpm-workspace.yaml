@@ -18,8 +18,6 @@ updateNotifier: false
 overrides:
   '@babel/plugin-transform-modules-systemjs': '>=7.29.4 <8'
   '@eslint/config-array>minimatch': 3.1.5
-  '@eslint/eslintrc>ajv': 6.15.0
-  '@eslint/eslintrc>minimatch': 3.1.5
   '@typescript-eslint/typescript-estree>minimatch': 9.0.9
   body-parser: 2.4.0
   esbuild: '>=0.28.1'
@@ -37,11 +35,7 @@ overrides:
   postcss: '>=8.5.23'
   qs: 6.17.1
   serialize-javascript: 7.1.4
-  table>ajv: 8.20.0
   undici: '>=7.29.0'
-  # TODO(deps): drop once why-is-node-running publishes a release newer than 3.2.2 with provenance;
-  # 3.2.2 lost 3.2.1's attestation and trips the no-downgrade trust policy. Probe: remove and install.
-  vitest>why-is-node-running: 3.2.3
 
 packageExtensions:
   eslint-plugin-compat:
