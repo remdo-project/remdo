@@ -8,7 +8,7 @@ import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-
 
 interface OutlineCase {
   fixture: string;
-  outline: Outline;
+  outline: Outline | string;
 }
 
 // Fixtures intentionally excluded from outline-content coverage. `large` is a
@@ -20,21 +20,23 @@ const COVERAGE_EXCLUDED_FIXTURES = new Set(['large']);
 const CASES: OutlineCase[] = [
   {
     fixture: 'flat',
-    outline: [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ],
+    outline: `
+      - note1
+      - note2
+      - note3
+    `,
   },
   {
     fixture: 'edge-spaces',
-    outline: [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2SpaceLeft', text: ' note2SpaceLeft' },
-      { noteId: 'note3', text: 'note3' },
-      { noteId: 'note4SpaceRight', text: 'note4SpaceRight ' },
-      { noteId: 'note5', text: 'note5' },
-    ],
+    outline: `
+      - note1
+      - &#32;note2SpaceLeft
+          - id:: note2SpaceLeft
+      - note3
+      - note4SpaceRight&#32;
+          - id:: note4SpaceRight
+      - note5
+    `,
   },
   {
     fixture: 'editor-showcase',
@@ -74,89 +76,111 @@ const CASES: OutlineCase[] = [
   },
   {
     fixture: 'basic',
-    outline: [
-      { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
-      { noteId: 'note3', text: 'note3' },
-    ],
+    outline: `
+      - note1
+          - note2
+      - note3
+    `,
   },
   {
     fixture: 'duplicate-titles',
-    outline: [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', children: [ { noteId: 'taskOne', text: 'task' } ] },
-      { noteId: 'note4', text: 'note4', children: [ { noteId: 'taskTwo', text: 'task' } ] },
-      { noteId: 'note6', text: 'note6' },
-    ],
+    outline: `
+      - note1
+      - note2
+          - task
+              - id:: taskOne
+      - note4
+          - task
+              - id:: taskTwo
+      - note6
+    `,
   },
   {
     fixture: 'formatted',
-    outline: [
-      { noteId: 'bold', text: 'bold', children: [ { noteId: 'italic', text: 'italic', children: [ { noteId: 'target', text: 'target' } ] } ] },
-      { noteId: 'underline', text: 'underline' },
-      { noteId: 'mixedFormatting', text: 'plain bold italic underline plain' },
-    ],
+    outline: `
+      - bold
+          - italic
+              - target
+      - underline
+      - plain bold italic underline plain
+          - id:: mixedFormatting
+    `,
   },
   {
     fixture: 'links',
-    outline: [
-      { noteId: 'note1', text: 'same note2 cross /n/otherDoc_remoteNote' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ],
+    outline: `
+      - same note2 cross /n/otherDoc_remoteNote
+          - id:: note1
+      - note2
+      - note3
+    `,
   },
   {
     fixture: 'main',
-    outline: [
-      { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
-      { noteId: 'note3', text: 'note3' },
-    ],
+    outline: `
+      - note1
+          - note2
+      - note3
+    `,
   },
   {
     fixture: 'tree',
-    outline: [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', children: [ { noteId: 'note3', text: 'note3' } ] },
-    ],
+    outline: `
+      - note1
+      - note2
+          - note3
+    `,
   },
   {
     fixture: 'tree-ordered-root',
-    outline: [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', children: [ { noteId: 'note3', text: 'note3' } ] },
-    ],
+    outline: `
+      - note1
+      - note2
+          - note3
+    `,
   },
   {
     fixture: 'tree-complex',
-    outline: [
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          { noteId: 'note2', text: 'note2', children: [ { noteId: 'note3', text: 'note3' } ] },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      { noteId: 'note6', text: 'note6', children: [ { noteId: 'note7', text: 'note7' } ] },
-    ],
+    outline: `
+      - note1
+          - note2
+              - note3
+          - note4
+      - note5
+      - note6
+          - note7
+    `,
   },
   {
     fixture: 'tree-list-types',
-    outline: [
-      { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
-      { noteId: 'note3', text: 'note3', children: [ { noteId: 'note4', text: 'note4' } ] },
-      { noteId: 'note5', text: 'note5', children: [ { noteId: 'note6', text: 'note6' } ] },
-    ],
+    outline: `
+      - note1
+          - note2
+      - note3
+          - note4
+      - note5
+          - note6
+    `,
   },
   {
     fixture: 'empty-labels',
-    outline: [
-      { noteId: 'alpha', text: 'alpha' },
-      { noteId: 'space', text: ' ' },
-      { noteId: 'beta', text: 'beta' },
-      { noteId: 'parent', children: [ { noteId: 'nestedEmpty' }, { noteId: 'child', text: 'child-of-empty' }, { noteId: 'nestedAfterChild' } ] },
-      { noteId: 'trailing' },
-    ],
+    outline: `
+      - alpha
+      - &#32;
+          - id:: space
+      - beta
+      -
+          - id:: parent
+
+          -
+              - id:: nestedEmpty
+          - child-of-empty
+              - id:: child
+          -
+              - id:: nestedAfterChild
+      -
+          - id:: trailing
+    `,
   },
 ];
 

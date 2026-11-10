@@ -16,11 +16,12 @@ describe('note body collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await typeText(remdo, 'shared body');
 
     await waitFor(() => {
-      expect(secondary).toMatchOutline([
-        { noteId: 'note1', text: 'note1', body: 'shared body' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      expect(secondary).toMatchOutline(`
+        - note1
+            > shared body
+        - note2
+        - note3
+      `);
     });
   });
 
@@ -33,11 +34,12 @@ describe('note body collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await typeText(remdo, 'shared');
     await remdo.waitForSynced();
     await waitFor(() => {
-      expect(secondary).toMatchOutline([
-        { noteId: 'note1', text: 'note1', body: 'shared' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
+      expect(secondary).toMatchOutline(`
+        - note1
+            > shared
+        - note2
+        - note3
+      `);
     });
 
     // Secondary edits inside the body; primary removes the body. Deleting the
@@ -89,10 +91,13 @@ describe('note body collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await pressKey(remdo, { key: 'Backspace' });
     await remdo.waitForSynced();
 
-    const merged = [
-      { noteId: 'note1', text: 'note1 note2', body: 'note1 body\nnote2 body' },
-      { noteId: 'note3', text: 'note3' },
-    ];
+    const merged = `
+      - note1 note2
+          > note1 body
+          > note2 body
+          - id:: note1
+      - note3
+    `;
     await waitFor(() => {
       expect(remdo).toMatchOutline(merged);
       expect(secondary).toMatchOutline(merged);
@@ -101,11 +106,13 @@ describe('note body collaboration', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await remdo.dispatchCommand(UNDO_COMMAND);
     await remdo.waitForSynced();
 
-    const restored = [
-      { noteId: 'note1', text: 'note1', body: 'note1 body' },
-      { noteId: 'note2', text: 'note2', body: 'note2 body' },
-      { noteId: 'note3', text: 'note3' },
-    ];
+    const restored = `
+      - note1
+          > note1 body
+      - note2
+          > note2 body
+      - note3
+    `;
     await waitFor(() => {
       expect(remdo).toMatchOutline(restored);
       expect(secondary).toMatchOutline(restored);

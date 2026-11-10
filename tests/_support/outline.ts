@@ -135,11 +135,11 @@ export function mutateOutlineNoteIdWildcards(actual: Outline, expected: Outline)
   walk(actual, expected);
 }
 
-export type ProjectedNote = MarkdownNote & Pick<OutlineNode, 'body' | 'folded'>;
+export type ProjectedNote = MarkdownNote & Pick<OutlineNode, 'folded'>;
 
 /**
  * The editor's outline in the shape a Markdown expectation has, with IDs only where it declares one.
- * Bodies and fold state stay in, so a document Markdown can't express yet fails instead of passing.
+ * Fold state stays in, so a folded note fails until Markdown expectations can state it.
  */
 export function projectOutline(actual: Outline, expected: MarkdownNote[] | undefined): ProjectedNote[] {
   return actual.map((node, index) => {
@@ -161,10 +161,10 @@ export interface OutlineExpectation<Shape extends Outline | ProjectedNote[]> {
   project: (actual: Outline) => Shape;
 }
 
-// TODO: Object expectations remain for bodies and fold state until the text-format spike settles
-// how Markdown holds them (docs/text-format-plan.md). Probe: narrow `expected` to `string` in the
-// `toMatchOutline` declarations (tests/unit/_support/types/vitest.d.ts,
-// tests/e2e/_support/expect.d.ts); nothing fails to compile.
+// TODO: Object expectations remain for fold state until a notation for it is chosen
+// (docs/text-format-plan.md). Probe: narrow `expected` to `string` in the `toMatchOutline`
+// declarations (tests/unit/_support/types/vitest.d.ts, tests/e2e/_support/expect.d.ts); nothing
+// fails to compile.
 /** An expected outline, as Markdown or objects, with the projection that makes the editor's comparable. */
 export function readOutlineExpectation(expected: string): OutlineExpectation<ProjectedNote[]>;
 export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<ProjectedNote[]>;

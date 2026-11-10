@@ -193,22 +193,24 @@ once stage 3 lands.
         marks the selection, removed before parsing: empty for a caret,
         wrapping text for a range within a note, and wrapping whole
         note lines for a note range. Pilot it on a few specs before scripting
-        the rest; expectations with bodies or fold state stay objects until
-        the spike. Notes built from variables move to interpolated Markdown,
-        and spaces at a note's edges, which tools trim when they write the
-        format, are written as character references such as `&#32;`, so the
-        object form goes once the spike covers bodies and folds. Checks of
-        only the selection keep `toMatchSelection`, which names notes by ID,
-        unless the test checks the selection's
-        shape in the tree or its place in the text. A selected inline token,
-        such as a date, is marked as a range over its label.
+        the rest. A body is its `>` lines before the note's children, one per
+        body line, compared literally with the body's plain text. Fold state
+        stays out of the text, so its expectations stay objects until a
+        notation for it is chosen. Notes built from variables move to
+        interpolated Markdown, and spaces at a
+        note's edges, which tools trim when they write the format, are written
+        as character references such as `&#32;`. Checks of only the selection
+        keep `toMatchSelection`, which names notes by ID, unless the test
+        checks the selection's shape in the tree or its place in the text. A
+        selected inline token, such as a date, is marked as a range over its
+        label.
      3. Let the browser tests' outline matcher read the same Markdown with the
         same reader, then script their expectations onto it, so browser and
         unit tests share one expected form before the editor changes.
      4. Write fixtures in the format, checked against the JSON they replace,
         keeping an existing ID only where it differs from its note's text,
-        since tests name those notes by ID. Fixtures with bodies wait for the
-        spike.
+        since tests name those notes by ID. Fixtures with fold state, such as
+        the editor showcase, wait for the fold notation.
      5. Delete the JSON fixtures, including the invalid-schema ones, once tests
         build editor-only and broken states from Markdown documents.
    - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and

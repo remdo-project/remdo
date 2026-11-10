@@ -5,6 +5,8 @@ import type { Token } from 'markdown-it';
 export interface MarkdownNote {
   text?: string;
   checked?: true;
+  /** The note's body: its `>` lines before any child, taken literally and joined by line breaks. */
+  body?: string;
   id?: string;
   children?: MarkdownNote[];
 }
@@ -109,9 +111,12 @@ const STRUCTURE = new Set([
 function readList(tokens: Token[], lines: string[], located: Located[], marks: Mark[]): MarkdownNote[] {
   const top: MarkdownNote[] = [];
   const frames: Frame[] = [{ note: null, children: top, path: [] }];
-  for (const token of tokens) {
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index]!;
     const frame = frames.at(-1)!;
-    if (token.type === 'list_item_open') {
+    if (token.type === 'blockquote_open' && frame.note) {
+      index = readBody(tokens, index, frame, lines);
+    } else if (token.type === 'list_item_open') {
       if (frames.length > 1 && !frame.note) throw new Error('An id:: line can\'t hold notes.');
       const line = token.map![0];
       const marker = MARKER.exec(lines[line]!)!;
@@ -136,7 +141,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       throw new Error(`An outline holds only list items with plain text; found ${token.type}.`);
     } else if (token.type === 'inline') {
       if (frames.length === 1) throw new Error('Every line of an outline is a list item; found text outside any note.');
-      if (frame.textRead) throw new Error('A note holds one paragraph; Markdown expectations can\'t express bodies yet.');
+      if (frame.textRead) throw new Error('A note holds one paragraph; write a body as > lines before its children.');
       frame.textRead = true;
       if (!frame.note) continue;
       const parsed = plainText(token.children ?? []);
@@ -146,6 +151,24 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
     }
   }
   return top;
+}
+
+/** Reads a body from its source lines and returns the index of the token that closes it. */
+function readBody(tokens: Token[], open: number, frame: Frame, lines: string[]): number {
+  const note = frame.note!;
+  if (note.body !== undefined || note.id !== undefined || frame.children.length > 0) {
+    throw new Error('A note\'s body is one > block, before its id:: line and its children.');
+  }
+  const [start, end] = tokens[open]!.map!;
+  const source = lines.slice(start, end);
+  if (source.some((line) => !/^\s*>/.test(line))) {
+    throw new Error('Every body line starts with >, on its own line below the note\'s text.');
+  }
+  note.body = source.map((line) => line.replace(/^\s*> ?/, '')).join('\n');
+  frame.textRead = true;
+  for (let index = open + 1; ; index += 1) {
+    if (tokens[index]!.type === 'blockquote_close' && tokens[index]!.level === tokens[open]!.level) return index;
+  }
 }
 
 function plainText(tokens: Token[]): string {

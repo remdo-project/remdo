@@ -268,11 +268,16 @@ describe('note ids on paste', () => {
       return body.getChildren().filter($isLineBreakNode).length;
     });
     expect(lineBreaks).toBeGreaterThan(0);
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3', body: 'note1\nnote2' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+      - note2
+          - id:: note2
+      - note3
+          > note1
+          > note2
+          - id:: note3
+    `);
   });
 
   it('materializes same-document note-link docId in clipboard payload', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -599,10 +604,13 @@ describe('note ids on paste', () => {
     });
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'body note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > body note2
+          - id:: note1
+      - note3
+          - id:: note3
+    `);
   });
 
   it('removes a structural range immediately and round-trips the same gap exactly', meta({ fixture: 'flat' }), async ({ remdo }) => {

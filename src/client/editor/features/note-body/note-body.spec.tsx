@@ -70,17 +70,14 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     });
 
     // note3 merged in as a sibling of note2 under note1 (not hoisted to root).
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        body: 'thebody',
-        children: [
-          { noteId: 'note2', text: 'child2' },
-          { noteId: 'note3', text: 'child3' },
-        ],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > thebody
+          - child2
+              - id:: note2
+          - child3
+              - id:: note3
+    `);
   });
 
   it('shift+Enter on a note adds a body and moves the caret into it', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -88,11 +85,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Enter', shift: true });
     await typeText(remdo, 'a body');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'a body' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > a body
+      - note2
+      - note3
+    `);
   });
 
   it('shift+Enter on a note that already has a body appends at the end of it', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -107,11 +105,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
 
     // The gesture means "add to this note's body", so typing continues the
     // existing text rather than fusing onto its front.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'firstX' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > firstX
+      - note2
+      - note3
+    `);
   });
 
   it('the body is not a note: it carries no noteId and is not a separate outline note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -120,11 +119,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await typeText(remdo, 'body text');
 
     // The body content attaches to note1 as its body, never as its own note.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'body text' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > body text
+      - note2
+      - note3
+    `);
   });
 
   it('backspace on an empty body removes it and returns the caret to the note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -210,10 +210,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
 
     // note2 (empty label, one body) merges into note3; the body survives on the
     // surviving note rather than being silently deleted.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3', body: 'keepme' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note3
+          > keepme
+          - id:: note3
+    `);
   });
 
   it('backspace at the start of a non-empty body is a no-op and never merges into the note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -228,11 +230,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Backspace' });
 
     // Body and note both intact — no merge.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'bodytext' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > bodytext
+      - note2
+      - note3
+    `);
   });
 
   it('pasting a copied note inside a body inserts its text, never list nodes', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -253,11 +256,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pastePayload(remdo, clipboardPayload);
 
     // Outline stays valid: note2's text landed in note1's body; no extra note.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'bodynote2' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > bodynote2
+      - note2
+      - note3
+    `);
   });
 
   it('delete at a trailing blank body line is a no-op and never pulls in the next note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -270,11 +274,13 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Enter' });
     await pressKey(remdo, { key: 'Delete' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'one\n' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > one
+          >
+      - note2
+      - note3
+    `);
   });
 
   it('backspace at the start of a child whose parent has a body merges into the parent, not the body', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -288,10 +294,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await placeCaretAtNote(remdo, 'note3', 0);
     await pressKey(remdo, { key: 'Backspace' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2 note3', body: 'pbody' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2 note3
+          > pbody
+          - id:: note2
+    `);
   });
 
   it('the subtree tail of a note skips a trailing body on its deepest last child', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -335,11 +343,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     });
     expect(wrapperHasNoId).toBe(true);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'bodytext' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > bodytext
+      - note2
+      - note3
+    `);
   });
 
   // Note-merge body contract (docs/specs/outliner/body.md "Note merge"). Backspace at
@@ -365,10 +374,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Backspace' });
 
     // note2 merges into note1; its body survives on the result note1.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2', body: 'note2 body' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 note2
+          > note2 body
+          - id:: note1
+      - note3
+    `);
   });
 
   it('merging keeps the body when only the surviving note has one', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -380,10 +391,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await placeCaretAtNote(remdo, 'note2', 0);
     await pressKey(remdo, { key: 'Backspace' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2', body: 'note1 body' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 note2
+          > note1 body
+          - id:: note1
+      - note3
+    `);
   });
 
   it('merging two notes that both have a body joins the bodies with a line break', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -399,10 +412,13 @@ describe('note body (docs/specs/outliner/body.md)', () => {
 
     // The merge proceeds rather than silently doing nothing: the labels join as
     // usual and the survivor keeps both bodies' text.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2', body: 'note1 body\nnote2 body' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 note2
+          > note1 body
+          > note2 body
+          - id:: note1
+      - note3
+    `);
   });
 
   it('merging an empty-label note that has a body keeps its body text', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -421,10 +437,13 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await placeCaretAtNote(remdo, { id: 'note2' }, 0);
     await pressKey(remdo, { key: 'Backspace' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'note1 body\norphan body' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > note1 body
+          > orphan body
+          - id:: note1
+      - note3
+    `);
   });
 
   it('keeps document order when the removed empty-label note precedes the survivor', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -441,10 +460,13 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await placeCaretAtNote(remdo, 'note2', 0);
     await pressKey(remdo, { key: 'Backspace' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note2', text: 'note2', body: 'first body\nsecond body' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note2
+          > first body
+          > second body
+          - id:: note2
+      - note3
+    `);
   });
 
   it('merging into a note with an empty body keeps the removed note body text', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -458,10 +480,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Backspace' });
 
     // No leading blank line: an empty surviving body contributes no separator.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2', body: 'note2 body' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 note2
+          > note2 body
+          - id:: note1
+      - note3
+    `);
   });
 
   it('reconciles duplicate body-wrappers (concurrent Shift+Enter under collab) into one body', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -486,11 +510,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
       });
     });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'firstsecond' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > firstsecond
+      - note2
+      - note3
+    `);
   });
 
   it('reconciles a body-wrapper stranded after the children-wrapper back into place', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -514,15 +539,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
       });
     });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      {
-        noteId: 'note2',
-        text: 'note2',
-        body: 'note2 body',
-        children: [{ noteId: 'note3', text: 'note3' }],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          > note2 body
+          - note3
+    `);
   });
 
   it('indenting a note carries its body under the new parent', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -534,14 +556,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Tab' });
 
     // note2 indents under note1 with its body intact (not left behind at root).
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [{ noteId: 'note2', text: 'note2', body: 'note2 body' }],
-      },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+              > note2 body
+      - note3
+    `);
   });
 
   it('indent with the caret inside a body indents the owning note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -558,14 +578,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     });
     await pressKey(remdo, { key: 'Tab' });
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [{ noteId: 'note2', text: 'note2', body: 'note2 body' }],
-      },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+              > note2 body
+      - note3
+    `);
   });
 
   it('outdenting a note carries its body back to the outer level', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -577,11 +595,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await placeCaretAtNote(remdo, 'note3', 0);
     await pressKey(remdo, { key: 'Tab', shift: true });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3', body: 'note3 body' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+      - note3
+          > note3 body
+    `);
   });
 
   it('undo restores a deleted body and its text as one step; redo removes it again', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -599,16 +618,17 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Delete' });
     await remdo.waitForSynced();
 
-    const withBody = [
-      { noteId: 'note1', text: 'note1', body: 'body text' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ];
-    const withoutBody = [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ];
+    const withBody = `
+      - note1
+          > body text
+      - note2
+      - note3
+    `;
+    const withoutBody = `
+      - note1
+      - note2
+      - note3
+    `;
     expect(remdo).toMatchOutline(withoutBody);
 
     // One undo brings the body and its text back (selection is not asserted:
@@ -661,11 +681,14 @@ describe('note body (docs/specs/outliner/body.md)', () => {
 
     // The body is content the note owns, so the pasted copy carries it — and the
     // body never appears as its own standalone note (it stays attached as a body).
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', body: 'note2 body' },
-      { noteId: null, text: 'note2', body: 'note2 body' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          > note2 body
+          - id:: note2
+      - note2
+          > note2 body
+    `);
   });
 
   it('copying a multi-note structural range carries each note with its own body', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -685,12 +708,18 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await selectStructuralNotes(remdo, 'note3', 'note3');
     await pastePayload(remdo, payload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'b1' },
-      { noteId: 'note2', text: 'note2', body: 'b2' },
-      { noteId: null, text: 'note1', body: 'b1' },
-      { noteId: null, text: 'note2', body: 'b2' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > b1
+          - id:: note1
+      - note2
+          > b2
+          - id:: note2
+      - note1
+          > b1
+      - note2
+          > b2
+    `);
   });
 
   it('copying a note with a body includes the body text in the plain-text flavor (paste outside RemDo)', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -810,11 +839,14 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await selectEntireNote(remdo, 'note3');
     await pastePayload(remdo, payload);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', body: 'note2 body' },
-      { noteId: 'note3', text: 'note2', children: [{ noteId: null, text: 'note2 body' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+          > note2 body
+      - note2
+          - id:: note3
+          - note2 body
+    `);
   });
 
   it('enter inside a body inserts a line break instead of creating a note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -826,11 +858,13 @@ describe('note body (docs/specs/outliner/body.md)', () => {
 
     // No new note was created; the body holds a line break (read as '\n')
     // between the two typed segments.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'one\ntwo' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > one
+          > two
+      - note2
+      - note3
+    `);
   });
 
   it('enter confirms an @ note-link inside a body instead of inserting a line break', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -841,11 +875,12 @@ describe('note body (docs/specs/outliner/body.md)', () => {
 
     // The picker confirmed the link (body shows the linked title and a trailing
     // space), and Enter did not insert a line break.
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'see note2 ' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > see note2${' '}
+      - note2
+      - note3
+    `);
     expect(JSON.stringify(remdo.getEditorState())).not.toContain('"linebreak"');
   });
 
@@ -892,12 +927,13 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Enter' });
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', body: 'b' },
-      { noteId: null, text: 'X' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          > b
+      - X
+      - note2
+      - note3
+    `);
   });
 
   it('escape in a body returns the caret to the end of its note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -909,11 +945,13 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     // Typing proves where the caret landed: appended to the note, not the body.
     await typeText(remdo, '!');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1!', body: 'body text' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1!
+          > body text
+          - id:: note1
+      - note2
+      - note3
+    `);
   });
 });
 
