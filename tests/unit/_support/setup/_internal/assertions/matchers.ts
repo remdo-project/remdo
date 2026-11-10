@@ -1,7 +1,7 @@
 import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
-import { extractOutlineFromEditorState, readOutlineExpectation } from '#tests-common/outline';
+import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards, readOutlineExpectation } from '#tests-common/outline';
 import type { OutlineNode, ProjectedNote } from '#tests-common/outline';
 import type { MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
 import {
@@ -298,16 +298,15 @@ function matchMarkdownOutline(ctx: any, remdo: RemdoTestHelpers, expected: strin
 }
 
 expect.extend({
-  // TODO: Object expectations remain for bodies and fold state until the text-format spike
-  // settles how Markdown holds them (docs/text-format-plan.md), and where specs build notes from
-  // variables or expect spaces at a note's edge. Probe: narrow `expected` to `string`; nothing
-  // fails to compile.
   toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: Outline | string) {
     if (typeof expected === 'string') return matchMarkdownOutline(this, remdo, expected);
     assertOutlineExpectation(expected);
 
-    const outline = attemptRead(this, '.toMatchOutline', () =>
-      readOutlineExpectation(expected).project(extractOutlineFromEditorState(remdo.getEditorState())));
+    const outline = attemptRead(this, '.toMatchOutline', () => {
+      const actual = extractOutlineFromEditorState(remdo.getEditorState());
+      mutateOutlineNoteIdWildcards(actual, expected);
+      return actual;
+    });
     if (!outline.ok) return outline.result;
 
     return compareWithExpected(this, outline.value, expected, {

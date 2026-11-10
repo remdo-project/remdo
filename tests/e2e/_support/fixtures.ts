@@ -243,10 +243,6 @@ export function collectCurrentUserRequests(page: Page): string[] {
 }
 
 expect.extend({
-  // TODO: Object expectations remain for bodies and fold state until the text-format spike
-  // settles how Markdown holds them (docs/text-format-plan.md), and where specs build notes from
-  // variables or expect spaces at a note's edge. Probe: narrow `expected` to `string`; nothing
-  // fails to compile.
   async toMatchOutline(received: unknown, expected: Outline | string) {
     if (this.isNot) {
       return {

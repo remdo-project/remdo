@@ -91,23 +91,32 @@ test('runs movement, indentation and checked-state actions on the caret note and
   await toolbar(page).getByRole('button', { name: 'Move down', exact: true }).click();
   await expect(editor).toMatchOutline(`
     - note1
+        - id:: note1
     - note3
+        - id:: note3
     - note2
+        - id:: note2
   `);
   await expect(input(page)).toBeFocused();
   await toolbar(page).getByRole('button', { name: 'Indent', exact: true }).click();
   await toolbar(page).getByRole('button', { name: 'Toggle checked', exact: true }).click();
   await expect(editor).toMatchOutline(`
     - note1
+        - id:: note1
     - note3
+        - id:: note3
         - [x] note2
+            - id:: note2
   `);
   await toolbar(page).getByRole('button', { name: 'Outdent', exact: true }).click();
   await toolbar(page).getByRole('button', { name: 'Move up', exact: true }).click();
   await expect(editor).toMatchOutline(`
     - note1
+        - id:: note1
     - [x] note2
+        - id:: note2
     - note3
+        - id:: note3
   `);
   await expect(input(page)).toBeFocused();
 });
@@ -123,16 +132,22 @@ test('acts on the complete selected note range across repeated pointer operation
   await toolbar(page).getByRole('button', { name: 'Toggle checked', exact: true }).click();
   await expect(editor).toMatchOutline(`
     - note1
+        - id:: note1
         - [x] note2
+            - id:: note2
         - [x] note3
+            - id:: note3
   `);
   await expect(input(page)).toHaveClass(/editor-input--structural/u);
   await toolbar(page).getByRole('button', { name: 'Outdent', exact: true }).click();
   await toolbar(page).getByRole('button', { name: 'Move up', exact: true }).click();
   await expect(editor).toMatchOutline(`
     - [x] note2
+        - id:: note2
     - [x] note3
+        - id:: note3
     - note1
+        - id:: note1
   `);
   await expect(input(page)).toBeFocused();
 });

@@ -18,8 +18,11 @@ test('reuses the login with fresh browser state', async ({ page, context, editor
       const reopenedEditor = await createEditorHarness(guardedPage, editor.docId);
       await expect(reopenedEditor).toMatchOutline(`
         - note1
+            - id:: note1
         - note2
+            - id:: note2
         - note3
+            - id:: note3
       `);
       expect(await guardedPage.evaluate(() => ({
         local: localStorage.getItem('fixture-isolation'),

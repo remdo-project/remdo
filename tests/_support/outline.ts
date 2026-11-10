@@ -161,8 +161,12 @@ export interface OutlineExpectation<Shape extends Outline | ProjectedNote[]> {
   project: (actual: Outline) => Shape;
 }
 
+// TODO: Object expectations remain for bodies and fold state until the text-format spike settles
+// how Markdown holds them (docs/text-format-plan.md), and where specs build notes from variables or
+// expect spaces at a note's edge. Probe: narrow `expected` to `string` in the `toMatchOutline`
+// declarations (tests/unit/_support/types/vitest.d.ts, tests/e2e/_support/expect.d.ts); nothing
+// fails to compile.
 /** An expected outline, as Markdown or objects, with the projection that makes the editor's comparable. */
-export function readOutlineExpectation(expected: Outline): OutlineExpectation<Outline>;
 export function readOutlineExpectation(expected: string): OutlineExpectation<ProjectedNote[]>;
 export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<ProjectedNote[]>;
 export function readOutlineExpectation(expected: Outline | string): OutlineExpectation<Outline> | OutlineExpectation<ProjectedNote[]> {
