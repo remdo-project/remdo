@@ -93,14 +93,15 @@ describe('clipboard paste placement (docs/specs/outliner/clipboard.md)', () => {
 
     await pastePlainText(remdo, 'A\nB');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'link' },
-      { noteId: null, text: 'A' },
-      { noteId: null, text: 'B' },
-      { noteId: null, text: ' after' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - link
+          - id:: note2
+      - A
+      - B
+      - &#32;after
+      - note3
+    `);
     remdo.validate(() => {
       const link = $getNoteById('note2').getChildren().find($isLinkNode)!;
       expect(link.getURL()).toBe('https://example.com/');

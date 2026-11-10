@@ -194,8 +194,12 @@ once stage 3 lands.
         wrapping text for a range within a note, and wrapping whole
         note lines for a note range. Pilot it on a few specs before scripting
         the rest; expectations with bodies or fold state stay objects until
-        the spike. Checks of only the selection keep `toMatchSelection`,
-        which names notes by ID, unless the test checks the selection's
+        the spike. Notes built from variables move to interpolated Markdown,
+        and spaces at a note's edges, which tools trim when they write the
+        format, are written as character references such as `&#32;`, so the
+        object form goes once the spike covers bodies and folds. Checks of
+        only the selection keep `toMatchSelection`, which names notes by ID,
+        unless the test checks the selection's
         shape in the tree or its place in the text. A selected inline token,
         such as a date, is marked as a range over its label.
      3. Let the browser tests' outline matcher read the same Markdown with the

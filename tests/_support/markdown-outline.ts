@@ -78,6 +78,14 @@ export function readMarkdownOutline(source: string): MarkdownOutline {
   return { notes, selection: readSelection(marks, blockStarts, blockEnds, located) };
 }
 
+/**
+ * Writes a note's text for a Markdown expectation. Spaces at its edges, which tools trim when they
+ * write the format, become character references so the expectation still states them.
+ */
+export function markdownNoteText(text: string): string {
+  return text.replace(/^\s+|\s+$/g, (run) => [...run].map((char) => `&#${char.codePointAt(0)};`).join(''));
+}
+
 function dedent(source: string): string {
   const lines = source.replace(/^\n/, '').replace(/\n\s*$/, '').split('\n');
   const indent = Math.min(...lines.filter((line) => line.trim()).map((line) => /^ */.exec(line)![0].length));
