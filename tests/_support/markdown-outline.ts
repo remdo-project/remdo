@@ -5,6 +5,8 @@ import type { Token } from 'markdown-it';
 export interface MarkdownNote {
   text?: string;
   checked?: true;
+  /** The note's body: its `>` lines before any child, as Markdown source joined by line breaks. */
+  body?: string;
   id?: string;
   children?: MarkdownNote[];
 }
@@ -109,9 +111,12 @@ const STRUCTURE = new Set([
 function readList(tokens: Token[], lines: string[], located: Located[], marks: Mark[]): MarkdownNote[] {
   const top: MarkdownNote[] = [];
   const frames: Frame[] = [{ note: null, children: top, path: [] }];
-  for (const token of tokens) {
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index]!;
     const frame = frames.at(-1)!;
-    if (token.type === 'list_item_open') {
+    if (token.type === 'blockquote_open' && frame.note) {
+      index = readBody(tokens, index, frame.note, frame.children, lines);
+    } else if (token.type === 'list_item_open') {
       if (frames.length > 1 && !frame.note) throw new Error('An id:: line can\'t hold notes.');
       const line = token.map![0];
       const marker = MARKER.exec(lines[line]!)!;
@@ -136,7 +141,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       throw new Error(`An outline holds only list items with plain text; found ${token.type}.`);
     } else if (token.type === 'inline') {
       if (frames.length === 1) throw new Error('Every line of an outline is a list item; found text outside any note.');
-      if (frame.textRead) throw new Error('A note holds one paragraph; Markdown expectations can\'t express bodies yet.');
+      if (frame.textRead) throw new Error('A note holds one paragraph; write a body as > lines before its children.');
       frame.textRead = true;
       if (!frame.note) continue;
       const parsed = plainText(token.children ?? []);
@@ -146,6 +151,25 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
     }
   }
   return top;
+}
+
+/** Reads a body from its source lines and returns the index of the token that closes it. */
+function readBody(tokens: Token[], open: number, note: MarkdownNote, children: MarkdownNote[], lines: string[]): number {
+  if (note.body !== undefined || note.id !== undefined || children.length > 0) {
+    throw new Error('A note\'s body is one > block, before its id:: line and its children.');
+  }
+  const [start, end] = tokens[open]!.map!;
+  const body = lines.slice(start, end).map((line) => line.replace(/^\s*>\s?/, ''));
+  if (body.some((line) => [...line].some((char) => KIND_BY_SENTINEL.has(char)))) {
+    throw new Error('<selection> can\'t sit in a body yet.');
+  }
+  note.body = body.join('\n');
+  let depth = 0;
+  for (let index = open; index < tokens.length; index += 1) {
+    if (tokens[index]!.type === 'blockquote_open') depth += 1;
+    if (tokens[index]!.type === 'blockquote_close' && --depth === 0) return index;
+  }
+  throw new Error('A body\'s > block never closes.');
 }
 
 function plainText(tokens: Token[]): string {
