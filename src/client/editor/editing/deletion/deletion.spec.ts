@@ -1,4 +1,4 @@
-import { $getNoteByText,
+import { $getNoteByText, getNoteIdOf,
   findNearestListItem,
   getNoteKey,
   placeCaretAtNote,
@@ -167,8 +167,8 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
         - note2 note3
             - id:: note2
             - transferred child
-                - id:: ${transferredChildId}
       `);
+      expect(getNoteIdOf(remdo, 'transferred child')).toBe(transferredChildId);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
     });
 
@@ -192,8 +192,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       expect(remdo).toMatchOutline(`
         - note1
             - note2
-            - note2.1
-                - id:: ${note21Id}
+            - note2.1<selection />
         - note3
       `);
 
@@ -204,10 +203,10 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
         - note1 note2
             - id:: note1
             - note2.1
-                - id:: ${note21Id}
         - note3
       `);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+      expect(getNoteIdOf(remdo, 'note2.1')).toBe(note21Id);
     });
 
     it('drops an empty child leaf when Backspace is pressed at its start', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -299,7 +298,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await placeCaretAtNote(remdo, 'note6', 0);
       await pressKey(remdo, { key: 'Backspace' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note6' });
     });
 
@@ -371,7 +370,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 
@@ -382,7 +381,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Enter' }); // create empty sibling under note2
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
@@ -393,7 +392,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Enter' }); // create empty leaf after note3
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note3' });
     });
 
@@ -404,7 +403,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await pressKey(remdo, { key: 'Enter' }); // create empty leaf between note5 and note6
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note6' });
     });
 
@@ -423,13 +422,11 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
 
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Enter' });
-      const emptyChildId = readCaretNoteId(remdo);
 
       expect(remdo).toMatchOutline(`
         - note1
 
-            -
-                - id:: ${emptyChildId}
+            - <selection />
             - note2
         - note3
       `);
@@ -437,7 +434,7 @@ describe('deletion semantics (docs/specs/outliner/deletion.md)', () => {
       await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
       await pressKey(remdo, { key: 'Delete' });
 
-      expect(remdo).toMatchOutline(before);
+      expect(readOutline(remdo)).toEqual(before);
       expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
     });
 

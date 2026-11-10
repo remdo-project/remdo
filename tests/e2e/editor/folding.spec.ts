@@ -23,10 +23,12 @@ test.describe('Folding', () => {
 
     await expect(listItem).toHaveAttribute('data-folded', 'true');
     await expect(childItem).toBeHidden();
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2', folded: true, children: [{ noteId: 'note3', text: 'note3' }] },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - note2
+          - folded:: true
+          - note3
+    `);
 
     const unfoldMenu = await openNoteMenu(page, 'note2', { anchor: 'caret', openMethod: 'shortcut' });
     await unfoldMenu.pressShortcut('f');

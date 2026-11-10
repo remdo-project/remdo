@@ -204,27 +204,16 @@ test.describe('Document-root header', () => {
     await page.keyboard.press('1');
 
     await expect(page.getByRole('menu')).toHaveCount(0);
-    await expect(editor).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        folded: true,
-        children: [
-          {
-            noteId: 'note2',
-            text: 'note2',
-            children: [{ noteId: 'note3', text: 'note3' }],
-          },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      {
-        noteId: 'note6',
-        text: 'note6',
-        folded: true,
-        children: [{ noteId: 'note7', text: 'note7' }],
-      },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+          - folded:: true
+          - note2
+              - note3
+          - note4
+      - note5
+      - note6
+          - folded:: true
+          - note7
+    `);
   });
 });

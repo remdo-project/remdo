@@ -16,7 +16,7 @@ describe('collaboration sync', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     await waitFor(() => {
       const outlineA = readOutline(remdo);
-      expect(secondary).toMatchOutline(outlineA);
+      expect(readOutline(secondary)).toEqual(outlineA);
     });
 
     remdo.editor.update(() => {
@@ -32,7 +32,9 @@ describe('collaboration sync', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       root.append(list);
     });
 
-    const sharedOutline = [{ noteId: null, text: 'note1' }];
+    const sharedOutline = `
+      - note1
+    `;
     await waitFor(() => {
       expect(remdo).toMatchOutline(sharedOutline);
       expect(secondary).toMatchOutline(sharedOutline);

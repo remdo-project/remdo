@@ -1,9 +1,10 @@
 import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
-import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards, readOutlineExpectation } from '#tests-common/outline';
-import type { OutlineNode, ProjectedNote } from '#tests-common/outline';
-import type { MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
+import { extractOutlineFromEditorState, projectOutline } from '#tests-common/outline';
+import type { OutlineNode } from '#tests-common/outline';
+import { readMarkdownOutline } from '#tests-common/markdown-outline';
+import type { MarkdownNote, MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
 import {
   collectSelectedListItems,
   findNearestListItem,
@@ -80,43 +81,8 @@ function compareWithExpected<T>(
   };
 }
 
-function formatOutlineForMessage(outline: Outline): string {
-  return JSON.stringify(outline, null, 2);
-}
-
 function formatSelectionSnapshot(snapshot: SelectionSnapshot): string {
   return JSON.stringify(snapshot, null, 2);
-}
-
-function assertOutlineExpectation(outline: Outline, path: number[] = []) {
-  for (let index = 0; index < outline.length; index += 1) {
-    const node = outline[index]!;
-    const nodePath = [...path, index];
-
-    const maybeText = (node as { text?: string | null }).text;
-    if (maybeText === null) {
-      throw new Error(`outline[${nodePath.join('>')}].text must be omitted or a string; null is not allowed.`);
-    }
-    const maybeChecked = (node as { checked?: unknown }).checked;
-    if (maybeChecked !== undefined && typeof maybeChecked !== 'boolean') {
-      throw new TypeError(`outline[${nodePath.join('>')}].checked must be omitted or boolean.`);
-    }
-
-    if (node.noteId !== null && (typeof node.noteId !== 'string' || node.noteId.length === 0)) {
-      throw new TypeError(`outline[${nodePath.join('>')}].noteId must be a non-empty string or null.`);
-    }
-
-    if (Object.hasOwn(node, 'children')) {
-      const children = node.children;
-      if (!Array.isArray(children)) {
-        throw new TypeError(`outline[${nodePath.join('>')}].children must be an array when provided.`);
-      }
-      if (children.length === 0) {
-        throw new TypeError(`outline[${nodePath.join('>')}].children must be omitted when a note has no children.`);
-      }
-      assertOutlineExpectation(children, nodePath);
-    }
-  }
 }
 
 function readSelectionSnapshot(remdo: RemdoTestHelpers): SelectionSnapshot {
@@ -275,49 +241,26 @@ function readSelectionDetail(remdo: RemdoTestHelpers): SelectionDetail {
   });
 }
 
-function matchMarkdownOutline(ctx: any, remdo: RemdoTestHelpers, expected: string): MatcherResult {
-  const read = attemptRead(ctx, '.toMatchOutline', () => {
-    const { wanted: notes, selection, project } = readOutlineExpectation(expected);
-    const outline = extractOutlineFromEditorState(remdo.getEditorState());
-    const actual: { outline: ProjectedNote[]; selection?: SelectionDetail } = { outline: project(outline) };
-    const wanted: typeof actual = { outline: notes };
-    if (selection) {
-      actual.selection = readSelectionDetail(remdo);
-      wanted.selection = resolveMarkdownSelection(selection, outline);
-    }
-    return { actual, wanted };
-  });
-  if (!read.ok) return read.result;
-
-  return compareWithExpected(ctx, read.value.actual, read.value.wanted, {
-    matcher: 'toMatchOutline',
-    args: ['lexical', 'expectedMarkdown'],
-    passMessage: 'Expected the document not to match, but it did.',
-    failMessage: 'The document differs from the expected Markdown.',
-  });
-}
-
 expect.extend({
-  toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: Outline | string) {
-    if (typeof expected === 'string') return matchMarkdownOutline(this, remdo, expected);
-    assertOutlineExpectation(expected);
-
-    const outline = attemptRead(this, '.toMatchOutline', () => {
-      const actual = extractOutlineFromEditorState(remdo.getEditorState());
-      mutateOutlineNoteIdWildcards(actual, expected);
-      return actual;
+  toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: string) {
+    const read = attemptRead(this, '.toMatchOutline', () => {
+      const { notes, selection } = readMarkdownOutline(expected);
+      const outline = extractOutlineFromEditorState(remdo.getEditorState());
+      const actual: { outline: MarkdownNote[]; selection?: SelectionDetail } = { outline: projectOutline(outline, notes) };
+      const wanted: typeof actual = { outline: notes };
+      if (selection) {
+        actual.selection = readSelectionDetail(remdo);
+        wanted.selection = resolveMarkdownSelection(selection, outline);
+      }
+      return { actual, wanted };
     });
-    if (!outline.ok) return outline.result;
+    if (!read.ok) return read.result;
 
-    return compareWithExpected(this, outline.value, expected, {
+    return compareWithExpected(this, read.value.actual, read.value.wanted, {
       matcher: 'toMatchOutline',
-      args: ['lexical', 'expectedOutline'],
-      passMessage: 'Expected outlines not to match, but readOutline produced the same structure.',
-      failMessage: 'Outlines differ.',
-      formatDiff: (actual, expectedOutline) =>
-        ['Expected outline:', formatOutlineForMessage(expectedOutline), '', 'Received outline:', formatOutlineForMessage(actual)].join(
-          '\n'
-        ),
+      args: ['lexical', 'expectedMarkdown'],
+      passMessage: 'Expected the document not to match, but it did.',
+      failMessage: 'The document differs from the expected Markdown.',
     });
   },
 

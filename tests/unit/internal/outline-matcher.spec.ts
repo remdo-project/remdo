@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
-import type { Outline } from '#tests';
 import { selectStructuralNotes, meta, setRawNoteCheckedState } from '#tests';
 import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
 import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-state-persistence';
 
 interface OutlineCase {
   fixture: string;
-  outline: Outline | string;
+  outline: string;
 }
 
 // Fixtures intentionally excluded from outline-content coverage. `large` is a
@@ -40,39 +39,38 @@ const CASES: OutlineCase[] = [
   },
   {
     fixture: 'editor-showcase',
-    outline: [
-      { noteId: 'showcaseTitle', text: 'Editor showcase' },
-      { noteId: 'inlineFormatting', text: 'Plain bold italic underline strike code bold italic' },
-      { noteId: 'dateAndLinks', text: 'Due Jul 9, 2026 see done task and remote note' },
-      {
-        noteId: 'bodyNote',
-        text: 'Note with body',
-        checked: true,
-        body: 'Body has rich text and a note link\nSecond body line\nThird body line',
-      },
-      {
-        noteId: 'foldedParent',
-        text: 'Folded parent',
-        folded: true,
-        children: [ { noteId: 'foldedChild', text: 'Hidden child' } ],
-      },
-      {
-        noteId: 'numberedParent',
-        text: 'Numbered steps',
-        children: [
-          { noteId: 'stepOne', text: 'First step' },
-          { noteId: 'stepTwo', text: 'Second step', body: 'Second step body' },
-        ],
-      },
-      {
-        noteId: 'checklistParent',
-        text: 'Checklist',
-        children: [
-          { noteId: 'checkDone', text: 'Done task', checked: true, body: 'Done task body' },
-          { noteId: 'checkOpen', text: 'Open task' },
-        ],
-      },
-    ],
+    outline: `
+      - Editor showcase
+          - id:: showcaseTitle
+      - Plain bold italic underline strike code bold italic
+          - id:: inlineFormatting
+      - Due Jul 9, 2026 see done task and remote note
+          - id:: dateAndLinks
+      - [x] Note with body
+          > Body has rich text and a note link
+          > Second body line
+          > Third body line
+          - id:: bodyNote
+      - Folded parent
+          - id:: foldedParent
+          - folded:: true
+          - Hidden child
+              - id:: foldedChild
+      - Numbered steps
+          - id:: numberedParent
+          - First step
+              - id:: stepOne
+          - Second step
+              > Second step body
+              - id:: stepTwo
+      - Checklist
+          - id:: checklistParent
+          - [x] Done task
+              > Done task body
+              - id:: checkDone
+          - Open task
+              - id:: checkOpen
+    `,
   },
   {
     fixture: 'basic',
@@ -213,20 +211,11 @@ describe('toMatchOutline smoke coverage', () => {
   });
 
   it('surfaces expected vs received outline when the matcher fails', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    let thrown: unknown;
-    try {
-      expect(remdo).toMatchOutline([{ noteId: 'wrong', text: 'wrong label' }]);
-    } catch (error) {
-      thrown = error;
-    }
-
-    expect(thrown).toBeInstanceOf(Error);
-    const thrownError = thrown as Error;
-    expect(thrownError.message).toContain('Outlines differ.');
-    expect(thrownError.message).toContain('"text": "wrong label"');
-    expect(thrownError.message).toContain('"text": "note1"');
-    expect(thrownError.message).toContain('"text": "note2"');
-    expect(thrownError.message).toContain('"text": "note3"');
+    expect(() => {
+      expect(remdo).toMatchOutline(`
+        - wrong label
+      `);
+    }).toThrow(/differs from the expected Markdown[\s\S]*wrong label[\s\S]*note3/u);
   });
 
   it('matches selection-only expectations', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -235,61 +224,46 @@ describe('toMatchOutline smoke coverage', () => {
     expect(remdo).toMatchSelection({ state: 'structural', notes: ['note2', 'note3'] });
   });
 
-  it('supports checked assertions in toMatchOutline', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('matches checked state strictly', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await setRawNoteCheckedState(remdo, 'note1', true);
     await setRawNoteCheckedState(remdo, 'note2', false);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', checked: true },
-      { noteId: 'note2', text: 'note2', checked: false },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - [x] note1
+      - [ ] note2
+      - note3
+    `);
+    expect(() => {
+      expect(remdo).toMatchOutline(`
+        - note1
+        - note2
+        - note3
+      `);
+    }).toThrow(/differs from the expected Markdown/u);
+    expect(() => {
+      expect(remdo).toMatchOutline(`
+        - [x] note1
+        - [x] note2
+        - note3
+      `);
+    }).toThrow(/differs from the expected Markdown/u);
   });
 
-  it('treats noteId: null as a generated noteId assertion in toMatchOutline', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
-  });
-
-  it('fails checked assertions when expected checked state does not match', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    let thrown: unknown;
-    try {
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1', checked: true },
-        { noteId: 'note2', text: 'note2', checked: true },
-        { noteId: 'note3', text: 'note3' },
-      ]);
-    } catch (error) {
-      thrown = error;
-    }
-
-    expect(thrown).toBeInstanceOf(Error);
-    const thrownError = thrown as Error;
-    expect(thrownError.message).toContain('Outlines differ.');
-    expect(thrownError.message).toContain('"checked": true');
-  });
-
-  it('treats omitted checked as unchecked expectation', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    await setRawNoteCheckedState(remdo, 'note1', true);
-
-    let thrown: unknown;
-    try {
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1' },
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ]);
-    } catch (error) {
-      thrown = error;
-    }
-
-    expect(thrown).toBeInstanceOf(Error);
-    const thrownError = thrown as Error;
-    expect(thrownError.message).toContain('Outlines differ.');
-    expect(thrownError.message).toContain('"checked": true');
+  it('compares the IDs an expectation declares', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+      - note2
+      - note3
+    `);
+    expect(() => {
+      expect(remdo).toMatchOutline(`
+        - note1
+            - id:: other
+        - note2
+        - note3
+      `);
+    }).toThrow(/differs from the expected Markdown/u);
   });
 
   it('reports selection mismatches', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {

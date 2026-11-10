@@ -1045,15 +1045,12 @@ describe('lexical open document', () => {
       expect(remdo).toMatchOutline(`
         - note1
             - Summary
-                - id:: ${summary!}
                 - [x] Done
                 - Open
         - note2
             - note3
         - First
-            - id:: ${first!}
         - Second
-            - id:: ${second!}
       `);
       expect(openDocument.noteRef('note1').getChildListType()).toBe('bullet');
       expect(openDocument.noteRef(summary!).getChildListType()).toBe('check');
@@ -1069,10 +1066,9 @@ describe('lexical open document', () => {
 
       expect(remdo).toMatchOutline(`
         - First
-            - id:: ${first!}
         - Second
-            - id:: ${second!}
       `);
+      expect(remdo.openDocument.root.content.getChildren().map((note) => note.getId())).toEqual([first, second]);
       expect(remdo).toMatchSelection({ state: 'caret', note: first! });
     });
 
@@ -1103,8 +1099,8 @@ describe('lexical open document', () => {
         -
             - id:: blank
             - Child
-                - id:: ${child!}
       `);
+      expect(remdo.openDocument.noteRef('blank').getChildren().map((note) => note.getId())).toEqual([child]);
 
       await remdo.mutate(() => {
         $setSingleNoteDocument('blank', '');

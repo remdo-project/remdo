@@ -1,4 +1,4 @@
-import type { Outline, SelectionSnapshot } from '#tests';
+import type { SelectionSnapshot } from '#tests';
 import type { RemdoTestApi } from '#client/editor/dev';
 import type { EditorViewBindings } from '#client/editor/view/EditorViewProvider';
 
@@ -27,13 +27,13 @@ declare module 'vitest' {
   }
 
   interface Assertion<T = any> {
-    toMatchOutline: (expected: Outline | string) => void;
+    toMatchOutline: (expected: string) => void;
     toMatchSelection: (expected: SelectionSnapshot) => void;
     toMatchEditorState: (expected: unknown) => void;
   }
 
   interface AsymmetricMatchersContaining {
-    toMatchOutline: (expected: Outline | string) => void;
+    toMatchOutline: (expected: string) => void;
     toMatchSelection: (expected: SelectionSnapshot) => void;
     toMatchEditorState: (expected: unknown) => void;
   }

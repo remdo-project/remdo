@@ -217,28 +217,17 @@ test.describe('Note menu', () => {
     const menu = await openNoteMenu(page, 'note4', { anchor: 'caret', openMethod: 'shortcut' });
     await menu.pressShortcut('1');
     await menu.expectClosed();
-    await expect(editor).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        folded: true,
-        children: [
-          {
-            noteId: 'note2',
-            text: 'note2',
-            children: [{ noteId: 'note3', text: 'note3' }],
-          },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      {
-        noteId: 'note6',
-        text: 'note6',
-        folded: true,
-        children: [{ noteId: 'note7', text: 'note7' }],
-      },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+          - folded:: true
+          - note2
+              - note3
+          - note4
+      - note5
+      - note6
+          - folded:: true
+          - note7
+    `);
   });
 
   test('applies level 1 when fold to level is clicked', async ({ page, editor }) => {
@@ -247,28 +236,17 @@ test.describe('Note menu', () => {
     const menu = await openNoteMenu(page, 'note4');
     await menu.item('view-fold-to-level').click();
     await menu.expectClosed();
-    await expect(editor).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        folded: true,
-        children: [
-          {
-            noteId: 'note2',
-            text: 'note2',
-            children: [{ noteId: 'note3', text: 'note3' }],
-          },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      {
-        noteId: 'note6',
-        text: 'note6',
-        folded: true,
-        children: [{ noteId: 'note7', text: 'note7' }],
-      },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+          - folded:: true
+          - note2
+              - note3
+          - note4
+      - note5
+      - note6
+          - folded:: true
+          - note7
+    `);
   });
 
   test('applies fold view to level to the current zoom boundary regardless of opened note', async ({ page, editor }) => {
@@ -287,28 +265,17 @@ test.describe('Note menu', () => {
     await menu.pressShortcut('1');
     await menu.expectClosed();
 
-    await expect(editor).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          {
-            noteId: 'note2',
-            text: 'note2',
-            folded: true,
-            children: [{ noteId: 'note3', text: 'note3' }],
-          },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      {
-        noteId: 'note6',
-        text: 'note6',
-        folded: true,
-        children: [{ noteId: 'note7', text: 'note7' }],
-      },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+          - note2
+              - folded:: true
+              - note3
+          - note4
+      - note5
+      - note6
+          - folded:: true
+          - note7
+    `);
   });
 
   test('toggle checked closes the menu and updates note state', async ({ page, editor }) => {

@@ -15,8 +15,11 @@ It is based on CommonMark plus GFM.
 In decreasing priority:
 
 <!-- markdownlint-disable MD007 MD029 -->
-1. Stable:: tools write one canonical spelling
-    > Untouched text stays byte-identical, so diffs and merges stay clean.
+1. Total:: every Markdown file reads as one document, the same in every reader
+    > Text the format gives no meaning stays ordinary content.
+1. Stable:: what tools write is canonical, so writing it again changes nothing
+    > Tools may rewrite other text to its canonical spelling, keeping what it
+    > reads as.
 1. Readable and minimal:: little markup
     > People and agents read and write the text comfortably without tooling.
 1. Simple to parse:: an unambiguous grammar with few special cases

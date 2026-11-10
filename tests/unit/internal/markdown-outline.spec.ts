@@ -37,6 +37,40 @@ describe('reading expected outlines from Markdown', () => {
     expect(readMarkdownOutline('- note1\n    >\ttabbed').notes).toEqual([{ text: 'note1', body: '\ttabbed' }]);
   });
 
+  it('reads a folded note from its folded:: line', () => {
+    expect(readMarkdownOutline(`
+      - note1
+          > body
+          - id:: first
+          - folded:: true
+          - note2
+      - note3
+          - folded:: true
+          - note4
+    `).notes).toEqual([
+      { text: 'note1', body: 'body', id: 'first', folded: true, children: [{ text: 'note2' }] },
+      { text: 'note3', folded: true, children: [{ text: 'note4' }] },
+    ]);
+  });
+
+  it('takes fold state from a note\'s first folded:: line, whatever its value or place', () => {
+    expect(readMarkdownOutline(`
+      - unfolded by another value
+          - folded:: false
+          - folded:: true
+          - child
+      - folded after its children
+          - child
+          - [x] folded:: true
+      - not a name
+          - folded::true
+    `).notes).toEqual([
+      { text: 'unfolded by another value', children: [{ text: 'child' }] },
+      { text: 'folded after its children', folded: true, children: [{ text: 'child' }] },
+      { text: 'not a name', children: [{ text: 'folded::true' }] },
+    ]);
+  });
+
   it('keeps spaces at a note\'s edges written as character references', () => {
     expect(markdownNoteText('  two words ')).toBe('&#32;&#32;two words&#32;');
     expect(readMarkdownOutline(`- ${markdownNoteText('  two words ')}`).notes).toEqual([{ text: '  two words ' }]);
@@ -75,7 +109,8 @@ describe('reading expected outlines from Markdown', () => {
     ['an empty first child, which CommonMark reads as a heading underline', '- note1\n    -\n- note2', /heading/u],
     ['a second paragraph', '- note1\n\n  more', /one paragraph/u],
     ['a lazy continuation line', '- note1\ncontinued', /marker's line/u],
-    ['notes under an id:: line', '- note1\n    - id:: first\n        - note2', /id:: line/u],
+    ['notes under an id:: line', '- note1\n    - id:: first\n        - note2', /can't hold notes/u],
+    ['notes under a folded:: line', '- note1\n    - folded:: true\n        - note2', /can't hold notes/u],
     ['text before the list', 'stray\n- note1', /outside any note/u],
     ['text after a blank line', '- note1\n\ncontinued', /outside any note/u],
     ['a second paragraph under an id:: line', '- note1\n    - id:: first\n\n      more', /one paragraph/u],
@@ -84,7 +119,11 @@ describe('reading expected outlines from Markdown', () => {
     ['a body line without >', '- note1\n    > body\n    more', /Every body line starts with >/u],
     ['a body on its note\'s line', '- > quoted', /Every body line starts with >/u],
     ['a selection in a body','- note1\n    > bo<selection />dy', /own text/u],
+    ['a selection in a folded:: line', '- note1\n    - folded:: true<selection />\n    - note2', /own text/u],
+    ['an id:: line holding two words', '- note1\n    - id:: first second', /holds one ID/u],
     ['a second id:: line', '- note1\n    - id:: first\n    - id:: second', /one id:: line/u],
+    ['an id:: line continued on the next line', '- note1\n    - id:: first\n      second', /marker's line/u],
+    ['a folded:: line continued on the next line', '- note1\n    - folded:: true\n      more', /marker's line/u],
     ['a thematic break', '- ***', /hr/u],
     ['an indented code block', '-     code', /code_block/u],
     ['inline HTML', '- a <b> c', /html_inline/u],

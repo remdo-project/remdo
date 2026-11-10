@@ -8,6 +8,7 @@ export interface MarkdownNote {
   /** The note's body: its `>` lines before any child, taken literally and joined by line breaks. */
   body?: string;
   id?: string;
+  folded?: true;
   children?: MarkdownNote[];
 }
 
@@ -33,11 +34,12 @@ export interface MarkdownOutline {
 const markdown = new MarkdownIt('commonmark');
 const TAG = /<selection\s*\/>|<selection>|<\/selection>/g;
 const MARKER = /^\s*(?:[-*+]|\d+[.)])(?:\s+\[([ x])\])?(?:\s+|$)/;
-const ID_NOTE = /^id::\s*(\S+)$/;
+const STATE_LINE = /^(id|folded)::(?: (.*))?$/;
 
 // Inline tags become private-use characters so the note's parsed text says where they sat.
 const SENTINEL = { caret: '', open: '', close: '' } as const;
 type MarkKind = keyof typeof SENTINEL;
+const ANY_SENTINEL = new RegExp(`[${Object.values(SENTINEL).join('')}]`);
 const KIND_BY_SENTINEL = new Map<string, MarkKind>(Object.entries(SENTINEL).map(([kind, char]) => [char, kind as MarkKind]));
 
 interface Mark extends MarkdownPoint {
@@ -95,12 +97,13 @@ function dedent(source: string): string {
 }
 
 interface Frame {
-  /** The note this list item holds; null for the document and for ID notes. */
+  /** The note this list item holds; null for the document and for the notes stating a note's state. */
   note: MarkdownNote | null;
   children: MarkdownNote[];
   path: NotePath;
   checkbox?: boolean;
   textRead?: boolean;
+  foldRead?: boolean;
 }
 
 const STRUCTURE = new Set([
@@ -117,13 +120,24 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
     if (token.type === 'blockquote_open' && frame.note) {
       index = readBody(tokens, index, frame, lines);
     } else if (token.type === 'list_item_open') {
-      if (frames.length > 1 && !frame.note) throw new Error('An id:: line can\'t hold notes.');
+      if (frames.length > 1 && !frame.note) throw new Error('An id:: or folded:: line can\'t hold notes.');
       const line = token.map![0];
       const marker = MARKER.exec(lines[line]!)!;
-      const id = ID_NOTE.exec(lines[line]!.slice(marker[0].length).trim());
-      if (id && frame.note) {
-        if (frame.note.id !== undefined) throw new Error(`A note holds one id:: line; it already has ${frame.note.id}.`);
-        frame.note.id = id[1]!;
+      const content = lines[line]!.slice(marker[0].length).trim();
+      const state = STATE_LINE.exec(content);
+      if (state && frame.note) {
+        const value = state[2] ?? '';
+        if (ANY_SENTINEL.test(value)) throw new Error('<selection> must sit in a note\'s own text.');
+        if (state[1] === 'id') {
+          if (marker[1] !== undefined) throw new Error('An id:: line holds no checkbox.');
+          if (frame.children.length > 0) throw new Error('A note\'s id:: line comes before its children.');
+          if (frame.note.id !== undefined) throw new Error(`A note holds one id:: line; it already has ${frame.note.id}.`);
+          if (!/^\S+$/.test(value)) throw new Error('An id:: line holds one ID.');
+          frame.note.id = value;
+        } else if (!frame.foldRead) {
+          frame.foldRead = true;
+          if (value === 'true') frame.note.folded = true;
+        }
         frames.push({ note: null, children: [], path: frame.path });
         continue;
       }
@@ -143,8 +157,8 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       if (frames.length === 1) throw new Error('Every line of an outline is a list item; found text outside any note.');
       if (frame.textRead) throw new Error('A note holds one paragraph; write a body as > lines before its children.');
       frame.textRead = true;
-      if (!frame.note) continue;
       const parsed = plainText(token.children ?? []);
+      if (!frame.note) continue;
       // CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
       const text = takeMarks(frame.checkbox ? parsed.replace(/^\[[ x]\] ?/, '') : parsed, frame.path, marks);
       if (text) frame.note.text = text;

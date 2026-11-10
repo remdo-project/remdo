@@ -96,11 +96,6 @@ ships.
 
 ## Test harness follow-ups
 
-- Reduce repeated full-outline literals in tests by adding a generic helper
-  that patches a previously-read outline by `noteId`, then still asserts with `toMatchOutline`.
-- Prefer this over property-specific helpers like `setFolded(...)`: tests stay
-  focused on the changed notes while still verifying that untouched notes remain
-  unchanged.
 - Collab full-suite flakiness on high-core machines (CI unaffected): vitest
   forks scale to cores but the 5s timeout and single collab server don't. Cap
   `poolOptions.forks.maxForks` (~4 / `'50%'`) and raise the timeout on the
