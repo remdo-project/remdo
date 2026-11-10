@@ -253,10 +253,13 @@ describe('rich clipboard input', () => {
           > two
           - note3
       - note1
+          - id:: note1
       - note2
           > one
           > two
+          - id:: note2
           - note3
+              - id:: note3
     `);
   });
 

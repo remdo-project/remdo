@@ -685,6 +685,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
       - note1
       - note2
           > note2 body
+          - id:: note2
       - note2
           > note2 body
     `);
@@ -710,8 +711,10 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     expect(remdo).toMatchOutline(`
       - note1
           > b1
+          - id:: note1
       - note2
           > b2
+          - id:: note2
       - note1
           > b1
       - note2

@@ -164,8 +164,11 @@ function readBody(tokens: Token[], open: number, frame: Frame, lines: string[]):
   if (source.some((line) => !/^\s*>/.test(line))) {
     throw new Error('Every body line starts with >, on its own line below the note\'s text.');
   }
-  note.body = source.map((line) => line.replace(/^\s*>\s?/, '')).join('\n');
-  return tokens.findIndex((token, index) => index > open && token.type === 'blockquote_close' && token.level === tokens[open]!.level);
+  note.body = source.map((line) => line.replace(/^\s*> ?/, '')).join('\n');
+  frame.textRead = true;
+  for (let index = open + 1; ; index += 1) {
+    if (tokens[index]!.type === 'blockquote_close' && tokens[index]!.level === tokens[open]!.level) return index;
+  }
 }
 
 function plainText(tokens: Token[]): string {

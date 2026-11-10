@@ -34,6 +34,7 @@ describe('reading expected outlines from Markdown', () => {
       { text: 'note1', body: 'first line\n\nthird', id: 'first', children: [{ text: 'note2' }] },
       { body: 'body of an empty note' },
     ]);
+    expect(readMarkdownOutline('- note1\n    >\ttabbed').notes).toEqual([{ text: 'note1', body: '\ttabbed' }]);
   });
 
   it('keeps spaces at a note\'s edges written as character references', () => {
@@ -79,6 +80,7 @@ describe('reading expected outlines from Markdown', () => {
     ['text after a blank line', '- note1\n\ncontinued', /outside any note/u],
     ['a second paragraph under an id:: line', '- note1\n    - id:: first\n\n      more', /one paragraph/u],
     ['a body after children', '- note1\n    - note2\n    > late', /one > block, before/u],
+    ['a paragraph after a body', '- note1\n    > body\n\n    more', /one paragraph/u],
     ['a body line without >', '- note1\n    > body\n    more', /Every body line starts with >/u],
     ['a body on its note\'s line', '- > quoted', /Every body line starts with >/u],
     ['a selection in a body','- note1\n    > bo<selection />dy', /own text/u],
