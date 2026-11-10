@@ -63,8 +63,8 @@
       "groupName": "uv",
     },
     {
-      // TODO(deps): drop with the Lexical patches in pnpm-workspace.yaml; Renovate cannot regenerate them, so a bump needs a manual patch pass.
-      // Probe: remove patchedDependencies and this rule, then run the regressions named beside each patch.
+      // TODO(deps): drop with the @lexical/yjs patch in pnpm-workspace.yaml; Renovate cannot regenerate it, so a bump needs a manual patch pass.
+      // Probe: remove the patch and this rule, then run the regression named beside it.
       "matchPackageNames": ["lexical", "@lexical/*"],
       "groupName": "lexical",
       "dependencyDashboardApproval": true,
