@@ -90,17 +90,21 @@ build-approval policy, package-manager integrity, and locked runtime and project
 dependencies.
 
 Non-major updates and lock file maintenance open as pull requests that the
-developer merges after review. Majors and held updates wait for approval on the
-Dependency Dashboard.
+developer merges after review. Majors wait for approval on the Dependency
+Dashboard.
 
-The developer triages dependency work with
-[`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md). Commits added
-to a Renovate branch stop Renovate from updating it, so finish that pull request
-by merging or closing it.
+The developer runs [`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md)
+whenever a Renovate pull request opens; weekly lock file maintenance opens one
+every week. Commits added to a Renovate branch stop Renovate from updating it,
+so finish that pull request by merging it.
 
 Dependency-specific workarounds and updater holds follow the
-[tracked-comment policy](#code-comments). Remove an affected existing hold only when the
-selected update proves its deferral obsolete or approval already defers it.
+[tracked-comment policy](#code-comments), which is the only record of deferred
+dependency work. A hold that blocks an update disables it with a
+[renovate.json5](renovate.json5) rule; closing a Renovate pull request by hand
+would make Renovate ignore that version instead. Remove an affected existing
+hold only when the selected update proves its deferral obsolete or approval
+already defers it.
 
 ### Dependency patches
 
