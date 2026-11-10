@@ -5,7 +5,7 @@ import type { Token } from 'markdown-it';
 export interface MarkdownNote {
   text?: string;
   checked?: true;
-  /** The note's body: its `>` lines before any child, as Markdown source joined by line breaks. */
+  /** The note's body: its `>` lines before any child, as plain text joined by line breaks. */
   body?: string;
   id?: string;
   children?: MarkdownNote[];
@@ -115,7 +115,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
     const token = tokens[index]!;
     const frame = frames.at(-1)!;
     if (token.type === 'blockquote_open' && frame.note) {
-      index = readBody(tokens, index, frame.note, frame.children, lines);
+      index = readBody(tokens, index, frame, lines);
     } else if (token.type === 'list_item_open') {
       if (frames.length > 1 && !frame.note) throw new Error('An id:: line can\'t hold notes.');
       const line = token.map![0];
@@ -154,22 +154,14 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
 }
 
 /** Reads a body from its source lines and returns the index of the token that closes it. */
-function readBody(tokens: Token[], open: number, note: MarkdownNote, children: MarkdownNote[], lines: string[]): number {
-  if (note.body !== undefined || note.id !== undefined || children.length > 0) {
+function readBody(tokens: Token[], open: number, frame: Frame, lines: string[]): number {
+  const note = frame.note!;
+  if (note.body !== undefined || note.id !== undefined || frame.children.length > 0) {
     throw new Error('A note\'s body is one > block, before its id:: line and its children.');
   }
   const [start, end] = tokens[open]!.map!;
-  const body = lines.slice(start, end).map((line) => line.replace(/^\s*>\s?/, ''));
-  if (body.some((line) => [...line].some((char) => KIND_BY_SENTINEL.has(char)))) {
-    throw new Error('<selection> can\'t sit in a body yet.');
-  }
-  note.body = body.join('\n');
-  let depth = 0;
-  for (let index = open; index < tokens.length; index += 1) {
-    if (tokens[index]!.type === 'blockquote_open') depth += 1;
-    if (tokens[index]!.type === 'blockquote_close' && --depth === 0) return index;
-  }
-  throw new Error('A body\'s > block never closes.');
+  note.body = lines.slice(start, end).map((line) => line.replace(/^\s*>\s?/, '')).join('\n');
+  return tokens.findIndex((token, index) => index > open && token.type === 'blockquote_close' && token.level === tokens[open]!.level);
 }
 
 function plainText(tokens: Token[]): string {

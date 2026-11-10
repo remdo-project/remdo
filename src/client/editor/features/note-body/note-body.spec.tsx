@@ -615,16 +615,17 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Delete' });
     await remdo.waitForSynced();
 
-    const withBody = [
-      { noteId: 'note1', text: 'note1', body: 'body text' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ];
-    const withoutBody = [
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ];
+    const withBody = `
+      - note1
+          > body text
+      - note2
+      - note3
+    `;
+    const withoutBody = `
+      - note1
+      - note2
+      - note3
+    `;
     expect(remdo).toMatchOutline(withoutBody);
 
     // One undo brings the body and its text back (selection is not asserted:
