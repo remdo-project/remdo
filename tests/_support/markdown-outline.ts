@@ -157,8 +157,8 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       if (frames.length === 1) throw new Error('Every line of an outline is a list item; found text outside any note.');
       if (frame.textRead) throw new Error('A note holds one paragraph; write a body as > lines before its children.');
       frame.textRead = true;
-      if (!frame.note) continue;
       const parsed = plainText(token.children ?? []);
+      if (!frame.note) continue;
       // CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
       const text = takeMarks(frame.checkbox ? parsed.replace(/^\[[ x]\] ?/, '') : parsed, frame.path, marks);
       if (text) frame.note.text = text;

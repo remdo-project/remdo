@@ -122,6 +122,8 @@ describe('reading expected outlines from Markdown', () => {
     ['a selection in a folded:: line', '- note1\n    - folded:: true<selection />\n    - note2', /own text/u],
     ['an id:: line holding two words', '- note1\n    - id:: first second', /holds one ID/u],
     ['a second id:: line', '- note1\n    - id:: first\n    - id:: second', /one id:: line/u],
+    ['an id:: line continued on the next line', '- note1\n    - id:: first\n      second', /marker's line/u],
+    ['a folded:: line continued on the next line', '- note1\n    - folded:: true\n      more', /marker's line/u],
     ['a thematic break', '- ***', /hr/u],
     ['an indented code block', '-     code', /code_block/u],
     ['inline HTML', '- a <b> c', /html_inline/u],
