@@ -7,7 +7,13 @@
     ":maintainLockFilesWeekly",
     "security:minimumReleaseAgeNpm",
     "security:minimumReleaseAgePypi",
+    ":approveMajorUpdates",
+    ":rebaseStalePrs",
   ],
+  // Dependabot security updates raise every fix this would, including transitive ones.
+  "vulnerabilityAlerts": {
+    "enabled": false,
+  },
   "timezone": "Europe/Warsaw",
   // A rate limit would hold an update back without a PR to show for it.
   "prHourlyLimit": 0,
@@ -47,6 +53,12 @@
       "groupName": "pre-1.0 minors",
     },
     {
+      "description": "Each stylelint-config-recommended major accepts only the matching stylelint major.",
+      "extends": ["packages:stylelint"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "stylelint",
+    },
+    {
       "matchPackageNames": ["astral-sh/uv", "ghcr.io/astral-sh/uv"],
       "groupName": "uv",
     },
@@ -55,7 +67,7 @@
       // Probe: remove patchedDependencies and this rule, then run the regressions named beside each patch.
       "matchPackageNames": ["lexical", "@lexical/*"],
       "groupName": "lexical",
-      "draftPR": true,
+      "dependencyDashboardApproval": true,
     },
     {
       "description": "A Python minor moves requires-python, .python-version, both Dockerfile stages and CI together.",
@@ -63,18 +75,11 @@
       "groupName": "python",
     },
     {
-      // TODO(deps): retry TypeScript; typescript-eslint rejects 7.0 and tracks 7.1+ in typescript-eslint#10940.
-      // Probe: rebase the draft PR and run typecheck and lint:code against its generated lockfile.
-      "matchPackageNames": ["typescript"],
-      "matchUpdateTypes": ["major"],
-      "draftPR": true,
-    },
-    {
       // TODO(deps): retry workbox-build; 7.4.1 pulls @trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1, a trust downgrade.
-      // Probe: rebase the draft PR and run a cold pnpm install and the Docker E2E group.
+      // Probe: approve it on the Dependency Dashboard and run a cold pnpm install and the Docker E2E group.
       "matchPackageNames": ["workbox-build"],
       "groupName": null,
-      "draftPR": true,
+      "dependencyDashboardApproval": true,
     },
   ],
 }

@@ -80,28 +80,34 @@ removed.
 ## Dependency Updates
 
 Use [Mend-hosted Renovate](https://docs.renovatebot.com/mend-hosted/overview/) with [renovate.json5](renovate.json5) for dependency updates.
-Keep [Dependabot alerts](https://docs.github.com/en/code-security/concepts/supply-chain-security/about-dependabot-alerts) enabled, with Renovate as the sole automated update
-PR producer.
+Keep [Dependabot alerts](https://docs.github.com/en/code-security/concepts/supply-chain-security/about-dependabot-alerts) and
+[Dependabot security updates](https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/about-dependabot-security-updates)
+enabled. Renovate produces version update pull requests, and Dependabot produces
+security fix pull requests.
 
 Dependency changes preserve workspace catalogs, applicable trust and
 build-approval policy, package-manager integrity, and locked runtime and project
 dependencies.
 
-Every available update reaches review as a pull request rather than waiting on
-dashboard approval; one that cannot merge yet stays open as a draft. The developer
-merges or fixes each pull request as it arrives, and a red one is acceptable.
-Commits added to a Renovate branch stop Renovate from updating it, so finish that
-pull request by merging or closing it.
+Non-major updates and lock file maintenance open as pull requests that the
+developer merges after review. Majors and held updates wait for approval on the
+Dependency Dashboard.
+
+The developer triages dependency work with
+[`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md). Commits added
+to a Renovate branch stop Renovate from updating it, so finish that pull request
+by merging or closing it.
 
 Dependency-specific workarounds and updater holds follow the
 [tracked-comment policy](#code-comments). Remove an affected existing hold only when the
-selected update proves its deferral obsolete.
+selected update proves its deferral obsolete or approval already defers it.
 
 ### Dependency patches
 
 The [dependency-patch registry](pnpm-workspace.yaml) inventories exact-version patches for upstream runtime
 defects. Each patch records its rationale and a focused regression that fails
-without the correction.
+without the correction. Renovate cannot regenerate a patch, so a Renovate
+rule holds each patched dependency's updates for Dependency Dashboard approval.
 
 For an affected dependency update, retain the patch, regenerate it for the new
 exact version, or remove it when its focused regression passes without it. New
