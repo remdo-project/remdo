@@ -37,7 +37,7 @@ describe('reading expected outlines from Markdown', () => {
     expect(readMarkdownOutline('- note1\n    >\ttabbed').notes).toEqual([{ text: 'note1', body: '\ttabbed' }]);
   });
 
-  it('reads a folded note from its folded:: line, after its ID', () => {
+  it('reads a folded note from its folded:: line', () => {
     expect(readMarkdownOutline(`
       - note1
           > body
@@ -50,6 +50,24 @@ describe('reading expected outlines from Markdown', () => {
     `).notes).toEqual([
       { text: 'note1', body: 'body', id: 'first', folded: true, children: [{ text: 'note2' }] },
       { text: 'note3', folded: true, children: [{ text: 'note4' }] },
+    ]);
+  });
+
+  it('takes fold state from a note\'s first folded:: line, whatever its value or place', () => {
+    expect(readMarkdownOutline(`
+      - unfolded by another value
+          - folded:: false
+          - folded:: true
+          - child
+      - folded after its children
+          - child
+          - [x] folded:: true
+      - not a name
+          - folded::true
+    `).notes).toEqual([
+      { text: 'unfolded by another value', children: [{ text: 'child' }] },
+      { text: 'folded after its children', folded: true, children: [{ text: 'child' }] },
+      { text: 'not a name', children: [{ text: 'folded::true' }] },
     ]);
   });
 
@@ -101,16 +119,8 @@ describe('reading expected outlines from Markdown', () => {
     ['a body line without >', '- note1\n    > body\n    more', /Every body line starts with >/u],
     ['a body on its note\'s line', '- > quoted', /Every body line starts with >/u],
     ['a selection in a body','- note1\n    > bo<selection />dy', /own text/u],
-    ['folded:: with another value', '- note1\n    - folded:: false\n    - note2', /folded:: true/u],
-    ['a second folded:: line', '- note1\n    - folded:: true\n    - folded:: true', /one folded:: line/u],
-    ['an id:: line after folded::', '- note1\n    - folded:: true\n    - id:: first', /one id:: line, then/u],
-    ['a folded:: line without a space after ::', '- note1\n    - folded::true\n    - note2', /one space after ::/u],
-    ['an id:: line without a space after ::', '- note1\n    - id::first', /one space after ::/u],
     ['a selection in a folded:: line', '- note1\n    - folded:: true<selection />\n    - note2', /own text/u],
     ['an id:: line holding two words', '- note1\n    - id:: first second', /holds one ID/u],
-    ['a folded:: line after children', '- note1\n    - note2\n    - folded:: true', /before its children/u],
-    ['a body after folded::', '- note1\n    - folded:: true\n    > late', /one > block, before/u],
-    ['a checkbox on a folded:: line', '- note1\n    - [x] folded:: true\n    - note2', /no checkbox/u],
     ['a second id:: line', '- note1\n    - id:: first\n    - id:: second', /one id:: line/u],
     ['a thematic break', '- ***', /hr/u],
     ['an indented code block', '-     code', /code_block/u],

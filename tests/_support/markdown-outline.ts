@@ -34,9 +34,7 @@ export interface MarkdownOutline {
 const markdown = new MarkdownIt('commonmark');
 const TAG = /<selection\s*\/>|<selection>|<\/selection>/g;
 const MARKER = /^\s*(?:[-*+]|\d+[.)])(?:\s+\[([ x])\])?(?:\s+|$)/;
-/** The lines stating a note's own state, in the order a note holds them before its children. */
-const STATE_LINES = ['id', 'folded'] as const;
-const STATE_LINE = new RegExp(`^(${STATE_LINES.join('|')})::(.*)$`);
+const STATE_LINE = /^(id|folded)::(?: (.*))?$/;
 
 // Inline tags become private-use characters so the note's parsed text says where they sat.
 const SENTINEL = { caret: '', open: '', close: '' } as const;
@@ -105,7 +103,7 @@ interface Frame {
   path: NotePath;
   checkbox?: boolean;
   textRead?: boolean;
-  lastStateIndex?: number;
+  foldRead?: boolean;
 }
 
 const STRUCTURE = new Set([
@@ -128,22 +126,17 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       const content = lines[line]!.slice(marker[0].length).trim();
       const state = STATE_LINE.exec(content);
       if (state && frame.note) {
-        const name = state[1] as typeof STATE_LINES[number];
-        const rest = state[2]!;
-        if (ANY_SENTINEL.test(rest)) throw new Error('<selection> must sit in a note\'s own text.');
-        if (rest && !rest.startsWith(' ')) throw new Error(`A ${name}:: line has one space after ::.`);
-        const position = STATE_LINES.indexOf(name);
-        const value = rest.slice(1);
-        if (marker[1] !== undefined) throw new Error('An id:: or folded:: line holds no checkbox.');
-        if (frame.children.length > 0) throw new Error('A note\'s id:: and folded:: lines come before its children.');
-        if (position <= (frame.lastStateIndex ?? -1)) throw new Error('A note holds at most one id:: line, then at most one folded:: line.');
-        frame.lastStateIndex = position;
-        if (name === 'id') {
+        const value = state[2] ?? '';
+        if (ANY_SENTINEL.test(value)) throw new Error('<selection> must sit in a note\'s own text.');
+        if (state[1] === 'id') {
+          if (marker[1] !== undefined) throw new Error('An id:: line holds no checkbox.');
+          if (frame.children.length > 0) throw new Error('A note\'s id:: line comes before its children.');
+          if (frame.note.id !== undefined) throw new Error(`A note holds one id:: line; it already has ${frame.note.id}.`);
           if (!/^\S+$/.test(value)) throw new Error('An id:: line holds one ID.');
           frame.note.id = value;
-        } else {
-          if (value !== 'true') throw new Error('A folded note holds folded:: true; an unfolded one has no folded:: line.');
-          frame.note.folded = true;
+        } else if (!frame.foldRead) {
+          frame.foldRead = true;
+          if (value === 'true') frame.note.folded = true;
         }
         frames.push({ note: null, children: [], path: frame.path });
         continue;
@@ -177,8 +170,8 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
 /** Reads a body from its source lines and returns the index of the token that closes it. */
 function readBody(tokens: Token[], open: number, frame: Frame, lines: string[]): number {
   const note = frame.note!;
-  if (note.body !== undefined || frame.lastStateIndex !== undefined || frame.children.length > 0) {
-    throw new Error('A note\'s body is one > block, before its id:: and folded:: lines and its children.');
+  if (note.body !== undefined || note.id !== undefined || frame.children.length > 0) {
+    throw new Error('A note\'s body is one > block, before its id:: line and its children.');
   }
   const [start, end] = tokens[open]!.map!;
   const source = lines.slice(start, end);
