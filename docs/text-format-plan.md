@@ -229,6 +229,8 @@ once stage 3 lands.
      a recreated identical note, repair duplicates, and clear a holder when a
      text `id::` claims its value.
    - Update note content by splicing text, never `clear()` plus `append()`.
+     Text differing only in edge whitespace, which the format drops, applies no
+     change, so a space someone just typed survives.
    - Open a workspace's document in the editor instead of as plain text, the
      first change people see. It comes before outline note operations, which
      would otherwise give the editor an independent reference, so integration

@@ -83,8 +83,8 @@ export function readMarkdownOutline(source: string): MarkdownOutline {
 }
 
 /**
- * Writes a note's text for a Markdown expectation. Spaces at its edges, which tools trim when they
- * write the format, become character references so the expectation still states them.
+ * Writes a note's text for a Markdown expectation. Spaces at its edges, which the format doesn't
+ * read as text, become character references so the expectation still states them.
  */
 export function markdownNoteText(text: string): string {
   return text.replace(/^\s+|\s+$/g, (run) => [...run].map((char) => `&#${char.codePointAt(0)};`).join(''));

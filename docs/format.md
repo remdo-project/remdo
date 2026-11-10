@@ -49,7 +49,8 @@ An outline note holds:
     > - Tools write one line; continuation lines in a paragraph join into Text
     > - Links use Markdown syntax with a URI target, as in [note IDs](note:k3x9)
     > - Tools escape Text that would otherwise read as Markdown structure
-    > - Tools trim whitespace at the start and end of Text
+    > - Whitespace at its start and end is not Text, even as a character
+    >   reference
 - Children:: an ordered list of Markdown blocks and outline notes
     > - Tools indent children under a list item by 4 spaces per level
     > - Tools write `1.` where another number could not interrupt a paragraph
