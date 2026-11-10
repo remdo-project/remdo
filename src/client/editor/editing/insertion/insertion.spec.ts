@@ -98,11 +98,14 @@ describe('insertion semantics (docs/insertion.md)', () => {
     const newNoteId = readCaretNoteId(remdo);
     await typeText(remdo, 'X');
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1', folded: true, children: [{ noteId: 'note2', text: 'note2' }] },
-      { noteId: newNoteId, text: 'X' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - folded:: true
+          - note2
+      - X
+          - id:: ${newNoteId}
+      - note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: newNoteId });
   });
 
@@ -173,38 +176,28 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await pressKey(remdo, { key: 'Enter' });
     const splitChildId = readCaretNoteId(remdo);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      {
-        noteId: 'note2',
-        text: 'left ',
-        checked: true,
-        children: [
-          {
-            noteId: splitChildId,
-            text: 'right',
-            body: 'body',
-            folded: true,
-            children: [{ noteId: 'note3', text: 'note3', checked: true }],
-          },
-        ],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - [x] left&#32;
+          - id:: note2
+          - right
+              > body
+              - id:: ${splitChildId}
+              - folded:: true
+              - [x] note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: splitChildId });
 
     await pressKey(remdo, { key: 'Backspace' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      {
-        noteId: 'note2',
-        text: 'left right',
-        body: 'body',
-        checked: true,
-        folded: true,
-        children: [{ noteId: 'note3', text: 'note3', checked: true }],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - [x] left right
+          > body
+          - id:: note2
+          - folded:: true
+          - [x] note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 
@@ -346,32 +339,28 @@ describe('insertion semantics (docs/insertion.md)', () => {
     await pressKey(remdo, { key: 'Enter' });
     const trailingNoteId = readCaretNoteId(remdo);
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'left ', checked: true },
-      {
-        noteId: trailingNoteId,
-        text: 'right',
-        body: 'body',
-        folded: true,
-        children: [{ noteId: 'note3', text: 'note3', checked: true }],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - [x] left&#32;
+          - id:: note2
+      - right
+          > body
+          - id:: ${trailingNoteId}
+          - folded:: true
+          - [x] note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: trailingNoteId });
 
     await pressKey(remdo, { key: 'Backspace' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      {
-        noteId: 'note2',
-        text: 'left right',
-        body: 'body',
-        folded: true,
-        checked: true,
-        children: [{ noteId: 'note3', text: 'note3', checked: true }],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - [x] left right
+          > body
+          - id:: note2
+          - folded:: true
+          - [x] note3
+    `);
     expect(remdo).toMatchSelection({ state: 'caret', note: 'note2' });
   });
 

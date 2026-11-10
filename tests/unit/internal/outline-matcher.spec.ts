@@ -40,39 +40,38 @@ const CASES: OutlineCase[] = [
   },
   {
     fixture: 'editor-showcase',
-    outline: [
-      { noteId: 'showcaseTitle', text: 'Editor showcase' },
-      { noteId: 'inlineFormatting', text: 'Plain bold italic underline strike code bold italic' },
-      { noteId: 'dateAndLinks', text: 'Due Jul 9, 2026 see done task and remote note' },
-      {
-        noteId: 'bodyNote',
-        text: 'Note with body',
-        checked: true,
-        body: 'Body has rich text and a note link\nSecond body line\nThird body line',
-      },
-      {
-        noteId: 'foldedParent',
-        text: 'Folded parent',
-        folded: true,
-        children: [ { noteId: 'foldedChild', text: 'Hidden child' } ],
-      },
-      {
-        noteId: 'numberedParent',
-        text: 'Numbered steps',
-        children: [
-          { noteId: 'stepOne', text: 'First step' },
-          { noteId: 'stepTwo', text: 'Second step', body: 'Second step body' },
-        ],
-      },
-      {
-        noteId: 'checklistParent',
-        text: 'Checklist',
-        children: [
-          { noteId: 'checkDone', text: 'Done task', checked: true, body: 'Done task body' },
-          { noteId: 'checkOpen', text: 'Open task' },
-        ],
-      },
-    ],
+    outline: `
+      - Editor showcase
+          - id:: showcaseTitle
+      - Plain bold italic underline strike code bold italic
+          - id:: inlineFormatting
+      - Due Jul 9, 2026 see done task and remote note
+          - id:: dateAndLinks
+      - [x] Note with body
+          > Body has rich text and a note link
+          > Second body line
+          > Third body line
+          - id:: bodyNote
+      - Folded parent
+          - id:: foldedParent
+          - folded:: true
+          - Hidden child
+              - id:: foldedChild
+      - Numbered steps
+          - id:: numberedParent
+          - First step
+              - id:: stepOne
+          - Second step
+              > Second step body
+              - id:: stepTwo
+      - Checklist
+          - id:: checklistParent
+          - [x] Done task
+              > Done task body
+              - id:: checkDone
+          - Open task
+              - id:: checkOpen
+    `,
   },
   {
     fixture: 'basic',

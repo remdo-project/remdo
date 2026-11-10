@@ -10,15 +10,12 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
     const noteKey = getNoteKey(remdo, 'note1');
     await remdo.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: noteKey });
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        folded: true,
-        children: [{ noteId: 'note2', text: 'note2' }],
-      },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - folded:: true
+          - note2
+      - note3
+    `);
 
     await remdo.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: noteKey });
 
@@ -123,15 +120,12 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
     const noteKey = getNoteKey(remdo, 'note1');
     await remdo.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'folded', noteItemKey: noteKey });
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        folded: true,
-        children: [{ noteId: 'note2', text: 'note2' }],
-      },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - folded:: true
+          - note2
+      - note3
+    `);
 
     await remdo.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'unfolded', noteItemKey: noteKey });
 
@@ -145,52 +139,30 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
   it('folds the document view to a specific level and clears it with 0', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
     await remdo.dispatchCommand(FOLD_VIEW_TO_LEVEL_COMMAND, { level: 1 });
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        folded: true,
-        children: [
-          {
-            noteId: 'note2',
-            text: 'note2',
-            children: [{ noteId: 'note3', text: 'note3' }],
-          },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      {
-        noteId: 'note6',
-        text: 'note6',
-        folded: true,
-        children: [{ noteId: 'note7', text: 'note7' }],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - folded:: true
+          - note2
+              - note3
+          - note4
+      - note5
+      - note6
+          - folded:: true
+          - note7
+    `);
 
     await remdo.dispatchCommand(FOLD_VIEW_TO_LEVEL_COMMAND, { level: 2 });
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          {
-            noteId: 'note2',
-            text: 'note2',
-            folded: true,
-            children: [{ noteId: 'note3', text: 'note3' }],
-          },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      {
-        noteId: 'note6',
-        text: 'note6',
-        children: [{ noteId: 'note7', text: 'note7' }],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+              - folded:: true
+              - note3
+          - note4
+      - note5
+      - note6
+          - note7
+    `);
 
     await remdo.dispatchCommand(FOLD_VIEW_TO_LEVEL_COMMAND, { level: 0 });
 
@@ -214,28 +186,17 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
 
       await remdo.dispatchCommand(FOLD_VIEW_TO_LEVEL_COMMAND, { level: 1 });
 
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            {
-              noteId: 'note2',
-              text: 'note2',
-              folded: true,
-              children: [{ noteId: 'note3', text: 'note3' }],
-            },
-            { noteId: 'note4', text: 'note4' },
-          ],
-        },
-        { noteId: 'note5', text: 'note5' },
-        {
-          noteId: 'note6',
-          text: 'note6',
-          folded: true,
-          children: [{ noteId: 'note7', text: 'note7' }],
-        },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - note2
+                - folded:: true
+                - note3
+            - note4
+        - note5
+        - note6
+            - folded:: true
+            - note7
+      `);
     }
   );
 
