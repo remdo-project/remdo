@@ -1,8 +1,9 @@
 import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
-import { extractOutlineFromEditorState, readOutlineExpectation } from '#tests-common/outline';
+import { extractOutlineFromEditorState, projectOutline } from '#tests-common/outline';
 import type { OutlineNode } from '#tests-common/outline';
+import { readMarkdownOutline } from '#tests-common/markdown-outline';
 import type { MarkdownNote, MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
 import {
   collectSelectedListItems,
@@ -240,31 +241,27 @@ function readSelectionDetail(remdo: RemdoTestHelpers): SelectionDetail {
   });
 }
 
-function matchMarkdownOutline(ctx: any, remdo: RemdoTestHelpers, expected: string): MatcherResult {
-  const read = attemptRead(ctx, '.toMatchOutline', () => {
-    const { wanted: notes, selection, project } = readOutlineExpectation(expected);
-    const outline = extractOutlineFromEditorState(remdo.getEditorState());
-    const actual: { outline: MarkdownNote[]; selection?: SelectionDetail } = { outline: project(outline) };
-    const wanted: typeof actual = { outline: notes };
-    if (selection) {
-      actual.selection = readSelectionDetail(remdo);
-      wanted.selection = resolveMarkdownSelection(selection, outline);
-    }
-    return { actual, wanted };
-  });
-  if (!read.ok) return read.result;
-
-  return compareWithExpected(ctx, read.value.actual, read.value.wanted, {
-    matcher: 'toMatchOutline',
-    args: ['lexical', 'expectedMarkdown'],
-    passMessage: 'Expected the document not to match, but it did.',
-    failMessage: 'The document differs from the expected Markdown.',
-  });
-}
-
 expect.extend({
   toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: string) {
-    return matchMarkdownOutline(this, remdo, expected);
+    const read = attemptRead(this, '.toMatchOutline', () => {
+      const { notes, selection } = readMarkdownOutline(expected);
+      const outline = extractOutlineFromEditorState(remdo.getEditorState());
+      const actual: { outline: MarkdownNote[]; selection?: SelectionDetail } = { outline: projectOutline(outline, notes) };
+      const wanted: typeof actual = { outline: notes };
+      if (selection) {
+        actual.selection = readSelectionDetail(remdo);
+        wanted.selection = resolveMarkdownSelection(selection, outline);
+      }
+      return { actual, wanted };
+    });
+    if (!read.ok) return read.result;
+
+    return compareWithExpected(this, read.value.actual, read.value.wanted, {
+      matcher: 'toMatchOutline',
+      args: ['lexical', 'expectedMarkdown'],
+      passMessage: 'Expected the document not to match, but it did.',
+      failMessage: 'The document differs from the expected Markdown.',
+    });
   },
 
   toMatchEditorState(this: any, remdo: RemdoTestHelpers, expected: unknown) {

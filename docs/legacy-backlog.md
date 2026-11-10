@@ -97,7 +97,8 @@ ships.
 ## Test harness follow-ups
 
 - Reduce repeated full-outline literals in tests by adding a generic helper
-  that patches a previously-read outline by `noteId`, then still asserts with `toMatchOutline`.
+  that patches a previously-read outline by `noteId`, then compares it with the
+  editor's `readOutline`.
 - Prefer this over property-specific helpers like `setFolded(...)`: tests stay
   focused on the changed notes while still verifying that untouched notes remain
   unchanged.

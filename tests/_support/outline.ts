@@ -1,6 +1,5 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
-import { readMarkdownOutline } from './markdown-outline';
-import type { MarkdownNote, MarkdownSelection } from './markdown-outline';
+import type { MarkdownNote } from './markdown-outline';
 
 import { formatDateNodeLabel } from '#client/editor/features/date/date-label';
 import type { SerializedOutlineNote } from '#client/editor/dev/schema/traverseSerializedOutline';
@@ -112,16 +111,4 @@ export function projectOutline(actual: Outline, expected: MarkdownNote[] | undef
     if (node.children) projected.children = projectOutline(node.children, declared?.children);
     return projected;
   });
-}
-
-export interface OutlineExpectation {
-  wanted: MarkdownNote[];
-  selection: MarkdownSelection | null;
-  project: (actual: Outline) => MarkdownNote[];
-}
-
-/** An expected outline in Markdown, with the projection that makes the editor's comparable. */
-export function readOutlineExpectation(expected: string): OutlineExpectation {
-  const { notes, selection } = readMarkdownOutline(expected);
-  return { wanted: notes, selection, project: (actual) => projectOutline(actual, notes) };
 }

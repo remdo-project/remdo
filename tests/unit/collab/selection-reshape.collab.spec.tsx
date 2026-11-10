@@ -6,13 +6,12 @@ import type { RangeSelection } from 'lexical';
 import { $getListItemByKeyOrThrow, pressKey, selectNoteSubtree, stepSelectionLadder, readOutline, getNoteKey, placeCaretAtNote, typeText, meta } from '#tests';
 import type { RemdoTestApi } from '#client/editor/dev';
 import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
-import { flattenOutline } from '#tests-common/outline';
+import { collectOutlineNoteIds } from '#tests-common/outline';
 import { createCollabPeer } from './_support/remdo-peers';
 import { COLLAB_LONG_TIMEOUT_MS } from './_support/timeouts';
 
-// Collect the note ids present in an outline, in document order.
 function noteIds(remdo: RemdoTestApi): string[] {
-  return flattenOutline(readOutline(remdo)).flatMap((node) => (node.noteId ? [node.noteId] : []));
+  return collectOutlineNoteIds(readOutline(remdo));
 }
 
 // Remove a note (and its subtree) directly in the model — a deterministic stand-in

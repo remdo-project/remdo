@@ -32,7 +32,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const baseline = new Set(['note1', 'note2', 'note3']);
     const newIds = outlineA
       .map((note) => note.noteId)
-      .filter((noteId): noteId is string => typeof noteId === 'string' && !baseline.has(noteId));
+      .filter((noteId) => !baseline.has(noteId));
 
     expect(newIds).toHaveLength(1);
     expect(readOutline(secondary)).toEqual(outlineA);
@@ -53,9 +53,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     });
 
     const outlineA = readOutline(remdo);
-    const noteIds = outlineA
-      .map((note) => note.noteId)
-      .filter((noteId): noteId is string => typeof noteId === 'string');
+    const noteIds = outlineA.map((note) => note.noteId);
     const uniqueIds = new Set(noteIds);
 
     expect(uniqueIds.size).toBe(noteIds.length);
@@ -80,9 +78,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     await waitFor(() => {
       outlineA = readOutline(remdo);
       const baseline = new Set(['note1', 'note2', 'note3']);
-      const noteIds = outlineA
-        .map((note) => note.noteId)
-        .filter((noteId): noteId is string => typeof noteId === 'string');
+      const noteIds = outlineA.map((note) => note.noteId);
       const newIds = noteIds.filter((noteId) => !baseline.has(noteId));
 
       expect(newIds).toHaveLength(2);
@@ -132,9 +128,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     await waitFor(() => {
       const outlineA = readOutline(remdo);
-      const noteIds = outlineA
-        .map((note) => note.noteId)
-        .filter((noteId): noteId is string => typeof noteId === 'string');
+      const noteIds = outlineA.map((note) => note.noteId);
 
       expect(outlineA).toHaveLength(4);
       expect(outlineA[1]?.noteId).toBe('note2');
@@ -162,9 +156,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
     await waitFor(() => {
       const outlineA = readOutline(remdo);
-      const noteIds = outlineA
-        .map((note) => note.noteId)
-        .filter((noteId): noteId is string => typeof noteId === 'string');
+      const noteIds = outlineA.map((note) => note.noteId);
 
       expect(noteIds.filter((noteId) => noteId === 'note2')).toHaveLength(0);
       expect(noteIds.filter((noteId) => noteId === 'note4')).toHaveLength(0);
@@ -246,9 +238,7 @@ describe('collaboration note ids', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       const outline = readOutline(remdo);
       const original = outline.find((note) => note.text === 'note2')!;
       const collision = outline.find((note) => note.text === 'collision')!;
-      const noteIds = outline
-        .map((note) => note.noteId)
-        .filter((noteId): noteId is string => typeof noteId === 'string');
+      const noteIds = outline.map((note) => note.noteId);
 
       expect(original.noteId).toEqual(expect.any(String));
       expect(original.noteId).not.toBe('note2');
