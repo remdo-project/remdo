@@ -194,9 +194,9 @@ once stage 3 lands.
         wrapping text for a range within a note, and wrapping whole
         note lines for a note range. Pilot it on a few specs before scripting
         the rest. A body is its `>` lines before the note's children, one per
-        body line, compared as plain text like note text. Fold state stays out
-        of the text, so its expectations stay objects until a notation for it
-        is chosen. Notes
+        body line, compared literally with the body's plain text. Fold state
+        stays out of the text, so its expectations stay objects until a
+        notation for it is chosen. Notes
         built from variables move to interpolated Markdown, and spaces at a
         note's edges, which tools trim when they write the format, are written
         as character references such as `&#32;`. Checks of only the selection

@@ -5,7 +5,7 @@ import type { Token } from 'markdown-it';
 export interface MarkdownNote {
   text?: string;
   checked?: true;
-  /** The note's body: its `>` lines before any child, as plain text joined by line breaks. */
+  /** The note's body: its `>` lines before any child, taken literally and joined by line breaks. */
   body?: string;
   id?: string;
   children?: MarkdownNote[];
@@ -160,7 +160,11 @@ function readBody(tokens: Token[], open: number, frame: Frame, lines: string[]):
     throw new Error('A note\'s body is one > block, before its id:: line and its children.');
   }
   const [start, end] = tokens[open]!.map!;
-  note.body = lines.slice(start, end).map((line) => line.replace(/^\s*>\s?/, '')).join('\n');
+  const source = lines.slice(start, end);
+  if (source.some((line) => !/^\s*>/.test(line))) {
+    throw new Error('Every body line starts with >, on its own line below the note\'s text.');
+  }
+  note.body = source.map((line) => line.replace(/^\s*>\s?/, '')).join('\n');
   return tokens.findIndex((token, index) => index > open && token.type === 'blockquote_close' && token.level === tokens[open]!.level);
 }
 

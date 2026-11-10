@@ -214,6 +214,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
       - note1
       - note3
           > keepme
+          - id:: note3
     `);
   });
 
@@ -440,6 +441,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
       - note1
           > note1 body
           > orphan body
+          - id:: note1
       - note3
     `);
   });
@@ -462,6 +464,7 @@ describe('note body (docs/specs/outliner/body.md)', () => {
       - note2
           > first body
           > second body
+          - id:: note2
       - note3
     `);
   });
