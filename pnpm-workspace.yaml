@@ -17,23 +17,23 @@ updateNotifier: false
 
 overrides:
   '@babel/plugin-transform-modules-systemjs': '>=7.29.4 <8'
-  '@eslint/config-array>minimatch': 3.1.5
-  '@typescript-eslint/typescript-estree>minimatch': 9.0.9
   body-parser: 2.4.0
   esbuild: '>=0.28.1'
   eslint>ajv: 6.15.0
-  eslint>minimatch: 3.1.5
   express: '>=5.2.0'
   fast-uri: '>=4.1.2'
-  glob>minimatch: 10.2.6
   js-yaml: 4.3.2
   markdown-it: '>=14.2.0'
+  # TODO(deps): minimatch 10 has no GHSA-g3hv-75wg-m249 fix (11.0.1 is the first); eslint, @eslint/config-array,
+  # typescript-eslint, and workbox-build's glob 11 still declare ^10. Probe: pnpm audit no longer reports it.
   minimatch@10>brace-expansion: 5.0.12
-  minimatch@3>brace-expansion: 1.1.21
   minimatch@5>brace-expansion: 2.1.7
   nanoid@3: '>=3.3.17 <4'
   postcss: '>=8.5.23'
   qs: 6.17.1
+  # TODO(deps): drop once markdownlint-cli2 depends on markdownlint 0.42.1 or later, whose re2js pin carries
+  # the GHSA-gg6h-894w-4m9c fix. Probe: remove it, run pnpm install, and confirm every re2js resolves to 2.8.7 or later.
+  re2js: '>=2.8.7 <3'
   serialize-javascript: 7.1.4
   undici: '>=7.29.0'
 
