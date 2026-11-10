@@ -22,14 +22,11 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
 
     await remdo.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'toggle', noteItemKey: noteKey });
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [{ noteId: 'note2', text: 'note2' }],
-      },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+      - note3
+    `);
   });
 
   it('clears folded when the last child is removed', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -41,24 +38,21 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
       removeNoteSubtree(child);
     });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note3
+    `);
   });
 
   it('does not fold leaf notes', meta({ fixture: 'basic' }), async ({ remdo }) => {
     const noteKey = getNoteKey(remdo, 'note3');
     await remdo.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'folded', noteItemKey: noteKey }, { expect: 'noop' });
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [{ noteId: 'note2', text: 'note2' }],
-      },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+      - note3
+    `);
   });
 
   it('row toggle returns focus to the editor when focus was outside it', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -118,16 +112,11 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
     await placeCaretAtNote(remdo, 'note3', 0);
     await pressKey(remdo, { key: 'Tab' });
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          { noteId: 'note2', text: 'note2' },
-          { noteId: 'note3', text: 'note3' },
-        ],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+          - note3
+    `);
   });
 
   it('sets explicit folded and unfolded states', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -146,14 +135,11 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
 
     await remdo.dispatchCommand(SET_NOTE_FOLD_COMMAND, { state: 'unfolded', noteItemKey: noteKey });
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [{ noteId: 'note2', text: 'note2' }],
-      },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+      - note3
+    `);
   });
 
   it('folds the document view to a specific level and clears it with 0', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
@@ -208,26 +194,15 @@ describe('folding (docs/specs/outliner/folding.md)', () => {
 
     await remdo.dispatchCommand(FOLD_VIEW_TO_LEVEL_COMMAND, { level: 0 });
 
-    expect(remdo).toMatchOutline([
-      {
-        noteId: 'note1',
-        text: 'note1',
-        children: [
-          {
-            noteId: 'note2',
-            text: 'note2',
-            children: [{ noteId: 'note3', text: 'note3' }],
-          },
-          { noteId: 'note4', text: 'note4' },
-        ],
-      },
-      { noteId: 'note5', text: 'note5' },
-      {
-        noteId: 'note6',
-        text: 'note6',
-        children: [{ noteId: 'note7', text: 'note7' }],
-      },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - note2
+              - note3
+          - note4
+      - note5
+      - note6
+          - note7
+    `);
   });
 
   it(

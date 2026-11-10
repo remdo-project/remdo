@@ -172,12 +172,13 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
     const data = await copySelectionClipboardData(remdo);
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pasteClipboard(remdo, data);
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'note2' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note2
+      - note2
+          - id:: note2
+      - note3
+    `);
   });
 
   it('keeps an external one-item HTML list structural at a caret', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -185,11 +186,11 @@ describe('inline clipboard copy (docs/specs/outliner/clipboard.md)', () => {
     data.setData('text/html', '<ul><li>External</li></ul>');
     await placeCaretAtNote(remdo, 'note1', Number.POSITIVE_INFINITY);
     await pasteClipboard(remdo, data);
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: null, text: 'External' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - External
+      - note2
+      - note3
+    `);
   });
 });

@@ -8,6 +8,8 @@ describe('collaboration smoke', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       $getRoot().clear();
     });
 
-    expect(remdo).toMatchOutline([{ noteId: null }]);
+    expect(remdo).toMatchOutline(`
+      -
+    `);
   });
 });

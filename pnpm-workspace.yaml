@@ -121,6 +121,7 @@ catalog:
   knip: ^6.38.0
   lexical: 0.51.0
   linkify-it: ^6.1.0
+  markdown-it: ^15.0.2
   markdownlint: ^0.42.0
   markdownlint-cli2: ^0.24.0
   markdownlint-rule-relative-links: ^5.1.3

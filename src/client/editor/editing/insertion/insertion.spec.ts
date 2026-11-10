@@ -460,11 +460,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       await typeText(remdo, 'X');
 
-      expect(remdo).toMatchOutline([
-        { noteId: null, text: 'X' },
-        { noteId: 'note1', text: 'te1' },
-        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - X
+        - te1
+            - id:: note1
+        - note2
+            - note3
+      `);
     });
 
     it('applies the end rule when the selection touches the note end', meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -547,11 +549,13 @@ describe('insertion semantics (docs/insertion.md)', () => {
       await pressKey(remdo, { key: 'Enter' });
       await typeText(remdo, 'X');
 
-      expect(remdo).toMatchOutline([
-        { noteId: null, text: 'X' },
-        { noteId: 'note1', text: 'Jan 2, 2026' },
-        { noteId: 'note2', text: 'note2', children: [{ noteId: 'note3', text: 'note3' }] },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - X
+        - Jan 2, 2026
+            - id:: note1
+        - note2
+            - note3
+      `);
     });
 
     it('splits between decorators when removal empties the text between them', meta({ fixture: 'tree' }), async ({ remdo }) => {

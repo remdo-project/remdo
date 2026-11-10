@@ -2,14 +2,17 @@ import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
 import { extractOutlineFromEditorState, mutateOutlineNoteIdWildcards } from '#tests-common/outline';
+import type { OutlineNode } from '#tests-common/outline';
+import { readMarkdownOutline } from '#tests-common/markdown-outline';
+import type { MarkdownNote, MarkdownPoint, MarkdownSelection, NotePath } from '#tests-common/markdown-outline';
 import {
   collectSelectedListItems,
   findNearestListItem,
   isChildrenWrapper,
   resolveContentListItem,
 } from '#tests';
-import { $getSelection, $isRangeSelection, $getRoot } from 'lexical';
-import type { RangeSelection, LexicalNode } from 'lexical';
+import { $getSelection, $isNodeSelection, $isRangeSelection, $getRoot } from 'lexical';
+import type { ElementNode, PointType, RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
@@ -193,8 +196,134 @@ function $getCaretNoteId(selection: RangeSelection): string | null {
   return $resolveId(selection.focus) ?? $resolveId(selection.anchor);
 }
 
+type ProjectedNote = MarkdownNote & Pick<OutlineNode, 'body' | 'folded'>;
+
+/**
+ * The editor's outline in the shape a Markdown expectation has, with IDs only where it declares one.
+ * Bodies and fold state stay in, so a document Markdown can't express yet fails instead of passing.
+ */
+function projectOutline(actual: Outline, expected: MarkdownNote[] | undefined): ProjectedNote[] {
+  return actual.map((node, index) => {
+    const declared = expected?.[index];
+    const projected: ProjectedNote = {};
+    if (node.text) projected.text = node.text;
+    if (node.checked) projected.checked = true;
+    if (declared?.id !== undefined) projected.id = node.noteId ?? undefined;
+    if (node.body !== undefined) projected.body = node.body;
+    if (node.folded) projected.folded = true;
+    if (node.children) projected.children = projectOutline(node.children, declared?.children);
+    return projected;
+  });
+}
+
+function noteIdAt(outline: Outline, path: NotePath): string {
+  let notes: Outline | undefined = outline;
+  let node: OutlineNode | undefined;
+  for (const index of path) {
+    node = notes?.[index];
+    notes = node?.children;
+  }
+  return node?.noteId ?? `<no note at ${path.join('.')}>`;
+}
+
+interface NotePoint {
+  note: string;
+  offset: number;
+}
+
+type SelectionDetail =
+  | { state: 'none' }
+  | { state: 'caret'; at: NotePoint }
+  | { state: 'inline'; start: NotePoint; end: NotePoint }
+  | { state: 'structural'; notes: string[] };
+
+function resolveMarkdownSelection(selection: MarkdownSelection, outline: Outline): SelectionDetail {
+  const at = (point: MarkdownPoint) => ({ note: noteIdAt(outline, point.note), offset: point.offset });
+  if (selection.state === 'structural') return { state: 'structural', notes: selection.notes.map((path) => noteIdAt(outline, path)) };
+  if (selection.state === 'caret') return { state: 'caret', at: at(selection.at) };
+  return { state: 'inline', start: at(selection.start), end: at(selection.end) };
+}
+
+function $noteContaining(node: LexicalNode): { item: ListItemNode; note: string } {
+  const item = findNearestListItem(node);
+  const note = item ? $getNoteId(item) : null;
+  if (!item || !note || (node !== item && !item.isParentOf(node))) {
+    throw new Error(`A selection at ${node.getType()} ${node.getKey()} sits outside any note's text, which Markdown can't mark.`);
+  }
+  return { item, note };
+}
+
+function $textBefore(node: LexicalNode, item: ListItemNode): number {
+  let offset = 0;
+  for (let current: LexicalNode = node; current !== item; current = current.getParentOrThrow()) {
+    for (let sibling = current.getPreviousSibling(); sibling; sibling = sibling.getPreviousSibling()) {
+      offset += sibling.getTextContentSize();
+    }
+  }
+  return offset;
+}
+
+function $pointInNote(point: PointType): NotePoint {
+  const node = point.getNode();
+  const { item, note } = $noteContaining(node);
+  const within = point.type === 'element'
+    ? (node as ElementNode).getChildren().slice(0, point.offset).reduce((sum, child) => sum + child.getTextContentSize(), 0)
+    : point.offset;
+  return { note, offset: $textBefore(node, item) + within };
+}
+
+function $readTokenSelection(): SelectionDetail | null {
+  const selection = $getSelection();
+  if (!$isNodeSelection(selection)) return null;
+  const [token, ...rest] = selection.getNodes();
+  if (!token || rest.length > 0 || $isListItemNode(token)) return null;
+  const { item, note } = $noteContaining(token);
+  const start = $textBefore(token, item);
+  return { state: 'inline', start: { note, offset: start }, end: { note, offset: start + token.getTextContentSize() } };
+}
+
+function readSelectionDetail(remdo: RemdoTestHelpers): SelectionDetail {
+  const token = remdo.validate($readTokenSelection);
+  if (token) return token;
+  const snapshot = readSelectionSnapshot(remdo);
+  if (snapshot.state === 'structural' || snapshot.state === 'none') return snapshot;
+  return remdo.validate(() => {
+    const selection = $getSelection() as RangeSelection;
+    const backward = selection.isBackward();
+    const start = $pointInNote(backward ? selection.focus : selection.anchor);
+    const end = $pointInNote(backward ? selection.anchor : selection.focus);
+    return selection.isCollapsed() ? { state: 'caret', at: end } : { state: 'inline', start, end };
+  });
+}
+
+function matchMarkdownOutline(ctx: any, remdo: RemdoTestHelpers, expected: string): MatcherResult {
+  const read = attemptRead(ctx, '.toMatchOutline', () => {
+    const parsed = readMarkdownOutline(expected);
+    const outline = extractOutlineFromEditorState(remdo.getEditorState());
+    const actual: { outline: ProjectedNote[]; selection?: SelectionDetail } = { outline: projectOutline(outline, parsed.notes) };
+    const wanted: typeof actual = { outline: parsed.notes };
+    if (parsed.selection) {
+      actual.selection = readSelectionDetail(remdo);
+      wanted.selection = resolveMarkdownSelection(parsed.selection, outline);
+    }
+    return { actual, wanted };
+  });
+  if (!read.ok) return read.result;
+
+  return compareWithExpected(ctx, read.value.actual, read.value.wanted, {
+    matcher: 'toMatchOutline',
+    args: ['lexical', 'expectedMarkdown'],
+    passMessage: 'Expected the document not to match, but it did.',
+    failMessage: 'The document differs from the expected Markdown.',
+  });
+}
+
 expect.extend({
-  toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: Outline) {
+  // TODO: Object expectations remain while specs migrate to Markdown, and for bodies and fold
+  // state until the text-format spike settles how Markdown holds them
+  // (docs/text-format-plan.md). Probe: narrow `expected` to `string`; nothing fails to compile.
+  toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: Outline | string) {
+    if (typeof expected === 'string') return matchMarkdownOutline(this, remdo, expected);
     assertOutlineExpectation(expected);
 
     const outline = attemptRead(this, '.toMatchOutline', () => {

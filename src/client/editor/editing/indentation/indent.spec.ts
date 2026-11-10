@@ -70,10 +70,11 @@ it("tab on note2 at start nests it under note1; note3 stays at root", meta({ fix
 
   // Expectation assumes the flat fixture has three items: note1, note2, note3
   // After indenting note2, it should become a child of note1, while note3 remains at root
-  expect(remdo).toMatchOutline([
-    { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
-    { noteId: 'note3', text: 'note3' },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+        - note2
+    - note3
+  `);
 });
 
 it("tab on both note2 and note3 nests them both under note1", meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -84,15 +85,11 @@ it("tab on both note2 and note3 nests them both under note1", meta({ fixture: 'f
   await pressKey(remdo, { key: 'Tab' }); // indent note3 under note1
 
   // After indenting both note2 and note3, they should both be children of note1
-  expect(remdo).toMatchOutline([
-    {
-      noteId: 'note1', text: 'note1',
-      children: [
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ],
-    },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+        - note2
+        - note3
+  `);
 });
 
 it("shift+tab on a child outdents it to root level", meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -100,11 +97,11 @@ it("shift+tab on a child outdents it to root level", meta({ fixture: 'basic' }),
   await pressKey(remdo, { key: 'Tab', shift: true }); // outdent child
 
   // After outdenting the child, it should be at the same level as its former parent and siblings
-  expect(remdo).toMatchOutline([
-    { noteId: 'note1', text: 'note1' },
-    { noteId: 'note2', text: 'note2' },
-    { noteId: 'note3', text: 'note3' },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+    - note2
+    - note3
+  `);
 });
 
 it('shift+tab on note2 flattens the outline', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -112,11 +109,11 @@ it('shift+tab on note2 flattens the outline', meta({ fixture: 'basic' }), async 
   await pressKey(remdo, { key: 'Tab', shift: true });
 
   const outline = readOutline(remdo);
-  expect(remdo).toMatchOutline([
-    { noteId: 'note1', text: 'note1' },
-    { noteId: 'note2', text: 'note2' },
-    { noteId: 'note3', text: 'note3' },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+    - note2
+    - note3
+  `);
   expect(outlineIsFlat(outline)).toBe(true);
 });
 
@@ -125,10 +122,11 @@ it("tab on note2 at end nests it under note1", meta({ fixture: 'flat' }), async 
   await pressKey(remdo, { key: 'Tab' }); // indent note2 under note1
 
   // After indenting note2, it should become a child of note1, while note3 remains at root
-  expect(remdo).toMatchOutline([
-    { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
-    { noteId: 'note3', text: 'note3' },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+        - note2
+    - note3
+  `);
 });
 
 it("tab on note2 in the middle nests it under note1", meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -136,51 +134,44 @@ it("tab on note2 in the middle nests it under note1", meta({ fixture: 'flat' }),
   await pressKey(remdo, { key: 'Tab' }); // indent note2 under note1
 
   // After indenting note2, it should become a child of note1, while note3 remains at root
-  expect(remdo).toMatchOutline([
-    { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
-    { noteId: 'note3', text: 'note3' },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+        - note2
+    - note3
+  `);
 });
 
 it('tab indents every note in a note range', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note2', 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
-  expect(remdo).toMatchOutline([
-    {
-      noteId: 'note1', text: 'note1',
-      children: [
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ],
-    },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+        - note2
+        - note3
+  `);
 });
 
 it('tab on a note range starting at the first top-level note is a no-op', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note1', 'note2');
   await pressKey(remdo, { key: 'Tab' });
 
-  expect(remdo).toMatchOutline([
-    { noteId: 'note1', text: 'note1' },
-    { noteId: 'note2', text: 'note2' },
-    { noteId: 'note3', text: 'note3' },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+    - note2
+    - note3
+  `);
 });
 
 it('tab indents a note range regardless of drag direction', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note3', 'note2');
   await pressKey(remdo, { key: 'Tab' });
 
-  expect(remdo).toMatchOutline([
-    {
-      noteId: 'note1', text: 'note1',
-      children: [
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ],
-    },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+        - note2
+        - note3
+  `);
 });
 
 it('tab refuses to indent a selection whose leading child lacks a previous sibling', meta({ fixture: 'basic' }), async ({ remdo }) => {
@@ -190,70 +181,55 @@ it('tab refuses to indent a selection whose leading child lacks a previous sibli
   await selectNoteRange(remdo, 'note2', 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
-  expect(remdo).toMatchOutline([
-    {
-      noteId: 'note1', text: 'note1',
-      children: [
-        { noteId: 'note2', text: 'note2' },
-        { noteId: 'note3', text: 'note3' },
-      ],
-    },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+        - note2
+        - note3
+  `);
 });
 
 it('tab indents a subtree selection even when a child lacks its own previous sibling', meta({ fixture: 'tree' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note2', 'note3');
   await pressKey(remdo, { key: 'Tab' });
 
-  expect(remdo).toMatchOutline([
-    {
-      noteId: 'note1', text: 'note1',
-      children: [
-        {
-          noteId: 'note2', text: 'note2',
-          children: [
-            { noteId: 'note3', text: 'note3' },
-          ],
-        },
-      ],
-    },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+        - note2
+            - note3
+  `);
 });
 
 it('tab indents when note text selection spans the entire note', meta({ fixture: 'flat' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab' });
 
-  expect(remdo).toMatchOutline([
-    { noteId: 'note1', text: 'note1', children: [ { noteId: 'note2', text: 'note2' } ] },
-    { noteId: 'note3', text: 'note3' },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+        - note2
+    - note3
+  `);
 });
 
 it('shift+tab outdents a single-note range', meta({ fixture: 'basic' }), async ({ remdo }) => {
     await selectEntireNote(remdo, 'note2');
   await pressKey(remdo, { key: 'Tab', shift: true });
 
-  expect(remdo).toMatchOutline([
-    { noteId: 'note1', text: 'note1' },
-    { noteId: 'note2', text: 'note2' },
-    { noteId: 'note3', text: 'note3' },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+    - note2
+    - note3
+  `);
 });
 
 it('shift+tab refuses to partially outdent when selection includes a root note', meta({ fixture: 'basic' }), async ({ remdo }) => {
     await selectNoteRange(remdo, 'note1', 'note2');
   await pressKey(remdo, { key: 'Tab', shift: true });
 
-  expect(remdo).toMatchOutline([
-    {
-      noteId: 'note1', text: 'note1',
-      children: [
-        { noteId: 'note2', text: 'note2' },
-      ],
-    },
-    { noteId: 'note3', text: 'note3' },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+        - note2
+    - note3
+  `);
 });
 
 it("tab on note2 at start moves it with its child note3 under note1", meta({ fixture: 'tree' }), async ({ remdo }) => {
@@ -261,19 +237,11 @@ it("tab on note2 at start moves it with its child note3 under note1", meta({ fix
   await pressKey(remdo, { key: 'Tab' }); // indent note2 (with its child note3) under note1
 
   // After indenting note2, it should become a child of note1, and note3 should remain a child of note2
-  expect(remdo).toMatchOutline([
-    {
-      noteId: 'note1', text: 'note1',
-      children: [
-        {
-          noteId: 'note2', text: 'note2',
-          children: [
-            { noteId: 'note3', text: 'note3' },
-          ],
-        },
-      ],
-    },
-  ]);
+  expect(remdo).toMatchOutline(`
+    - note1
+        - note2
+            - note3
+  `);
 });
 
 it('tab then shift+tab on note2 keeps the tree outline intact', meta({ fixture: 'tree' }), async ({ remdo }) => {

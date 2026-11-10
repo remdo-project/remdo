@@ -15,10 +15,12 @@ describe('outline normalization on load', () => {
       fixtureSchemaBypass: true,
     }),
     async ({ remdo }) => {
-      expect(remdo).toMatchOutline([
-        { noteId: 'note1', text: 'note1-child-of-orphaned-wrapper' },
-        { noteId: 'note3', text: 'note3-root-2nd-child' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1-child-of-orphaned-wrapper
+            - id:: note1
+        - note3-root-2nd-child
+            - id:: note3
+      `);
     }
   );
 
@@ -30,16 +32,13 @@ describe('outline normalization on load', () => {
       expectedConsoleIssues: ['runtime.invariant orphan-wrapper-merged-into-previous'],
     }),
     async ({ remdo }) => {
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            { noteId: 'note2', text: 'note2-valid-child' },
-            { noteId: 'note3', text: 'note3-child-of-orphaned-wrapper' },
-          ],
-        },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - note2-valid-child
+                - id:: note2
+            - note3-child-of-orphaned-wrapper
+                - id:: note3
+      `);
     }
   );
 
@@ -52,10 +51,12 @@ describe('outline normalization on load', () => {
     async ({ remdo }) => {
       await placeCaretAtNote(remdo, { id: 'note3' });
       await remdo.dispatchCommand(REORDER_NOTES_UP_COMMAND);
-      expect(remdo).toMatchOutline([
-        { noteId: 'note3', text: 'note3-root-2nd-child' },
-        { noteId: 'note1', text: 'note1-child-of-orphaned-wrapper' },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note3-root-2nd-child
+            - id:: note3
+        - note1-child-of-orphaned-wrapper
+            - id:: note1
+      `);
     }
   );
 

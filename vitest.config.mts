@@ -33,6 +33,7 @@ const nodeTests = [
   'src/client/editor/runtime/collaboration/collaboration-indicator.spec.ts',
   'src/client/editor/runtime/collaboration/offline-document-unavailable.spec.ts',
   'tests/unit/internal/waitForSync.spec.ts',
+  'tests/unit/internal/markdown-outline.spec.ts',
 
   'tests/unit/net.spec.ts',
   'tests/unit/config-env.spec.ts',

@@ -42,16 +42,13 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
       expectedConsoleIssues: ['runtime.invariant orphan-wrapper-merged-into-previous'],
     }),
     async ({ remdo }) => {
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            { noteId: 'note2', text: 'note2-valid-child' },
-            { noteId: 'note3', text: 'note3-child-of-orphaned-wrapper' },
-          ],
-        },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - note2-valid-child
+                - id:: note2
+            - note3-child-of-orphaned-wrapper
+                - id:: note3
+      `);
     }
   );
 
@@ -106,16 +103,11 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
         const item = $getNodeByKey(note3Key) as ListItemNode;
         $indentNote(item);
       });
-      expect(remdo).toMatchOutline([
-        {
-          noteId: 'note1',
-          text: 'note1',
-          children: [
-            { noteId: 'note2', text: 'note2' },
-            { noteId: 'note3', text: 'note3' },
-          ],
-        },
-      ]);
+      expect(remdo).toMatchOutline(`
+        - note1
+            - note2
+            - note3
+      `);
 
       const remdo2 = await createCollabPeer(remdo);
 

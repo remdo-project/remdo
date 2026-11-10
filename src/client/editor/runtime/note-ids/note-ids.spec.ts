@@ -11,6 +11,7 @@ import {
 } from '#tests';
 import { createNoteIdAvoiding } from '#domain/notes/ids';
 import { noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
+import { REORDER_NOTES_DOWN_COMMAND } from '#client/editor/foundation/commands';
 
 
 
@@ -102,11 +103,73 @@ describe('note id normalization on load', () => {
   );
 
   it('keeps existing unique noteIds unchanged', meta({ fixture: 'flat' }), async ({ remdo }) => {
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+      - note2
+          - id:: note2
+      - note3
+          - id:: note3
+    `);
+  });
+});
+
+describe('note ids on structure changes', () => {
+  it('keeps every note ID through a reorder, an indent and an outdent', meta({ fixture: 'tree-complex' }), async ({ remdo }) => {
+    await placeCaretAtNote(remdo, 'note2');
+    await remdo.dispatchCommand(REORDER_NOTES_DOWN_COMMAND);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+          - note4
+              - id:: note4
+          - note2
+              - id:: note2
+              - note3
+                  - id:: note3
+      - note5
+          - id:: note5
+      - note6
+          - id:: note6
+          - note7
+              - id:: note7
+    `);
+
+    await pressKey(remdo, { key: 'Tab' });
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+          - note4
+              - id:: note4
+              - note2
+                  - id:: note2
+                  - note3
+                      - id:: note3
+      - note5
+          - id:: note5
+      - note6
+          - id:: note6
+          - note7
+              - id:: note7
+    `);
+
+    await pressKey(remdo, { key: 'Tab', shift: true });
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+          - note4
+              - id:: note4
+          - note2
+              - id:: note2
+              - note3
+                  - id:: note3
+      - note5
+          - id:: note5
+      - note6
+          - id:: note6
+          - note7
+              - id:: note7
+    `);
   });
 });
 
@@ -115,11 +178,15 @@ describe('note ids on split', () => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'no', children: [{ noteId: null, text: 'te2' }] },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+      - no
+          - id:: note2
+          - te2
+      - note3
+          - id:: note3
+    `);
 
     const outline = readOutline(remdo);
     const splitChild = outline[1]?.children?.find((node) => node.text === 'te2');
@@ -133,11 +200,15 @@ describe('note ids on split', () => {
     await placeCaretAtNote(remdo, 'note2', 2);
     await pressKey(remdo, { key: 'Enter' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'no' },
-      { noteId: null, text: 'te2', children: [{ noteId: 'note3', text: 'note3' }] },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+          - id:: note1
+      - no
+          - id:: note2
+      - te2
+          - note3
+              - id:: note3
+    `);
 
     const outline = readOutline(remdo);
     const splitSibling = outline.find((node) => node.text === 'te2');

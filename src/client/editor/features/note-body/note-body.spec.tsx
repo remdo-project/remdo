@@ -133,12 +133,11 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Enter', shift: true });
     await pressKey(remdo, { key: 'Backspace' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+    expect(remdo).toMatchOutline(`
+      - note1<selection />
+      - note2
+      - note3
+    `);
   });
 
   it('delete on an empty body removes it and returns the caret to the note', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -146,12 +145,11 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'Enter', shift: true });
     await pressKey(remdo, { key: 'Delete' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+    expect(remdo).toMatchOutline(`
+      - note1<selection />
+      - note2
+      - note3
+    `);
   });
 
   it('select-all + Delete inside a non-empty body removes the body in one step', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -162,12 +160,11 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     await pressKey(remdo, { key: 'Delete' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+    expect(remdo).toMatchOutline(`
+      - note1<selection />
+      - note2
+      - note3
+    `);
   });
 
   it('select-all + Delete inside a multi-line body removes the whole body', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -183,12 +180,11 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await pressKey(remdo, { key: 'a', ctrlOrMeta: true });
     await pressKey(remdo, { key: 'Delete' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: 'note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
-    expect(remdo).toMatchSelection({ state: 'caret', note: 'note1' });
+    expect(remdo).toMatchOutline(`
+      - note1<selection />
+      - note2
+      - note3
+    `);
   });
 
   it('delete on an empty label whose note has a non-empty body keeps the body', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -352,10 +348,11 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await placeCaretAtNote(remdo, 'note2', 0);
     await pressKey(remdo, { key: 'Backspace' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1 note2' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1 note2
+          - id:: note1
+      - note3
+    `);
   });
 
   it('merging carries the body when only the merged-away note has one', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -634,10 +631,10 @@ describe('note body (docs/specs/outliner/body.md)', () => {
     await selectStructuralNotes(remdo, 'note2', 'note2');
     await pressKey(remdo, { key: 'Delete' });
 
-    expect(remdo).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    expect(remdo).toMatchOutline(`
+      - note1
+      - note3
+    `);
   });
 
   it('a note range never selects the body as a note', meta({ fixture: 'flat' }), async ({ remdo }) => {
