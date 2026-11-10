@@ -35,20 +35,22 @@ test('native inline copy replaces then inserts at the caret, including trailing 
 
     await page.keyboard.press('ControlOrMeta+c');
     await page.keyboard.press('ControlOrMeta+v');
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - ${text}
+          - id:: note2
+      - note3
+    `);
     expect((await captureEditorSnapshot(page)).selection).toMatchObject({
       anchorOffset: end, focusOffset: end, isCollapsed: true,
     });
     await page.keyboard.press('ControlOrMeta+v');
-    await expect(editor).toMatchOutline([
-      { noteId: 'note1', text: 'note1' },
-      { noteId: 'note2', text: repeated },
-      { noteId: 'note3', text: 'note3' },
-    ]);
+    await expect(editor).toMatchOutline(`
+      - note1
+      - ${repeated}
+          - id:: note2
+      - note3
+    `);
     expect((await captureEditorSnapshot(page)).selection).toMatchObject({
       anchorOffset: end * 2, focusOffset: end * 2, isCollapsed: true,
     });
