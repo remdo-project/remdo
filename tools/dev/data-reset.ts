@@ -1,23 +1,11 @@
 #!/usr/bin/env tsx
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
 import process from 'node:process';
 
 import { config } from '#config';
 import { INTERNAL_SERVICE_HOST } from '#platform/net/origins';
-import { readFixtureState } from '#tools/fixtures';
+import { listFixtureNames, readFixtureState } from '#tools/fixtures';
 import { waitForPortOpen } from '../lib/net';
 import { resetDevelopmentData } from './reset-development-data';
-
-const FIXTURE_DIR = path.resolve('tests/fixtures');
-
-async function listFixtureNames(): Promise<string[]> {
-  const entries = await fs.readdir(FIXTURE_DIR);
-  return entries
-    .filter((entry) => entry.endsWith('.json'))
-    .map((entry) => entry.slice(0, -'.json'.length))
-    .sort();
-}
 
 async function main(): Promise<void> {
   if (!config.isDev) {

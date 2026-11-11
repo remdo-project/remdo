@@ -1,0 +1,7 @@
+- note1
+- &#32;note2SpaceLeft
+    - id:: note2SpaceLeft
+- note3
+- note4SpaceRight&#32;
+    - id:: note4SpaceRight
+- note5

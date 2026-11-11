@@ -8,7 +8,7 @@ generic external links.
 1. **Runtime editor state:** the in-memory Lexical node state used by editor
    behavior and rendering.
 2. **Persisted JSON state:** the JSON document shape written to/read from
-   fixtures, snapshot files, and other long-lived storage boundaries.
+   long-lived storage boundaries, and built from Markdown fixtures.
 3. **Clipboard payload:** transient copy/cut payload (`application/x-lexical-editor`)
    exchanged between editor contexts.
 4. **Collaboration state:** shared runtime state (for example Yjs-backed) that

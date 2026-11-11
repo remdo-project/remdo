@@ -26,8 +26,18 @@ export type MarkdownSelection =
   | { state: 'inline'; start: MarkdownPoint; end: MarkdownPoint }
   | { state: 'structural'; notes: NotePath[] };
 
+/** How a note's list item is written, which expectations don't compare but fixtures build from. */
+export interface MarkdownItem {
+  ordered: boolean;
+  /** The numbered list's first number, when it isn't 1. */
+  start?: number;
+  checkbox: boolean;
+  inlineMarkdown?: true;
+}
+
 export interface MarkdownOutline {
   notes: MarkdownNote[];
+  items: Map<MarkdownNote, MarkdownItem>;
   selection: MarkdownSelection | null;
 }
 
@@ -76,9 +86,10 @@ export function readMarkdownOutline(source: string): MarkdownOutline {
 
   const located: Located[] = [];
   const marks: Mark[] = [];
-  const notes = readList(markdown.parse(lines.join('\n'), {}), lines, located, marks);
+  const items = new Map<MarkdownNote, MarkdownItem>();
+  const notes = readList(markdown.parse(lines.join('\n'), {}), lines, located, marks, items);
   if (marks.length !== inlineTags) throw new Error('<selection> must sit in a note\'s own text.');
-  return { notes, selection: readSelection(marks, blockStarts, blockEnds, located) };
+  return { notes, items, selection: readSelection(marks, blockStarts, blockEnds, located) };
 }
 
 /**
@@ -101,7 +112,7 @@ interface Frame {
   children: MarkdownNote[];
   path: NotePath;
   line?: number;
-  checkbox?: boolean;
+  item?: MarkdownItem;
   textRead?: boolean;
   statedProperties?: Set<string>;
 }
@@ -111,17 +122,30 @@ const STRUCTURE = new Set([
   'list_item_open', 'list_item_close', 'paragraph_open', 'paragraph_close', 'inline',
 ]);
 
-function readList(tokens: Token[], lines: string[], located: Located[], marks: Mark[]): MarkdownNote[] {
+function readList(
+  tokens: Token[],
+  lines: string[],
+  located: Located[],
+  marks: Mark[],
+  items: Map<MarkdownNote, MarkdownItem>,
+): MarkdownNote[] {
   const top: MarkdownNote[] = [];
   const frames: Frame[] = [{ note: null, children: top, path: [] }];
+  const lists: Pick<MarkdownItem, 'ordered' | 'start'>[] = [];
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index]!;
     const frame = frames.at(-1)!;
-    if (token.type === 'blockquote_open' && frame.note) {
+    if (token.type === 'ordered_list_open' || token.type === 'bullet_list_open') {
+      const start = Number(token.attrGet('start') ?? 1);
+      lists.push(token.type === 'ordered_list_open' ? { ordered: true, ...(start !== 1 && { start }) } : { ordered: false });
+    } else if (token.type === 'ordered_list_close' || token.type === 'bullet_list_close') {
+      lists.pop();
+    } else if (token.type === 'blockquote_open' && frame.note) {
       index = readBody(tokens, index, frame, lines);
     } else if (token.type === 'list_item_open') {
       const line = token.map![0];
       const marker = MARKER.exec(lines[line]!)!;
+      const checkbox = marker[1] !== undefined;
       const content = lines[line]!.slice(marker[0].length).trim();
       const property = PROPERTY_LINE.exec([...content].filter((char) => !KIND_BY_SENTINEL.has(char)).join(''));
       if (property && tokens[index + 1]!.type === 'paragraph_open') {
@@ -131,7 +155,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
         if (name === 'id' && !frame.note) throw new Error('A top-level id:: line identifies no note; indent it under its note.');
         if (name === 'id' && stated.has(name)) throw new Error(`A note's later id:: lines state nothing; it already has ${frame.note!.id}.`);
         if (frame.note && !stated.has(name)) {
-          const text = withoutCheckbox(plainText(tokens[index + 2]!.children ?? []), marker[1] !== undefined);
+          const text = withoutCheckbox(plainText(tokens[index + 2]!.children ?? []), checkbox);
           const value = text.slice(text.indexOf('::') + 2).trim();
           if (name === 'id' && !/^\S+$/.test(value)) throw new Error('An id:: line holds one ID.');
           if (name === 'id') frame.note.id = value;
@@ -146,7 +170,9 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       const path = [...frame.path, frame.children.length];
       frame.children.push(note);
       located.push({ path, line });
-      frames.push({ note, children: [], path, line, checkbox: marker[1] !== undefined });
+      const item: MarkdownItem = { ...lists.at(-1)!, checkbox };
+      items.set(note, item);
+      frames.push({ note, children: [], path, line, item });
     } else if (token.type === 'list_item_close') {
       const closed = frames.pop()!;
       if (closed.note && closed.children.length > 0) closed.note.children = closed.children;
@@ -160,7 +186,8 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       if (token.map![0] !== frame.line) throw new Error('A note\'s text must fit on its marker\'s line.');
       frame.textRead = true;
       const parsed = plainText(token.children ?? []);
-      const text = takeMarks(withoutCheckbox(parsed, frame.checkbox), frame.path, marks);
+      if (token.children?.some((child) => child.type !== 'text')) frame.item!.inlineMarkdown = true;
+      const text = takeMarks(withoutCheckbox(parsed, frame.item!.checkbox), frame.path, marks);
       if (text) frame.note!.text = text;
     }
   }
@@ -168,7 +195,7 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
 }
 
 // CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
-function withoutCheckbox(text: string, checkbox: boolean | undefined): string {
+function withoutCheckbox(text: string, checkbox: boolean): string {
   return checkbox ? text.replace(/^\[[ x]\] ?/, '') : text;
 }
 

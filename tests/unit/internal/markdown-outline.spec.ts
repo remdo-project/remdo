@@ -2,15 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { markdownNoteText, readMarkdownOutline } from '#tests-common/markdown-outline';
 
 describe('reading expected outlines from Markdown', () => {
-  it('reads nesting, checked notes, empty notes and declared IDs', () => {
-    expect(readMarkdownOutline(`
+  it('reads nesting, checked notes, empty notes and declared IDs, and how each item is written', () => {
+    const { notes, items, selection } = readMarkdownOutline(`
       - note1
           - id:: first
           - note2
               - [x] done
       -
       1. **bold** and \`code\`
-    `)).toEqual({
+    `);
+    expect({ notes, selection }).toEqual({
       notes: [
         { text: 'note1', id: 'first', children: [{ text: 'note2', children: [{ text: 'done', checked: true }] }] },
         {},
@@ -18,6 +19,10 @@ describe('reading expected outlines from Markdown', () => {
       ],
       selection: null,
     });
+    const plain = { ordered: false, checkbox: false };
+    expect([...items.values()]).toEqual([
+      plain, plain, { ordered: false, checkbox: true }, plain, { ordered: true, checkbox: false, inlineMarkdown: true },
+    ]);
   });
 
   it('reads a body from its > lines, before the children, wherever the properties sit', () => {

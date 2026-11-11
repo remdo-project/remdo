@@ -1,0 +1,14 @@
+- alpha
+- &#32;
+    - id:: space
+- beta
+-
+    - id:: parent
+    -
+        - id:: nestedEmpty
+    - child-of-empty
+        - id:: child
+    -
+        - id:: nestedAfterChild
+-
+    - id:: trailing

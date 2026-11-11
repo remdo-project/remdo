@@ -25,7 +25,10 @@
     // their own SKILL.md and must stay linted.
     // Kept in sync by tests/unit/skills/embedded.spec.ts (fails if a symlink is
     // missing here).
-    ".claude/skills/remdo-merge-main"
+    ".claude/skills/remdo-merge-main",
+    // Fixtures are RemDo text-format documents: 4-space nesting, empty notes
+    // and property lines are their content, not prose style.
+    "tests/fixtures"
   ],
   // Link/anchor validation rides markdownlint's own parser:
   // relative-link existence + `#fragment` heading match (MD051-style),
