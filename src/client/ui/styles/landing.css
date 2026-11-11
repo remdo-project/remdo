@@ -42,7 +42,7 @@
 .remdo-landing :where(button, input) {
   font: inherit;
 }
-.remdo-landing :where(a, button, input):focus-visible {
+.remdo-landing :where(a, button, input, summary):focus-visible {
   outline: 2px solid var(--landing-light-text);
   outline-offset: 4px;
 }

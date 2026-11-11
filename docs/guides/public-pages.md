@@ -24,6 +24,8 @@ Write the page here. Use **bold text**, lists, and [links](https://example.com).
 
 The title supplies the main heading and browser title; the description supplies
 the meta description. Start body sections at `##`.
+Markdown inside an HTML block is rendered only when the block opts in with
+`markdown="1"`, as in `<div class="example" markdown="1">`.
 Link other site routes by root path, such as `/privacy/`, and add
 `<!-- markdownlint-disable relative-links -->` below the front matter, since
 lint resolves root paths against the repository.

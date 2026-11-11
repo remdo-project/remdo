@@ -58,6 +58,6 @@ def public_page(request, slug):
             "description": metadata["description"],
             "canonical": f"{settings.APP_ORIGIN}/{slug}/",
             # Page sources are trusted, reviewed repository content, like templates.
-            "body": markdown.markdown(body),
+            "body": markdown.markdown(body, extensions=["md_in_html"]),
         },
     )

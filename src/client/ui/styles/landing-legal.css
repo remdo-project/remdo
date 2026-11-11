@@ -53,12 +53,12 @@
   color: var(--landing-light-text);
   font-weight: 600;
 }
-.landing-legal-article a {
+.landing-legal-article a:not([class]) {
   color: var(--landing-light-text);
   text-decoration: underline;
   text-underline-position: from-font;
 }
-.landing-legal-article a:hover {
+.landing-legal-article a:not([class]):hover {
   color: var(--landing-muted-light-text);
 }
 .landing-legal-column {

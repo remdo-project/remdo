@@ -1,0 +1,90 @@
+.assistant-tablist {
+  display: flex;
+  gap: 4px;
+  margin: 40px 0 28px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--landing-dark-outline);
+  scrollbar-width: none;
+}
+.assistant-tablist [role='tab'] {
+  flex: none;
+  margin-bottom: -1px;
+  padding: 12px 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--landing-muted-light-text);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  cursor: pointer;
+}
+.assistant-tablist [role='tab']:hover, .assistant-tablist [aria-selected='true'] {
+  color: var(--landing-light-text);
+}
+.assistant-tablist [aria-selected='true'] {
+  border-bottom-color: var(--landing-light-text);
+}
+.assistant-tablist [role='tab']:focus-visible {
+  outline-offset: -2px;
+}
+.assistant-tabs .landing-button {
+  margin-block: 8px;
+}
+.assistant-tabs :is(blockquote, pre) {
+  margin: 8px 0 20px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--landing-dark-outline);
+  border-radius: var(--landing-radius);
+  color: var(--landing-light-text);
+}
+.assistant-tabs blockquote {
+  font-family: var(--landing-font-serif);
+  font-size: 20px;
+}
+.assistant-tabs blockquote p {
+  margin: 0;
+}
+.assistant-tabs pre {
+  font-size: 15px;
+  line-height: 22px;
+}
+.assistant-copy {
+  display: flex;
+  margin: 8px 0 20px;
+}
+.assistant-copy > :is(blockquote, pre) {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  border-radius: var(--landing-radius) 0 0 var(--landing-radius);
+}
+.assistant-copy > button {
+  min-width: 96px;
+  padding: 0 18px;
+  border: 1px solid var(--landing-dark-outline);
+  border-left: 0;
+  border-radius: 0 var(--landing-radius) var(--landing-radius) 0;
+  background: none;
+  color: var(--landing-light-text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.assistant-copy > button:hover {
+  background: var(--chrome-hover);
+}
+.assistant-tabs details {
+  margin-top: 24px;
+  border-top: 1px solid var(--landing-dark-outline);
+}
+.assistant-tabs summary {
+  padding-block: 14px;
+  color: var(--landing-muted-light-text);
+  font-size: 16px;
+  cursor: pointer;
+}
+.assistant-tabs summary:hover, .assistant-tabs details[open] > summary {
+  color: var(--landing-light-text);
+}
