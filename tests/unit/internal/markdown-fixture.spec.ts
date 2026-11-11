@@ -1,0 +1,92 @@
+import { describe, expect, it } from 'vitest';
+import { buildFixtureState } from '#tests-common/markdown-fixture';
+
+interface Node { type: string; noteId?: string; children?: Node[]; [key: string]: unknown }
+
+function noteIds(source: string): string[] {
+  const ids: string[] = [];
+  const walk = (node: Node) => {
+    if (node.noteId !== undefined) ids.push(node.noteId);
+    node.children?.forEach(walk);
+  };
+  walk(buildFixtureState(source).root);
+  return ids;
+}
+
+describe('building fixture state from a test document', () => {
+  it('builds nested lists in the compact form fixtures use', () => {
+    expect(buildFixtureState(`
+      - note1
+          1. note2
+          2. note3
+              - [x] done
+              - [ ] open
+      -
+          - id:: empty
+          - folded:: true
+    `)).toEqual({
+      root: {
+        type: 'root',
+        children: [{
+          type: 'list',
+          children: [
+            { type: 'listitem', noteId: 'note1', value: 1, children: [{ type: 'text', text: 'note1' }] },
+            {
+              type: 'listitem',
+              value: 2,
+              children: [{
+                type: 'list',
+                listType: 'number',
+                tag: 'ol',
+                children: [
+                  { type: 'listitem', noteId: 'note2', value: 1, indent: 1, children: [{ type: 'text', text: 'note2' }] },
+                  { type: 'listitem', noteId: 'note3', value: 2, indent: 1, children: [{ type: 'text', text: 'note3' }] },
+                  {
+                    type: 'listitem',
+                    value: 3,
+                    indent: 1,
+                    children: [{
+                      type: 'list',
+                      listType: 'check',
+                      children: [
+                        { type: 'listitem', noteId: 'done', value: 1, indent: 2, checked: true, children: [{ type: 'text', text: 'done' }] },
+                        { type: 'listitem', noteId: 'open', value: 2, indent: 2, checked: false, children: [{ type: 'text', text: 'open' }] },
+                      ],
+                    }],
+                  },
+                ],
+              }],
+            },
+            { type: 'listitem', noteId: 'empty', value: 2, folded: true, children: [] },
+          ],
+        }],
+      },
+    });
+  });
+
+  it('identifies a note by its text unless an id:: line, an invalid text or a taken ID says otherwise', () => {
+    const [first, declared, duplicate, spaced, empty] = noteIds(`
+      - same
+      - other
+          - id:: same2
+      - same
+      - two words
+      -
+    `);
+    expect([first, declared]).toEqual(['same', 'same2']);
+    for (const generated of [duplicate, spaced, empty]) expect(generated).toMatch(/^[A-Za-z1-9]{10}$/u);
+    expect(noteIds('- taken\n- note\n    - id:: taken')).toEqual([expect.stringMatching(/^\w{10}$/u), 'taken']);
+  });
+
+  it.each([
+    ['a selection', '- note<selection />', /no selection/u],
+    ['a list mixing numbered and bulleted notes', '1. one\n- two', /either numbered or not/u],
+    ['a check list missing a checkbox', '- [ ] one\n- two', /every note a checkbox/u],
+    ['a numbered check list', '1. [ ] one', /not both/u],
+    ['inline Markdown', '- **bold**', /inline Markdown/u],
+    ['a body', '- note\n    > body', /no body/u],
+    ['one ID on two notes', '- one\n    - id:: x\n- two\n    - id:: x', /declare id:: x/u],
+  ])('refuses %s', (_case, source, message) => {
+    expect(() => buildFixtureState(source)).toThrow(message);
+  });
+});
