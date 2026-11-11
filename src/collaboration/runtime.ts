@@ -385,9 +385,7 @@ const DEFAULT_RECONNECT_TIMEOUT_MS = 30_000;
  * `reconnectTimeoutMs`. The reconnect deadline only runs while disconnected, so a legitimately
  * slow initial sync over a live connection is never capped.
  *
- * Used by:
- * - CollaborationProvider (awaitSynced)
- * - snapshot CLI (save/load safety)
+ * Used by CollaborationProvider (awaitSynced).
  */
 export function waitForSync(
   provider: MinimalProviderEvents,

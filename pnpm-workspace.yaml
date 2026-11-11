@@ -63,7 +63,6 @@ catalog:
   '@lexical/extension': 0.53.0
   '@lexical/link': 0.53.0
   '@lexical/list': 0.53.0
-  '@lexical/markdown': 0.53.0
   '@lexical/react': 0.53.0
   '@lexical/rich-text': 0.53.0
   '@lexical/yjs': 0.53.0
