@@ -40,11 +40,12 @@ SQLite and require no database service.
 
 ## Run Verification
 
-Prefer changed variants locally for unit and collaboration tests. They select
-tests by Git-based dependency heuristics from the changes since the branch left
-`origin/main`, including uncommitted changes, and pass when they find no tests.
-Use an unsuffixed command with a file or filter for known relationships the heuristic
-cannot discover; without one, it runs the complete group used by CI.
+Changed variants run [dependency selection](../dev/testing.md#verification-lifecycle) for unit and collaboration
+tests over the changes since the branch left `origin/main`, including
+uncommitted changes, and pass when they find no tests. To select from
+uncommitted changes only, pass `--changed --passWithNoTests` to the unsuffixed
+command. Pass a file or filter to the unsuffixed command for tests selected
+explicitly; without one, it runs the complete group used by CI.
 
 - `./tools/django.sh test` — run Django authentication, CSRF, document
   ownership, administration and configuration tests.
@@ -64,12 +65,13 @@ cannot discover; without one, it runs the complete group used by CI.
 - `pnpm run test:e2e:all` — run browser and Docker E2E; use when complete E2E
   coverage is requested.
 - `pnpm run lint` — check the source as written: types, code, styles,
-  documentation, agent instructions, and the dependency graph; use for the
-  default static feedback.
+  documentation, agent instructions, lint configuration, and the dependency
+  graph; its `lint:*` and `typecheck` scripts check subsets.
 - `pnpm run verify` — run lint, Dockerfile lint, dependency-policy and
   unused-code checks, the production development-boundary check, backend
-  checks, and generated API verification; use for
-  [handoff verification](../dev/testing.md#verification-lifecycle).
+  checks, and generated API verification. `pnpm run lint:dockerfile` and
+  `pnpm run audit:policy` run its Dockerfile lint and dependency-policy check
+  alone.
 
 ### Verify PostgreSQL
 

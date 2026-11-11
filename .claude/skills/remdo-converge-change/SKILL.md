@@ -81,4 +81,6 @@ probe: # if step 4 ran
 handoff_checks: # if step 5 ran
   - command: <command>
     status: <passed | failed>
+left_to_ci: # checks step 5 left to CI, if step 5 ran
+  - <check or group>
 ```
