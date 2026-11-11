@@ -95,8 +95,8 @@ describe('building fixture state from a test document', () => {
       -
     `);
     expect([first, declared]).toEqual(['same', 'same2']);
-    for (const generated of [duplicate, spaced, empty]) expect(generated).toMatch(/^[A-Za-z1-9]{10}$/u);
-    expect(noteIds('- taken\n- note\n    - id:: taken')).toEqual([expect.stringMatching(/^\w{10}$/u), 'taken']);
+    expect([duplicate, spaced, empty]).toEqual(['n1', 'n2', 'n3']);
+    expect(noteIds('- taken\n- n1\n- note\n    - id:: taken')).toEqual(['n1', 'n2', 'taken']);
   });
 
   it('builds formatted runs, note links and dates', () => {

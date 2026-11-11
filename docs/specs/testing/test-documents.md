@@ -11,8 +11,8 @@ owns when tests use them.
 - Edge whitespace:: character references such as `&#32;` state whitespace at a
   note's edges, which production readers drop.
 - Fixture IDs:: in a fixture, a note without an `id::` line takes its text as
-  its ID when that is a valid ID no `id::` line or earlier note claims, and a
-  generated ID otherwise.
+  its ID when that is a valid ID no `id::` line or earlier note claims, and
+  otherwise an ID generated the same way on every read.
 - Check lists:: a bulleted list whose notes all have a checkbox is a check
   list, and `[x]` checks a note in any list.
 - Other documents:: while fixtures load into editor documents, a link to a

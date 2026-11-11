@@ -137,10 +137,12 @@ function assignIds(notes: MarkdownNote[]): Map<MarkdownNote, string> {
     used.add(id);
   }
   const ids = new Map<MarkdownNote, string>();
+  let generated = 0;
+  const nextId = () => `n${generated += 1}`;
   for (const note of all) {
     let id = note.id;
     if (id === undefined) {
-      id = normalizeNoteId(note.text) === note.text && !used.has(note.text) ? note.text : createNoteIdAvoiding(used);
+      id = normalizeNoteId(note.text) === note.text && !used.has(note.text) ? note.text : createNoteIdAvoiding(used, nextId);
       used.add(id);
     }
     ids.set(note, id);
