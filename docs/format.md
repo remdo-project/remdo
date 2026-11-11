@@ -52,7 +52,8 @@ An outline note holds:
     > - Tools escape Text that would otherwise read as Markdown structure
     > - Whitespace at its start and end is not Text, even as a character
     >   reference
-- Children:: an ordered list of Markdown blocks and outline notes
+- Children:: an ordered list of Markdown blocks and outline notes, without
+  [property](#properties) lines
     > - Tools indent children under a list item by 4 spaces per level
     > - Tools write `1.` where another number could not interrupt a paragraph
     > - Tools write a blank line before an empty first child after parent text
@@ -77,7 +78,8 @@ A property is a name the format gives a meaning, written as a named note under
 the note it applies to.
 
 - A note's first line with a property's name takes effect, wherever it sits
-  under the note; later ones, and anything nested under a property line, are ignored
+  directly under the note; later ones, and anything nested under a property
+  line, are ignored
 - Property lines aren't among the note's children, so they don't decide which
   block comes first
 - A value the property doesn't define has no effect
