@@ -1,8 +1,8 @@
 import { buildFixtureState, editNotes } from './markdown-fixture';
 
 /**
- * Invalid editor states, which test documents can't hold, for tests of schema checks and load-time
- * repair: the shapes older saves, imports, other writers or merged concurrent edits can hand the
+ * Invalid editor states, which test documents can't hold, shared by schema-check and load-time repair
+ * tests: the shapes older saves, imports, other writers or merged concurrent edits can hand the
  * editor. Each is a test document with edits applied.
  */
 export const brokenEditorStates = {
@@ -12,8 +12,6 @@ export const brokenEditorStates = {
   duplicateNoteId: () => editNotes(buildFixtureState('- note1\n    - id:: duplicated\n- note2'), {
     note2: (note) => ({ ...note, noteId: 'duplicated' }),
   }),
-  indentJump: () => editNotes(buildFixtureState('- note1\n- note2'), { note2: (note) => ({ ...note, indent: 2 }) }),
-  childListWithoutListItem: () => editNotes(buildFixtureState('- note1\n    - note2'), { note2: (note) => note.children! }),
   wrapperWithoutPreviousNote: () => editNotes(
     buildFixtureState('- orphaning\n    - note1-child-of-orphaned-wrapper\n        - id:: note1\n- note3-root-2nd-child\n    - id:: note3'),
     { orphaning: () => [] },
@@ -24,10 +22,4 @@ export const brokenEditorStates = {
     ),
     { orphaning: () => [] },
   ),
-  /** An orphaned wrapper whose repair hoists children into another orphaned wrapper. */
-  nestedOrphanWrappers: () => editNotes(
-    buildFixtureState('- orphaning\n    - note1\n        - note2\n    - nestedOrphaning\n        - note3\n- note4'),
-    { orphaning: () => [], nestedOrphaning: () => [] },
-  ),
-  onlyAWrapper: () => editNotes(buildFixtureState('- orphaning\n    - note1'), { orphaning: () => [] }),
 };

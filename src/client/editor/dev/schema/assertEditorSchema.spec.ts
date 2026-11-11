@@ -71,7 +71,7 @@ describe('assertEditorSchema', () => {
     'reports for wrapper list item without preceding sibling',
     meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
     () => {
-      assertEditorSchema(brokenEditorStates.onlyAWrapper());
+      assertEditorSchema(editNotes(buildFixtureState('- orphaning\n    - note1'), { orphaning: () => [] }));
     }
   );
 
@@ -95,7 +95,7 @@ describe('assertEditorSchema', () => {
     'reports when a nested list lacks list item children',
     meta({ expectedConsoleIssues: ['runtime.invariant list-wrapper-no-listitem path=0'] }),
     () => {
-      assertEditorSchema(brokenEditorStates.childListWithoutListItem());
+      assertEditorSchema(editNotes(buildFixtureState('- note1\n    - note2'), { note2: (note) => note.children! }));
     }
   );
 
@@ -103,7 +103,7 @@ describe('assertEditorSchema', () => {
     'reports on indent jumps greater than one level',
     meta({ expectedConsoleIssues: ['runtime.invariant indent-jump path=1 parentIndent=0 entryIndent=2'] }),
     () => {
-      assertEditorSchema(brokenEditorStates.indentJump());
+      assertEditorSchema(editNotes(buildFixtureState('- note1\n- note2'), { note2: (note) => ({ ...note, indent: 2 }) }));
     }
   );
 

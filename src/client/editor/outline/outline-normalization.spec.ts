@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { $getRoot, ParagraphNode, TextNode } from 'lexical';
 import { brokenEditorStates } from '#tests-common/broken-editor-states';
+import { buildFixtureState, editNotes } from '#tests-common/markdown-fixture';
 import { createMountedLexicalEditor, meta, placeCaretAtNote } from '#tests';
 import { REORDER_NOTES_UP_COMMAND } from '#client/editor/foundation/commands';
 import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '#client/editor/outline/normalization';
@@ -78,7 +79,10 @@ describe('outline normalization (single pass)', () => {
     });
 
     await act(async () => {
-      const parsed = editor.parseEditorState(brokenEditorStates.nestedOrphanWrappers());
+      const parsed = editor.parseEditorState(editNotes(
+        buildFixtureState('- orphaning\n    - note1\n        - note2\n    - nestedOrphaning\n        - note3\n- note4'),
+        { orphaning: () => [], nestedOrphaning: () => [] },
+      ));
       editor.setEditorState(parsed);
     });
 
