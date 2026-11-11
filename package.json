@@ -84,7 +84,7 @@
     "todo:list": "git grep --no-column --color=auto -n -E '(^|[^[:alnum:]_])(TO[D]O|FIX[M]E)([^[:alnum:]_]|$)' -- ':!docs/**' ':!*.md' ':!patches/**' || test $? -eq 1",
     "typecheck": "timeout ${TEST_TIMEOUT:-120}s tsc",
     "typecheck:watch": "tsc --watch",
-    "verify": "pnpm run lint && pnpm run lint:dockerfile && pnpm run audit:policy && pnpm run audit:unused:prod && pnpm run check:dev-boundary && ./tools/check-backend.sh && pnpm run api:check",
+    "verify": "pnpm run lint && pnpm run lint:dockerfile && pnpm run audit:policy && pnpm run audit:cleanup && pnpm run check:dev-boundary && ./tools/check-backend.sh && pnpm run api:check",
     "dev:api": "./tools/env.sh ./tools/django-serve.sh --reload --reload-dir backend",
     "api:generate": "./tools/env.sh node --import tsx tools/generate-api-client.ts",
     "api:check": "pnpm run api:generate --check"
