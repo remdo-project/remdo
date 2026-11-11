@@ -67,8 +67,8 @@ for its final state:
   subprocesses that dependency selection cannot discover;
 - each further complete group whose surface the change touches:
   - [Collaboration tests](../specs/testing/test-harness.md#collaboration-tests):
-    collaboration sessions, persistence, collaboration server, or snapshot
-    tooling;
+    collaboration sessions, persistence, collaboration server, or headless
+    editor tooling;
   - [Browser E2E](../specs/testing/test-harness.md#browser-e2e-tests):
     user-visible text or labels, routes, server-rendered templates, or
     authentication and session flow;

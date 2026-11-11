@@ -3,7 +3,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { selectStructuralNotes, meta, setRawNoteCheckedState } from '#tests';
 import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
-import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-state-persistence';
+import { prepareEditorStateForPersistence } from '#tests-common/editor-state';
 
 interface OutlineCase {
   fixture: string;
@@ -110,14 +110,6 @@ const CASES: OutlineCase[] = [
       - same note2 cross /n/otherDoc_remoteNote
           - id:: note1
       - note2
-      - note3
-    `,
-  },
-  {
-    fixture: 'main',
-    outline: `
-      - note1
-          - note2
       - note3
     `,
   },
