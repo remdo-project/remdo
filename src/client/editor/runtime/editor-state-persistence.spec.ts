@@ -1,10 +1,9 @@
-import path from 'node:path';
-import { promises as fs } from 'node:fs';
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
 import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
 import { prepareEditorStateForPersistence } from '#tests-common/editor-state';
+import { readFixtureState } from '#tools/fixtures';
 import { collectSerializedNodes, getSerializedRootNodes } from '../../../../tests/unit/_support/lib/serialized';
 
 function collectNoteLinkNodes(state: SerializedEditorState): Array<Record<string, unknown>> {
@@ -16,8 +15,7 @@ function collectNoteLinkNodes(state: SerializedEditorState): Array<Record<string
 
 describe('editor state persistence', () => {
   it('rehydrates runtime link identity and compacts back to persisted shape', async () => {
-    const fixturePath = path.resolve('tests/fixtures/links.json');
-    const persisted = JSON.parse(await fs.readFile(fixturePath, 'utf8')) as SerializedEditorState;
+    const persisted = await readFixtureState('links');
     const docId = 'runtimeDoc';
 
     const runtime = prepareEditorStateForRuntime(persisted, docId);

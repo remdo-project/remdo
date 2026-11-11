@@ -65,15 +65,6 @@ const CASES: OutlineCase[] = [
           - id:: mixedFormatting
     `,
   },
-  {
-    fixture: 'links',
-    outline: `
-      - same note2 cross /n/otherDoc_remoteNote
-          - id:: note1
-      - note2
-      - note3
-    `,
-  },
 ];
 
 describe('toMatchOutline smoke coverage', async () => {

@@ -99,12 +99,38 @@ describe('building fixture state from a test document', () => {
     expect(noteIds('- taken\n- note\n    - id:: taken')).toEqual([expect.stringMatching(/^\w{10}$/u), 'taken']);
   });
 
+  it('builds formatted runs, note links and dates', () => {
+    const [note] = (stripEditorStateDefaults(buildFixtureState(
+      '- a **b** *c* ~~d~~ <u>e</u> `f` ***g*** [same](note:x) [other](note:doc_y) [Jul 9, 2026](date:2026-07-09)',
+    )).root.children[0] as unknown as { children: Array<{ children: unknown[] }> }).children;
+    expect(note!.children).toEqual([
+      { type: 'text', text: 'a ' },
+      { type: 'text', text: 'b', format: 1 },
+      { type: 'text', text: ' ' },
+      { type: 'text', text: 'c', format: 2 },
+      { type: 'text', text: ' ' },
+      { type: 'text', text: 'd', format: 4 },
+      { type: 'text', text: ' ' },
+      { type: 'text', text: 'e', format: 8 },
+      { type: 'text', text: ' ' },
+      { type: 'text', text: 'f', format: 16 },
+      { type: 'text', text: ' ' },
+      { type: 'text', text: 'g', format: 3 },
+      { type: 'text', text: ' ' },
+      { type: 'note-link', noteId: 'x', children: [{ type: 'text', text: 'same' }] },
+      { type: 'text', text: ' ' },
+      { type: 'note-link', noteId: 'y', docId: 'doc', children: [{ type: 'text', text: 'other' }] },
+      { type: 'text', text: ' ' },
+      { type: 'date', isoDate: '2026-07-09' },
+    ]);
+  });
+
   it.each([
     ['a selection', '- note<selection />', /no selection/u],
     ['a list mixing numbered and bulleted notes', '1. one\n- two', /either numbered or not/u],
     ['a check list missing a checkbox', '- [ ] one\n- two', /every note a checkbox/u],
     ['a numbered check list', '1. [ ] one', /not both/u],
-    ['inline Markdown', '- **bold**', /inline Markdown/u],
+    ['a link to another target', '- [x](https://example.com)', /note: or date: targets/u],
     ['a body', '- note\n    > body', /no body/u],
     ['a folded note without children', '- note\n    - folded:: true', /has none/u],
     ['a numbered list starting past 1', '3. three\n4. four', /starts at 1, not 3/u],

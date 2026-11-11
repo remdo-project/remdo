@@ -1,0 +1,4 @@
+- same [note2](note:note2) cross [/n/otherDoc_remoteNote](note:otherDoc_remoteNote)
+    - id:: note1
+- note2
+- note3

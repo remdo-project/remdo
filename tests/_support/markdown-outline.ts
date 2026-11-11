@@ -32,7 +32,8 @@ export interface MarkdownItem {
   /** The numbered list's first number, when it isn't 1. */
   start?: number;
   checkbox: boolean;
-  inlineMarkdown?: true;
+  /** The text's markdown-it inline tokens, when they hold more than plain text. */
+  inline?: Token[];
 }
 
 export interface MarkdownOutline {
@@ -41,7 +42,8 @@ export interface MarkdownOutline {
   selection: MarkdownSelection | null;
 }
 
-const markdown = new MarkdownIt('commonmark');
+const markdown = new MarkdownIt('commonmark').enable('strikethrough');
+const UNDERLINE_TAG = /^<\/?u>$/;
 const TAG = /<selection\s*\/>|<selection>|<\/selection>/g;
 const MARKER = /^\s*(?:[-*+]|\d+[.)])(?:\s+\[([ x])\])?(?:\s+|$)/;
 const PROPERTY_LINE = /^(id|folded)::(?: .*)?$/;
@@ -186,7 +188,7 @@ function readList(
       if (token.map![0] !== frame.line) throw new Error('A note\'s text must fit on its marker\'s line.');
       frame.textRead = true;
       const parsed = plainText(token.children ?? []);
-      if (token.children?.some((child) => child.type !== 'text')) frame.item!.inlineMarkdown = true;
+      if (token.children?.some((child) => child.type !== 'text')) frame.item!.inline = token.children;
       const text = takeMarks(withoutCheckbox(parsed, frame.item!.checkbox), frame.path, marks);
       if (text) frame.note!.text = text;
     }
@@ -225,7 +227,9 @@ function readBody(tokens: Token[], open: number, frame: Frame, lines: string[]):
 function plainText(tokens: Token[]): string {
   return tokens.map((token) => {
     if (token.type === 'softbreak' || token.type === 'hardbreak') throw new Error('A note\'s text must fit on its marker\'s line.');
-    if (token.type === 'html_inline' || token.type === 'image') throw new Error(`A note's text can't hold ${token.type}.`);
+    if (token.type === 'image' || (token.type === 'html_inline' && !UNDERLINE_TAG.test(token.content))) {
+      throw new Error(`A note's text can't hold ${token.type}.`);
+    }
     return token.type === 'text' || token.type === 'code_inline' ? token.content : '';
   }).join('');
 }

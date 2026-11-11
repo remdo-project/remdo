@@ -1,4 +1,5 @@
 import type { SerializedEditorState } from 'lexical';
+import type { Token } from 'markdown-it';
 
 import { createNoteIdAvoiding, normalizeNoteId } from '#domain/notes/ids';
 import { restoreEditorStateDefaults } from '#tools/editor-state-defaults';
@@ -21,7 +22,6 @@ export function buildFixtureState(source: string): SerializedEditorState {
     let value = 1;
     for (const note of siblings) {
       const item = items.get(note)!;
-      if (item.inlineMarkdown) throw new Error(`Fixture notes hold plain text for now; "${note.text}" holds inline Markdown.`);
       if (note.body !== undefined) throw new Error(`Fixture notes hold no body for now; "${note.text}" has one.`);
       if (note.folded && !note.children) throw new Error(`Only a note with children folds; "${note.text}" has none.`);
       children.push({
@@ -32,7 +32,7 @@ export function buildFixtureState(source: string): SerializedEditorState {
         ...(kind === 'check' && { checked: note.checked === true }),
         ...(note.checked && { checkState: true }),
         ...(note.folded && { folded: true }),
-        children: note.text ? [{ type: 'text', text: note.text }] : [],
+        children: item.inline ? inlineNodes(item.inline, item.checkbox, note.text ?? '') : note.text ? [{ type: 'text', text: note.text }] : [],
       });
       value += 1;
       if (note.children) {
@@ -54,6 +54,55 @@ export function buildFixtureState(source: string): SerializedEditorState {
   };
   const root = { type: 'root', children: notes.length > 0 ? [list(notes, 0)] : [] };
   return restoreEditorStateDefaults({ root } as unknown as SerializedEditorState);
+}
+
+const FORMAT_BITS: Record<string, number> = { strong: 1, em: 2, s: 4 };
+const UNDERLINE = 8;
+const CODE = 16;
+
+function inlineNodes(tokens: Token[], checkbox: boolean, text: string): SerializedNode[] {
+  const top: SerializedNode[] = [];
+  let target = top;
+  let format = 0;
+  let link: SerializedNode | null = null;
+  let plain = '';
+  const pushText = (content: string, extra = 0) => {
+    if (!content) return;
+    plain += content;
+    if (link?.type === 'date') return;
+    target.push({ type: 'text', text: content, ...((format | extra) !== 0 && { format: format | extra }) });
+  };
+  for (const [index, token] of tokens.entries()) {
+    const kind = token.type.replace(/_(?:open|close)$/, '');
+    if (kind in FORMAT_BITS) {
+      format ^= FORMAT_BITS[kind]!;
+    } else if (token.type === 'html_inline') {
+      format ^= UNDERLINE;
+    } else if (token.type === 'code_inline') {
+      pushText(token.content, CODE);
+    } else if (token.type === 'text') {
+      pushText(index === 0 && checkbox ? token.content.replace(/^\[[ x]\] ?/, '') : token.content);
+    } else if (token.type === 'link_open') {
+      link = linkNode(String(token.attrGet('href') ?? ''));
+      top.push(link);
+      target = (link.children as SerializedNode[] | undefined) ?? [];
+    } else if (token.type === 'link_close') {
+      link = null;
+      target = top;
+    } else {
+      throw new Error(`Fixture note text can't hold ${token.type} yet.`);
+    }
+  }
+  if (plain !== text) throw new Error(`Fixture note "${text}" reads differently once built: "${plain}".`);
+  return top;
+}
+
+function linkNode(href: string): SerializedNode {
+  const date = /^date:(\d{4}-\d{2}-\d{2})$/.exec(href);
+  if (date) return { type: 'date', isoDate: date[1] };
+  const note = /^note:(?:([^_]+)_)?([^_]+)$/.exec(href);
+  if (!note) throw new Error(`Fixture links point to note: or date: targets, not ${href}.`);
+  return { type: 'note-link', noteId: note[2], ...(note[1] !== undefined && { docId: note[1] }), children: [] };
 }
 
 function listKind(items: MarkdownItem[]): 'bullet' | 'number' | 'check' {
