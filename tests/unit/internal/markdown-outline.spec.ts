@@ -20,7 +20,7 @@ describe('reading expected outlines from Markdown', () => {
     });
   });
 
-  it('reads a body from its > lines, before the ID and children', () => {
+  it('reads a body from its > lines, before the children, wherever the properties sit', () => {
     expect(readMarkdownOutline(`
       - note1
           > first line
@@ -35,6 +35,8 @@ describe('reading expected outlines from Markdown', () => {
       { body: 'body of an empty note' },
     ]);
     expect(readMarkdownOutline('- note1\n    >\ttabbed').notes).toEqual([{ text: 'note1', body: '\ttabbed' }]);
+    expect(readMarkdownOutline('- note1\n    - folded:: true\n    - id:: first\n    > after properties\n    - note2').notes)
+      .toEqual([{ text: 'note1', body: 'after properties', id: 'first', folded: true, children: [{ text: 'note2' }] }]);
   });
 
   it('reads a folded note from its folded:: line', () => {
@@ -53,22 +55,40 @@ describe('reading expected outlines from Markdown', () => {
     ]);
   });
 
-  it('takes fold state from a note\'s first folded:: line, whatever its value or place', () => {
+  it('takes each property from its first line among a note\'s children, wherever it sits', () => {
     expect(readMarkdownOutline(`
+      - folded:: true
       - unfolded by another value
           - folded:: false
           - folded:: true
           - child
-      - folded after its children
+      - properties after its children
           - child
           - [x] folded:: true
+          - [ ] id:: late
+      - nothing nested under a property
+          - id:: first
+              - hidden
+          - folded:: true
+
+              more
       - not a name
           - folded::true
     `).notes).toEqual([
       { text: 'unfolded by another value', children: [{ text: 'child' }] },
-      { text: 'folded after its children', folded: true, children: [{ text: 'child' }] },
+      { text: 'properties after its children', id: 'late', folded: true, children: [{ text: 'child' }] },
+      { text: 'nothing nested under a property', id: 'first', folded: true },
       { text: 'not a name', children: [{ text: 'folded::true' }] },
     ]);
+  });
+
+  it('reads id:: and folded:: values as text, after escapes and character references', () => {
+    expect(readMarkdownOutline(`
+      - note1
+          - id:: a\\_b
+          - folded:: &#116;rue
+          - note2
+    `).notes).toEqual([{ text: 'note1', id: 'a_b', folded: true, children: [{ text: 'note2' }] }]);
   });
 
   it('keeps spaces at a note\'s edges written as character references', () => {
@@ -109,23 +129,25 @@ describe('reading expected outlines from Markdown', () => {
     ['an empty first child, which CommonMark reads as a heading underline', '- note1\n    -\n- note2', /heading/u],
     ['a second paragraph', '- note1\n\n  more', /one paragraph/u],
     ['a lazy continuation line', '- note1\ncontinued', /marker's line/u],
-    ['notes under an id:: line', '- note1\n    - id:: first\n        - note2', /can't hold notes/u],
-    ['notes under a folded:: line', '- note1\n    - folded:: true\n        - note2', /can't hold notes/u],
     ['text before the list', 'stray\n- note1', /outside any note/u],
     ['text after a blank line', '- note1\n\ncontinued', /outside any note/u],
-    ['a second paragraph under an id:: line', '- note1\n    - id:: first\n\n      more', /one paragraph/u],
-    ['a body after children', '- note1\n    - note2\n    > late', /one > block, before/u],
+    ['a body after children', '- note1\n    - note2\n    > late', /one > block before/u],
     ['a paragraph after a body', '- note1\n    > body\n\n    more', /one paragraph/u],
     ['a body line without >', '- note1\n    > body\n    more', /Every body line starts with >/u],
     ['a body on its note\'s line', '- > quoted', /Every body line starts with >/u],
     ['a selection in a body','- note1\n    > bo<selection />dy', /own text/u],
     ['a selection in a folded:: line', '- note1\n    - folded:: true<selection />\n    - note2', /own text/u],
-    ['an id:: line holding two words', '- note1\n    - id:: first second', /holds one ID/u],
-    ['a second id:: line', '- note1\n    - id:: first\n    - id:: second', /one id:: line/u],
+    ['a selection before a folded:: line\'s name', '- note1\n    - <selection />folded:: true', /own text/u],
+    ['a selection in an ignored property line', '- note1\n    - folded:: true\n    - folded:: false<selection />', /own text/u],
     ['an id:: line continued on the next line', '- note1\n    - id:: first\n      second', /marker's line/u],
     ['a folded:: line continued on the next line', '- note1\n    - folded:: true\n      more', /marker's line/u],
     ['a thematic break', '- ***', /hr/u],
     ['an indented code block', '-     code', /code_block/u],
+    ['a top-level id:: line', '- id:: first\n- note1', /top-level id:: line/u],
+    ['a second id:: line', '- note1\n    - id:: first\n    - id:: second', /later id:: lines/u],
+    ['an id:: line holding two words', '- note1\n    - id:: first second', /holds one ID/u],
+    ['an indented code block that looks like a property', '- note1\n    -     id:: first', /code_block/u],
+    ['a paragraph after an empty note\'s children', '-\n    - note2\n\n    more', /marker's line/u],
     ['inline HTML', '- a <b> c', /html_inline/u],
     ['a list inside a quote', '> - note1', /blockquote_open/u],
   ])('refuses %s instead of dropping it', (_case, source, message) => {

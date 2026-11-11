@@ -3,7 +3,8 @@ import { promises as fs } from 'node:fs';
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 
-import { prepareEditorStateForPersistence, prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
+import { prepareEditorStateForRuntime } from '#client/editor/runtime/editor-state-persistence';
+import { prepareEditorStateForPersistence } from '#tests-common/editor-state';
 import { collectSerializedNodes, getSerializedRootNodes } from '../../../../tests/unit/_support/lib/serialized';
 
 function collectNoteLinkNodes(state: SerializedEditorState): Array<Record<string, unknown>> {

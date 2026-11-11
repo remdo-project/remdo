@@ -11,7 +11,7 @@ workspace; the other sections cover editor notes.
 - **noteId:** an opaque identifier that uniquely identifies a note within a
   single document.
 - **documentId:** a runtime identifier for the active document, injected by the
-  environment (for example browser routing or snapshot CLI). Document identity
+  environment (for example browser routing or a headless tool). Document identity
   is globally unique as defined in [Architecture](../../architecture.md#document-identity).
 - **noteAddress:** a globally unique address composed from a document ID and a noteId.
 - **Addressable note:** any non-root note that appears as a content list item in
@@ -94,8 +94,8 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
 
 - Browser runtime resolves `documentId` from routing and injects it into the
   editor/collaboration runtime.
-- Snapshot CLI resolves `documentId` from CLI/env inputs and injects it into the
-  session/editor it initializes.
+- Headless tools inject the `documentId` of the document they open into the
+  session/editor they initialize.
 - Runtime `documentId` must remain per-editor state and must not be derived from
   global location reads inside core editor logic.
 
@@ -130,9 +130,10 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
    except Delete, including a move to another document. **Deterministic.**
 3. Inserted or copied notes start without an ID; a fragment carrying one is
    refused. **Deterministic.**
-4. A note's [ID note](../../format.md) belongs to the note, not to its children: Read reports it
-   as the note's ID, Set text leaves it, and leaf and fold rules ignore it. Set
-   content can't add an ID the document lacked. **Deterministic.**
+4. A note's `id` [property](../../format.md#properties) belongs to the note,
+   not to its children: Read reports it as the note's ID, Set text leaves it,
+   and leaf and fold rules ignore it. Set content can't add an ID the document
+   lacked. **Deterministic.**
 5. When text written outside RemDo gives two notes one ID, reads report both,
    and a reference to that ID resolves to neither.
 6. A [reference](./note-model.md#note-kinds) is `me` for the caller's account

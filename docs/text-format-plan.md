@@ -206,7 +206,8 @@ once stage 3 lands.
         IDs the editor generates count as internal, and expected outlines
         don't state them. Once a suite's fixtures are Markdown, its expected
         outlines state every other ID their notes carry; until then they
-        compare only the IDs they state.
+        compare only the IDs they state. The reader then holds Markdown blocks
+        after a note's outline children, which it refuses today.
      5. Delete the JSON fixtures, including the invalid-schema ones, once tests
         build editor-only and broken states from Markdown documents.
    - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and
@@ -229,6 +230,8 @@ once stage 3 lands.
      a recreated identical note, repair duplicates, and clear a holder when a
      text `id::` claims its value.
    - Update note content by splicing text, never `clear()` plus `append()`.
+     Text differing only in edge whitespace, which the format drops, applies no
+     change, so a space someone just typed survives.
    - Open a workspace's document in the editor instead of as plain text, the
      first change people see. It comes before outline note operations, which
      would otherwise give the editor an independent reference, so integration
