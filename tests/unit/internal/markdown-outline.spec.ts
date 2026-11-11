@@ -55,9 +55,8 @@ describe('reading expected outlines from Markdown', () => {
     ]);
   });
 
-  it('takes each property from its first line among a note\'s children, whatever its value or place', () => {
+  it('takes each property from its first line among a note\'s children, wherever it sits', () => {
     expect(readMarkdownOutline(`
-      - id:: document
       - folded:: true
       - unfolded by another value
           - folded:: false
@@ -67,9 +66,6 @@ describe('reading expected outlines from Markdown', () => {
           - child
           - [x] folded:: true
           - [ ] id:: late
-      - no ID from a value id:: doesn't define
-          - id:: two words
-          - id:: second
       - nothing nested under a property
           - id:: first
               - hidden
@@ -81,7 +77,6 @@ describe('reading expected outlines from Markdown', () => {
     `).notes).toEqual([
       { text: 'unfolded by another value', children: [{ text: 'child' }] },
       { text: 'properties after its children', id: 'late', folded: true, children: [{ text: 'child' }] },
-      { text: 'no ID from a value id:: doesn\'t define' },
       { text: 'nothing nested under a property', id: 'first', folded: true },
       { text: 'not a name', children: [{ text: 'folded::true' }] },
     ]);
@@ -143,11 +138,14 @@ describe('reading expected outlines from Markdown', () => {
     ['a selection in a body','- note1\n    > bo<selection />dy', /own text/u],
     ['a selection in a folded:: line', '- note1\n    - folded:: true<selection />\n    - note2', /own text/u],
     ['a selection before a folded:: line\'s name', '- note1\n    - <selection />folded:: true', /own text/u],
-    ['a selection in an ignored property line', '- note1\n    - id:: a\n    - id:: b<selection />', /own text/u],
+    ['a selection in an ignored property line', '- note1\n    - folded:: true\n    - folded:: false<selection />', /own text/u],
     ['an id:: line continued on the next line', '- note1\n    - id:: first\n      second', /marker's line/u],
     ['a folded:: line continued on the next line', '- note1\n    - folded:: true\n      more', /marker's line/u],
     ['a thematic break', '- ***', /hr/u],
     ['an indented code block', '-     code', /code_block/u],
+    ['a top-level id:: line', '- id:: first\n- note1', /top-level id:: line/u],
+    ['a second id:: line', '- note1\n    - id:: first\n    - id:: second', /later id:: lines/u],
+    ['an id:: line holding two words', '- note1\n    - id:: first second', /holds one ID/u],
     ['an indented code block that looks like a property', '- note1\n    -     id:: first', /code_block/u],
     ['a paragraph after an empty note\'s children', '-\n    - note2\n\n    more', /marker's line/u],
     ['inline HTML', '- a <b> c', /html_inline/u],

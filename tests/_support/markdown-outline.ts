@@ -103,8 +103,7 @@ interface Frame {
   line?: number;
   checkbox?: boolean;
   textRead?: boolean;
-  /** Names of the properties stated under this note so far. */
-  properties?: Set<string>;
+  statedProperties?: Set<string>;
 }
 
 const STRUCTURE = new Set([
@@ -127,15 +126,19 @@ function readList(tokens: Token[], lines: string[], located: Located[], marks: M
       const property = PROPERTY_LINE.exec([...content].filter((char) => !KIND_BY_SENTINEL.has(char)).join(''));
       if (property && tokens[index + 1]!.type === 'paragraph_open') {
         const name = property[1]!;
-        const stated = (frame.properties ??= new Set());
+        const stated = (frame.statedProperties ??= new Set());
+        // Expected outlines compare only the IDs they state, so an id:: line that states none is refused.
+        if (name === 'id' && !frame.note) throw new Error('A top-level id:: line identifies no note; indent it under its note.');
+        if (name === 'id' && stated.has(name)) throw new Error(`A note's later id:: lines state nothing; it already has ${frame.note!.id}.`);
         if (frame.note && !stated.has(name)) {
           const text = withoutCheckbox(plainText(tokens[index + 2]!.children ?? []), marker[1] !== undefined);
           const value = text.slice(text.indexOf('::') + 2).trim();
-          if (name === 'id' && /^\S+$/.test(value)) frame.note.id = value;
+          if (name === 'id' && !/^\S+$/.test(value)) throw new Error('An id:: line holds one ID.');
+          if (name === 'id') frame.note.id = value;
           if (name === 'folded' && value === 'true') frame.note.folded = true;
         }
         stated.add(name);
-        // Whatever a property line holds is ignored; a selection tag in it then fails the tag count.
+        // Nothing else in a property line is read, so a selection tag there fails the tag count.
         index = closeOf(tokens, index);
         continue;
       }
