@@ -68,11 +68,11 @@ explicitly; without one, it runs the complete group used by CI.
   documentation, agent instructions, lint configuration, and the dependency
   graph; the scripts it chains, such as `lint:md` and `typecheck`, check
   subsets.
-- `pnpm run verify` — run lint, Dockerfile lint, dependency-policy and
-  unused-code checks, the production development-boundary check, backend
-  checks, and generated API verification. `pnpm run lint:dockerfile` and
-  `pnpm run audit:policy` run its Dockerfile lint and dependency-policy check
-  alone.
+- `pnpm run verify` — run lint, Dockerfile lint, dependency-policy checks, the
+  cleanup audits (code rules, unused code, and duplication), the production
+  development-boundary check, backend checks, and generated API verification.
+  `pnpm run lint:dockerfile` and `pnpm run audit:policy` run its Dockerfile
+  lint and dependency-policy check alone.
 
 ### Verify PostgreSQL
 
