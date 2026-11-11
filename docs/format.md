@@ -16,7 +16,8 @@ In decreasing priority:
 
 <!-- markdownlint-disable MD007 MD029 -->
 1. Total:: every Markdown file reads as one document, the same in every reader
-    > Text the format gives no meaning stays ordinary content.
+    > Text the format gives no meaning stays ordinary content, and text it
+    > ignores reads as nothing.
 1. Stable:: what tools write is canonical, so writing it again changes nothing
     > Tools may rewrite other text to its canonical spelling, keeping what it
     > reads as.
@@ -51,7 +52,8 @@ An outline note holds:
     > - Tools escape Text that would otherwise read as Markdown structure
     > - Whitespace at its start and end is not Text, even as a character
     >   reference
-- Children:: an ordered list of Markdown blocks and outline notes
+- Children:: an ordered list of Markdown blocks and outline notes, without
+  [property](#properties) lines
     > - Tools indent children under a list item by 4 spaces per level
     > - Tools write `1.` where another number could not interrupt a paragraph
     > - Tools write a blank line before an empty first child after parent text
@@ -64,10 +66,26 @@ An outline note holds:
     > - A soft-wrapped paragraph is one editor line holding breaks
     > - Tools separate lines they move or write with a blank line or `>`
 - ID:: optional and added lazily, such as when a note is first referenced
-    > - An ID is a named note, such as the one below
-    > - Tools write it after any first block and before outline children
+    > - An ID is the `id` [property](#properties), such as the one below
     > - A document's ID is a top-level note before its first heading
+    > - [Note IDs](specs/outliner/note-ids.md#ids-in-workspaces) own how notes
+    >   sharing one resolve
     - id:: k3x9
+
+## Properties
+
+A property is a name the format gives a meaning, written as a named note under
+the note it applies to.
+
+- A note's first line with a property's name takes effect, wherever it sits
+  directly under the note; later ones, and anything nested under a property
+  line, are ignored
+- Property lines aren't among the note's children, so they don't decide which
+  block comes first
+- A value the property doesn't define has no effect
+- Property names match exactly
+- Tools write a note's first block, then its properties, then its other
+  children, and may fix, report or keep other property lines
 
 ## Canonical spelling
 

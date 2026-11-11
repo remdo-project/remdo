@@ -130,9 +130,10 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
    except Delete, including a move to another document. **Deterministic.**
 3. Inserted or copied notes start without an ID; a fragment carrying one is
    refused. **Deterministic.**
-4. A note's [ID note](../../format.md) belongs to the note, not to its children: Read reports it
-   as the note's ID, Set text leaves it, and leaf and fold rules ignore it. Set
-   content can't add an ID the document lacked. **Deterministic.**
+4. A note's `id` [property](../../format.md#properties) belongs to the note,
+   not to its children: Read reports it as the note's ID, Set text leaves it,
+   and leaf and fold rules ignore it. Set content can't add an ID the document
+   lacked. **Deterministic.**
 5. When text written outside RemDo gives two notes one ID, reads report both,
    and a reference to that ID resolves to neither.
 6. A [reference](./note-model.md#note-kinds) is `me` for the caller's account
