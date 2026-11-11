@@ -4,9 +4,6 @@ import { fixtureComparableState } from '#tests-common/editor-state';
 import { buildFixtureState } from '#tests-common/markdown-fixture';
 import { listFixtureNames, readFixtureMarkdown } from '#tools/fixtures';
 
-// `large` stays JSON: a generated performance input (~600 notes) with no test document.
-const COVERAGE_EXCLUDED_FIXTURES = new Set(['large']);
-
 describe('toMatchOutline smoke coverage', async () => {
   const fixtureNames = await listFixtureNames();
   const markdownFixtures = new Map<string, string>();
@@ -25,7 +22,7 @@ describe('toMatchOutline smoke coverage', async () => {
   }
 
   it('covers every fixture', async () => {
-    expect([...markdownFixtures.keys()]).toEqual(fixtureNames.filter((fixture) => !COVERAGE_EXCLUDED_FIXTURES.has(fixture)));
+    expect([...markdownFixtures.keys()]).toEqual(fixtureNames);
   });
 
   it('surfaces expected vs received outline when the matcher fails', meta({ fixture: 'flat' }), async ({ remdo }) => {
