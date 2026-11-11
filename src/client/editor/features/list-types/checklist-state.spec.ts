@@ -193,16 +193,10 @@ it('marks the subtree of a checked note as open work', meta({ fixture: 'tree-com
 it('keeps the open-work marking when a checked note also has a body', meta({ fixture: 'body-and-children' }), async ({ remdo }) => {
   // A body-wrapper is a ListItemNode whose next sibling is the note's own
   // children-wrapper, so syncing one as if it were a note would clear the flag.
-  const childrenWrapperOf = (noteId: string) => {
-    let next = getNoteElement(remdo, { id: noteId }).nextElementSibling;
-    if (next?.classList.contains('note-body-wrapper')) {
-      next = next.nextElementSibling;
-    }
-    return next instanceof HTMLElement && next.classList.contains('list-nested-item') ? next : null;
-  };
-
   await setRawNoteCheckedState(remdo, 'note1', true);
-  expect(childrenWrapperOf('note1')?.dataset.noteUnderChecked).toBe('true');
+  const childrenWrapper = getNoteElement(remdo, 'note1').nextElementSibling?.nextElementSibling;
+  expect(childrenWrapper?.classList.contains('list-nested-item')).toBe(true);
+  expect(childrenWrapper?.getAttribute('data-note-under-checked')).toBe('true');
 
   // The body-wrapper must not be treated as a note in its own right: its next
   // sibling is the children-wrapper above, so resolving a wrapper for it would
