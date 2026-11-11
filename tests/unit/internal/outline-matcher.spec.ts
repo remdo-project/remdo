@@ -4,6 +4,8 @@ import { promises as fs } from 'node:fs';
 import { selectStructuralNotes, meta, setRawNoteCheckedState } from '#tests';
 import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
 import { prepareEditorStateForPersistence } from '#tests-common/editor-state';
+import { buildFixtureState } from '#tests-common/markdown-fixture';
+import { listFixtureNames } from '#tools/fixtures';
 
 interface OutlineCase {
   fixture: string;
@@ -17,26 +19,6 @@ interface OutlineCase {
 const COVERAGE_EXCLUDED_FIXTURES = new Set(['large']);
 
 const CASES: OutlineCase[] = [
-  {
-    fixture: 'flat',
-    outline: `
-      - note1
-      - note2
-      - note3
-    `,
-  },
-  {
-    fixture: 'edge-spaces',
-    outline: `
-      - note1
-      - &#32;note2SpaceLeft
-          - id:: note2SpaceLeft
-      - note3
-      - note4SpaceRight&#32;
-          - id:: note4SpaceRight
-      - note5
-    `,
-  },
   {
     fixture: 'editor-showcase',
     outline: `
@@ -73,27 +55,6 @@ const CASES: OutlineCase[] = [
     `,
   },
   {
-    fixture: 'basic',
-    outline: `
-      - note1
-          - note2
-      - note3
-    `,
-  },
-  {
-    fixture: 'duplicate-titles',
-    outline: `
-      - note1
-      - note2
-          - task
-              - id:: taskOne
-      - note4
-          - task
-              - id:: taskTwo
-      - note6
-    `,
-  },
-  {
     fixture: 'formatted',
     outline: `
       - bold
@@ -113,68 +74,23 @@ const CASES: OutlineCase[] = [
       - note3
     `,
   },
-  {
-    fixture: 'tree',
-    outline: `
-      - note1
-      - note2
-          - note3
-    `,
-  },
-  {
-    fixture: 'tree-ordered-root',
-    outline: `
-      - note1
-      - note2
-          - note3
-    `,
-  },
-  {
-    fixture: 'tree-complex',
-    outline: `
-      - note1
-          - note2
-              - note3
-          - note4
-      - note5
-      - note6
-          - note7
-    `,
-  },
-  {
-    fixture: 'tree-list-types',
-    outline: `
-      - note1
-          - note2
-      - note3
-          - note4
-      - note5
-          - note6
-    `,
-  },
-  {
-    fixture: 'empty-labels',
-    outline: `
-      - alpha
-      - &#32;
-          - id:: space
-      - beta
-      -
-          - id:: parent
-
-          -
-              - id:: nestedEmpty
-          - child-of-empty
-              - id:: child
-          -
-              - id:: nestedAfterChild
-      -
-          - id:: trailing
-    `,
-  },
 ];
 
-describe('toMatchOutline smoke coverage', () => {
+describe('toMatchOutline smoke coverage', async () => {
+  const fixturesRoot = path.resolve('tests/fixtures');
+  const markdownFixtures = (await fs.readdir(fixturesRoot))
+    .filter((entry) => entry.endsWith('.md'))
+    .map((entry) => entry.slice(0, -'.md'.length));
+
+  for (const fixture of markdownFixtures) {
+    it(`loads ${fixture} as its test document describes`, meta({ fixture }), async ({ remdo }) => {
+      const markdown = await fs.readFile(path.join(fixturesRoot, `${fixture}.md`), 'utf8');
+      expect(remdo).toMatchOutline(markdown);
+      const persisted = prepareEditorStateForPersistence(remdo.getEditorState(), remdo.getCollabDocId());
+      expect(stripEditorStateDefaults(persisted)).toEqual(buildFixtureState(markdown));
+    });
+  }
+
   for (const { fixture, outline } of CASES) {
     it(`reads ${fixture}`, meta({ fixture }), async ({ remdo }) => {
       expect(remdo).toMatchOutline(outline);
@@ -189,15 +105,10 @@ describe('toMatchOutline smoke coverage', () => {
   }
 
   it('covers every fixture', async () => {
-    const fixturesRoot = path.resolve('tests/fixtures');
-    const entries = await fs.readdir(fixturesRoot);
-    const fixtureNames = entries
-      .filter((entry) => entry.endsWith('.json'))
-      .map((entry) => entry.slice(0, -'.json'.length))
-      .filter((fixture) => !COVERAGE_EXCLUDED_FIXTURES.has(fixture));
+    const fixtureNames = (await listFixtureNames()).filter((fixture) => !COVERAGE_EXCLUDED_FIXTURES.has(fixture));
 
     const sortedFixtureNames = fixtureNames.toSorted();
-    const covered = CASES.map(({ fixture }) => fixture).toSorted();
+    const covered = [...markdownFixtures, ...CASES.map(({ fixture }) => fixture)].toSorted();
 
     expect(covered).toEqual(sortedFixtureNames);
   });
