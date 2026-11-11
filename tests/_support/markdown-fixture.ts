@@ -24,12 +24,14 @@ export function buildFixtureState(source: string): SerializedEditorState {
       const item = items.get(note)!;
       if (item.markup) throw new Error(`Fixture notes hold plain text for now; "${note.text}" holds inline Markdown.`);
       if (note.body !== undefined) throw new Error(`Fixture notes hold no body for now; "${note.text}" has one.`);
+      if (note.folded && !note.children) throw new Error(`Only a note with children folds; "${note.text}" has none.`);
       children.push({
         type: 'listitem',
         noteId: ids.get(note)!,
         value,
         indent: depth,
         ...(kind === 'check' && { checked: note.checked === true }),
+        ...(note.checked && { checkState: true }),
         ...(note.folded && { folded: true }),
         children: note.text ? [{ type: 'text', text: note.text }] : [],
       });
@@ -39,6 +41,7 @@ export function buildFixtureState(source: string): SerializedEditorState {
           type: 'listitem',
           value,
           indent: depth,
+          ...(kind === 'check' && { checked: false }),
           children: [list(note.children, depth + 1)],
         });
       }

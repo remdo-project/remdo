@@ -21,10 +21,12 @@ describe('building fixture state from a test document', () => {
           1. note2
           2. note3
               - [x] done
+                  - kid
               - [ ] open
       -
           - id:: empty
           - folded:: true
+          - child
     `))).toEqual({
       root: {
         type: 'root',
@@ -50,7 +52,17 @@ describe('building fixture state from a test document', () => {
                       type: 'list',
                       listType: 'check',
                       children: [
-                        { type: 'listitem', noteId: 'done', value: 1, indent: 2, checked: true, children: [{ type: 'text', text: 'done' }] },
+                        { type: 'listitem', noteId: 'done', value: 1, indent: 2, checked: true, checkState: true, children: [{ type: 'text', text: 'done' }] },
+                        {
+                          type: 'listitem',
+                          value: 2,
+                          indent: 2,
+                          checked: false,
+                          children: [{
+                            type: 'list',
+                            children: [{ type: 'listitem', noteId: 'kid', value: 1, indent: 3, children: [{ type: 'text', text: 'kid' }] }],
+                          }],
+                        },
                         { type: 'listitem', noteId: 'open', value: 2, indent: 2, checked: false, children: [{ type: 'text', text: 'open' }] },
                       ],
                     }],
@@ -59,6 +71,14 @@ describe('building fixture state from a test document', () => {
               }],
             },
             { type: 'listitem', noteId: 'empty', value: 2, folded: true, children: [] },
+            {
+              type: 'listitem',
+              value: 3,
+              children: [{
+                type: 'list',
+                children: [{ type: 'listitem', noteId: 'child', value: 1, indent: 1, children: [{ type: 'text', text: 'child' }] }],
+              }],
+            },
           ],
         }],
       },
@@ -86,6 +106,7 @@ describe('building fixture state from a test document', () => {
     ['a numbered check list', '1. [ ] one', /not both/u],
     ['inline Markdown', '- **bold**', /inline Markdown/u],
     ['a body', '- note\n    > body', /no body/u],
+    ['a folded note without children', '- note\n    - folded:: true', /has none/u],
     ['one ID on two notes', '- one\n    - id:: x\n- two\n    - id:: x', /declare id:: x/u],
   ])('refuses %s', (_case, source, message) => {
     expect(() => buildFixtureState(source)).toThrow(message);
