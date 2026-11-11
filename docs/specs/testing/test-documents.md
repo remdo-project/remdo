@@ -13,6 +13,8 @@ owns when tests use them.
 - Fixture IDs:: in a fixture, a note without an `id::` line takes its text as
   its ID when that is a valid ID no `id::` line or earlier note claims, and a
   generated ID otherwise.
+- Other documents:: while fixtures load into editor documents, a link to a
+  note in another one is `note:<documentId>_<noteId>`.
 - Selection:: in an expected outline, `<selection />` marks a caret and
   `<selection>…</selection>` a range within one note's text, or whole notes
   when the tags stand on their own lines around them. A selected inline token,
