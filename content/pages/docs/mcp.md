@@ -12,7 +12,7 @@ conversation as notes. Pick your assistant:
 
 ## ChatGPT
 
-RemDo is listed in ChatGPT's plugin directory.
+RemDo is listed in ChatGPT’s plugin directory.
 
 <a class="landing-button" href="https://chatgpt.com/plugins/plugin_asdk_app_6ac660fbb52c81918e101590babd0473"
 target="_blank" rel="noreferrer">Open RemDo in ChatGPT</a>
@@ -21,7 +21,7 @@ target="_blank" rel="noreferrer">Open RemDo in ChatGPT</a>
 2. Start a new chat, type **@**, and select **RemDo**.
 
 Then ask ChatGPT to, for example, “save this conversation to RemDo” or
-"list my RemDo documents".
+“list my RemDo documents”.
 
 <details markdown="1">
 <summary>Plugin not available in your workspace? Add RemDo as a custom server</summary>

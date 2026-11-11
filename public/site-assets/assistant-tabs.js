@@ -20,6 +20,7 @@
     tab.addEventListener('keydown', (event) => {
       const step = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
       if (!step) return;
+      event.preventDefault();
       const next = (index + step + tabs.length) % tabs.length;
       select(next);
       tabs[next].tab.focus();

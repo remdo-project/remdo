@@ -13,12 +13,16 @@ class PublicPageTests(SimpleTestCase):
         self.pages = Path(directory.name)
         self.enterContext(override_settings(PUBLIC_PAGES_DIR=self.pages))
 
-    def write_page(self, name="privacy", title="Privacy & data"):
+    def write_page(
+        self,
+        name="privacy",
+        title="Privacy & data",
+        body="## Your data\n\nKeep **control**. [Home](/)\n",
+    ):
         path = self.pages / f"{name}.md"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            f"---\ntitle: {title}\ndescription: 'Our \"data\" policy'\n---\n\n"
-            "## Your data\n\nKeep **control**. [Home](/)\n",
+            f"---\ntitle: {title}\ndescription: 'Our \"data\" policy'\n---\n\n{body}",
             encoding="utf-8",
         )
 
@@ -64,12 +68,9 @@ class PublicPageTests(SimpleTestCase):
         )
 
     def test_markdown_inside_an_opted_in_html_block_is_rendered(self):
-        path = self.pages / "privacy.md"
-        path.write_text(
-            "---\ntitle: Privacy\ndescription: Policy\n---\n\n"
-            '<div class="wrapped" markdown="1">\n\n## Inside\n\nKeep **control**.\n\n</div>\n\n'
-            "<div>\n**raw**\n</div>\n",
-            encoding="utf-8",
+        self.write_page(
+            body='<div class="wrapped" markdown="1">\n\n## Inside\n\nKeep **control**.\n\n</div>\n\n'
+            "<div>\n**raw**\n</div>\n"
         )
         response = self.client.get("/privacy/")
         self.assertContains(
