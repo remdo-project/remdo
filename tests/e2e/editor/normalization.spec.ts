@@ -1,8 +1,9 @@
+import { brokenEditorStates } from '#tests-common/broken-editor-states';
 import { expect, test } from '#editor/fixtures';
 
 test.describe('normalization (load)', () => {
   test('repairs an orphan wrapper and preserves expected outline', async ({ editor }) => {
-    await editor.load('editor-schema/wrapper-orphan');
+    await editor.load(brokenEditorStates.wrapperWithoutPreviousNote());
 
     await expect(editor).toMatchOutline(`
       - note1-child-of-orphaned-wrapper

@@ -2,6 +2,7 @@ import { config } from '#config';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 import { afterEach, aroundEach } from 'vitest';
 import type { TestContext } from 'vitest';
+import type { SerializedEditorState } from 'lexical';
 import { readFixture } from '#tools/fixtures';
 import { installAuthenticatedApiFetch } from '../../../../collab/_support/auth';
 import { createCollabTestDocument } from '../../../../collab/_support/documents';
@@ -10,10 +11,10 @@ import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
 
 async function applyEditorFixture(
   remdo: TestContext['remdo'],
-  fixtureName: string,
+  fixture: string | SerializedEditorState,
   fixtureOptions?: { skipSchemaValidationOnce?: boolean }
 ): Promise<void> {
-  const stateJson = await readFixture(fixtureName);
+  const stateJson = typeof fixture === 'string' ? await readFixture(fixture) : JSON.stringify(fixture);
   await remdo._bridge.applySerializedState(stateJson, fixtureOptions);
   await remdo.waitForSynced();
 }
@@ -21,7 +22,7 @@ async function applyEditorFixture(
 aroundEach<TestContext>(async (run, ctx) => {
   const cleanupFetch = config.env.COLLAB_ENABLED ? await installAuthenticatedApiFetch() : () => {};
   const meta = ctx.task.meta;
-  const fixtureName = meta.fixture;
+  const fixture = meta.fixture;
   const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
   setExpectedConsoleIssues(meta.expectedConsoleIssues ?? null);
 
@@ -30,14 +31,14 @@ aroundEach<TestContext>(async (run, ctx) => {
     ? undefined
     : normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`));
 
-  const seedFixtureBeforeMount = Boolean(config.env.COLLAB_ENABLED && fixtureName);
+  const seedFixtureBeforeMount = Boolean(config.env.COLLAB_ENABLED && fixture);
 
   if (seedFixtureBeforeMount) {
     // In collab mode the document must already contain the fixture before the
     // test editor mounts, otherwise the live sync path starts from an empty doc.
     const { api: loader, unmount } = await renderRemdoEditor(docId);
     try {
-      await applyEditorFixture(loader, fixtureName!, fixtureOptions);
+      await applyEditorFixture(loader, fixture!, fixtureOptions);
     } finally {
       unmount();
     }
@@ -45,8 +46,8 @@ aroundEach<TestContext>(async (run, ctx) => {
 
   const { api: remdoTest } = await renderRemdoEditor(docId, meta.viewProps);
 
-  if (fixtureName && !seedFixtureBeforeMount) {
-    await applyEditorFixture(remdoTest, fixtureName, fixtureOptions);
+  if (fixture && !seedFixtureBeforeMount) {
+    await applyEditorFixture(remdoTest, fixture, fixtureOptions);
   }
 
   ctx.remdo = remdoTest;
