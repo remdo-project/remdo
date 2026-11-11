@@ -29,9 +29,10 @@ export type MarkdownSelection =
 /** How a note's list item is written, which expectations don't compare but fixtures build from. */
 export interface MarkdownItem {
   ordered: boolean;
+  /** The numbered list's first number, when it isn't 1. */
+  start?: number;
   checkbox: boolean;
-  /** Set when the note's text holds inline Markdown, such as emphasis or links. */
-  markup?: true;
+  inlineMarkdown?: true;
 }
 
 export interface MarkdownOutline {
@@ -130,14 +131,15 @@ function readList(
 ): MarkdownNote[] {
   const top: MarkdownNote[] = [];
   const frames: Frame[] = [{ note: null, children: top, path: [] }];
-  const orderedLists: boolean[] = [];
+  const lists: Pick<MarkdownItem, 'ordered' | 'start'>[] = [];
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index]!;
     const frame = frames.at(-1)!;
     if (token.type === 'ordered_list_open' || token.type === 'bullet_list_open') {
-      orderedLists.push(token.type === 'ordered_list_open');
+      const start = Number(token.attrGet('start') ?? 1);
+      lists.push(token.type === 'ordered_list_open' ? { ordered: true, ...(start !== 1 && { start }) } : { ordered: false });
     } else if (token.type === 'ordered_list_close' || token.type === 'bullet_list_close') {
-      orderedLists.pop();
+      lists.pop();
     } else if (token.type === 'blockquote_open' && frame.note) {
       index = readBody(tokens, index, frame, lines);
     } else if (token.type === 'list_item_open') {
@@ -168,7 +170,7 @@ function readList(
       const path = [...frame.path, frame.children.length];
       frame.children.push(note);
       located.push({ path, line });
-      const item: MarkdownItem = { ordered: orderedLists.at(-1)!, checkbox };
+      const item: MarkdownItem = { ...lists.at(-1)!, checkbox };
       items.set(note, item);
       frames.push({ note, children: [], path, line, item });
     } else if (token.type === 'list_item_close') {
@@ -184,7 +186,7 @@ function readList(
       if (token.map![0] !== frame.line) throw new Error('A note\'s text must fit on its marker\'s line.');
       frame.textRead = true;
       const parsed = plainText(token.children ?? []);
-      if (token.children?.some((child) => child.type !== 'text')) frame.item!.markup = true;
+      if (token.children?.some((child) => child.type !== 'text')) frame.item!.inlineMarkdown = true;
       const text = takeMarks(withoutCheckbox(parsed, frame.item!.checkbox), frame.path, marks);
       if (text) frame.note!.text = text;
     }

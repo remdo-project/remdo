@@ -107,6 +107,8 @@ describe('building fixture state from a test document', () => {
     ['inline Markdown', '- **bold**', /inline Markdown/u],
     ['a body', '- note\n    > body', /no body/u],
     ['a folded note without children', '- note\n    - folded:: true', /has none/u],
+    ['a numbered list starting past 1', '3. three\n4. four', /starts at 1, not 3/u],
+    ['an invalid id:: value', '- note\n    - id:: a_b', /isn't a valid note ID/u],
     ['one ID on two notes', '- one\n    - id:: x\n- two\n    - id:: x', /declare id:: x/u],
   ])('refuses %s', (_case, source, message) => {
     expect(() => buildFixtureState(source)).toThrow(message);

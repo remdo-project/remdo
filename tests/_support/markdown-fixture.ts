@@ -11,7 +11,6 @@ interface SerializedNode {
   [key: string]: unknown;
 }
 
-/** Builds the editor state a fixture's [test document](../../docs/specs/testing/test-documents.md) describes. */
 export function buildFixtureState(source: string): SerializedEditorState {
   const { notes, items, selection } = readMarkdownOutline(source);
   if (selection) throw new Error('A fixture holds no selection.');
@@ -22,7 +21,7 @@ export function buildFixtureState(source: string): SerializedEditorState {
     let value = 1;
     for (const note of siblings) {
       const item = items.get(note)!;
-      if (item.markup) throw new Error(`Fixture notes hold plain text for now; "${note.text}" holds inline Markdown.`);
+      if (item.inlineMarkdown) throw new Error(`Fixture notes hold plain text for now; "${note.text}" holds inline Markdown.`);
       if (note.body !== undefined) throw new Error(`Fixture notes hold no body for now; "${note.text}" has one.`);
       if (note.folded && !note.children) throw new Error(`Only a note with children folds; "${note.text}" has none.`);
       children.push({
@@ -63,6 +62,7 @@ function listKind(items: MarkdownItem[]): 'bullet' | 'number' | 'check' {
   if (!ordered && items.some((item) => item.ordered)) throw new Error('A fixture list is either numbered or not.');
   if (!checkboxes && items.some((item) => item.checkbox)) throw new Error('A fixture check list gives every note a checkbox.');
   if (ordered && checkboxes) throw new Error('A fixture list is numbered or a check list, not both.');
+  if (items[0]?.start !== undefined) throw new Error(`A fixture's numbered list starts at 1, not ${items[0].start}.`);
   return ordered ? 'number' : checkboxes ? 'check' : 'bullet';
 }
 
@@ -71,6 +71,7 @@ function assignIds(notes: MarkdownNote[]): Map<MarkdownNote, string> {
   const used = new Set<string>();
   for (const { id } of all) {
     if (id === undefined) continue;
+    if (normalizeNoteId(id) !== id) throw new Error(`A fixture's id:: ${id} isn't a valid note ID.`);
     if (used.has(id)) throw new Error(`Two fixture notes declare id:: ${id}.`);
     used.add(id);
   }
