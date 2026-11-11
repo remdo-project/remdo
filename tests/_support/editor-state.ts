@@ -36,13 +36,12 @@ export function prepareEditorStateForPersistence(
  * Drops elements' `textFormat` and `textStyle`: the format Lexical gives the next typed text, which
  * selection moves and collaboration sync rewrite and the text format doesn't hold.
  */
-export function withoutTypingFormat<T>(state: T): T {
-  return transformSerializedEditorState(state as unknown as SerializedEditorState, (node) => Object.fromEntries(
+export function withoutTypingFormat(state: SerializedEditorState): SerializedEditorState {
+  return transformSerializedEditorState(state, (node) => Object.fromEntries(
     Object.entries(node).filter(([key]) => key !== 'textFormat' && key !== 'textStyle'),
-  ) as unknown as SerializedLexicalNode) as unknown as T;
+  ) as SerializedLexicalNode);
 }
 
-/** A state as a fixture states it: links compacted, defaults and typing format left out. */
 export function fixtureComparableState(state: SerializedEditorState, documentId: string): SerializedEditorState {
   return withoutTypingFormat(stripEditorStateDefaults(prepareEditorStateForPersistence(state, documentId)));
 }

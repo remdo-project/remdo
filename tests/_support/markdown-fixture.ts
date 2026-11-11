@@ -3,6 +3,7 @@ import type { SerializedEditorState } from 'lexical';
 import type { Token } from 'markdown-it';
 
 import { createNoteIdAvoiding, normalizeNoteId } from '#domain/notes/ids';
+import { parseDocumentRef } from '#document-routes';
 import { restoreEditorStateDefaults } from '#tools/editor-state-defaults';
 import type { MarkdownItem, MarkdownNote } from './markdown-outline';
 import { readMarkdownOutline } from './markdown-outline';
@@ -64,21 +65,23 @@ export function buildFixtureState(source: string): SerializedEditorState {
   return restoreEditorStateDefaults({ root } as unknown as SerializedEditorState);
 }
 
-const MARK_FORMATS: Record<string, number> = { strong: IS_BOLD, em: IS_ITALIC, s: IS_STRIKETHROUGH };
+const MARK_FORMATS = new Map([['strong', IS_BOLD], ['em', IS_ITALIC], ['s', IS_STRIKETHROUGH]]);
 
 function inlineNodes(tokens: Token[]): SerializedNode[] {
   const top: SerializedNode[] = [];
   let target = top;
-  let format = 0;
+  const marks: number[] = [];
   const pushText = (text: string, extra = 0) => {
-    if (text) target.push({ type: 'text', text, ...((format | extra) !== 0 && { format: format | extra }) });
+    const format = marks.reduce((all, mark) => all | mark, extra);
+    if (text) target.push({ type: 'text', text, ...(format !== 0 && { format }) });
   };
   for (const token of tokens) {
-    const mark = token.type.replace(/_(?:open|close)$/, '');
-    if (mark in MARK_FORMATS) {
-      format ^= MARK_FORMATS[mark]!;
-    } else if (token.type === 'html_inline') {
-      format ^= IS_UNDERLINE;
+    const mark = token.type === 'html_inline' ? IS_UNDERLINE : MARK_FORMATS.get(token.type.replace(/_(?:open|close)$/, ''));
+    if (mark !== undefined) {
+      const opens = token.type === 'html_inline' ? token.content === '<u>' : token.nesting === 1;
+      if (opens) marks.push(mark);
+      else if (marks.includes(mark)) marks.splice(marks.lastIndexOf(mark), 1);
+      else throw new Error('Fixture note text closes </u> before opening it.');
     } else if (token.type === 'code_inline') {
       pushText(token.content, IS_CODE);
     } else if (token.type === 'text') {
@@ -104,12 +107,12 @@ function bodyNodes(lines: Token[][]): SerializedNode[] {
 function linkNode(href: string): SerializedNode {
   const date = /^date:(\d{4}-\d{2}-\d{2})$/.exec(href);
   if (date) return { type: 'date', isoDate: date[1] };
-  const parts = /^note:(.+)$/.exec(href)?.[1]?.split('_') ?? [];
-  if (parts.length === 0 || parts.length > 2 || parts.some((part) => normalizeNoteId(part) !== part)) {
+  const target = /^note:(.+)$/.exec(href)?.[1] ?? '';
+  const ref = target.includes('_') ? parseDocumentRef(target) : { docId: null, noteId: normalizeNoteId(target) };
+  if (!ref?.noteId) {
     throw new Error(`Fixture links point to note:<id>, note:<documentId>_<id> or date:<YYYY-MM-DD>, not ${href}.`);
   }
-  const noteId = parts.at(-1)!;
-  return { type: 'note-link', noteId, ...(parts.length === 2 && { docId: parts[0] }), children: [] };
+  return { type: 'note-link', noteId: ref.noteId, ...(ref.docId !== null && { docId: ref.docId }), children: [] };
 }
 
 function listKind(items: MarkdownItem[]): 'bullet' | 'number' | 'check' {

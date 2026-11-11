@@ -127,6 +127,11 @@ describe('building fixture state from a test document', () => {
       { type: 'text', text: ' ' },
       { type: 'date', isoDate: '2026-07-09' },
     ]);
+    expect(firstList('- **a **b** c**')[0]!.children).toEqual([
+      { type: 'text', text: 'a ', format: 1 },
+      { type: 'text', text: 'b', format: 1 },
+      { type: 'text', text: ' c', format: 1 },
+    ]);
   });
 
   it('builds bodies, and checked notes outside check lists', () => {
@@ -162,6 +167,7 @@ describe('building fixture state from a test document', () => {
     ['a list mixing numbered and bulleted notes', '1. one\n- two', /either numbered or not/u],
     ['a link to another target', '- [x](https://example.com)', /not https:\/\/example\.com/u],
     ['a link to an invalid note ID', '- [x](note:a_b_c)', /not note:a_b_c/u],
+    ['an underline closed before it opens', '- </u>x<u>y', /closes <\/u>/u],
     ['a folded note without children', '- note\n    - folded:: true', /has none/u],
     ['a numbered list starting past 1', '3. three\n4. four', /starts at 1, not 3/u],
     ['an invalid id:: value', '- note\n    - id:: a_b', /isn't a valid note ID/u],

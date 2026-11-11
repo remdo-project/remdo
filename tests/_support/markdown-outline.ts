@@ -34,7 +34,6 @@ export interface MarkdownItem {
   checkbox: boolean;
   /** The text's markdown-it inline tokens, without the checkbox. */
   inline?: Token[];
-  /** Each body line's inline tokens. */
   bodyLines?: Token[][];
 }
 
