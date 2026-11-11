@@ -2,6 +2,7 @@ import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 import { transformSerializedEditorState } from '#client/editor/runtime/serialized-editor-state';
+import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
 
 interface NoteLinkSerializedNode extends SerializedLexicalNode {
   type: 'note-link';
@@ -35,10 +36,13 @@ export function prepareEditorStateForPersistence(
  * Drops elements' `textFormat` and `textStyle`: the format Lexical gives the next typed text, which
  * selection moves and collaboration sync rewrite and the text format doesn't hold.
  */
-export function withoutTypingFormat<T>(value: T): T {
-  if (Array.isArray(value)) return value.map(withoutTypingFormat) as T;
-  if (typeof value !== 'object' || value === null) return value;
-  return Object.fromEntries(Object.entries(value)
-    .filter(([key]) => key !== 'textFormat' && key !== 'textStyle')
-    .map(([key, entry]) => [key, withoutTypingFormat(entry)])) as T;
+export function withoutTypingFormat<T>(state: T): T {
+  return transformSerializedEditorState(state as unknown as SerializedEditorState, (node) => Object.fromEntries(
+    Object.entries(node).filter(([key]) => key !== 'textFormat' && key !== 'textStyle'),
+  ) as unknown as SerializedLexicalNode) as unknown as T;
+}
+
+/** A state as a fixture states it: links compacted, defaults and typing format left out. */
+export function fixtureComparableState(state: SerializedEditorState, documentId: string): SerializedEditorState {
+  return withoutTypingFormat(stripEditorStateDefaults(prepareEditorStateForPersistence(state, documentId)));
 }

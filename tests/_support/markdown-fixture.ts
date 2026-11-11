@@ -1,3 +1,4 @@
+import { IS_BOLD, IS_CODE, IS_ITALIC, IS_STRIKETHROUGH, IS_UNDERLINE } from 'lexical';
 import type { SerializedEditorState } from 'lexical';
 import type { Token } from 'markdown-it';
 
@@ -31,14 +32,14 @@ export function buildFixtureState(source: string): SerializedEditorState {
         ...(kind === 'check' && { checked: note.checked === true }),
         ...(note.checked && { checkState: true }),
         ...(note.folded && { folded: true }),
-        children: item.inline ? inlineNodes(item.inline, item.checkbox, note.text ?? '') : note.text ? [{ type: 'text', text: note.text }] : [],
+        children: inlineNodes(item.inline ?? []),
       });
       value += 1;
       if (item.bodyLines) {
         children.push({
           type: 'note-body-wrapper',
           indent: depth,
-          children: [{ type: 'note-body', children: bodyNodes(item.bodyLines, note.body!) }],
+          children: [{ type: 'note-body', children: bodyNodes(item.bodyLines) }],
         });
         value += 1;
       }
@@ -63,61 +64,52 @@ export function buildFixtureState(source: string): SerializedEditorState {
   return restoreEditorStateDefaults({ root } as unknown as SerializedEditorState);
 }
 
-const FORMAT_BITS: Record<string, number> = { strong: 1, em: 2, s: 4 };
-const UNDERLINE = 8;
-const CODE = 16;
+const MARK_FORMATS: Record<string, number> = { strong: IS_BOLD, em: IS_ITALIC, s: IS_STRIKETHROUGH };
 
-function inlineNodes(tokens: Token[], checkbox: boolean, text: string): SerializedNode[] {
+function inlineNodes(tokens: Token[]): SerializedNode[] {
   const top: SerializedNode[] = [];
   let target = top;
   let format = 0;
-  let link: SerializedNode | null = null;
-  let plain = '';
-  const pushText = (content: string, extra = 0) => {
-    if (!content) return;
-    plain += content;
-    if (link?.type === 'date') return;
-    target.push({ type: 'text', text: content, ...((format | extra) !== 0 && { format: format | extra }) });
+  const pushText = (text: string, extra = 0) => {
+    if (text) target.push({ type: 'text', text, ...((format | extra) !== 0 && { format: format | extra }) });
   };
-  for (const [index, token] of tokens.entries()) {
-    const kind = token.type.replace(/_(?:open|close)$/, '');
-    if (kind in FORMAT_BITS) {
-      format ^= FORMAT_BITS[kind]!;
+  for (const token of tokens) {
+    const mark = token.type.replace(/_(?:open|close)$/, '');
+    if (mark in MARK_FORMATS) {
+      format ^= MARK_FORMATS[mark]!;
     } else if (token.type === 'html_inline') {
-      format ^= UNDERLINE;
+      format ^= IS_UNDERLINE;
     } else if (token.type === 'code_inline') {
-      pushText(token.content, CODE);
+      pushText(token.content, IS_CODE);
     } else if (token.type === 'text') {
-      pushText(index === 0 && checkbox ? token.content.replace(/^\[[ x]\] ?/, '') : token.content);
+      pushText(token.content);
     } else if (token.type === 'link_open') {
-      link = linkNode(String(token.attrGet('href') ?? ''));
+      const link = linkNode(String(token.attrGet('href') ?? ''));
       top.push(link);
+      // A date's label is derived from its date, so its text goes nowhere.
       target = (link.children as SerializedNode[] | undefined) ?? [];
     } else if (token.type === 'link_close') {
-      link = null;
       target = top;
     } else {
       throw new Error(`Fixture note text can't hold ${token.type} yet.`);
     }
   }
-  if (plain !== text) throw new Error(`Fixture note "${text}" reads differently once built: "${plain}".`);
   return top;
 }
 
-function bodyNodes(lines: Token[][], body: string): SerializedNode[] {
-  const texts = body.split('\n');
-  return lines.flatMap((tokens, index) => [
-    ...(index > 0 ? [{ type: 'linebreak' }] : []),
-    ...inlineNodes(tokens, false, texts[index]!),
-  ]);
+function bodyNodes(lines: Token[][]): SerializedNode[] {
+  return lines.flatMap((tokens, index) => [...(index > 0 ? [{ type: 'linebreak' }] : []), ...inlineNodes(tokens)]);
 }
 
 function linkNode(href: string): SerializedNode {
   const date = /^date:(\d{4}-\d{2}-\d{2})$/.exec(href);
   if (date) return { type: 'date', isoDate: date[1] };
-  const note = /^note:(?:([^_]+)_)?([^_]+)$/.exec(href);
-  if (!note) throw new Error(`Fixture links point to note: or date: targets, not ${href}.`);
-  return { type: 'note-link', noteId: note[2], ...(note[1] !== undefined && { docId: note[1] }), children: [] };
+  const parts = /^note:(.+)$/.exec(href)?.[1]?.split('_') ?? [];
+  if (parts.length === 0 || parts.length > 2 || parts.some((part) => normalizeNoteId(part) !== part)) {
+    throw new Error(`Fixture links point to note:<id>, note:<documentId>_<id> or date:<YYYY-MM-DD>, not ${href}.`);
+  }
+  const noteId = parts.at(-1)!;
+  return { type: 'note-link', noteId, ...(parts.length === 2 && { docId: parts[0] }), children: [] };
 }
 
 function listKind(items: MarkdownItem[]): 'bullet' | 'number' | 'check' {

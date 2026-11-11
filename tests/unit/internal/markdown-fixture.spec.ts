@@ -14,6 +14,10 @@ function noteIds(source: string): string[] {
   return ids;
 }
 
+function firstList(source: string): Node[] {
+  return (stripEditorStateDefaults(buildFixtureState(source)).root as unknown as Node).children![0]!.children!;
+}
+
 describe('building fixture state from a test document', () => {
   it('builds nested bullet, numbered and check lists', () => {
     expect(stripEditorStateDefaults(buildFixtureState(`
@@ -100,9 +104,9 @@ describe('building fixture state from a test document', () => {
   });
 
   it('builds formatted runs, note links and dates', () => {
-    const [note] = (stripEditorStateDefaults(buildFixtureState(
+    const [note] = firstList(
       '- a **b** *c* ~~d~~ <u>e</u> `f` ***g*** [same](note:x) [other](note:doc_y) [Jul 9, 2026](date:2026-07-09)',
-    )).root.children[0] as unknown as { children: Array<{ children: unknown[] }> }).children;
+    );
     expect(note!.children).toEqual([
       { type: 'text', text: 'a ' },
       { type: 'text', text: 'b', format: 1 },
@@ -126,8 +130,6 @@ describe('building fixture state from a test document', () => {
   });
 
   it('builds bodies, and checked notes outside check lists', () => {
-    const firstList = (source: string) =>
-      (stripEditorStateDefaults(buildFixtureState(source)).root.children as unknown as Array<{ children: unknown[] }>)[0]!.children;
     expect(firstList(`
       - [x] done
           > **body**
@@ -158,7 +160,8 @@ describe('building fixture state from a test document', () => {
   it.each([
     ['a selection', '- note<selection />', /no selection/u],
     ['a list mixing numbered and bulleted notes', '1. one\n- two', /either numbered or not/u],
-    ['a link to another target', '- [x](https://example.com)', /note: or date: targets/u],
+    ['a link to another target', '- [x](https://example.com)', /not https:\/\/example\.com/u],
+    ['a link to an invalid note ID', '- [x](note:a_b_c)', /not note:a_b_c/u],
     ['a folded note without children', '- note\n    - folded:: true', /has none/u],
     ['a numbered list starting past 1', '3. three\n4. four', /starts at 1, not 3/u],
     ['an invalid id:: value', '- note\n    - id:: a_b', /isn't a valid note ID/u],

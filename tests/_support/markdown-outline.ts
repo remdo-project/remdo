@@ -32,7 +32,7 @@ export interface MarkdownItem {
   /** The numbered list's first number, when it isn't 1. */
   start?: number;
   checkbox: boolean;
-  /** The text's markdown-it inline tokens, when they hold more than plain text. */
+  /** The text's markdown-it inline tokens, without the checkbox. */
   inline?: Token[];
   /** Each body line's inline tokens. */
   bodyLines?: Token[][];
@@ -159,7 +159,7 @@ function readList(
         if (name === 'id' && !frame.note) throw new Error('A top-level id:: line identifies no note; indent it under its note.');
         if (name === 'id' && stated.has(name)) throw new Error(`A note's later id:: lines state nothing; it already has ${frame.note!.id}.`);
         if (frame.note && !stated.has(name)) {
-          const text = withoutCheckbox(plainText(tokens[index + 2]!.children ?? []), checkbox);
+          const text = plainText(withoutCheckbox(tokens[index + 2]!.children ?? [], checkbox));
           const value = text.slice(text.indexOf('::') + 2).trim();
           if (name === 'id' && !/^\S+$/.test(value)) throw new Error('An id:: line holds one ID.');
           if (name === 'id') frame.note.id = value;
@@ -189,9 +189,9 @@ function readList(
       if (frame.textRead) throw new Error('A note holds one paragraph; write a body as > lines before its children.');
       if (token.map![0] !== frame.line) throw new Error('A note\'s text must fit on its marker\'s line.');
       frame.textRead = true;
-      const parsed = plainText(token.children ?? []);
-      if (token.children?.some((child) => child.type !== 'text')) frame.item!.inline = token.children;
-      const text = takeMarks(withoutCheckbox(parsed, frame.item!.checkbox), frame.path, marks);
+      const inline = withoutCheckbox(token.children ?? [], frame.item!.checkbox);
+      frame.item!.inline = inline;
+      const text = takeMarks(plainText(inline), frame.path, marks);
       if (text) frame.note!.text = text;
     }
   }
@@ -199,8 +199,10 @@ function readList(
 }
 
 // CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
-function withoutCheckbox(text: string, checkbox: boolean): string {
-  return checkbox ? text.replace(/^\[[ x]\] ?/, '') : text;
+function withoutCheckbox(tokens: Token[], checkbox: boolean): Token[] {
+  const first = tokens[0];
+  if (checkbox && first?.type === 'text') first.content = first.content.replace(/^\[[ x]\] ?/, '');
+  return tokens;
 }
 
 function closeOf(tokens: Token[], open: number): number {

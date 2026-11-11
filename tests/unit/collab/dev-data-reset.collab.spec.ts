@@ -1,13 +1,12 @@
 import { request } from 'playwright';
 import { describe, expect, it } from 'vitest';
 import type { APIRequestContext } from '@playwright/test';
-import { prepareEditorStateForPersistence } from '#tests-common/editor-state';
+import { fixtureComparableState } from '#tests-common/editor-state';
 import { resolveApiServerOrigin } from '#platform/net/origins';
 import { authenticateDjangoTestUser } from '#tests-common/django-auth';
 import { provisionDjangoUser } from '#tools/django-user';
 import { createFixtureDocument } from '#tools/fixture-document';
 import { readFixtureState } from '#tools/fixtures';
-import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
 import STABLE_AUTH_USERS from '../../../backend/fixtures/development-users.json';
 import { resetDevelopmentData } from '../../../tools/dev/reset-development-data';
 import { withHeadlessEditor } from '../../../src/headless/headless-editor';
@@ -19,7 +18,7 @@ async function documents(client: APIRequestContext) {
 
 async function readContent(id: string) {
   const state = await withHeadlessEditor(id, (editor) => editor.getEditorState().toJSON());
-  return stripEditorStateDefaults(prepareEditorStateForPersistence(state, id)).root;
+  return fixtureComparableState(state, id).root;
 }
 
 // This exercises two full resets and durable content loading across both accounts.
@@ -44,11 +43,11 @@ describe('development fixture setup', { timeout: 60_000 }, () => {
       ]);
       for (const [title, content] of [['fixture: reset-contract', initial], ['fixture: second-fixture', second]] as const) {
         const document = userDocuments.find((entry) => entry.title === title)!;
-        expect(await readContent(document.id)).toEqual(stripEditorStateDefaults(content).root);
+        expect(await readContent(document.id)).toEqual(fixtureComparableState(content, document.id).root);
       }
       await authenticateDjangoTestUser(admin, baseURL, STABLE_AUTH_USERS.admin);
       const first = (await documents(admin)).find(({ title }) => title === 'fixture: reset-contract')!;
-      expect(await readContent(first.id)).toEqual(stripEditorStateDefaults(initial).root);
+      expect(await readContent(first.id)).toEqual(fixtureComparableState(initial, first.id).root);
       await provisionDjangoUser(unrelated);
       const preserved = await createFixtureDocument({ email: unrelated.email, title: 'Keep' }, initial);
       await authenticateDjangoTestUser(charlie, baseURL, unrelated);
@@ -57,11 +56,11 @@ describe('development fixture setup', { timeout: 60_000 }, () => {
       await resetDevelopmentData(new Map([['reset-contract', restored]]));
       expect((await admin.get('/api/current-user')).status()).toBe(403);
       expect(await documents(charlie)).toContainEqual(expect.objectContaining({ id: preserved, title: 'Keep' }));
-      expect(await readContent(preserved)).toEqual(stripEditorStateDefaults(initial).root);
+      expect(await readContent(preserved)).toEqual(fixtureComparableState(initial, preserved).root);
       await authenticateDjangoTestUser(admin, baseURL, STABLE_AUTH_USERS.admin);
       const replacement = (await documents(admin)).find(({ title }) => title === first.title)!;
       expect(replacement.id).not.toBe(first.id);
-      expect(await readContent(replacement.id)).toEqual(stripEditorStateDefaults(restored).root);
+      expect(await readContent(replacement.id)).toEqual(fixtureComparableState(restored, replacement.id).root);
     } finally {
       await admin.dispose();
       await charlie.dispose();

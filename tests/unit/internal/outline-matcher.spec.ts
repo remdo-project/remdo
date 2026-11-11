@@ -1,14 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { selectStructuralNotes, meta, setRawNoteCheckedState } from '#tests';
-import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
-import { prepareEditorStateForPersistence, withoutTypingFormat } from '#tests-common/editor-state';
+import { fixtureComparableState } from '#tests-common/editor-state';
 import { buildFixtureState } from '#tests-common/markdown-fixture';
 import { listFixtureNames, readFixtureMarkdown } from '#tools/fixtures';
 
-// Fixtures intentionally excluded from outline-content coverage. `large` is a
-// performance fixture (~600 notes seeded for dev/search profiling, not outline
-// assertions); hand-authoring and maintaining its full expected outline here
-// would add no value.
+// `large` stays JSON: a generated performance input (~600 notes) with no test document.
 const COVERAGE_EXCLUDED_FIXTURES = new Set(['large']);
 
 describe('toMatchOutline smoke coverage', async () => {
@@ -22,8 +18,9 @@ describe('toMatchOutline smoke coverage', async () => {
   for (const [fixture, markdown] of markdownFixtures) {
     it(`loads ${fixture} as its test document describes`, meta({ fixture }), async ({ remdo }) => {
       expect(remdo).toMatchOutline(markdown);
-      const persisted = prepareEditorStateForPersistence(remdo.getEditorState(), remdo.getCollabDocId());
-      expect(withoutTypingFormat(stripEditorStateDefaults(persisted))).toEqual(stripEditorStateDefaults(buildFixtureState(markdown)));
+      const documentId = remdo.getCollabDocId();
+      expect(fixtureComparableState(remdo.getEditorState(), documentId))
+        .toEqual(fixtureComparableState(buildFixtureState(markdown), documentId));
     });
   }
 

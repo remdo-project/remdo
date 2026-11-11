@@ -14,9 +14,10 @@ owns when tests use them.
   its ID when that is a valid ID no `id::` line or earlier note claims, and
   otherwise an ID generated the same way on every read.
 - Check lists:: a bulleted list whose notes all have a checkbox is a check
-  list, and `[x]` checks a note in any list.
-- Other documents:: while fixtures load into editor documents, a link to a
-  note in another one is `note:<documentId>_<noteId>`.
+  list.
+- Other documents:: while fixtures load into editor documents, the
+  [format's](../../format.md#canonical-spelling) `note:<workspaceId>_<id>`
+  spelling names another editor document instead.
 - Selection:: in an expected outline, `<selection />` marks a caret and
   `<selection>…</selection>` a range within one note's text, or whole notes
   when the tags stand on their own lines around them. A selected inline token,
