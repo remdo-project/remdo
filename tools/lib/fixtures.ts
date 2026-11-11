@@ -6,7 +6,7 @@ import { restoreEditorStateDefaults } from './editor-state-defaults';
 
 const FIXTURE_DIR = path.resolve('tests/fixtures');
 
-/** A fixture's test document, or null while the fixture is still `<name>.json`. */
+/** A fixture's test document, or null for the invalid-schema states still kept as `<name>.json`. */
 export async function readFixtureMarkdown(name: string): Promise<string | null> {
   return fs.readFile(path.join(FIXTURE_DIR, `${name}.md`), 'utf8').catch((error: NodeJS.ErrnoException) => {
     if (error.code === 'ENOENT') return null;

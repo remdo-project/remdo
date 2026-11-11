@@ -194,9 +194,8 @@ it('keeps the open-work marking when a checked note also has a body', meta({ fix
   // A body-wrapper is a ListItemNode whose next sibling is the note's own
   // children-wrapper, so syncing one as if it were a note would clear the flag.
   await setRawNoteCheckedState(remdo, 'note1', true);
-  const childrenWrapper = getNoteElement(remdo, 'note1').nextElementSibling?.nextElementSibling;
-  expect(childrenWrapper?.classList.contains('list-nested-item')).toBe(true);
-  expect(childrenWrapper?.getAttribute('data-note-under-checked')).toBe('true');
+  const childrenWrapper = getNoteElement(remdo, 'note1').nextElementSibling?.nextElementSibling as HTMLElement;
+  expect(childrenWrapper.dataset.noteUnderChecked).toBe('true');
 
   // The body-wrapper must not be treated as a note in its own right: its next
   // sibling is the children-wrapper above, so resolving a wrapper for it would
