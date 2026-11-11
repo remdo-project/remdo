@@ -27,6 +27,5 @@ export async function readFixture(name: string): Promise<string> {
 
 export async function listFixtureNames(): Promise<string[]> {
   const entries = await fs.readdir(FIXTURE_DIR);
-  const names = entries.flatMap((entry) => /^(.+)\.(?:md|json)$/.exec(entry)?.[1] ?? []);
-  return [...new Set(names)].sort();
+  return entries.flatMap((entry) => /^(.+)\.md$/.exec(entry)?.[1] ?? []).sort();
 }

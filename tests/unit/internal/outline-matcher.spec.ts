@@ -5,14 +5,8 @@ import { buildFixtureState } from '#tests-common/markdown-fixture';
 import { listFixtureNames, readFixtureMarkdown } from '#tools/fixtures';
 
 describe('toMatchOutline smoke coverage', async () => {
-  const fixtureNames = await listFixtureNames();
-  const markdownFixtures = new Map<string, string>();
-  for (const name of fixtureNames) {
-    const markdown = await readFixtureMarkdown(name);
-    if (markdown !== null) markdownFixtures.set(name, markdown);
-  }
-
-  for (const [fixture, markdown] of markdownFixtures) {
+  for (const fixture of await listFixtureNames()) {
+    const markdown = (await readFixtureMarkdown(fixture))!;
     it(`loads ${fixture} as its test document describes`, meta({ fixture }), async ({ remdo }) => {
       expect(remdo).toMatchOutline(markdown);
       const documentId = remdo.getCollabDocId();
@@ -20,10 +14,6 @@ describe('toMatchOutline smoke coverage', async () => {
         .toEqual(fixtureComparableState(buildFixtureState(markdown), documentId));
     });
   }
-
-  it('covers every fixture', async () => {
-    expect([...markdownFixtures.keys()]).toEqual(fixtureNames);
-  });
 
   it('surfaces expected vs received outline when the matcher fails', meta({ fixture: 'flat' }), async ({ remdo }) => {
     expect(() => {

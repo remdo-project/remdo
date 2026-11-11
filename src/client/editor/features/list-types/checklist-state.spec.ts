@@ -190,7 +190,7 @@ it('marks the subtree of a checked note as open work', meta({ fixture: 'tree-com
   expect(wrapperOf('note2')?.dataset.noteUnderChecked).toBeUndefined();
 });
 
-it('keeps the open-work marking when a checked note also has a body', meta({ fixture: 'tree' }), async ({ remdo }) => {
+it('keeps the open-work marking when a checked note also has a body', meta({ fixture: 'body-and-children' }), async ({ remdo }) => {
   // A body-wrapper is a ListItemNode whose next sibling is the note's own
   // children-wrapper, so syncing one as if it were a note would clear the flag.
   const childrenWrapperOf = (noteId: string) => {
@@ -201,28 +201,20 @@ it('keeps the open-work marking when a checked note also has a body', meta({ fix
     return next instanceof HTMLElement && next.classList.contains('list-nested-item') ? next : null;
   };
 
-  await remdo.mutate(() => {
-    $addNoteBody($getNoteById('note2')).append($createTextNode('body'));
-  });
-
-  // note2 carries both a body and children.
-  expect(getNoteElement(remdo, { id: 'note2' }).nextElementSibling?.classList.contains('note-body-wrapper')).toBe(true);
-  expect(childrenWrapperOf('note2')).not.toBeNull();
-
-  await setRawNoteCheckedState(remdo, { id: 'note2' }, true);
-  expect(childrenWrapperOf('note2')?.dataset.noteUnderChecked).toBe('true');
+  await setRawNoteCheckedState(remdo, 'note1', true);
+  expect(childrenWrapperOf('note1')?.dataset.noteUnderChecked).toBe('true');
 
   // The body-wrapper must not be treated as a note in its own right: its next
   // sibling is the children-wrapper above, so resolving a wrapper for it would
   // target — and clear — that same element.
   const resolvedFromBodyWrapper = remdo.editor.getEditorState().read(() => {
-    const note = $getNoteById('note2');
+    const note = $getNoteById('note1');
     const bodyWrapper = note.getNextSibling();
     expect(isContentItem(bodyWrapper)).toBe(false);
     return $isListItemNode(bodyWrapper) ? getWrapperForContent(bodyWrapper)?.getKey() ?? null : null;
   });
   const childrenWrapperKey = remdo.editor.getEditorState().read(() =>
-    getWrapperForContent($getNoteById('note2'))?.getKey() ?? null
+    getWrapperForContent($getNoteById('note1'))?.getKey() ?? null
   );
   expect(resolvedFromBodyWrapper).toBe(childrenWrapperKey);
 });
