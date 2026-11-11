@@ -1,5 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getRoot, RootNode, mergeRegister } from 'lexical';
+import { $getRoot, $onUpdate, RootNode, mergeRegister } from 'lexical';
 import type { LexicalEditor } from 'lexical';
 import { useLayoutEffect, useRef } from 'react';
 import { useCollaborationStatus } from '#client/editor/runtime/collaboration';
@@ -68,9 +68,15 @@ export function RootSchemaPlugin({ onSchemaReadyChange }: RootSchemaPluginProps)
 
       scheduleRepair();
     });
-    normalizeRootOnce(editor, onSchemaReadyChange);
+    let disposed = false;
+    normalizeRootOnce(editor, () => {
+      if (disposed) return;
+      editor.setEditable(true);
+      onSchemaReadyChange(true);
+    });
 
     return mergeRegister(unregisterNormalization, unregisterRepair, () => {
+      disposed = true;
       editor.setEditable(false);
       onSchemaReadyChange(false);
     });
@@ -79,11 +85,10 @@ export function RootSchemaPlugin({ onSchemaReadyChange }: RootSchemaPluginProps)
   return null;
 }
 
-function normalizeRootOnce(editor: LexicalEditor, onSchemaReadyChange: (ready: boolean) => void) {
+function normalizeRootOnce(editor: LexicalEditor, onCommitted: () => void) {
   // Run a one-time normalization outside the transform cycle for fresh editors.
   editor.update(() => {
     $normalizeOutlineRoot($getRoot());
-    editor.setEditable(true);
-    onSchemaReadyChange(true);
+    $onUpdate(onCommitted);
   }, { tag: ROOT_SCHEMA_NORMALIZE_TAG });
 }

@@ -72,6 +72,7 @@ export function withTestAuthentication(
 export async function installAuthenticatedApiFetch(account?: AuthAccount): Promise<() => void> {
   const authentication = await getCollabTestAuthentication(account);
   const originalWebSocket = globalThis.WebSocket;
+  // Built on `ws`: collab tests never sync over the test environment's native WebSocket.
   class AuthenticatedWebSocket extends WebSocket {
     constructor(url: string | URL) {
       super(url, { headers: { Cookie: authentication.cookie, Origin: config.env.APP_ORIGIN } });

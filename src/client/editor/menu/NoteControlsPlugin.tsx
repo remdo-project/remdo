@@ -1,4 +1,5 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import type { EditorReadMode } from 'lexical';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -70,9 +71,10 @@ export function NoteControlsPlugin() {
     installOutlineSelectionHelpers(editor);
 
     const resolveNoteState = (
-      element: HTMLElement
+      element: HTMLElement,
+      readMode: EditorReadMode
     ): { noteKey: string; isFolded: boolean; canFold: boolean } | null => {
-      return editor.read(() => {
+      return editor.read(readMode, () => {
         const resolved = $resolveNoteStateFromDOMNode(element);
         if (!resolved) {
           return null;
@@ -85,11 +87,11 @@ export function NoteControlsPlugin() {
       });
     };
 
-    const resolveSelectionKey = (): string | null =>
-      editor.read(() => $resolveFocusNoteKey(editor));
+    const resolveSelectionKey = (readMode: EditorReadMode): string | null =>
+      editor.read(readMode, () => $resolveFocusNoteKey(editor));
 
-    const resolveSelectionElement = (root: HTMLElement): HTMLElement | null => {
-      const key = resolveSelectionKey();
+    const resolveSelectionElement = (root: HTMLElement, readMode: EditorReadMode): HTMLElement | null => {
+      const key = resolveSelectionKey(readMode);
       if (!key) {
         return null;
       }
@@ -126,8 +128,13 @@ export function NoteControlsPlugin() {
       setControls(null);
     };
 
-    const syncControlsForElement = (element: HTMLElement, root: HTMLElement, anchor: HTMLElement) => {
-      const noteState = resolveNoteState(element);
+    const syncControlsForElement = (
+      element: HTMLElement,
+      root: HTMLElement,
+      anchor: HTMLElement,
+      readMode: EditorReadMode
+    ) => {
+      const noteState = resolveNoteState(element, readMode);
       if (!noteState) {
         clearControls();
         return;
@@ -142,7 +149,7 @@ export function NoteControlsPlugin() {
       setControls({ ...layout, ...noteState });
     };
 
-    function syncActiveControls() {
+    function syncActiveControls(readMode: EditorReadMode = 'force-commit') {
       const root = rootRef.current ?? editor.getRootElement();
       const anchor = root ? root.closest<HTMLElement>('.editor-container') : null;
       if (!root || !anchor) {
@@ -160,11 +167,11 @@ export function NoteControlsPlugin() {
       if (interactionSourceRef.current === 'hover') {
         active = hoverElementRef.current;
         if (!active) {
-          selectionElement = resolveSelectionElement(root);
+          selectionElement = resolveSelectionElement(root, readMode);
           active = selectionElement;
         }
       } else {
-        selectionElement = resolveSelectionElement(root);
+        selectionElement = resolveSelectionElement(root, readMode);
         active = selectionElement ?? hoverElementRef.current;
       }
 
@@ -172,7 +179,7 @@ export function NoteControlsPlugin() {
         clearControls();
         return;
       }
-      syncControlsForElement(active, root, anchor);
+      syncControlsForElement(active, root, anchor, readMode);
     }
     syncActiveControlsRef.current = syncActiveControls;
 
@@ -287,8 +294,9 @@ export function NoteControlsPlugin() {
       syncActiveControls();
     });
 
+    // A listener's read must not flush an update another listener started; see EditorReadMode.
     const unregisterUpdate = editor.registerUpdateListener(() => {
-      syncActiveControls();
+      syncActiveControls('latest');
     });
 
     globalThis.addEventListener('resize', handleResize);

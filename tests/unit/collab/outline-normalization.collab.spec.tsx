@@ -53,10 +53,8 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
   );
 
   it(
-    'repairs an orphan wrapper from concurrent delete + indent',
-    meta(
-      { fixture: 'flat', expectedConsoleIssues: ['runtime.invariant orphan-wrapper-without-previous-content'] },
-    ),
+    'keeps a valid outline after concurrent delete + indent',
+    meta({ fixture: 'flat' }),
     async ({ remdo }) => {
       const remdo2 = await createCollabPeer(remdo);
 
