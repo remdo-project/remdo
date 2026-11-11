@@ -1,4 +1,4 @@
-import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
+import type { SerializedLexicalNode } from 'lexical';
 import { act } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { editNotes, editorOnlyStates } from '#tests-common/editor-only-states';
@@ -13,7 +13,7 @@ describe('assertEditorSchema', () => {
     expect(() => assertEditorSchema(minimalValid())).not.toThrow();
   });
 
-  const stateWithContent = (content: SerializedLexicalNode[]): SerializedEditorState =>
+  const stateWithContent = (content: SerializedLexicalNode[]) =>
     editNotes(minimalValid(), { note1: (note) => ({ ...note, children: content }) });
 
   const lineBreak = { type: 'linebreak', version: 1 };

@@ -1,6 +1,7 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 import { transformSerializedEditorState } from '#client/editor/runtime/serialized-editor-state';
+import { restoreEditorStateDefaults } from '#tools/editor-state-defaults';
 import { buildFixtureState } from './markdown-fixture';
 
 interface SerializedNote extends SerializedLexicalNode {
@@ -13,17 +14,17 @@ type NoteEdit = (note: SerializedNote) => SerializedLexicalNode | SerializedLexi
 
 /**
  * Editor states test documents can't hold, for tests of schema checks and load-time repair. Each is a
- * test document with one edit applied.
+ * test document with edits applied.
  */
 export const editorOnlyStates = {
   missingNoteId: () => editNotes(buildFixtureState('- note1'), {
-    note1: (note) => Object.fromEntries(Object.entries(note).filter(([key]) => key !== 'noteId')) as SerializedNote,
+    note1: ({ noteId, ...note }) => note,
   }),
   duplicateNoteId: () => editNotes(buildFixtureState('- note1\n    - id:: duplicated\n- note2'), {
     note2: (note) => ({ ...note, noteId: 'duplicated' }),
   }),
   emptyTextNode: () => editNotes(buildFixtureState('-\n    - id:: empty'), {
-    empty: (note) => ({ ...note, children: [{ type: 'text', text: '', detail: 0, format: 0, mode: 'normal', style: '', version: 1 }] }),
+    empty: (note) => ({ ...note, children: [{ type: 'text', text: '' }] }),
   }),
   indentJump: () => editNotes(buildFixtureState('- note1\n- note2'), { note2: (note) => ({ ...note, indent: 2 }) }),
   childListWithoutListItem: () => editNotes(buildFixtureState('- note1\n    - note2'), { note2: (note) => note.children! }),
@@ -45,7 +46,10 @@ export const editorOnlyStates = {
   onlyAWrapper: () => editNotes(buildFixtureState('- orphaning\n    - note1'), { orphaning: () => [] }),
 };
 
-/** Replaces each named note's list item with what its edit returns, in place among its siblings. */
+/**
+ * Replaces each named note's list item with what its edit returns, in place among its siblings, then fills in
+ * the Lexical defaults the edits leave out.
+ */
 export function editNotes(state: SerializedEditorState, edits: Record<string, NoteEdit>): SerializedEditorState {
   const edited = new Set<string>();
   const result = transformSerializedEditorState(state, (node) => {
@@ -54,16 +58,15 @@ export function editNotes(state: SerializedEditorState, edits: Record<string, No
     const withEdits: SerializedNote = {
       ...node,
       children: children.flatMap((child) => {
-        const noteId = child.type === 'listitem' ? (child as SerializedNote).noteId : undefined;
-        const edit = noteId === undefined ? undefined : edits[noteId];
-        if (noteId === undefined || !edit) return [child];
+        const { noteId } = child as SerializedNote;
+        if (child.type !== 'listitem' || noteId === undefined || !Object.hasOwn(edits, noteId)) return [child];
         edited.add(noteId);
-        return edit(child);
+        return edits[noteId]!(child);
       }),
     };
     return withEdits;
   });
   const missing = Object.keys(edits).filter((noteId) => !edited.has(noteId));
   if (missing.length > 0) throw new Error(`No note ${missing.join(', ')} to edit.`);
-  return result;
+  return restoreEditorStateDefaults(result);
 }
