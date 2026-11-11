@@ -20,8 +20,8 @@ describe('reading expected outlines from Markdown', () => {
       selection: null,
     });
     const plain = { ordered: false, checkbox: false };
-    expect([...items.values()]).toEqual([
-      plain, plain, { ordered: false, checkbox: true }, plain, { ordered: true, checkbox: false, inlineMarkdown: true },
+    expect([...items.values()].map(({ ordered, checkbox }) => ({ ordered, checkbox }))).toEqual([
+      plain, plain, { ordered: false, checkbox: true }, plain, { ordered: true, checkbox: false },
     ]);
   });
 

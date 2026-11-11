@@ -1,80 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import path from 'node:path';
-import { promises as fs } from 'node:fs';
 import { selectStructuralNotes, meta, setRawNoteCheckedState } from '#tests';
-import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
-import { prepareEditorStateForPersistence } from '#tests-common/editor-state';
+import { fixtureComparableState } from '#tests-common/editor-state';
 import { buildFixtureState } from '#tests-common/markdown-fixture';
 import { listFixtureNames, readFixtureMarkdown } from '#tools/fixtures';
 
-interface OutlineCase {
-  fixture: string;
-  outline: string;
-}
-
-// Fixtures intentionally excluded from outline-content coverage. `large` is a
-// performance fixture (~600 notes seeded for dev/search profiling, not outline
-// assertions); hand-authoring and maintaining its full expected outline here
-// would add no value.
+// `large` stays JSON: a generated performance input (~600 notes) with no test document.
 const COVERAGE_EXCLUDED_FIXTURES = new Set(['large']);
-
-const CASES: OutlineCase[] = [
-  {
-    fixture: 'editor-showcase',
-    outline: `
-      - Editor showcase
-          - id:: showcaseTitle
-      - Plain bold italic underline strike code bold italic
-          - id:: inlineFormatting
-      - Due Jul 9, 2026 see done task and remote note
-          - id:: dateAndLinks
-      - [x] Note with body
-          > Body has rich text and a note link
-          > Second body line
-          > Third body line
-          - id:: bodyNote
-      - Folded parent
-          - id:: foldedParent
-          - folded:: true
-          - Hidden child
-              - id:: foldedChild
-      - Numbered steps
-          - id:: numberedParent
-          - First step
-              - id:: stepOne
-          - Second step
-              > Second step body
-              - id:: stepTwo
-      - Checklist
-          - id:: checklistParent
-          - [x] Done task
-              > Done task body
-              - id:: checkDone
-          - Open task
-              - id:: checkOpen
-    `,
-  },
-  {
-    fixture: 'formatted',
-    outline: `
-      - bold
-          - italic
-              - target
-      - underline
-      - plain bold italic underline plain
-          - id:: mixedFormatting
-    `,
-  },
-  {
-    fixture: 'links',
-    outline: `
-      - same note2 cross /n/otherDoc_remoteNote
-          - id:: note1
-      - note2
-      - note3
-    `,
-  },
-];
 
 describe('toMatchOutline smoke coverage', async () => {
   const fixtureNames = await listFixtureNames();
@@ -87,28 +18,14 @@ describe('toMatchOutline smoke coverage', async () => {
   for (const [fixture, markdown] of markdownFixtures) {
     it(`loads ${fixture} as its test document describes`, meta({ fixture }), async ({ remdo }) => {
       expect(remdo).toMatchOutline(markdown);
-      const persisted = prepareEditorStateForPersistence(remdo.getEditorState(), remdo.getCollabDocId());
-      expect(stripEditorStateDefaults(persisted)).toEqual(stripEditorStateDefaults(buildFixtureState(markdown)));
-    });
-  }
-
-  for (const { fixture, outline } of CASES) {
-    it(`reads ${fixture}`, meta({ fixture }), async ({ remdo }) => {
-      expect(remdo).toMatchOutline(outline);
-
-      const fixturePath = path.resolve('tests/fixtures', `${fixture}.json`);
-      const raw = await fs.readFile(fixturePath, 'utf8');
-      const persisted = prepareEditorStateForPersistence(remdo.getEditorState(), remdo.getCollabDocId());
-      const minified = stripEditorStateDefaults(persisted);
-      const minifiedRaw = `${JSON.stringify(minified, null, 2)}\n`;
-      expect(minifiedRaw).toBe(raw);
+      const documentId = remdo.getCollabDocId();
+      expect(fixtureComparableState(remdo.getEditorState(), documentId))
+        .toEqual(fixtureComparableState(buildFixtureState(markdown), documentId));
     });
   }
 
   it('covers every fixture', async () => {
-    const covered = [...markdownFixtures.keys(), ...CASES.map(({ fixture }) => fixture)].toSorted();
-
-    expect(covered).toEqual(fixtureNames.filter((fixture) => !COVERAGE_EXCLUDED_FIXTURES.has(fixture)));
+    expect([...markdownFixtures.keys()]).toEqual(fixtureNames.filter((fixture) => !COVERAGE_EXCLUDED_FIXTURES.has(fixture)));
   });
 
   it('surfaces expected vs received outline when the matcher fails', meta({ fixture: 'flat' }), async ({ remdo }) => {

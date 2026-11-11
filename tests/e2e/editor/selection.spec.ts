@@ -125,7 +125,7 @@ test.describe('clipboard (caret paste placement)', () => {
 
   test('pastes multi-line plain text in the middle of a formatted note', async ({ page, editor }) => {
     await editor.load('formatted');
-    await setCaretAtNoteTextNode(page, 'plain bold italic underline plain', 2, 2);
+    await setCaretAtNoteTextNode(page, 'plain bold italic underline plain', 3, 2);
 
     await pastePlainText(page, 'A\nB');
     await page.keyboard.type('Z');

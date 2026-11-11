@@ -14,6 +14,10 @@ function noteIds(source: string): string[] {
   return ids;
 }
 
+function firstList(source: string): Node[] {
+  return (stripEditorStateDefaults(buildFixtureState(source)).root as unknown as Node).children![0]!.children!;
+}
+
 describe('building fixture state from a test document', () => {
   it('builds nested bullet, numbered and check lists', () => {
     expect(stripEditorStateDefaults(buildFixtureState(`
@@ -95,17 +99,77 @@ describe('building fixture state from a test document', () => {
       -
     `);
     expect([first, declared]).toEqual(['same', 'same2']);
-    for (const generated of [duplicate, spaced, empty]) expect(generated).toMatch(/^[A-Za-z1-9]{10}$/u);
-    expect(noteIds('- taken\n- note\n    - id:: taken')).toEqual([expect.stringMatching(/^\w{10}$/u), 'taken']);
+    expect([duplicate, spaced, empty]).toEqual(['n1', 'n2', 'n3']);
+    expect(noteIds('- taken\n- n1\n- note\n    - id:: taken')).toEqual(['n1', 'n2', 'taken']);
+  });
+
+  it('builds formatted runs, note links and dates', () => {
+    const [note] = firstList(
+      '- a **b** *c* ~~d~~ <u>e</u> `f` ***g*** [same](note:x) [other](note:doc_y) [Jul 9, 2026](date:2026-07-09)',
+    );
+    expect(note!.children).toEqual([
+      { type: 'text', text: 'a ' },
+      { type: 'text', text: 'b', format: 1 },
+      { type: 'text', text: ' ' },
+      { type: 'text', text: 'c', format: 2 },
+      { type: 'text', text: ' ' },
+      { type: 'text', text: 'd', format: 4 },
+      { type: 'text', text: ' ' },
+      { type: 'text', text: 'e', format: 8 },
+      { type: 'text', text: ' ' },
+      { type: 'text', text: 'f', format: 16 },
+      { type: 'text', text: ' ' },
+      { type: 'text', text: 'g', format: 3 },
+      { type: 'text', text: ' ' },
+      { type: 'note-link', noteId: 'x', children: [{ type: 'text', text: 'same' }] },
+      { type: 'text', text: ' ' },
+      { type: 'note-link', noteId: 'y', docId: 'doc', children: [{ type: 'text', text: 'other' }] },
+      { type: 'text', text: ' ' },
+      { type: 'date', isoDate: '2026-07-09' },
+    ]);
+    expect(firstList('- **a **b** c** d')[0]!.children).toEqual([
+      { type: 'text', text: 'a b c', format: 1 },
+      { type: 'text', text: ' d' },
+    ]);
+  });
+
+  it('builds bodies, and checked notes outside check lists', () => {
+    expect(firstList(`
+      - [x] done
+          > **body**
+          >
+          > last
+      - open
+    `)).toEqual([
+      { type: 'listitem', noteId: 'done', value: 1, checkState: true, children: [{ type: 'text', text: 'done' }] },
+      {
+        type: 'note-body-wrapper',
+        children: [{
+          type: 'note-body',
+          children: [
+            { type: 'text', text: 'body', format: 1 },
+            { type: 'linebreak' },
+            { type: 'linebreak' },
+            { type: 'text', text: 'last' },
+          ],
+        }],
+      },
+      { type: 'listitem', noteId: 'open', value: 3, children: [{ type: 'text', text: 'open' }] },
+    ]);
+    expect(firstList('1. [x] step')).toEqual([
+      { type: 'listitem', noteId: 'step', value: 1, checkState: true, children: [{ type: 'text', text: 'step' }] },
+    ]);
   });
 
   it.each([
     ['a selection', '- note<selection />', /no selection/u],
     ['a list mixing numbered and bulleted notes', '1. one\n- two', /either numbered or not/u],
-    ['a check list missing a checkbox', '- [ ] one\n- two', /every note a checkbox/u],
-    ['a numbered check list', '1. [ ] one', /not both/u],
-    ['inline Markdown', '- **bold**', /inline Markdown/u],
-    ['a body', '- note\n    > body', /no body/u],
+    ['a link to another target', '- [x](https://example.com)', /not https:\/\/example\.com/u],
+    ['a link to an invalid note ID', '- [x](note:a_b_c)', /not note:a_b_c/u],
+    ['an underline closed before it opens', '- </u>x<u>y', /closes <\/u>/u],
+    ['an underline left open', '- a <u>b c', /opens <u> without closing it/u],
+    ['an open checkbox outside a check list', '- [ ] a\n- b', /open checkbox only fits a check list/u],
+    ['an open checkbox in a numbered list', '1. [ ] step', /open checkbox only fits a check list/u],
     ['a folded note without children', '- note\n    - folded:: true', /has none/u],
     ['a numbered list starting past 1', '3. three\n4. four', /starts at 1, not 3/u],
     ['an invalid id:: value', '- note\n    - id:: a_b', /isn't a valid note ID/u],

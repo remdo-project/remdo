@@ -5,7 +5,7 @@ import type { Token } from 'markdown-it';
 export interface MarkdownNote {
   text?: string;
   checked?: true;
-  /** The note's body: its `>` lines before any child, taken literally and joined by line breaks. */
+  /** The note's body: its `>` lines before any child, each read as inline Markdown, joined by line breaks. */
   body?: string;
   id?: string;
   folded?: true;
@@ -32,7 +32,9 @@ export interface MarkdownItem {
   /** The numbered list's first number, when it isn't 1. */
   start?: number;
   checkbox: boolean;
-  inlineMarkdown?: true;
+  /** The text's markdown-it inline tokens, without the checkbox. */
+  inline?: Token[];
+  bodyLines?: Token[][];
 }
 
 export interface MarkdownOutline {
@@ -41,7 +43,8 @@ export interface MarkdownOutline {
   selection: MarkdownSelection | null;
 }
 
-const markdown = new MarkdownIt('commonmark');
+const markdown = new MarkdownIt('commonmark').enable('strikethrough');
+const UNDERLINE_TAG = /^<\/?u>$/;
 const TAG = /<selection\s*\/>|<selection>|<\/selection>/g;
 const MARKER = /^\s*(?:[-*+]|\d+[.)])(?:\s+\[([ x])\])?(?:\s+|$)/;
 const PROPERTY_LINE = /^(id|folded)::(?: .*)?$/;
@@ -155,7 +158,7 @@ function readList(
         if (name === 'id' && !frame.note) throw new Error('A top-level id:: line identifies no note; indent it under its note.');
         if (name === 'id' && stated.has(name)) throw new Error(`A note's later id:: lines state nothing; it already has ${frame.note!.id}.`);
         if (frame.note && !stated.has(name)) {
-          const text = withoutCheckbox(plainText(tokens[index + 2]!.children ?? []), checkbox);
+          const text = plainText(withoutCheckbox(tokens[index + 2]!.children ?? [], checkbox));
           const value = text.slice(text.indexOf('::') + 2).trim();
           if (name === 'id' && !/^\S+$/.test(value)) throw new Error('An id:: line holds one ID.');
           if (name === 'id') frame.note.id = value;
@@ -185,9 +188,9 @@ function readList(
       if (frame.textRead) throw new Error('A note holds one paragraph; write a body as > lines before its children.');
       if (token.map![0] !== frame.line) throw new Error('A note\'s text must fit on its marker\'s line.');
       frame.textRead = true;
-      const parsed = plainText(token.children ?? []);
-      if (token.children?.some((child) => child.type !== 'text')) frame.item!.inlineMarkdown = true;
-      const text = takeMarks(withoutCheckbox(parsed, frame.item!.checkbox), frame.path, marks);
+      const inline = withoutCheckbox(token.children ?? [], frame.item!.checkbox);
+      frame.item!.inline = inline;
+      const text = takeMarks(plainText(inline), frame.path, marks);
       if (text) frame.note!.text = text;
     }
   }
@@ -195,8 +198,12 @@ function readList(
 }
 
 // CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
-function withoutCheckbox(text: string, checkbox: boolean): string {
-  return checkbox ? text.replace(/^\[[ x]\] ?/, '') : text;
+function withoutCheckbox(tokens: Token[], checkbox: boolean): Token[] {
+  const [first, ...rest] = tokens;
+  if (!checkbox || first?.type !== 'text') return tokens;
+  const stripped = Object.assign(Object.create(Object.getPrototypeOf(first) as object) as Token, first);
+  stripped.content = first.content.replace(/^\[[ x]\] ?/, '');
+  return [stripped, ...rest];
 }
 
 function closeOf(tokens: Token[], open: number): number {
@@ -217,7 +224,9 @@ function readBody(tokens: Token[], open: number, frame: Frame, lines: string[]):
   if (source.some((line) => !/^\s*>/.test(line))) {
     throw new Error('Every body line starts with >, on its own line below the note\'s text.');
   }
-  note.body = source.map((line) => line.replace(/^\s*> ?/, '')).join('\n');
+  const bodyLines = source.map((line) => markdown.parseInline(line.replace(/^\s*> ?/, ''), {})[0]?.children ?? []);
+  note.body = bodyLines.map(plainText).join('\n');
+  frame.item!.bodyLines = bodyLines;
   frame.textRead = true;
   return closeOf(tokens, open);
 }
@@ -225,7 +234,9 @@ function readBody(tokens: Token[], open: number, frame: Frame, lines: string[]):
 function plainText(tokens: Token[]): string {
   return tokens.map((token) => {
     if (token.type === 'softbreak' || token.type === 'hardbreak') throw new Error('A note\'s text must fit on its marker\'s line.');
-    if (token.type === 'html_inline' || token.type === 'image') throw new Error(`A note's text can't hold ${token.type}.`);
+    if (token.type === 'image' || (token.type === 'html_inline' && !UNDERLINE_TAG.test(token.content))) {
+      throw new Error(`A note's text can't hold ${token.type}.`);
+    }
     return token.type === 'text' || token.type === 'code_inline' ? token.content : '';
   }).join('');
 }

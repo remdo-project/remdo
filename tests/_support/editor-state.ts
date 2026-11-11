@@ -2,6 +2,7 @@ import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 import { transformSerializedEditorState } from '#client/editor/runtime/serialized-editor-state';
+import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
 
 interface NoteLinkSerializedNode extends SerializedLexicalNode {
   type: 'note-link';
@@ -29,4 +30,19 @@ export function prepareEditorStateForPersistence(
     }
     return node;
   });
+}
+
+/**
+ * Drops elements' `textFormat` and `textStyle`: the format Lexical's selection handling gives the next
+ * typed text. Selection moves and collaboration sync rewrite them, RemDo's code never sets them, and the
+ * text format doesn't hold them.
+ */
+export function withoutTypingFormat(state: SerializedEditorState): SerializedEditorState {
+  return transformSerializedEditorState(state, (node) => Object.fromEntries(
+    Object.entries(node).filter(([key]) => key !== 'textFormat' && key !== 'textStyle'),
+  ) as SerializedLexicalNode);
+}
+
+export function fixtureComparableState(state: SerializedEditorState, documentId: string): SerializedEditorState {
+  return withoutTypingFormat(stripEditorStateDefaults(prepareEditorStateForPersistence(state, documentId)));
 }
