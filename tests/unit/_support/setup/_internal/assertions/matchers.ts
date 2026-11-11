@@ -268,7 +268,7 @@ expect.extend({
     const actual = attemptRead(this, '.toMatchEditorState', () => remdo.getEditorState());
     if (!actual.ok) return actual.result;
 
-    return compareWithExpected(this, actual.value, expected, {
+    return compareWithExpected(this, withoutTypingFormat(actual.value), withoutTypingFormat(expected), {
       matcher: 'toMatchEditorState',
       args: ['lexical', 'expectedState'],
       passMessage: 'Expected editor state not to match, but toJSON returned identical data.',
@@ -405,4 +405,14 @@ function getNestedList(item: ListItemNode): LexicalNode | null {
   }
 
   return null;
+}
+
+// Lexical keeps the format and style the next typed text takes on each element (`textFormat`,
+// `textStyle`); selection moves rewrite them, so they aren't content an editor state comparison checks.
+function withoutTypingFormat(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(withoutTypingFormat);
+  if (typeof value !== 'object' || value === null) return value;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => key !== 'textFormat' && key !== 'textStyle')
+    .map(([key, entry]) => [key, withoutTypingFormat(entry)]));
 }

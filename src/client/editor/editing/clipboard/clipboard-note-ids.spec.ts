@@ -238,7 +238,7 @@ describe('note ids on paste', () => {
       return {
         text: body.getTextContent(),
         hasBoldLabelText: body.getChildren().some(
-          (child) => $isTextNode(child) && child.getTextContent() === 'bold ' && child.hasFormat('bold')
+          (child) => $isTextNode(child) && child.getTextContent() === 'bold' && child.hasFormat('bold')
         ),
       };
     });

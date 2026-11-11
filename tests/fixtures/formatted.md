@@ -1,0 +1,6 @@
+- **bold**
+    - *italic*
+        - *target*
+- <u>underline</u>
+- plain **bold** *italic* <u>underline</u> plain
+    - id:: mixedFormatting

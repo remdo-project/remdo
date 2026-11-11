@@ -70,7 +70,7 @@ test('native inline copy replaces then inserts at the caret, including trailing 
 test('native full-label copy preserves mixed inline formatting through repeated paste', async ({ page, editor }) => {
   await editor.load('formatted');
   const label = 'plain bold italic underline plain';
-  await setCaretAtNoteTextNode(page, label, 4, 6);
+  await setCaretAtNoteTextNode(page, label, 6, 6);
   await page.keyboard.press('Shift+Home');
   await expect.poll(() => page.evaluate(() => ({
     text: document.getSelection()!.toString(),
@@ -81,7 +81,7 @@ test('native full-label copy preserves mixed inline formatting through repeated 
     await page.keyboard.press('ControlOrMeta+v');
     const row = editorLocator(page).locator('li.list-item:not(.list-nested-item)').last();
     await expect(row).toHaveText(label.repeat(repetitions));
-    for (const [selector, text] of [['strong', 'bold '], ['em', 'italic '], ['.text-underline', 'underline']] as const) {
+    for (const [selector, text] of [['strong', 'bold'], ['em', 'italic'], ['.text-underline', 'underline']] as const) {
       await expect(row.locator(selector)).toHaveText(Array.from<string>({ length: repetitions }).fill(text));
     }
     expect((await captureEditorSnapshot(page)).selection).toMatchObject({ isCollapsed: true });

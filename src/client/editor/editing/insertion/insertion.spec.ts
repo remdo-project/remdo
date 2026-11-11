@@ -440,7 +440,7 @@ describe('insertion semantics (docs/insertion.md)', () => {
     });
 
     it('splits when the selection spans several text nodes', meta({ fixture: 'formatted' }), async ({ remdo }) => {
-      await selectAcrossNoteTextNodes(remdo, { id: 'mixedFormatting' }, 0, 3, 2, 3);
+      await selectAcrossNoteTextNodes(remdo, { id: 'mixedFormatting' }, 0, 3, 3, 3);
       await pressKey(remdo, { key: 'Enter' });
 
       expect(remdo).toMatchOutline(`

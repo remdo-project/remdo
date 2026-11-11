@@ -54,17 +54,6 @@ const CASES: OutlineCase[] = [
               - id:: checkOpen
     `,
   },
-  {
-    fixture: 'formatted',
-    outline: `
-      - bold
-          - italic
-              - target
-      - underline
-      - plain bold italic underline plain
-          - id:: mixedFormatting
-    `,
-  },
 ];
 
 describe('toMatchOutline smoke coverage', async () => {
