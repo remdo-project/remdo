@@ -63,6 +63,22 @@ class PublicPageTests(SimpleTestCase):
             response, f'<link rel="canonical" href="{settings.APP_ORIGIN}/docs/mcp/">', html=True
         )
 
+    def test_markdown_inside_an_opted_in_html_block_is_rendered(self):
+        path = self.pages / "privacy.md"
+        path.write_text(
+            "---\ntitle: Privacy\ndescription: Policy\n---\n\n"
+            '<div class="wrapped" markdown="1">\n\n## Inside\n\nKeep **control**.\n\n</div>\n\n'
+            "<div>\n**raw**\n</div>\n",
+            encoding="utf-8",
+        )
+        response = self.client.get("/privacy/")
+        self.assertContains(
+            response,
+            '<div class="wrapped"><h2>Inside</h2><p>Keep <strong>control</strong>.</p></div>',
+            html=True,
+        )
+        self.assertContains(response, "<div>**raw**</div>", html=True)
+
     def test_missing_and_non_page_paths_are_not_rendered(self):
         self.write_page()
         self.write_page("nested/privacy")

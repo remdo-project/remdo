@@ -85,3 +85,7 @@
     line-height: 34px;
   }
 }
+.landing-legal-article a.landing-button, .landing-legal-article a.landing-button:hover {
+  color: var(--landing-primary-text);
+  text-decoration: none;
+}
