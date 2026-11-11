@@ -13,8 +13,11 @@
     tab.setAttribute('role', 'tab');
     panel.setAttribute('role', 'tabpanel');
     panel.setAttribute('aria-label', heading.textContent);
-    while (heading.nextSibling && heading.nextSibling.nodeName !== 'H2') panel.append(heading.nextSibling);
-    heading.replaceWith(panel);
+    heading.before(panel);
+    heading.className = 'landing-visually-hidden';
+    while (panel.nextSibling && (panel.nextSibling === heading || panel.nextSibling.nodeName !== 'H2')) {
+      panel.append(panel.nextSibling);
+    }
     tablist.append(tab);
     tab.addEventListener('click', () => select(index));
     tab.addEventListener('keydown', (event) => {
@@ -41,14 +44,19 @@
   for (const source of root.querySelectorAll('blockquote, pre')) {
     const box = document.createElement('div');
     const copy = document.createElement('button');
+    const text = source.textContent.trim();
+    const label = (action) => {
+      copy.textContent = action;
+      copy.setAttribute('aria-label', `${action} ${text}`);
+    };
     box.className = 'assistant-copy';
-    copy.textContent = 'Copy';
+    label('Copy');
     source.replaceWith(box);
     box.append(source, copy);
     copy.addEventListener('click', async () => {
       try {
-        await navigator.clipboard.writeText(source.textContent.trim());
-        copy.textContent = 'Copied';
+        await navigator.clipboard.writeText(text);
+        label('Copied');
       } catch {
         getSelection().selectAllChildren(source);
       }

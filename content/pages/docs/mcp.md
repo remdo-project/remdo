@@ -62,7 +62,7 @@ Then ask Claude to, for example, “save this conversation to RemDo”.
 
 On Team and Enterprise plans, an Owner adds RemDo for the organization first:
 [add RemDo as an Owner](https://claude.ai/admin-settings/connectors?modal=add-custom-connector&connectorName=RemDo&connectorUrl=https%3A%2F%2Fremdo.com%2Fmcp),
-or see Anthropic's
+or see Anthropic’s
 [custom connector guide](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp).
 
 </details>
