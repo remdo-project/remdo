@@ -1,3 +1,4 @@
+import { withoutTypingFormat } from '#tests-common/editor-state';
 import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
@@ -405,14 +406,4 @@ function getNestedList(item: ListItemNode): LexicalNode | null {
   }
 
   return null;
-}
-
-// Lexical keeps the format and style the next typed text takes on each element (`textFormat`,
-// `textStyle`); selection moves rewrite them, so they aren't content an editor state comparison checks.
-function withoutTypingFormat(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(withoutTypingFormat);
-  if (typeof value !== 'object' || value === null) return value;
-  return Object.fromEntries(Object.entries(value)
-    .filter(([key]) => key !== 'textFormat' && key !== 'textStyle')
-    .map(([key, entry]) => [key, withoutTypingFormat(entry)]));
 }

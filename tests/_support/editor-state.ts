@@ -30,3 +30,15 @@ export function prepareEditorStateForPersistence(
     return node;
   });
 }
+
+/**
+ * Drops elements' `textFormat` and `textStyle`: the format Lexical gives the next typed text, which
+ * selection moves and collaboration sync rewrite and the text format doesn't hold.
+ */
+export function withoutTypingFormat<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(withoutTypingFormat) as T;
+  if (typeof value !== 'object' || value === null) return value;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => key !== 'textFormat' && key !== 'textStyle')
+    .map(([key, entry]) => [key, withoutTypingFormat(entry)])) as T;
+}

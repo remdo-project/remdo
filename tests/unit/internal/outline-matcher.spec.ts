@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { selectStructuralNotes, meta, setRawNoteCheckedState } from '#tests';
 import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
-import { prepareEditorStateForPersistence } from '#tests-common/editor-state';
+import { prepareEditorStateForPersistence, withoutTypingFormat } from '#tests-common/editor-state';
 import { buildFixtureState } from '#tests-common/markdown-fixture';
 import { listFixtureNames, readFixtureMarkdown } from '#tools/fixtures';
 
@@ -23,7 +23,7 @@ describe('toMatchOutline smoke coverage', async () => {
     it(`loads ${fixture} as its test document describes`, meta({ fixture }), async ({ remdo }) => {
       expect(remdo).toMatchOutline(markdown);
       const persisted = prepareEditorStateForPersistence(remdo.getEditorState(), remdo.getCollabDocId());
-      expect(stripEditorStateDefaults(persisted)).toEqual(stripEditorStateDefaults(buildFixtureState(markdown)));
+      expect(withoutTypingFormat(stripEditorStateDefaults(persisted))).toEqual(stripEditorStateDefaults(buildFixtureState(markdown)));
     });
   }
 
