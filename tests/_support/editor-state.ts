@@ -33,8 +33,9 @@ export function prepareEditorStateForPersistence(
 }
 
 /**
- * Drops elements' `textFormat` and `textStyle`: the format Lexical gives the next typed text, which
- * selection moves and collaboration sync rewrite and the text format doesn't hold.
+ * Drops elements' `textFormat` and `textStyle`: the format Lexical's selection handling gives the next
+ * typed text. Selection moves and collaboration sync rewrite them, RemDo's code never sets them, and the
+ * text format doesn't hold them.
  */
 export function withoutTypingFormat(state: SerializedEditorState): SerializedEditorState {
   return transformSerializedEditorState(state, (node) => Object.fromEntries(
