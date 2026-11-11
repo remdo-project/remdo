@@ -5,7 +5,7 @@ import { selectStructuralNotes, meta, setRawNoteCheckedState } from '#tests';
 import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
 import { prepareEditorStateForPersistence } from '#tests-common/editor-state';
 import { buildFixtureState } from '#tests-common/markdown-fixture';
-import { listFixtureNames } from '#tools/fixtures';
+import { listFixtureNames, readFixtureMarkdown } from '#tools/fixtures';
 
 interface OutlineCase {
   fixture: string;
@@ -77,17 +77,18 @@ const CASES: OutlineCase[] = [
 ];
 
 describe('toMatchOutline smoke coverage', async () => {
-  const fixturesRoot = path.resolve('tests/fixtures');
-  const markdownFixtures = (await fs.readdir(fixturesRoot))
-    .filter((entry) => entry.endsWith('.md'))
-    .map((entry) => entry.slice(0, -'.md'.length));
+  const fixtureNames = await listFixtureNames();
+  const markdownFixtures = new Map<string, string>();
+  for (const name of fixtureNames) {
+    const markdown = await readFixtureMarkdown(name);
+    if (markdown !== null) markdownFixtures.set(name, markdown);
+  }
 
-  for (const fixture of markdownFixtures) {
+  for (const [fixture, markdown] of markdownFixtures) {
     it(`loads ${fixture} as its test document describes`, meta({ fixture }), async ({ remdo }) => {
-      const markdown = await fs.readFile(path.join(fixturesRoot, `${fixture}.md`), 'utf8');
       expect(remdo).toMatchOutline(markdown);
       const persisted = prepareEditorStateForPersistence(remdo.getEditorState(), remdo.getCollabDocId());
-      expect(stripEditorStateDefaults(persisted)).toEqual(buildFixtureState(markdown));
+      expect(stripEditorStateDefaults(persisted)).toEqual(stripEditorStateDefaults(buildFixtureState(markdown)));
     });
   }
 
@@ -105,12 +106,9 @@ describe('toMatchOutline smoke coverage', async () => {
   }
 
   it('covers every fixture', async () => {
-    const fixtureNames = (await listFixtureNames()).filter((fixture) => !COVERAGE_EXCLUDED_FIXTURES.has(fixture));
+    const covered = [...markdownFixtures.keys(), ...CASES.map(({ fixture }) => fixture)].toSorted();
 
-    const sortedFixtureNames = fixtureNames.toSorted();
-    const covered = [...markdownFixtures, ...CASES.map(({ fixture }) => fixture)].toSorted();
-
-    expect(covered).toEqual(sortedFixtureNames);
+    expect(covered).toEqual(fixtureNames.filter((fixture) => !COVERAGE_EXCLUDED_FIXTURES.has(fixture)));
   });
 
   it('surfaces expected vs received outline when the matcher fails', meta({ fixture: 'flat' }), async ({ remdo }) => {

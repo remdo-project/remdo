@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildFixtureState } from '#tests-common/markdown-fixture';
+import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
 
 interface Node { type: string; noteId?: string; children?: Node[]; [key: string]: unknown }
 
@@ -14,8 +15,8 @@ function noteIds(source: string): string[] {
 }
 
 describe('building fixture state from a test document', () => {
-  it('builds nested lists in the compact form fixtures use', () => {
-    expect(buildFixtureState(`
+  it('builds nested bullet, numbered and check lists', () => {
+    expect(stripEditorStateDefaults(buildFixtureState(`
       - note1
           1. note2
           2. note3
@@ -24,7 +25,7 @@ describe('building fixture state from a test document', () => {
       -
           - id:: empty
           - folded:: true
-    `)).toEqual({
+    `))).toEqual({
       root: {
         type: 'root',
         children: [{

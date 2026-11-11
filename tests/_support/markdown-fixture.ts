@@ -1,19 +1,17 @@
 import type { SerializedEditorState } from 'lexical';
 
 import { createNoteIdAvoiding, normalizeNoteId } from '#domain/notes/ids';
+import { restoreEditorStateDefaults } from '#tools/editor-state-defaults';
 import type { MarkdownItem, MarkdownNote } from './markdown-outline';
 import { readMarkdownOutline } from './markdown-outline';
+import { flattenOutline } from './outline';
 
 interface SerializedNode {
   type: string;
   [key: string]: unknown;
 }
 
-/**
- * Builds the editor state a fixture's test document describes, in the compact form fixture JSON used:
- * defaults left out, and a note without an `id::` line identified by its text when that is a valid,
- * unused ID.
- */
+/** Builds the editor state a fixture's [test document](../../docs/specs/testing/test-documents.md) describes. */
 export function buildFixtureState(source: string): SerializedEditorState {
   const { notes, items, selection } = readMarkdownOutline(source);
   if (selection) throw new Error('A fixture holds no selection.');
@@ -30,7 +28,7 @@ export function buildFixtureState(source: string): SerializedEditorState {
         type: 'listitem',
         noteId: ids.get(note)!,
         value,
-        ...(depth > 0 && { indent: depth }),
+        indent: depth,
         ...(kind === 'check' && { checked: note.checked === true }),
         ...(note.folded && { folded: true }),
         children: note.text ? [{ type: 'text', text: note.text }] : [],
@@ -40,19 +38,20 @@ export function buildFixtureState(source: string): SerializedEditorState {
         children.push({
           type: 'listitem',
           value,
-          ...(depth > 0 && { indent: depth }),
+          indent: depth,
           children: [list(note.children, depth + 1)],
         });
       }
     }
     return {
       type: 'list',
-      ...(kind === 'number' && { listType: 'number', tag: 'ol' }),
-      ...(kind === 'check' && { listType: 'check' }),
+      listType: kind,
+      tag: kind === 'number' ? 'ol' : 'ul',
       children,
     };
   };
-  return { root: { type: 'root', children: notes.length > 0 ? [list(notes, 0)] : [] } } as unknown as SerializedEditorState;
+  const root = { type: 'root', children: notes.length > 0 ? [list(notes, 0)] : [] };
+  return restoreEditorStateDefaults({ root } as unknown as SerializedEditorState);
 }
 
 function listKind(items: MarkdownItem[]): 'bullet' | 'number' | 'check' {
@@ -65,14 +64,7 @@ function listKind(items: MarkdownItem[]): 'bullet' | 'number' | 'check' {
 }
 
 function assignIds(notes: MarkdownNote[]): Map<MarkdownNote, string> {
-  const all: MarkdownNote[] = [];
-  const walk = (siblings: MarkdownNote[]) => {
-    for (const note of siblings) {
-      all.push(note);
-      if (note.children) walk(note.children);
-    }
-  };
-  walk(notes);
+  const all = flattenOutline(notes);
   const used = new Set<string>();
   for (const { id } of all) {
     if (id === undefined) continue;
@@ -83,8 +75,7 @@ function assignIds(notes: MarkdownNote[]): Map<MarkdownNote, string> {
   for (const note of all) {
     let id = note.id;
     if (id === undefined) {
-      const fromText = note.text !== undefined && normalizeNoteId(note.text) === note.text ? note.text : undefined;
-      id = fromText !== undefined && !used.has(fromText) ? fromText : createNoteIdAvoiding(used);
+      id = normalizeNoteId(note.text) === note.text && !used.has(note.text) ? note.text : createNoteIdAvoiding(used);
       used.add(id);
     }
     ids.set(note, id);

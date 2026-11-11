@@ -111,7 +111,7 @@ interface Frame {
   children: MarkdownNote[];
   path: NotePath;
   line?: number;
-  checkbox?: boolean;
+  item?: MarkdownItem;
   textRead?: boolean;
   statedProperties?: Set<string>;
 }
@@ -130,14 +130,20 @@ function readList(
 ): MarkdownNote[] {
   const top: MarkdownNote[] = [];
   const frames: Frame[] = [{ note: null, children: top, path: [] }];
+  const orderedLists: boolean[] = [];
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index]!;
     const frame = frames.at(-1)!;
-    if (token.type === 'blockquote_open' && frame.note) {
+    if (token.type === 'ordered_list_open' || token.type === 'bullet_list_open') {
+      orderedLists.push(token.type === 'ordered_list_open');
+    } else if (token.type === 'ordered_list_close' || token.type === 'bullet_list_close') {
+      orderedLists.pop();
+    } else if (token.type === 'blockquote_open' && frame.note) {
       index = readBody(tokens, index, frame, lines);
     } else if (token.type === 'list_item_open') {
       const line = token.map![0];
       const marker = MARKER.exec(lines[line]!)!;
+      const checkbox = marker[1] !== undefined;
       const content = lines[line]!.slice(marker[0].length).trim();
       const property = PROPERTY_LINE.exec([...content].filter((char) => !KIND_BY_SENTINEL.has(char)).join(''));
       if (property && tokens[index + 1]!.type === 'paragraph_open') {
@@ -147,7 +153,7 @@ function readList(
         if (name === 'id' && !frame.note) throw new Error('A top-level id:: line identifies no note; indent it under its note.');
         if (name === 'id' && stated.has(name)) throw new Error(`A note's later id:: lines state nothing; it already has ${frame.note!.id}.`);
         if (frame.note && !stated.has(name)) {
-          const text = withoutCheckbox(plainText(tokens[index + 2]!.children ?? []), marker[1] !== undefined);
+          const text = withoutCheckbox(plainText(tokens[index + 2]!.children ?? []), checkbox);
           const value = text.slice(text.indexOf('::') + 2).trim();
           if (name === 'id' && !/^\S+$/.test(value)) throw new Error('An id:: line holds one ID.');
           if (name === 'id') frame.note.id = value;
@@ -162,8 +168,9 @@ function readList(
       const path = [...frame.path, frame.children.length];
       frame.children.push(note);
       located.push({ path, line });
-      items.set(note, { ordered: /^\s*\d/.test(lines[line]!), checkbox: marker[1] !== undefined });
-      frames.push({ note, children: [], path, line, checkbox: marker[1] !== undefined });
+      const item: MarkdownItem = { ordered: orderedLists.at(-1)!, checkbox };
+      items.set(note, item);
+      frames.push({ note, children: [], path, line, item });
     } else if (token.type === 'list_item_close') {
       const closed = frames.pop()!;
       if (closed.note && closed.children.length > 0) closed.note.children = closed.children;
@@ -177,8 +184,8 @@ function readList(
       if (token.map![0] !== frame.line) throw new Error('A note\'s text must fit on its marker\'s line.');
       frame.textRead = true;
       const parsed = plainText(token.children ?? []);
-      if (token.children?.some((child) => child.type !== 'text')) items.get(frame.note!)!.markup = true;
-      const text = takeMarks(withoutCheckbox(parsed, frame.checkbox), frame.path, marks);
+      if (token.children?.some((child) => child.type !== 'text')) frame.item!.markup = true;
+      const text = takeMarks(withoutCheckbox(parsed, frame.item!.checkbox), frame.path, marks);
       if (text) frame.note!.text = text;
     }
   }
@@ -186,7 +193,7 @@ function readList(
 }
 
 // CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
-function withoutCheckbox(text: string, checkbox: boolean | undefined): string {
+function withoutCheckbox(text: string, checkbox: boolean): string {
   return checkbox ? text.replace(/^\[[ x]\] ?/, '') : text;
 }
 

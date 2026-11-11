@@ -77,9 +77,9 @@ export function extractOutlineFromEditorState(state: unknown): Outline {
   return readNotes(notes);
 }
 
-export function flattenOutline(outline: Outline): OutlineNode[] {
-  const flattened: OutlineNode[] = [];
-  const walk = (nodes: Outline) => {
+export function flattenOutline<T extends { children?: T[] }>(outline: T[]): T[] {
+  const flattened: T[] = [];
+  const walk = (nodes: T[]) => {
     for (const node of nodes) {
       flattened.push(node);
       if (node.children) {
