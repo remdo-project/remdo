@@ -60,13 +60,14 @@ explicitly; without one, it runs the complete group used by CI.
   must also hold through collaboration.
 - `pnpm run test:e2e` — run browser scenarios; use a file or filter for affected
   user workflows, or no filter for the complete CI group.
-- `pnpm run test:e2e:docker` — verify the production container; use for Docker
-  and production-runtime changes.
+- `pnpm run test:e2e:docker` — verify the production container; covers Docker
+  and production-runtime behavior.
 - `pnpm run test:e2e:all` — run browser and Docker E2E; use when complete E2E
   coverage is requested.
 - `pnpm run lint` — check the source as written: types, code, styles,
   documentation, agent instructions, lint configuration, and the dependency
-  graph; its `lint:*` and `typecheck` scripts check subsets.
+  graph; the scripts it chains, such as `lint:md` and `typecheck`, check
+  subsets.
 - `pnpm run verify` — run lint, Dockerfile lint, dependency-policy and
   unused-code checks, the production development-boundary check, backend
   checks, and generated API verification. `pnpm run lint:dockerfile` and

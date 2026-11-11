@@ -43,13 +43,16 @@ substitutes for automated coverage.
 
 ## Verification lifecycle
 
-CI runs complete repository verification in parallel and must pass before
-integration, so local verification is feedback whose cost is the developer's
-wait. Run what gives justified confidence that the change works, cheapest first.
+CI runs every repository test group and static check in parallel and must pass
+before integration, so local verification is feedback whose cost is the
+developer's wait. The security audit, performance benchmarks, and PostgreSQL
+runs of collaboration and E2E tests stay outside CI and are not integration
+gates. Run what gives justified confidence that the change works, cheapest first.
 
 **Dependency selection**, through the changed variants in [Running Tests](../guides/testing.md#run-verification), finds the
-tests whose imports reach the changed files; a change to `package.json` or the
-Vite or Vitest configuration selects every test. It cannot see tests coupled
+tests whose imports reach the changed files; changes to `package.json`, Vite or
+Vitest configuration and its imports, or test setup files select broadly, up to
+every test. It cannot see tests coupled
 through routes, paths, subprocesses, a browser, or dependency versions; select
 those from known relationships. Run a complete group locally only when you
 expect CI to fail on it or a failure would be much easier to diagnose locally.
@@ -61,8 +64,8 @@ Before each commit, run the checks that cover what the commit changes.
 covering its complete final state, including corrections, and reports what ran
 and what is left to CI.
 
-A passing result, including CI's result for the same commit, counts as evidence
-while later edits or relevant environment changes cannot affect the behavior,
+A passing result, including CI's result when it tested the same tree, counts as
+evidence while later edits or relevant environment changes cannot affect the behavior,
 dependencies, or runtime it exercised. Reuse valid evidence and identify its
 original result; rerun failed or invalidated checks, including when their
 validity is uncertain.
