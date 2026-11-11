@@ -43,49 +43,32 @@ substitutes for automated coverage.
 
 ## Verification lifecycle
 
-Local test selection intentionally optimizes feedback time rather than
-completeness. CI runs complete repository verification and must pass before
-integration.
+CI runs every repository test group and static check in parallel and must pass
+before integration, so local verification is feedback whose cost is the
+developer's wait. The security audit, performance benchmarks, and PostgreSQL
+runs of collaboration and E2E tests stay outside CI and are not integration
+gates. Run what gives justified confidence that the change works, cheapest first.
 
-While iterating, run the tests that exercise the edited behavior, and select
-dependent tests against the branch base rather than only uncommitted changes.
-Pass test paths directly, as `pnpm run test:unit <path>...`; a scoped run costs
-seconds where the whole suite costs minutes. During iteration, rerun a passing
-test only after a change it exercises.
+**Dependency selection**, through the changed variants in [Running Tests](../guides/testing.md#run-verification), finds the
+tests whose imports reach the changed files; changes to `package.json`, Vite or
+Vitest configuration and its imports, or test setup files select broadly, up to
+every test. It cannot see tests coupled
+through routes, paths, subprocesses, a browser, or dependency versions; select
+those from known relationships. Run a complete group locally only when you
+expect CI to fail on it or a failure would be much easier to diagnose locally.
+Rerun a passing check only after a change it exercises.
 
-Before each commit, run likely affected tests and applicable static checks.
-Also run explicitly selected tests for known relationships that selection
-cannot discover. A commit that changes the test harness, service startup, or
-dependencies runs every complete group.
+Before each commit, run the checks that cover what the commit changes.
 
 **Handoff verification** runs once before handing a change to the developer,
-for its final state:
+covering its complete final state, including corrections, and reports what ran
+and what is left to CI.
 
-- complete static verification, including backend and generated API checks;
-- the complete [unit test](../specs/testing/test-harness.md#unit-tests) group,
-  which covers tests coupled to the change through routes, paths, or
-  subprocesses that dependency selection cannot discover;
-- each further complete group whose surface the change touches:
-  - [Collaboration tests](../specs/testing/test-harness.md#collaboration-tests):
-    collaboration sessions, persistence, collaboration server, or headless
-    editor tooling;
-  - [Browser E2E](../specs/testing/test-harness.md#browser-e2e-tests):
-    user-visible text or labels, routes, server-rendered templates, or
-    authentication and session flow;
-  - [Docker E2E](../specs/testing/test-harness.md#docker-e2e-tests): container
-    image, gateway, service worker, offline or cache behavior, or production
-    settings;
-  - backend tests: backend;
-  - every group: test harness, service startup, or dependencies.
-
-Select required handoff groups from the complete change, including corrections.
-A passing result may satisfy a required check only when it covers that check's
-required scope and later edits or relevant environment changes cannot affect
-the behavior, dependencies, or runtime it exercised. Reuse valid evidence and
-identify its original result; rerun failed or invalidated checks, including
-when their validity is uncertain.
-
-CI covers complete groups a change does not trigger.
+A passing result, including CI's result when it tested the same tree, counts as
+evidence while later edits or relevant environment changes cannot affect the behavior,
+dependencies, or runtime it exercised. Reuse valid evidence and identify its
+original result; rerun failed or invalidated checks, including when their
+validity is uncertain.
 
 When a test outside the change fails, rerun it alone once. If it passes, report
 it as a suspected flake with both results; a passing rerun does not establish a
