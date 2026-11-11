@@ -2,7 +2,7 @@ import { act } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { $getRoot, ParagraphNode, TextNode } from 'lexical';
-import { editorOnlyStates } from '#tests-common/editor-only-states';
+import { brokenEditorStates } from '#tests-common/broken-editor-states';
 import { createMountedLexicalEditor, meta, placeCaretAtNote } from '#tests';
 import { REORDER_NOTES_UP_COMMAND } from '#client/editor/foundation/commands';
 import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '#client/editor/outline/normalization';
@@ -11,7 +11,7 @@ describe('outline normalization on load', () => {
   it(
     'repairs a root-level orphan wrapper by hoisting its children',
     meta({
-      fixture: editorOnlyStates.wrapperWithoutPreviousNote(),
+      fixture: brokenEditorStates.wrapperWithoutPreviousNote(),
       fixtureSchemaBypass: true,
     }),
     async ({ remdo }) => {
@@ -27,7 +27,7 @@ describe('outline normalization on load', () => {
   it(
     'repairs an orphan wrapper after another wrapper by merging into the previous note',
     meta({
-      fixture: editorOnlyStates.wrapperAfterWrapper(),
+      fixture: brokenEditorStates.wrapperAfterWrapper(),
       fixtureSchemaBypass: true,
       expectedConsoleIssues: ['runtime.invariant orphan-wrapper-merged-into-previous'],
     }),
@@ -45,7 +45,7 @@ describe('outline normalization on load', () => {
   it(
     'enables move-up after repairing an orphan wrapper',
     meta({
-      fixture: editorOnlyStates.wrapperWithoutPreviousNote(),
+      fixture: brokenEditorStates.wrapperWithoutPreviousNote(),
       fixtureSchemaBypass: true,
     }),
     async ({ remdo }) => {
@@ -78,7 +78,7 @@ describe('outline normalization (single pass)', () => {
     });
 
     await act(async () => {
-      const parsed = editor.parseEditorState(editorOnlyStates.nestedOrphanWrappers());
+      const parsed = editor.parseEditorState(brokenEditorStates.nestedOrphanWrappers());
       editor.setEditorState(parsed);
     });
 

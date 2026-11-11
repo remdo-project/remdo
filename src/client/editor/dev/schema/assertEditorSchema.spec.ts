@@ -1,7 +1,7 @@
 import type { SerializedLexicalNode } from 'lexical';
 import { act } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { editNotes, editorOnlyStates } from '#tests-common/editor-only-states';
+import { editNotes, brokenEditorStates } from '#tests-common/broken-editor-states';
 import { meta } from '#tests';
 import { assertEditorSchema } from '#client/editor/dev/schema/assertEditorSchema';
 import { buildFixtureState } from '#tests-common/markdown-fixture';
@@ -55,7 +55,7 @@ describe('assertEditorSchema', () => {
     'reports when a content item is missing a noteId',
     meta({ expectedConsoleIssues: ['runtime.invariant missing-note-id path=0 noteId=undefined'] }),
     () => {
-      assertEditorSchema(editorOnlyStates.missingNoteId());
+      assertEditorSchema(brokenEditorStates.missingNoteId());
     }
   );
 
@@ -63,7 +63,7 @@ describe('assertEditorSchema', () => {
     'reports when noteIds are duplicated',
     meta({ expectedConsoleIssues: ['runtime.invariant duplicate-note-id path=1 noteId=duplicated'] }),
     () => {
-      assertEditorSchema(editorOnlyStates.duplicateNoteId());
+      assertEditorSchema(brokenEditorStates.duplicateNoteId());
     }
   );
 
@@ -71,7 +71,7 @@ describe('assertEditorSchema', () => {
     'reports for wrapper list item without preceding sibling',
     meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
     () => {
-      assertEditorSchema(editorOnlyStates.onlyAWrapper());
+      assertEditorSchema(brokenEditorStates.onlyAWrapper());
     }
   );
 
@@ -79,7 +79,7 @@ describe('assertEditorSchema', () => {
     'reports for wrapper list item at list start',
     meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
     () => {
-      assertEditorSchema(editorOnlyStates.wrapperWithoutPreviousNote());
+      assertEditorSchema(brokenEditorStates.wrapperWithoutPreviousNote());
     }
   );
 
@@ -87,7 +87,7 @@ describe('assertEditorSchema', () => {
     'reports for wrapper list item after another wrapper',
     meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
     () => {
-      assertEditorSchema(editorOnlyStates.wrapperAfterWrapper());
+      assertEditorSchema(brokenEditorStates.wrapperAfterWrapper());
     }
   );
 
@@ -95,7 +95,7 @@ describe('assertEditorSchema', () => {
     'reports when a nested list lacks list item children',
     meta({ expectedConsoleIssues: ['runtime.invariant list-wrapper-no-listitem path=0'] }),
     () => {
-      assertEditorSchema(editorOnlyStates.childListWithoutListItem());
+      assertEditorSchema(brokenEditorStates.childListWithoutListItem());
     }
   );
 
@@ -103,11 +103,14 @@ describe('assertEditorSchema', () => {
     'reports on indent jumps greater than one level',
     meta({ expectedConsoleIssues: ['runtime.invariant indent-jump path=1 parentIndent=0 entryIndent=2'] }),
     () => {
-      assertEditorSchema(editorOnlyStates.indentJump());
+      assertEditorSchema(brokenEditorStates.indentJump());
     }
   );
 
   it('ignores list items with empty text content', () => {
-    expect(() => assertEditorSchema(editorOnlyStates.emptyTextNode())).not.toThrow();
+    const emptyTextNode = editNotes(buildFixtureState('-\n    - id:: empty'), {
+      empty: (note) => ({ ...note, children: [{ type: 'text', text: '' }] }),
+    });
+    expect(() => assertEditorSchema(emptyTextNode)).not.toThrow();
   });
 });

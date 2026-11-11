@@ -13,18 +13,15 @@ interface SerializedNote extends SerializedLexicalNode {
 type NoteEdit = (note: SerializedNote) => SerializedLexicalNode | SerializedLexicalNode[];
 
 /**
- * Editor states test documents can't hold, for tests of schema checks and load-time repair. Each is a
- * test document with edits applied.
+ * Invalid editor states, which test documents can't hold, for tests of schema checks and load-time
+ * repair. Each is a test document with edits applied.
  */
-export const editorOnlyStates = {
+export const brokenEditorStates = {
   missingNoteId: () => editNotes(buildFixtureState('- note1'), {
     note1: ({ noteId, ...note }) => note,
   }),
   duplicateNoteId: () => editNotes(buildFixtureState('- note1\n    - id:: duplicated\n- note2'), {
     note2: (note) => ({ ...note, noteId: 'duplicated' }),
-  }),
-  emptyTextNode: () => editNotes(buildFixtureState('-\n    - id:: empty'), {
-    empty: (note) => ({ ...note, children: [{ type: 'text', text: '' }] }),
   }),
   indentJump: () => editNotes(buildFixtureState('- note1\n- note2'), { note2: (note) => ({ ...note, indent: 2 }) }),
   childListWithoutListItem: () => editNotes(buildFixtureState('- note1\n    - note2'), { note2: (note) => note.children! }),
