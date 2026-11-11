@@ -164,7 +164,7 @@ Run end-to-end tests:
 pnpm run test:e2e
 ```
 
-Run the main static verification checks:
+Run the complete static checks that CI runs:
 
 ```bash
 pnpm run verify
