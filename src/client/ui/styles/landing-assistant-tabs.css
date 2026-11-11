@@ -61,7 +61,6 @@
   border-radius: var(--landing-radius) 0 0 var(--landing-radius);
 }
 .assistant-copy > button {
-  flex: none;
   min-width: 96px;
   padding: 0 18px;
   border: 1px solid var(--landing-dark-outline);
