@@ -19,7 +19,7 @@ export function buildFixtureState(source: string): SerializedEditorState {
   if (selection) throw new Error('A fixture holds no selection.');
   const ids = assignIds(notes);
   const list = (siblings: MarkdownNote[], depth: number): SerializedNode => {
-    const kind = listKind(siblings.map((note) => items.get(note)!));
+    const kind = listKind(siblings, items);
     const children: SerializedNode[] = [];
     let value = 1;
     for (const note of siblings) {
@@ -72,8 +72,12 @@ function inlineNodes(tokens: Token[]): SerializedNode[] {
   let target = top;
   const marks: number[] = [];
   const pushText = (text: string, extra = 0) => {
+    if (!text) return;
     const format = marks.reduce((all, mark) => all | mark, extra);
-    if (text) target.push({ type: 'text', text, ...(format !== 0 && { format }) });
+    const previous = target.at(-1);
+    // Lexical merges neighbouring text nodes of one format, so the built state does too.
+    if (previous?.type === 'text' && (previous.format ?? 0) === format) previous.text += text;
+    else target.push({ type: 'text', text, ...(format !== 0 && { format }) });
   };
   for (const token of tokens) {
     const mark = token.type === 'html_inline' ? IS_UNDERLINE : MARK_FORMATS.get(token.type.replace(/_(?:open|close)$/, ''));
@@ -97,6 +101,7 @@ function inlineNodes(tokens: Token[]): SerializedNode[] {
       throw new Error(`Fixture note text can't hold ${token.type} yet.`);
     }
   }
+  if (marks.includes(IS_UNDERLINE)) throw new Error('Fixture note text opens <u> without closing it.');
   return top;
 }
 
@@ -115,11 +120,15 @@ function linkNode(href: string): SerializedNode {
   return { type: 'note-link', noteId: ref.noteId, ...(ref.docId !== null && { docId: ref.docId }), children: [] };
 }
 
-function listKind(items: MarkdownItem[]): 'bullet' | 'number' | 'check' {
-  const ordered = items.every((item) => item.ordered);
-  if (!ordered && items.some((item) => item.ordered)) throw new Error('A fixture list is either numbered or not.');
-  if (items[0]?.start !== undefined) throw new Error(`A fixture's numbered list starts at 1, not ${items[0].start}.`);
-  return ordered ? 'number' : items.every((item) => item.checkbox) ? 'check' : 'bullet';
+function listKind(notes: MarkdownNote[], items: Map<MarkdownNote, MarkdownItem>): 'bullet' | 'number' | 'check' {
+  const listed = notes.map((note) => items.get(note)!);
+  const ordered = listed.every((item) => item.ordered);
+  if (!ordered && listed.some((item) => item.ordered)) throw new Error('A fixture list is either numbered or not.');
+  if (listed[0]?.start !== undefined) throw new Error(`A fixture's numbered list starts at 1, not ${listed[0].start}.`);
+  if (!ordered && listed.every((item) => item.checkbox)) return 'check';
+  const open = notes.find((note) => items.get(note)!.checkbox && !note.checked);
+  if (open) throw new Error(`An open checkbox only fits a check list, where every note has one; "${open.text}" sits elsewhere.`);
+  return ordered ? 'number' : 'bullet';
 }
 
 function assignIds(notes: MarkdownNote[]): Map<MarkdownNote, string> {

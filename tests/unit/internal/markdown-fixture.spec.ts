@@ -127,10 +127,9 @@ describe('building fixture state from a test document', () => {
       { type: 'text', text: ' ' },
       { type: 'date', isoDate: '2026-07-09' },
     ]);
-    expect(firstList('- **a **b** c**')[0]!.children).toEqual([
-      { type: 'text', text: 'a ', format: 1 },
-      { type: 'text', text: 'b', format: 1 },
-      { type: 'text', text: ' c', format: 1 },
+    expect(firstList('- **a **b** c** d')[0]!.children).toEqual([
+      { type: 'text', text: 'a b c', format: 1 },
+      { type: 'text', text: ' d' },
     ]);
   });
 
@@ -168,6 +167,9 @@ describe('building fixture state from a test document', () => {
     ['a link to another target', '- [x](https://example.com)', /not https:\/\/example\.com/u],
     ['a link to an invalid note ID', '- [x](note:a_b_c)', /not note:a_b_c/u],
     ['an underline closed before it opens', '- </u>x<u>y', /closes <\/u>/u],
+    ['an underline left open', '- a <u>b c', /opens <u> without closing it/u],
+    ['an open checkbox outside a check list', '- [ ] a\n- b', /open checkbox only fits a check list/u],
+    ['an open checkbox in a numbered list', '1. [ ] step', /open checkbox only fits a check list/u],
     ['a folded note without children', '- note\n    - folded:: true', /has none/u],
     ['a numbered list starting past 1', '3. three\n4. four', /starts at 1, not 3/u],
     ['an invalid id:: value', '- note\n    - id:: a_b', /isn't a valid note ID/u],

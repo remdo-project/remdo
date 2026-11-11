@@ -27,6 +27,7 @@ import type { SerializedLexicalNode, SerializedTextNode } from 'lexical';
 import type { SerializedNoteLinkNode } from '#client/editor/features/links/note-link-node';
 import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
 import type { RemdoTestApi } from '#client/editor/dev';
+import { withoutTypingFormat } from '#tests-common/editor-state';
 import { collectOutlineNoteIds, flattenOutline } from '#tests-common/outline';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { getNoteBody } from '#client/editor/outline/selection/body-region';
@@ -694,7 +695,8 @@ describe('note ids on paste', () => {
 
     await pastePayload(remdo, clipboardPayload);
 
-    expect(remdo).toMatchEditorState(initialState);
+    // A paste rewrites the format Lexical gives the next typed text, which isn't note content.
+    expect(withoutTypingFormat(remdo.getEditorState())).toEqual(withoutTypingFormat(initialState));
   });
 
   it('replaces the empty document placeholder when every note is cut and pasted back', meta({ fixture: 'flat' }), async ({ remdo }) => {

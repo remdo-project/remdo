@@ -1,4 +1,3 @@
-import { withoutTypingFormat } from '#tests-common/editor-state';
 import type { TestContext } from 'vitest';
 import type { Outline, SelectionSnapshot } from '#tests';
 import { expect } from 'vitest';
@@ -13,7 +12,7 @@ import {
   resolveContentListItem,
 } from '#tests';
 import { $getSelection, $isNodeSelection, $isRangeSelection, $getRoot } from 'lexical';
-import type { ElementNode, PointType, RangeSelection, LexicalNode, SerializedEditorState } from 'lexical';
+import type { ElementNode, PointType, RangeSelection, LexicalNode } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
@@ -269,7 +268,7 @@ expect.extend({
     const actual = attemptRead(this, '.toMatchEditorState', () => remdo.getEditorState());
     if (!actual.ok) return actual.result;
 
-    return compareWithExpected(this, withoutTypingFormat(actual.value), withoutTypingFormat(expected as SerializedEditorState), {
+    return compareWithExpected(this, actual.value, expected, {
       matcher: 'toMatchEditorState',
       args: ['lexical', 'expectedState'],
       passMessage: 'Expected editor state not to match, but toJSON returned identical data.',

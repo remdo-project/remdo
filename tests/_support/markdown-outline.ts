@@ -199,9 +199,11 @@ function readList(
 
 // CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
 function withoutCheckbox(tokens: Token[], checkbox: boolean): Token[] {
-  const first = tokens[0];
-  if (checkbox && first?.type === 'text') first.content = first.content.replace(/^\[[ x]\] ?/, '');
-  return tokens;
+  const [first, ...rest] = tokens;
+  if (!checkbox || first?.type !== 'text') return tokens;
+  const stripped = Object.assign(Object.create(Object.getPrototypeOf(first) as object) as Token, first);
+  stripped.content = first.content.replace(/^\[[ x]\] ?/, '');
+  return [stripped, ...rest];
 }
 
 function closeOf(tokens: Token[], open: number): number {
