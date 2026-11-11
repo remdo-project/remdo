@@ -1,7 +1,8 @@
 import { IS_BOLD, IS_CODE, IS_ITALIC, IS_STRIKETHROUGH, IS_UNDERLINE } from 'lexical';
-import type { SerializedEditorState } from 'lexical';
+import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import type { Token } from 'markdown-it';
 
+import { transformSerializedEditorState } from '#client/editor/runtime/serialized-editor-state';
 import { createNoteIdAvoiding, normalizeNoteId } from '#domain/notes/ids';
 import { parseDocumentRef } from '#document-routes';
 import { restoreEditorStateDefaults } from '#tools/editor-state-defaults';
@@ -152,4 +153,37 @@ function assignIds(notes: MarkdownNote[]): Map<MarkdownNote, string> {
     ids.set(note, id);
   }
   return ids;
+}
+
+interface SerializedNote extends SerializedLexicalNode {
+  noteId?: string;
+  children?: SerializedLexicalNode[];
+  [key: string]: unknown;
+}
+
+type NoteEdit = (note: SerializedNote) => SerializedLexicalNode | SerializedLexicalNode[];
+
+/**
+ * Replaces each named note's list item with what its edit returns, in place among its siblings, then fills in
+ * the Lexical defaults the edits leave out.
+ */
+export function editNotes(state: SerializedEditorState, edits: Record<string, NoteEdit>): SerializedEditorState {
+  const edited = new Set<string>();
+  const result = transformSerializedEditorState(state, (node) => {
+    const { children } = node as SerializedNote;
+    if (!children) return node;
+    const withEdits: SerializedNote = {
+      ...node,
+      children: children.flatMap((child) => {
+        const { noteId } = child as SerializedNote;
+        if (child.type !== 'listitem' || noteId === undefined || !Object.hasOwn(edits, noteId)) return [child];
+        edited.add(noteId);
+        return edits[noteId]!(child);
+      }),
+    };
+    return withEdits;
+  });
+  const missing = Object.keys(edits).filter((noteId) => !edited.has(noteId));
+  if (missing.length > 0) throw new Error(`No note ${missing.join(', ')} to edit.`);
+  return restoreEditorStateDefaults(result);
 }

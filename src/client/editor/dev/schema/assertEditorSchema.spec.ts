@@ -1,10 +1,10 @@
 import type { SerializedLexicalNode } from 'lexical';
 import { act } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { editNotes, brokenEditorStates } from '#tests-common/broken-editor-states';
+import { brokenEditorStates } from '#tests-common/broken-editor-states';
 import { meta } from '#tests';
 import { assertEditorSchema } from '#client/editor/dev/schema/assertEditorSchema';
-import { buildFixtureState } from '#tests-common/markdown-fixture';
+import { buildFixtureState, editNotes } from '#tests-common/markdown-fixture';
 
 describe('assertEditorSchema', () => {
   const minimalValid = () => buildFixtureState('- note1');
@@ -109,7 +109,7 @@ describe('assertEditorSchema', () => {
 
   it('ignores list items with empty text content', () => {
     const emptyTextNode = editNotes(buildFixtureState('-\n    - id:: empty'), {
-      empty: (note) => ({ ...note, children: [{ type: 'text', text: '' }] }),
+      empty: (note) => ({ ...note, children: [{ type: 'text', version: 1, text: '' }] }),
     });
     expect(() => assertEditorSchema(emptyTextNode)).not.toThrow();
   });

@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { SerializedEditorState } from 'lexical';
 import { buildFixtureState } from '#tests-common/markdown-fixture';
+import { restoreEditorStateDefaults } from './editor-state-defaults';
 
 const FIXTURE_DIR = path.resolve('tests/fixtures');
 
@@ -17,7 +18,7 @@ export async function readFixtureState(name: string): Promise<SerializedEditorSt
 export type Fixture = string | SerializedEditorState;
 
 export async function readFixture(fixture: Fixture): Promise<string> {
-  return JSON.stringify(typeof fixture === 'string' ? await readFixtureState(fixture) : fixture);
+  return JSON.stringify(typeof fixture === 'string' ? await readFixtureState(fixture) : restoreEditorStateDefaults(fixture));
 }
 
 export async function listFixtureNames(): Promise<string[]> {
