@@ -1,8 +1,8 @@
-import { brokenEditorStates } from '#tests-common/broken-editor-states';
 import { $createListItemNode, $createListNode } from '@lexical/list';
 import { $createParagraphNode, $createTextNode, $getRoot, $setState } from 'lexical';
 import { describe, expect, it, vi } from 'vitest';
 
+import { editorOnlyStates } from '#tests-common/editor-only-states';
 import { collectOutlineNoteIds } from '#tests-common/outline';
 import {
   placeCaretAtNote,
@@ -73,7 +73,7 @@ describe('note id normalization on load', () => {
   it(
     'backfills missing noteIds while preserving content order',
     meta({
-      fixture: brokenEditorStates.missingNoteId(),
+      fixture: editorOnlyStates.missingNoteId(),
       fixtureSchemaBypass: true,
       expectedConsoleIssues: ['runtime.invariant note-id-normalized missing-note-id path=0'],
     }),
@@ -88,7 +88,7 @@ describe('note id normalization on load', () => {
   it(
     'resolves duplicate noteIds while preserving the first occurrence',
     meta({
-      fixture: brokenEditorStates.duplicateNoteId(),
+      fixture: editorOnlyStates.duplicateNoteId(),
       fixtureSchemaBypass: true,
       expectedConsoleIssues: ['runtime.invariant note-id-normalized duplicate-note-id path=1'],
     }),

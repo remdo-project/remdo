@@ -1,5 +1,5 @@
-import { brokenEditorStates } from '#tests-common/broken-editor-states';
 import { describe, expect, it } from 'vitest';
+import { editorOnlyStates } from '#tests-common/editor-only-states';
 import { getNoteKey, meta } from '#tests';
 import { waitFor } from '@testing-library/react';
 import type { ListItemNode } from '@lexical/list';
@@ -38,7 +38,7 @@ describe('collaboration outline normalization', { timeout: COLLAB_LONG_TIMEOUT_M
   it(
     'repairs orphan wrappers after hydration',
     meta({
-      fixture: brokenEditorStates.wrapperAfterWrapper(),
+      fixture: editorOnlyStates.wrapperAfterWrapper(),
       fixtureSchemaBypass: true,
       expectedConsoleIssues: ['runtime.invariant orphan-wrapper-merged-into-previous'],
     }),

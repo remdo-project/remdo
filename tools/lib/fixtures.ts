@@ -13,8 +13,11 @@ export async function readFixtureState(name: string): Promise<SerializedEditorSt
   return buildFixtureState(await readFixtureMarkdown(name));
 }
 
-export async function readFixture(name: string): Promise<string> {
-  return JSON.stringify(await readFixtureState(name));
+/** A fixture's name, or an editor state test documents can't hold. */
+export type Fixture = string | SerializedEditorState;
+
+export async function readFixture(fixture: Fixture): Promise<string> {
+  return JSON.stringify(typeof fixture === 'string' ? await readFixtureState(fixture) : fixture);
 }
 
 export async function listFixtureNames(): Promise<string[]> {

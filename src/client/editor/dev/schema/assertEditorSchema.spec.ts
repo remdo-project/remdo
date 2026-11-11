@@ -1,9 +1,9 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { act } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { editNotes, editorOnlyStates } from '#tests-common/editor-only-states';
 import { meta } from '#tests';
 import { assertEditorSchema } from '#client/editor/dev/schema/assertEditorSchema';
-import { brokenEditorStates } from '#tests-common/broken-editor-states';
 import { buildFixtureState } from '#tests-common/markdown-fixture';
 
 describe('assertEditorSchema', () => {
@@ -13,12 +13,8 @@ describe('assertEditorSchema', () => {
     expect(() => assertEditorSchema(minimalValid())).not.toThrow();
   });
 
-  const stateWithContent = (content: SerializedLexicalNode[]): SerializedEditorState => {
-    const state = minimalValid();
-    const list = state.root.children[0] as unknown as { children: Array<{ children: SerializedLexicalNode[] }> };
-    list.children[0]!.children = content;
-    return state;
-  };
+  const stateWithContent = (content: SerializedLexicalNode[]): SerializedEditorState =>
+    editNotes(minimalValid(), { note1: (note) => ({ ...note, children: content }) });
 
   const lineBreak = { type: 'linebreak', version: 1 };
   const link = { type: 'link', version: 1, children: [lineBreak] };
@@ -37,14 +33,11 @@ describe('assertEditorSchema', () => {
   );
 
   it('accepts line breaks in a body', () => {
-    const state = minimalValid();
-    const siblings = (state.root.children[0] as unknown as { children: SerializedLexicalNode[] }).children;
     const bodyWrapper = {
       type: 'note-body-wrapper', version: 1,
       children: [{ type: 'note-body', version: 1, children: [lineBreak, link] }],
     };
-    siblings.push(bodyWrapper);
-    assertEditorSchema(state);
+    assertEditorSchema(editNotes(minimalValid(), { note1: (note) => [note, bodyWrapper] }));
   });
 
   it(
@@ -62,7 +55,7 @@ describe('assertEditorSchema', () => {
     'reports when a content item is missing a noteId',
     meta({ expectedConsoleIssues: ['runtime.invariant missing-note-id path=0 noteId=undefined'] }),
     () => {
-      assertEditorSchema(brokenEditorStates.missingNoteId());
+      assertEditorSchema(editorOnlyStates.missingNoteId());
     }
   );
 
@@ -70,7 +63,7 @@ describe('assertEditorSchema', () => {
     'reports when noteIds are duplicated',
     meta({ expectedConsoleIssues: ['runtime.invariant duplicate-note-id path=1 noteId=duplicated'] }),
     () => {
-      assertEditorSchema(brokenEditorStates.duplicateNoteId());
+      assertEditorSchema(editorOnlyStates.duplicateNoteId());
     }
   );
 
@@ -78,7 +71,7 @@ describe('assertEditorSchema', () => {
     'reports for wrapper list item without preceding sibling',
     meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
     () => {
-      assertEditorSchema(brokenEditorStates.onlyAWrapper());
+      assertEditorSchema(editorOnlyStates.onlyAWrapper());
     }
   );
 
@@ -86,7 +79,7 @@ describe('assertEditorSchema', () => {
     'reports for wrapper list item at list start',
     meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
     () => {
-      assertEditorSchema(brokenEditorStates.wrapperWithoutPreviousNote());
+      assertEditorSchema(editorOnlyStates.wrapperWithoutPreviousNote());
     }
   );
 
@@ -94,7 +87,7 @@ describe('assertEditorSchema', () => {
     'reports for wrapper list item after another wrapper',
     meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
     () => {
-      assertEditorSchema(brokenEditorStates.wrapperAfterWrapper());
+      assertEditorSchema(editorOnlyStates.wrapperAfterWrapper());
     }
   );
 
@@ -102,7 +95,7 @@ describe('assertEditorSchema', () => {
     'reports when a nested list lacks list item children',
     meta({ expectedConsoleIssues: ['runtime.invariant list-wrapper-no-listitem path=0'] }),
     () => {
-      assertEditorSchema(brokenEditorStates.childListWithoutListItem());
+      assertEditorSchema(editorOnlyStates.childListWithoutListItem());
     }
   );
 
@@ -110,11 +103,11 @@ describe('assertEditorSchema', () => {
     'reports on indent jumps greater than one level',
     meta({ expectedConsoleIssues: ['runtime.invariant indent-jump path=1 parentIndent=0 entryIndent=2'] }),
     () => {
-      assertEditorSchema(brokenEditorStates.indentJump());
+      assertEditorSchema(editorOnlyStates.indentJump());
     }
   );
 
   it('ignores list items with empty text content', () => {
-    expect(() => assertEditorSchema(brokenEditorStates.emptyTextNode())).not.toThrow();
+    expect(() => assertEditorSchema(editorOnlyStates.emptyTextNode())).not.toThrow();
   });
 });

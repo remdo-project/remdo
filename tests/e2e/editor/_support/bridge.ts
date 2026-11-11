@@ -1,10 +1,10 @@
 import type { Page } from '@playwright/test';
-import type { SerializedEditorState } from 'lexical';
 import { parseDocumentRef } from '#document-routes';
 import { readFixture } from '#tools/fixtures';
+import type { Fixture } from '#tools/fixtures';
 
-export async function load(page: Page, fixture: string | SerializedEditorState): Promise<void> {
-  const payload = typeof fixture === 'string' ? await readFixture(fixture) : JSON.stringify(fixture);
+export async function load(page: Page, fixture: Fixture): Promise<void> {
+  const payload = await readFixture(fixture);
   await replaceDocument(page, payload);
 }
 

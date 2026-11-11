@@ -2,7 +2,7 @@ import { act } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { $getRoot, ParagraphNode, TextNode } from 'lexical';
-import { brokenEditorStates } from '#tests-common/broken-editor-states';
+import { editorOnlyStates } from '#tests-common/editor-only-states';
 import { createMountedLexicalEditor, meta, placeCaretAtNote } from '#tests';
 import { REORDER_NOTES_UP_COMMAND } from '#client/editor/foundation/commands';
 import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '#client/editor/outline/normalization';
@@ -11,7 +11,7 @@ describe('outline normalization on load', () => {
   it(
     'repairs a root-level orphan wrapper by hoisting its children',
     meta({
-      fixture: brokenEditorStates.wrapperWithoutPreviousNote(),
+      fixture: editorOnlyStates.wrapperWithoutPreviousNote(),
       fixtureSchemaBypass: true,
     }),
     async ({ remdo }) => {
@@ -27,7 +27,7 @@ describe('outline normalization on load', () => {
   it(
     'repairs an orphan wrapper after another wrapper by merging into the previous note',
     meta({
-      fixture: brokenEditorStates.wrapperAfterWrapper(),
+      fixture: editorOnlyStates.wrapperAfterWrapper(),
       fixtureSchemaBypass: true,
       expectedConsoleIssues: ['runtime.invariant orphan-wrapper-merged-into-previous'],
     }),
@@ -45,7 +45,7 @@ describe('outline normalization on load', () => {
   it(
     'enables move-up after repairing an orphan wrapper',
     meta({
-      fixture: brokenEditorStates.wrapperWithoutPreviousNote(),
+      fixture: editorOnlyStates.wrapperWithoutPreviousNote(),
       fixtureSchemaBypass: true,
     }),
     async ({ remdo }) => {
@@ -72,14 +72,13 @@ describe('outline normalization (single pass)', () => {
       ],
     }),
     async () => {
-
     const { editor, dispose } = createMountedLexicalEditor({
       namespace: 'outline-normalization-single-pass',
       nodes: [ListNode, ListItemNode, ParagraphNode, TextNode],
     });
 
     await act(async () => {
-      const parsed = editor.parseEditorState(brokenEditorStates.nestedOrphanWrappers());
+      const parsed = editor.parseEditorState(editorOnlyStates.nestedOrphanWrappers());
       editor.setEditorState(parsed);
     });
 

@@ -2,8 +2,8 @@ import { config } from '#config';
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
 import { afterEach, aroundEach } from 'vitest';
 import type { TestContext } from 'vitest';
-import type { SerializedEditorState } from 'lexical';
 import { readFixture } from '#tools/fixtures';
+import type { Fixture } from '#tools/fixtures';
 import { installAuthenticatedApiFetch } from '../../../../collab/_support/auth';
 import { createCollabTestDocument } from '../../../../collab/_support/documents';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
@@ -11,10 +11,10 @@ import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
 
 async function applyEditorFixture(
   remdo: TestContext['remdo'],
-  fixture: string | SerializedEditorState,
+  fixture: Fixture,
   fixtureOptions?: { skipSchemaValidationOnce?: boolean }
 ): Promise<void> {
-  const stateJson = typeof fixture === 'string' ? await readFixture(fixture) : JSON.stringify(fixture);
+  const stateJson = await readFixture(fixture);
   await remdo._bridge.applySerializedState(stateJson, fixtureOptions);
   await remdo.waitForSynced();
 }
