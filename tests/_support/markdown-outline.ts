@@ -5,7 +5,7 @@ import type { Token } from 'markdown-it';
 export interface MarkdownNote {
   text?: string;
   checked?: true;
-  /** The note's body: its `>` lines before any child, taken literally and joined by line breaks. */
+  /** The note's body: its `>` lines before any child, each read as inline Markdown, joined by line breaks. */
   body?: string;
   id?: string;
   folded?: true;
@@ -34,6 +34,8 @@ export interface MarkdownItem {
   checkbox: boolean;
   /** The text's markdown-it inline tokens, when they hold more than plain text. */
   inline?: Token[];
+  /** Each body line's inline tokens. */
+  bodyLines?: Token[][];
 }
 
 export interface MarkdownOutline {
@@ -219,7 +221,9 @@ function readBody(tokens: Token[], open: number, frame: Frame, lines: string[]):
   if (source.some((line) => !/^\s*>/.test(line))) {
     throw new Error('Every body line starts with >, on its own line below the note\'s text.');
   }
-  note.body = source.map((line) => line.replace(/^\s*> ?/, '')).join('\n');
+  const bodyLines = source.map((line) => markdown.parseInline(line.replace(/^\s*> ?/, ''), {})[0]?.children ?? []);
+  note.body = bodyLines.map(plainText).join('\n');
+  frame.item!.bodyLines = bodyLines;
   frame.textRead = true;
   return closeOf(tokens, open);
 }

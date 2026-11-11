@@ -22,7 +22,6 @@ export function buildFixtureState(source: string): SerializedEditorState {
     let value = 1;
     for (const note of siblings) {
       const item = items.get(note)!;
-      if (note.body !== undefined) throw new Error(`Fixture notes hold no body for now; "${note.text}" has one.`);
       if (note.folded && !note.children) throw new Error(`Only a note with children folds; "${note.text}" has none.`);
       children.push({
         type: 'listitem',
@@ -35,6 +34,14 @@ export function buildFixtureState(source: string): SerializedEditorState {
         children: item.inline ? inlineNodes(item.inline, item.checkbox, note.text ?? '') : note.text ? [{ type: 'text', text: note.text }] : [],
       });
       value += 1;
+      if (item.bodyLines) {
+        children.push({
+          type: 'note-body-wrapper',
+          indent: depth,
+          children: [{ type: 'note-body', children: bodyNodes(item.bodyLines, note.body!) }],
+        });
+        value += 1;
+      }
       if (note.children) {
         children.push({
           type: 'listitem',
@@ -97,6 +104,14 @@ function inlineNodes(tokens: Token[], checkbox: boolean, text: string): Serializ
   return top;
 }
 
+function bodyNodes(lines: Token[][], body: string): SerializedNode[] {
+  const texts = body.split('\n');
+  return lines.flatMap((tokens, index) => [
+    ...(index > 0 ? [{ type: 'linebreak' }] : []),
+    ...inlineNodes(tokens, false, texts[index]!),
+  ]);
+}
+
 function linkNode(href: string): SerializedNode {
   const date = /^date:(\d{4}-\d{2}-\d{2})$/.exec(href);
   if (date) return { type: 'date', isoDate: date[1] };
@@ -107,12 +122,9 @@ function linkNode(href: string): SerializedNode {
 
 function listKind(items: MarkdownItem[]): 'bullet' | 'number' | 'check' {
   const ordered = items.every((item) => item.ordered);
-  const checkboxes = items.every((item) => item.checkbox);
   if (!ordered && items.some((item) => item.ordered)) throw new Error('A fixture list is either numbered or not.');
-  if (!checkboxes && items.some((item) => item.checkbox)) throw new Error('A fixture check list gives every note a checkbox.');
-  if (ordered && checkboxes) throw new Error('A fixture list is numbered or a check list, not both.');
   if (items[0]?.start !== undefined) throw new Error(`A fixture's numbered list starts at 1, not ${items[0].start}.`);
-  return ordered ? 'number' : checkboxes ? 'check' : 'bullet';
+  return ordered ? 'number' : items.every((item) => item.checkbox) ? 'check' : 'bullet';
 }
 
 function assignIds(notes: MarkdownNote[]): Map<MarkdownNote, string> {

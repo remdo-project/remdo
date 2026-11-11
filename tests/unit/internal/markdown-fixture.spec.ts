@@ -125,13 +125,40 @@ describe('building fixture state from a test document', () => {
     ]);
   });
 
+  it('builds bodies, and checked notes outside check lists', () => {
+    const firstList = (source: string) =>
+      (stripEditorStateDefaults(buildFixtureState(source)).root.children as unknown as Array<{ children: unknown[] }>)[0]!.children;
+    expect(firstList(`
+      - [x] done
+          > **body**
+          >
+          > last
+      - open
+    `)).toEqual([
+      { type: 'listitem', noteId: 'done', value: 1, checkState: true, children: [{ type: 'text', text: 'done' }] },
+      {
+        type: 'note-body-wrapper',
+        children: [{
+          type: 'note-body',
+          children: [
+            { type: 'text', text: 'body', format: 1 },
+            { type: 'linebreak' },
+            { type: 'linebreak' },
+            { type: 'text', text: 'last' },
+          ],
+        }],
+      },
+      { type: 'listitem', noteId: 'open', value: 3, children: [{ type: 'text', text: 'open' }] },
+    ]);
+    expect(firstList('1. [x] step')).toEqual([
+      { type: 'listitem', noteId: 'step', value: 1, checkState: true, children: [{ type: 'text', text: 'step' }] },
+    ]);
+  });
+
   it.each([
     ['a selection', '- note<selection />', /no selection/u],
     ['a list mixing numbered and bulleted notes', '1. one\n- two', /either numbered or not/u],
-    ['a check list missing a checkbox', '- [ ] one\n- two', /every note a checkbox/u],
-    ['a numbered check list', '1. [ ] one', /not both/u],
     ['a link to another target', '- [x](https://example.com)', /note: or date: targets/u],
-    ['a body', '- note\n    > body', /no body/u],
     ['a folded note without children', '- note\n    - folded:: true', /has none/u],
     ['a numbered list starting past 1', '3. three\n4. four', /starts at 1, not 3/u],
     ['an invalid id:: value', '- note\n    - id:: a_b', /isn't a valid note ID/u],
