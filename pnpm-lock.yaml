@@ -200,9 +200,6 @@ catalogs:
     '@lexical/list':
       specifier: 0.53.0
       version: 0.53.0
-    '@lexical/markdown':
-      specifier: 0.53.0
-      version: 0.53.0
     '@lexical/react':
       specifier: 0.53.0
       version: 0.53.0
@@ -445,9 +442,6 @@ importers:
         specifier: 'catalog:'
         version: 0.53.0(typescript@6.0.3)
       '@lexical/list':
-        specifier: 'catalog:'
-        version: 0.53.0(typescript@6.0.3)
-      '@lexical/markdown':
         specifier: 'catalog:'
         version: 0.53.0(typescript@6.0.3)
       '@lexical/react':

@@ -11,7 +11,7 @@ workspace; the other sections cover editor notes.
 - **noteId:** an opaque identifier that uniquely identifies a note within a
   single document.
 - **documentId:** a runtime identifier for the active document, injected by the
-  environment (for example browser routing or snapshot CLI). Document identity
+  environment (for example browser routing or a headless tool). Document identity
   is globally unique as defined in [Architecture](../../architecture.md#document-identity).
 - **noteAddress:** a globally unique address composed from a document ID and a noteId.
 - **Addressable note:** any non-root note that appears as a content list item in
@@ -94,8 +94,8 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
 
 - Browser runtime resolves `documentId` from routing and injects it into the
   editor/collaboration runtime.
-- Snapshot CLI resolves `documentId` from CLI/env inputs and injects it into the
-  session/editor it initializes.
+- Headless tools inject the `documentId` of the document they open into the
+  session/editor they initialize.
 - Runtime `documentId` must remain per-editor state and must not be derived from
   global location reads inside core editor logic.
 

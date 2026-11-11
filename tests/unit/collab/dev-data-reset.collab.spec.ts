@@ -1,7 +1,7 @@
 import { request } from 'playwright';
 import { describe, expect, it } from 'vitest';
 import type { APIRequestContext } from '@playwright/test';
-import { prepareEditorStateForPersistence } from '#client/editor/runtime/editor-state-persistence';
+import { prepareEditorStateForPersistence } from '#tests-common/editor-state';
 import { resolveApiServerOrigin } from '#platform/net/origins';
 import { authenticateDjangoTestUser } from '#tests-common/django-auth';
 import { provisionDjangoUser } from '#tools/django-user';
