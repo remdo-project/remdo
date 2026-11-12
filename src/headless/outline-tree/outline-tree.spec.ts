@@ -1,10 +1,15 @@
 import { readFileSync } from 'node:fs';
-import { $getRoot, $isElementNode, createEditor } from 'lexical';
+import { $isListItemNode } from '@lexical/list';
+import type { ListItemNode } from '@lexical/list';
+import { $getRoot, $isElementNode, $isTextNode, createEditor } from 'lexical';
 import type { LexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
+import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
 import { editorConfig } from '#client/editor/runtime/config';
+import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { $applyTree } from './apply';
 import { $readTree } from './read';
+import { normalizeRuns, trimRuns } from './runs';
 import * as Y from 'yjs';
 import type { Document, OutlineNote, Run, TreeNote } from './tree';
 import { applyTree, readTree, saveTree } from './yjs';
@@ -135,6 +140,56 @@ describe('the outline tree', () => {
     Y.applyUpdate(copy, state);
 
     expect(readTree(copy)).toEqual(tree);
+  });
+});
+
+// The same cases check Python's reader (test_text_format.py).
+describe('normalizing runs', () => {
+  const cases = JSON.parse(readFileSync('tests/fixtures/outline-tree/runs.json', 'utf8')) as Array<{ runs: Run[]; normalized: Run[] }>;
+
+  it.each(cases)('normalizes $runs', ({ runs, normalized }) => {
+    expect(trimRuns(normalizeRuns(runs))).toEqual(normalized);
+  });
+});
+
+describe('applying to an editor', () => {
+  function editorWith(tree: Document) {
+    const editor = createEditor(editorConfig);
+    editor.update(() => $applyTree(tree), { discrete: true });
+    return editor;
+  }
+  function $item(cacheId: string): ListItemNode {
+    const pending: LexicalNode[] = [$getRoot()];
+    for (let node = pending.pop(); node; node = pending.pop()) {
+      if ($isListItemNode(node) && $getNoteId(node) === cacheId) return node;
+      if ($isElementNode(node)) pending.push(...node.getChildren());
+    }
+    throw new Error(`No note holds ${cacheId}`);
+  }
+
+  it('keeps the fold state of a note it moves and changes', () => {
+    const editor = editorWith({ id: null, children: [note('a', { children: [note('x')] }), note('b')] });
+    const before = editor.getEditorState().read($readTree);
+    const [a, b] = before.children as OutlineNote[];
+    editor.update(() => $setNoteFolded($item(a!.cacheId!), true), { discrete: true });
+
+    editor.update(() => $applyTree({ id: null, children: [b!, { ...a!, runs: [text('a changed')] }] }), { discrete: true });
+
+    expect(editor.getEditorState().read(() => $isNoteFolded($item(a!.cacheId!)))).toBe(true);
+  });
+
+  it('keeps whitespace typed at a note\'s edge while applying a change elsewhere in it', () => {
+    const editor = editorWith({ id: null, children: [note('abc')] });
+    const tree = editor.getEditorState().read($readTree);
+    const cacheId = (tree.children[0] as OutlineNote).cacheId!;
+    editor.update(() => {
+      const typed = $item(cacheId).getFirstChild();
+      if ($isTextNode(typed)) typed.setTextContent('abc ');
+    }, { discrete: true });
+
+    editor.update(() => $applyTree(retext(tree, 'abc', 'xbc')), { discrete: true });
+
+    expect(editor.getEditorState().read(() => $item(cacheId).getTextContent())).toBe('xbc ');
   });
 });
 

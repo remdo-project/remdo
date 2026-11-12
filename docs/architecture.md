@@ -243,6 +243,27 @@ starts empty; missing registry entries and database failures do not become empty
 documents. [Workspace](specs/workspaces/store.md) files and their history live in
 the same database.
 
+### Workspace document state
+
+A workspace's document is a hub room named by the workspace's ID, open to its
+owner. Its cache row holds the document's Yjs state and the file version that
+state was saved as, and is deleted with its workspace.
+
+- **Load:** when the row's version is the document's current file version, the
+  room loads the row's state. Otherwise, with no row or after the file changed
+  outside the room, the hub [applies](#outline-tree) the file's tree to the
+  row's state, or to an empty one, and saves the result before any client
+  syncs, so every load after one change gives the same state. A missing file
+  reads as an empty document, and loading writes no file. **Deterministic.**
+- **Save:** a [save](#collab-hub) writes the [tree](#outline-tree)'s text as the
+  document's file, with the state it was read from and that file's version, in
+  one transaction: both land or neither does. Its revision's author is the
+  workspace's owner. A save whose text matches the file updates only the
+  state, adding no revision. **Deterministic.**
+- **Stale save:** when the file changed since the state's version, the save
+  writes nothing, and the room applies the current file's tree, as on load,
+  before saving again. **Deterministic.**
+
 One active instance owns collaboration writes. Its SQLite database when
 selected uses its persistent storage root; its
 [runtime secrets](specs/runtime/configuration.md#secret-bootstrap) use that root

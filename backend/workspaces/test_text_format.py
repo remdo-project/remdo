@@ -275,6 +275,16 @@ class OutlineTreeTests(SimpleTestCase):
         tree = json.loads(self.fixture.with_suffix(".json").read_text(encoding="utf8"))
         self.assertEqual(text_format.write(text_format.from_json(tree)), source)
 
+    def test_runs_normalize_as_the_shared_cases_say(self):
+        cases = json.loads((REPO / "tests/fixtures/outline-tree/runs.json").read_text("utf8"))
+        for case in cases:
+            with self.subTest(runs=case["runs"]):
+                runs = [text_format._run_from_json(run) for run in case["runs"]]
+                normalized = text_format._trim(text_format._normalize(runs))
+                self.assertEqual(
+                    [text_format._run_json(run) for run in normalized], case["normalized"]
+                )
+
     def test_cache_ids_survive_the_json(self):
         document = text_format.Document(
             children=[

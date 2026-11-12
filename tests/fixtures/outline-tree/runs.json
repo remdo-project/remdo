@@ -1,0 +1,38 @@
+[
+  {
+    "runs": [{ "kind": "text", "text": " a ", "marks": ["bold"] }],
+    "normalized": [{ "kind": "text", "text": "a", "marks": ["bold"] }]
+  },
+  {
+    "runs": [{ "kind": "text", "text": "a", "marks": [] }, { "kind": "text", "text": "b", "marks": [] }],
+    "normalized": [{ "kind": "text", "text": "ab", "marks": [] }]
+  },
+  {
+    "runs": [{ "kind": "text", "text": "a ", "marks": ["italic"] }, { "kind": "text", "text": "b", "marks": [] }],
+    "normalized": [{ "kind": "text", "text": "a", "marks": ["italic"] }, { "kind": "text", "text": " b", "marks": [] }]
+  },
+  {
+    "runs": [
+      { "kind": "text", "text": "x ", "marks": ["bold"] },
+      { "kind": "link", "href": "note:k3x9", "runs": [{ "kind": "text", "text": "y", "marks": ["bold"] }] },
+      { "kind": "text", "text": " z", "marks": ["bold"] }
+    ],
+    "normalized": [
+      { "kind": "text", "text": "x ", "marks": ["bold"] },
+      { "kind": "link", "href": "note:k3x9", "runs": [{ "kind": "text", "text": "y", "marks": ["bold"] }] },
+      { "kind": "text", "text": " z", "marks": ["bold"] }
+    ]
+  },
+  {
+    "runs": [{ "kind": "text", "text": " c ", "marks": ["code"] }],
+    "normalized": [{ "kind": "text", "text": " c ", "marks": ["code"] }]
+  },
+  {
+    "runs": [
+      { "kind": "text", "text": "on ", "marks": [] },
+      { "kind": "date", "date": "2026-11-01" },
+      { "kind": "text", "text": " ", "marks": ["bold"] }
+    ],
+    "normalized": [{ "kind": "text", "text": "on ", "marks": [] }, { "kind": "date", "date": "2026-11-01" }]
+  }
+]

@@ -86,6 +86,20 @@ class WorkspaceFile(models.Model):
         ]
 
 
+class DocumentState(models.Model):
+    """A workspace document's Yjs state, cached beside the file it was saved as."""
+
+    workspace = models.OneToOneField(
+        Workspace, primary_key=True, on_delete=models.CASCADE, related_name="+"
+    )
+    state = models.BinaryField()
+    # The README version the state holds; null when it was saved with the file missing.
+    blob = models.ForeignKey(Blob, null=True, on_delete=models.PROTECT, related_name="+")
+
+    class Meta:
+        default_permissions = ()
+
+
 @receiver(pre_delete, sender=Workspace)
 def _remember_workspace_blobs(sender, instance, **kwargs):
     instance._blob_hashes = set(

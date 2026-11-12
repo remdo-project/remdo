@@ -15,6 +15,7 @@ const directlyRunsSkillTests = process.argv.some(argument =>
 // These tests exercise Node boundaries and do not need a DOM or an editor.
 const nodeTests = [
   'tests/unit/collab/account-fixture.collab.spec.ts',
+  'tests/unit/collab/workspace-room.collab.spec.ts',
   'plugins/openai/package.spec.ts',
   'tools/demo/*.spec.ts',
   'src/collaboration-server/server.spec.ts',

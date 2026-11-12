@@ -9,6 +9,8 @@ import * as Y from 'yjs';
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import { createEditorHandler } from '../headless/editor-handler';
+import { applyTree, saveTree } from '../headless/outline-tree/yjs';
+import type { Document as OutlineDocument } from '../headless/outline-tree/tree';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { decodePersistenceMessage, encodePersistenceMessage } from '#platform/net/persistence-barrier';
 import { COLLABORATION_AUTHORIZATION_REJECTED } from '#platform/net/authorization-error';
@@ -59,6 +61,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     }
   }, DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS);
   const queuedSaves = new Map<Document, Promise<void>>();
+  // A loaded workspace room's file version, which its Yjs state holds.
+  const workspaceVersions = new Map<string, string | null>();
   let revision = 0;
   let stopping = false;
   let server: Server;
@@ -128,16 +132,39 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     response.writeHead(204).end();
   }
 
+  /**
+   * Save a workspace room's tree as its file, with the state holding it. A file changed since the
+   * state's version is applied to the state, which then saves again.
+   */
+  async function saveWorkspaceRoom(name: string, doc: Y.Doc, version: string | null) {
+    for (;;) {
+      const { tree, state } = saveTree(doc);
+      const response = await requestDjango(endpoint(name, 'content'), {
+        method: 'PUT',
+        headers: { ...internalHeaders, 'Content-Type': 'application/json' },
+        body: Buffer.from(JSON.stringify({ state: Buffer.from(state).toString('base64'), tree, version })),
+        signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
+      });
+      if (response.status !== 409) return response;
+      const current = JSON.parse(response.body.toString()) as { version: string | null; tree: OutlineDocument };
+      applyTree(doc, current.tree);
+      version = current.version;
+      workspaceVersions.set(name, version);
+    }
+  }
+
   async function writeState(document: Document, state: Uint8Array) {
     if (deleted.has(document)) throw new DocumentDeleted();
     const savedRevision = dirty.get(document);
     try {
-      const response = await requestDjango(endpoint(document.name, 'content'), {
-        method: 'PUT',
-        headers: { ...internalHeaders, 'Content-Type': 'application/octet-stream' },
-        body: Buffer.from(state),
-        signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
-      });
+      const response = workspaceVersions.has(document.name)
+        ? await saveWorkspaceRoom(document.name, document, workspaceVersions.get(document.name)!)
+        : await requestDjango(endpoint(document.name, 'content'), {
+          method: 'PUT',
+          headers: { ...internalHeaders, 'Content-Type': 'application/octet-stream' },
+          body: Buffer.from(state),
+          signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
+        });
       if (response.status === 404) {
         deleted.add(document);
         dirty.delete(document);
@@ -148,6 +175,9 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
         throw new DocumentDeleted();
       }
       if (!response.ok) throw new Error('collaboration.store-failed');
+      if (workspaceVersions.has(document.name)) {
+        workspaceVersions.set(document.name, (JSON.parse(response.body.toString()) as { version: string | null }).version);
+      }
       if (dirty.get(document) === savedRevision) dirty.delete(document);
       clearTimeout(retries.get(document));
       retries.delete(document);
@@ -158,6 +188,45 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       // Hocuspocus logs hook failures: never attach the request, content, or original error.
       throw new Error('collaboration.store-failed');
     }
+  }
+
+  /**
+   * A workspace room's state. When it doesn't hold the current file, the file's tree is applied
+   * and saved before any client syncs, so every load after one change gives the same state.
+   */
+  async function loadWorkspaceRoom(name: string) {
+    let response: Awaited<ReturnType<typeof requestDjango>>;
+    try {
+      response = await requestDjango(endpoint(name, 'content'), {
+        headers: internalHeaders,
+        signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
+      });
+    } catch {
+      throw new CollaborationUnavailable('collaboration.load-failed');
+    }
+    if (response.status === 404) throw new DocumentDeleted();
+    if (!response.ok) throw new CollaborationUnavailable('collaboration.load-failed');
+    const loaded = JSON.parse(response.body.toString()) as {
+      version: string | null; state: string | null; tree?: OutlineDocument;
+    };
+    const doc = new Y.Doc();
+    if (loaded.state) Y.applyUpdate(doc, Buffer.from(loaded.state, 'base64'));
+    let version = loaded.version;
+    if (loaded.tree) {
+      applyTree(doc, loaded.tree);
+      let saved: Awaited<ReturnType<typeof requestDjango>>;
+      try {
+        saved = await saveWorkspaceRoom(name, doc, version);
+      } catch {
+        throw new CollaborationUnavailable('collaboration.load-failed');
+      }
+      if (!saved.ok) throw new CollaborationUnavailable('collaboration.load-failed');
+      version = (JSON.parse(saved.body.toString()) as { version: string | null }).version;
+    }
+    workspaceVersions.set(name, version);
+    const state = Y.encodeStateAsUpdate(doc);
+    doc.destroy();
+    return state;
   }
 
   function scheduleRetry(document: Document) {
@@ -203,7 +272,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     debounce: 1000,
     maxDebounce: 5000,
     extensions: [new Database({
-      fetch: async ({ documentName }) => {
+      fetch: async ({ documentName, context }: { documentName: string; context: { workspace?: boolean } }) => {
+        if (context.workspace) return loadWorkspaceRoom(documentName);
         let response: Awaited<ReturnType<typeof requestDjango>>;
         try {
           response = await requestDjango(endpoint(documentName, 'content'), {
@@ -268,7 +338,11 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       if (response.status === 401) throw new AuthorizationRejected();
       if ([403, 404].includes(response.status)) throw new Error('collaboration.access-denied');
       if (!response.ok) throw new CollaborationUnavailable();
-      return { operator };
+      const { workspace } = JSON.parse(response.body.toString()) as { workspace?: boolean };
+      return { operator, workspace: workspace === true };
+    },
+    async afterUnloadDocument({ documentName }) {
+      workspaceVersions.delete(documentName);
     },
     async onStateless({ connection, document, payload }) {
       const message = decodePersistenceMessage(payload);

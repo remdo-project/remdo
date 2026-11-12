@@ -464,10 +464,11 @@ Remaining:
   held as Markdown source in a workspace's Document wait for the editor to open
   those documents.
 
-- **Outline tree without a caller.** Node's [outline tree](architecture.md#outline-tree)
-  calls have no production caller until the cache row's save path uses them, so
-  the production unused-code audit fails. The cache row step of the
-  [text format plan](text-format-plan.md) closes this.
+- **Cache IDs through recovery.** [Workspace document state](architecture.md#workspace-document-state)
+  recovers from a changed file by applying its tree, which holds no cache IDs,
+  so every note is recreated: fold state, and zoom URLs to notes without an
+  `id::`, are lost. The cache ID step of the [text format plan](text-format-plan.md)
+  closes this by giving a recreated identical note its old cache ID.
 
 - **Early editor operations.** After the [text format migration](text-format-plan.md),
   revisit the editor's structural operations against
