@@ -193,6 +193,7 @@ class ReadingTests(SimpleTestCase):
             "0. zero\n1. one\n": None,
             "1. a\n\n3) b\n": "1. a\n3) b\n",
             "- ` a`\n": None,
+            "- `  a  `\n": None,
         }
         for source, expected in cases.items():
             with self.subTest(source=source):

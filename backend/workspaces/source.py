@@ -489,12 +489,11 @@ class Document(File):
             node.update(decode(self.content))
         return node
 
-    def with_id(self, note_id):
-        """Its notes with the ID `note_id`, the document itself included."""
+    def identified(self):
+        """Its notes that carry an ID, with their IDs, the document itself included."""
         return [
-            self if position is None else TextNote(self, position, note)
+            (note.id, self if position is None else TextNote(self, position, note))
             for position, note in _identified(self.parsed)
-            if note.id == note_id
         ]
 
     def note_at_position(self, position):
@@ -651,17 +650,20 @@ class WorkspaceCall(Call):
 
     def holders(self, note_id):
         """The notes of the workspace that carry an ID, the documents themselves included."""
-        cached = self.__dict__.setdefault("_holders", {})
-        if note_id not in cached:
-            if self.single_file:
-                documents = [README]
-            else:
-                documents = [p for p in self.tree.files if self.tree.kind(p) == "document"]
-                self.tree.load(documents)
-            cached[note_id] = [
-                note for path in documents for note in self.note_at(path).with_id(note_id)
-            ]
-        return cached[note_id]
+        return self._holders.get(note_id, [])
+
+    @cached_property
+    def _holders(self):
+        if self.single_file:
+            documents = [README]
+        else:
+            documents = [p for p in self.tree.files if self.tree.kind(p) == "document"]
+            self.tree.load(documents)
+        holders = {}
+        for path in documents:
+            for note_id, note in self.note_at(path).identified():
+                holders.setdefault(note_id, []).append(note)
+        return holders
 
     def note_with_id(self, note_id, field):
         found = self.holders(note_id)

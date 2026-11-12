@@ -637,6 +637,16 @@ class SingleFileWorkspaceTests(TestCase):
         )
         self.assertEqual(notes.read(self.owner, children[1]["ref"])["text"], "- b")
 
+    def test_reading_a_document_parses_it_a_fixed_number_of_times_whatever_its_ids(self):
+        content = "".join(f"- note {i}\n    - id:: n{i}\n" for i in range(5)).encode()
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, content)})
+
+        with mock.patch.object(source.text_format, "read", wraps=source.text_format.read) as read:
+            children = notes.read(self.owner, self.readme, depth=1)["children"]
+
+        self.assertEqual(len(children), 5)
+        self.assertLessEqual(read.call_count, 2)
+
     def test_a_document_holds_only_utf8_text(self):
         binary = {"content": "/wA=", "contentEncoding": "base64"}
 
