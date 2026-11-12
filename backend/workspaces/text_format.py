@@ -184,13 +184,18 @@ class _Reader:
         ordered = self.tokens[open_index].type == "ordered_list_open"
         start = self.tokens[open_index].attrGet("start")
         number = 1 if start is None else int(start)
+        # A list right after numbered notes starts again, even at 1, as Markdown numbers it.
+        previous = owner.children[-1] if owner.children else None
+        restarts = (
+            previous is not None and previous.kind == "outline" and previous.marker[0] == "number"
+        )
         first = True
         index = open_index + 1
         while index < close:
             if self.tokens[index].type == "list_item_open":
                 item_close = _close_of(self.tokens, index)
                 marker = (
-                    ("number", number if first and number != 1 else None)
+                    ("number", number if first and (number != 1 or restarts) else None)
                     if ordered
                     else ("bullet",)
                 )
@@ -571,7 +576,7 @@ def _reads_as_body(source):
 
 
 def _quoted(source):
-    return [f"> {line}".rstrip() for line in source]
+    return [f"> {line}" if line else ">" for line in source]
 
 
 def _note_text(note):

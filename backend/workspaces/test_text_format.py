@@ -201,6 +201,18 @@ class ReadingTests(SimpleTestCase):
                 self.assertEqual(written, expected or source)
                 self.assertEqual(text_format.write(text_format.read(written)), written)
 
+    def test_a_numbered_list_after_numbered_notes_starts_again(self):
+        source = "1. a\n2. b\n\n1) c\n"
+        notes = text_format.read(source).children
+        self.assertEqual(
+            [note.marker for note in notes], [("number", None), ("number", None), ("number", 1)]
+        )
+        self.assertEqual(text_format.write(text_format.read(source)), "1. a\n2. b\n1) c\n")
+
+    def test_a_body_line_keeps_its_trailing_whitespace(self):
+        source = "- a\n    > broken  \n    > line\n"
+        self.assertEqual(text_format.write(text_format.read(source)), source)
+
     def test_a_numbered_list_keeps_a_first_number_other_than_one(self):
         source = "- parent\n\n    3. three\n    4. four\n"
         [note] = text_format.read(source).children
