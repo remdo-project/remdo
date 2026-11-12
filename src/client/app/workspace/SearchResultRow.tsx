@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { ChildPreview as SearchChildPreview, EditorNoteSnapshot, SearchResult } from '#note-sdk';
+import { noteMarkerAttributes } from '#client/editor/view/workspace';
 import { bodySnippet } from '#client/search/body-snippet';
 import { queryMatchRanges } from '#client/search/query-match';
 import { UNTITLED_LABEL, formatNavigationLabel, normalizeNavigationLabel } from '#client/ui/navigation-label';
@@ -220,13 +221,10 @@ function ChildPreview({ preview }: { preview: SearchChildPreview }) {
           const marker = markers[index]!;
           return (
             <li
-              className="list-item"
-              data-marker={marker.kind}
-              data-number={marker.number ?? undefined}
-              data-heading-level={marker.headingLevel ?? undefined}
-              data-checkbox={marker.checkbox ? 'true' : undefined}
-              data-note-checked={child.checked ? 'true' : undefined}
               key={child.id}
+              className="list-item"
+              {...noteMarkerAttributes(marker)}
+              data-note-checked={child.checked ? 'true' : undefined}
             >
               {child.text.length > 0 ? formatNavigationLabel(child.text) : '(empty note)'}
             </li>

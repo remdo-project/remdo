@@ -121,29 +121,29 @@ class _Reader:
         def unquoted(first, stop):
             return [re.sub(r"^\s*>\s?", "", line) for line in self.lines[first:stop]]
 
-        def uncovered(first, stop, lines):
-            while first < stop and not self.lines[first].strip():
-                first += 1
-            while stop > first and not self.lines[stop - 1].strip():
-                stop -= 1
-            if first < stop:
-                body(lines(first, stop))
+        def gap(lines):
+            while lines and not lines[0].strip():
+                lines = lines[1:]
+            while lines and not lines[-1].strip():
+                lines = lines[:-1]
+            if lines:
+                body(lines)
 
         def wrapper(index, close):
             first, stop = self.tokens[index].map
+            level = self.tokens[index].level + 1
             inner_last = first
             for inner in self.tokens[index + 1 : close]:
-                if inner.level != self.tokens[index].level + 1 or inner.nesting == -1:
-                    continue
-                if inner.map is None:
+                if inner.level != level or inner.nesting == -1 or inner.map is None:
                     continue
                 inner_first, inner_stop = inner.map
-                if any(line.strip() for line in unquoted(inner_last, inner_first)):
-                    body(unquoted(inner_last, inner_first))
+                gap(unquoted(inner_last, inner_first))
                 body(unquoted(inner_first, inner_stop))
                 inner_last = inner_stop
-            if inner_last == first or any(line.strip() for line in unquoted(inner_last, stop)):
-                body(unquoted(inner_last, stop))
+            if inner_last == first:
+                body(unquoted(first, stop))
+            else:
+                gap(unquoted(inner_last, stop))
 
         index = start
         while index < end:
@@ -153,7 +153,7 @@ class _Reader:
                 continue
             first, stop = token.map
             if last is not None:
-                uncovered(last, first, lambda a, b: _dedent(self.lines[a:b], indent))
+                gap(_dedent(self.lines[last:first], indent))
             last = stop
             close = _close_of(self.tokens, index) if token.nesting == 1 else index
             if token.type == "heading_open" and on_heading:
@@ -170,7 +170,7 @@ class _Reader:
             index = close + 1
         tail = region[1] if region else len(self.lines)
         if last is not None:
-            uncovered(last, tail, lambda a, b: _dedent(self.lines[a:b], indent))
+            gap(_dedent(self.lines[last:tail], indent))
 
     def _holds_structure(self, open_index, close):
         level = self.tokens[open_index].level + 1

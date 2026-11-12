@@ -1,9 +1,9 @@
-import { $getNoteByText, getNoteElement, meta, setRawNoteCheckedState } from '#tests';
-import type { ListNode } from '@lexical/list';
-import { $getRoot, $setState } from 'lexical';
+import { $getNoteByText, getNoteElement, meta, placeCaretAtNote, setRawNoteCheckedState, typeText } from '#tests';
+import { $setState } from 'lexical';
 import { expect, it } from 'vitest';
 
 import type { RemdoTestApi } from '#client/editor/dev';
+import { $requireRootContentList } from '#client/editor/outline/schema';
 import { checkboxState, markerState } from './note-marker';
 
 const NOTES = ['note1', 'note2', 'note3'];
@@ -16,7 +16,7 @@ const shown = (remdo: RemdoTestApi) =>
 
 const setListType = (remdo: RemdoTestApi, type: 'bullet' | 'number' | 'check') =>
   remdo.mutate(() => {
-    ($getRoot().getFirstChild() as ListNode).setListType(type);
+    $requireRootContentList().setListType(type);
   });
 
 it('shows an editor document list type on each of its notes', meta({ fixture: 'flat' }), async ({ remdo }) => {
@@ -75,4 +75,17 @@ it('gives a checked note a ticked box in any list', meta({ fixture: 'flat' }), a
     'true',
   ]);
   expect(getNoteElement(remdo, 'note1').dataset.checkbox).toBeUndefined();
+});
+
+it('keeps a checked note its checkbox semantics while its text is edited', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  await setRawNoteCheckedState(remdo, 'note2', true);
+  await placeCaretAtNote(remdo, 'note2', Number.POSITIVE_INFINITY);
+  await typeText(remdo, 'x');
+
+  const note2 = getNoteElement(remdo, 'note2x');
+  expect([note2.dataset.checkbox, note2.getAttribute('role'), note2.getAttribute('aria-checked')]).toEqual([
+    'true',
+    'checkbox',
+    'true',
+  ]);
 });

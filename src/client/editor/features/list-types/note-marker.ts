@@ -1,7 +1,8 @@
-import { $isListNode } from '@lexical/list';
-import type { ListItemNode } from '@lexical/list';
+import { $isListNode, ListItemNode } from '@lexical/list';
 import { $getState, createState } from 'lexical';
 import type { NoteMarkerView } from '#note-sdk';
+import { isWrapperItem } from '#client/editor/outline/list-structure';
+import { noteMarkerAttributes } from '#client/editor/outline/note-marker-attributes';
 import { patchListItemStateConfig } from '#client/editor/runtime/list-item-state-config';
 import { $getNoteChecked } from './checked-state';
 
@@ -30,6 +31,45 @@ export function ensureNoteMarkerStateConfig(): void {
   patchListItemStateConfig(markerState);
   patchListItemStateConfig(checkboxState);
   patchListItemStateConfig(verbatimState);
+  patchListItemMarkerDOM();
+}
+
+// Lexical rewrites a list item's checkbox semantics whenever it renders the item, keeping them only
+// in check lists, so a note's own marker attributes are written in that same step. Its number
+// depends on its siblings and is written by NoteMarkerPlugin.
+function patchListItemMarkerDOM(): void {
+  const original = ListItemNode.prototype.updateListItemDOM;
+  ListItemNode.prototype.updateListItemDOM = function $updateListItemDOM(
+    this: ListItemNode,
+    ...args: Parameters<ListItemNode['updateListItemDOM']>
+  ) {
+    original.apply(this, args);
+    if (isWrapperItem(this)) {
+      return;
+    }
+    const [view] = $noteMarkerViews([this]);
+    const { 'data-number': _number, ...attributes } = noteMarkerAttributes(view!);
+    const dom = args[1];
+    setAttributes(dom, attributes);
+    const list = this.getParent();
+    if (view!.checkbox && !($isListNode(list) && list.getListType() === 'check')) {
+      setAttributes(dom, {
+        role: 'checkbox',
+        tabIndex: '-1',
+        'aria-checked': $getNoteChecked(this) === true ? 'true' : 'false',
+      });
+    }
+  };
+}
+
+export function setAttributes(element: HTMLElement, attributes: Record<string, string | undefined>): void {
+  for (const [name, value] of Object.entries(attributes)) {
+    if (value === undefined) {
+      element.removeAttribute(name);
+    } else if (element.getAttribute(name) !== value) {
+      element.setAttribute(name, value);
+    }
+  }
 }
 
 // Editor documents keep a list's type on the list until they move to the text format, so a note
