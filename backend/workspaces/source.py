@@ -17,6 +17,8 @@ from .models import WORKSPACE_NAME_MAX_LENGTH
 DOCUMENT_SUFFIX = ".md"
 README = "README.md"
 MISSING_WORKSPACE = "The workspace is not available. Read the account root for them."
+# Bounded positions stay under Python's limit on digits converted to an int.
+POSITIONED = re.compile(rf"(.+{re.escape(DOCUMENT_SUFFIX)})/(\d{{1,9}}(?:/\d{{1,9}})*)")
 
 
 def decode(content):
@@ -488,11 +490,12 @@ class Document(File):
             node.update(decode(self.content))
         return node
 
-    def identified(self):
-        """Its notes that carry an ID, the document itself included when it has one."""
+    def with_id(self, note_id):
+        """Its notes with the ID `note_id`, the document itself included."""
         return [
             self if position is None else TextNote(self, position, note)
             for position, note in _identified(self.parsed)
+            if note.id == note_id
         ]
 
     def note_at_position(self, position):
@@ -506,7 +509,7 @@ class Document(File):
 
     def check_content(self, current, content):
         self.check_text(self.call, content)
-        if sorted(ids_in(content)) != sorted(note.id for _, note in _identified(self.parsed)):
+        if sorted(ids_in(content)) != sorted(ids_in(current)):
             self.call.refuse("INVALID_ARGUMENT", "content: Set content can't add or remove IDs.")
 
 
@@ -638,26 +641,21 @@ class WorkspaceCall(Call):
 
     def positioned(self, path):
         """The document and position a note's positional handle names, if it is one."""
-        document_path, _, rest = path.partition(DOCUMENT_SUFFIX + "/")
-        if not rest or not re.fullmatch(r"\d+(?:/\d+)*", rest):
+        match = POSITIONED.fullmatch(path)
+        if not match:
             return None, None
-        document_path += DOCUMENT_SUFFIX
+        document_path, rest = match.groups()
         if not self.is_readme(document_path) and self.tree.kind(document_path) != "document":
             return None, None
         return self.note_at(document_path), tuple(int(index) for index in rest.split("/"))
 
     def note_with_id(self, note_id, field):
-        documents = (
-            [README]
-            if self.single_file
-            else [path for path in self.tree.files if self.tree.kind(path) == "document"]
-        )
-        found = [
-            note
-            for path in documents
-            for note in self.note_at(path).identified()
-            if (note.parsed.id if isinstance(note, Document) else note.note.id) == note_id
-        ]
+        if self.single_file:
+            documents = [README]
+        else:
+            documents = [path for path in self.tree.files if self.tree.kind(path) == "document"]
+            self.tree.load(documents)
+        found = [note for path in documents for note in self.note_at(path).with_id(note_id)]
         if len(found) != 1:
             # Two notes sharing an ID resolve to neither (docs/specs/outliner/note-ids.md).
             reason = "no note has" if not found else "more than one note has"

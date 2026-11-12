@@ -191,6 +191,27 @@ class ReadingTests(SimpleTestCase):
         )
         self.assertEqual(text_format.write(text_format.read(source)), source)
 
+    def test_a_block_on_a_list_items_marker_line_is_its_child(self):
+        cases = {
+            "- # heading\n": ("body", ["# heading"]),
+            "- > quote\n": ("body", ["quote"]),
+            "- - nested\n": ("outline", ["- nested"]),
+            "-\n  below\n": ("body", ["below"]),
+        }
+        for source, (kind, lines) in cases.items():
+            with self.subTest(source=source):
+                [note] = text_format.read(source).children
+                [child] = note.children
+                self.assertEqual((note.source, child.kind, child.source), (["-"], kind, lines))
+
+    def test_a_setext_heading_carries_its_underline(self):
+        [heading] = text_format.read("Title\n=====\n").children
+        self.assertEqual(heading.source, ["Title", "====="])
+
+    def test_a_note_after_a_first_property_line_keeps_its_number(self):
+        [note] = text_format.read("3. id:: x\n4. four\n").children
+        self.assertEqual(note.marker, ("number", 4))
+
     def test_a_block_after_a_list_items_text_is_one_body(self):
         [note] = text_format.read("- a\n\n    paragraph\n\n    > quote\n").children
         self.assertEqual([child.kind for child in note.children], ["body"])

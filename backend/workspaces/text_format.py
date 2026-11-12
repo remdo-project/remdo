@@ -92,7 +92,8 @@ class _Reader:
             while len(sections) > 1 and sections[-1][0] >= level:
                 sections.pop()
             inline = self.tokens[index + 1]
-            note = Note("outline", [self.lines[token.map[0]].strip()], ("heading", level))
+            source = [line.strip() for line in self.lines[token.map[0] : token.map[1]]]
+            note = Note("outline", source, ("heading", level))
             self.fill(note, inline.content, inline)
             owner().children.append(note)
             sections.append((level, note))
@@ -161,17 +162,21 @@ class _Reader:
 
     def list(self, open_index, close, owner):
         ordered = self.tokens[open_index].type == "ordered_list_open"
-        start = int(self.tokens[open_index].attrGet("start") or 1)
+        number = int(self.tokens[open_index].attrGet("start") or 1)
         first = True
         index = open_index + 1
         while index < close:
             if self.tokens[index].type == "list_item_open":
                 item_close = _close_of(self.tokens, index)
                 marker = (
-                    ("number", start if first and start != 1 else None) if ordered else ("bullet",)
+                    ("number", number if first and number != 1 else None)
+                    if ordered
+                    else ("bullet",)
                 )
-                self.item(index, item_close, owner, marker)
-                first = False
+                # A property line isn't a child, so the first note after it keeps its number.
+                if self.item(index, item_close, owner, marker):
+                    first = False
+                number += 1
                 index = item_close
             index += 1
 
@@ -191,12 +196,22 @@ class _Reader:
                 value = text.partition("::")[2].strip()
                 if NOTE_ID.fullmatch(value):
                     owner.id = value
-            return
-        text_end = _close_of(self.tokens, open_index + 1) + 1 if inline else open_index + 1
-        stop = self.tokens[open_index + 1].map[1] if inline else line + 1
-        source = _dedent(
-            self.lines[line:stop], len(self.lines[line]) - len(self.lines[line].lstrip())
-        )
+            return False
+        indent = _item_indent(self.lines[line])
+        if inline:
+            text_end = _close_of(self.tokens, open_index + 1) + 1
+            stop = self.tokens[open_index + 1].map[1]
+            source = _dedent(
+                self.lines[line:stop], len(self.lines[line]) - len(self.lines[line].lstrip())
+            )
+        else:
+            text_end = open_index + 1
+            stop = line + 1
+            source = [self.lines[line][:indent].strip()]
+            if after is not None and after.map and after.map[0] == line:
+                # A block starting on the marker's line is a child; it reads without the marker.
+                stop = line
+                self.lines[line] = " " * indent + self.lines[line][indent:]
         note = Note("outline", source, marker)
         checkbox = CHECKBOX.match(content)
         if checkbox:
@@ -205,7 +220,8 @@ class _Reader:
         self.fill(note, content, inline, bool(checkbox))
         owner.children.append(note)
         region = (stop, self.tokens[open_index].map[1])
-        self.blocks(text_end, close, lambda: note, _item_indent(self.lines[line]), region=region)
+        self.blocks(text_end, close, lambda: note, indent, region=region)
+        return True
 
     def fill(self, note, content, inline, checkbox=False):
         if inline is None:
@@ -386,8 +402,13 @@ def _close_of(tokens, open_index):
 
 
 def _item_indent(line):
-    match = re.match(r"^(\s*)([-*+]|\d+[.)])(\s+|$)", line)
-    return len(match.group(0)) if match else 0
+    match = re.match(r"^(\s*)([-*+]|\d+[.)])(\s*)(\S?)", line)
+    if not match:
+        return 0
+    indent, marker, spaces, text = match.groups()
+    # CommonMark: content after a blank marker line, or after an indented code start, sits one
+    # column past the marker.
+    return len(indent) + len(marker) + (len(spaces) if text and len(spaces) <= 4 else 1)
 
 
 def _dedent(lines, limit):

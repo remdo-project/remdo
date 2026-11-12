@@ -620,6 +620,11 @@ class SingleFileWorkspaceTests(TestCase):
                 notes.read(self.owner, ref)
             self.assertEqual(refusal.exception.code, "NOT_FOUND")
 
+    def test_a_handle_too_long_to_name_a_position_is_refused(self):
+        with self.assertRaises(notes.Refusal) as refusal:
+            notes.read(self.owner, f"{self.workspace.pk}/README.md/{'9' * 5000}")
+        self.assertEqual(refusal.exception.code, "INVALID_ARGUMENT")
+
     def test_a_document_holds_only_utf8_text(self):
         binary = {"content": "/wA=", "contentEncoding": "base64"}
 
