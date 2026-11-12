@@ -165,9 +165,10 @@ the document's ID and children, each outline note's marker, checkbox, name,
 text, ID, cache ID and children, and each body's lines as written. Fold state
 stays out of it.
 
-- **Read** returns the tree of a document's current Yjs state. Writing that
-  tree as text and reading the text back gives the same tree, cache IDs aside.
-  **Deterministic.**
+- **Read** returns the tree of a document's current Yjs state, with notes
+  nested under a body as the notes after it. For structure the text format can
+  hold, writing that tree as text and reading the text back gives the same
+  tree, cache IDs aside. **Deterministic.**
 - **Save** returns the tree together with the Yjs state it was read from.
 - **Apply** changes a document's Yjs state to hold a given tree. A tree note
   holding a cache ID updates the note holding it, a tree note without one is
@@ -246,8 +247,10 @@ the same database.
 ### Workspace document state
 
 A workspace's document is a hub room named by the workspace's ID, open to its
-owner. Its cache row holds the document's Yjs state and the file version that
-state was saved as, and is deleted with its workspace.
+owner's browser sessions; integrations change it through
+[note operations](specs/outliner/note-operations.md). Its cache row holds the
+document's Yjs state and the file version that state was saved as, and is
+deleted with its workspace.
 
 - **Load:** when the row's version is the document's current file version, the
   room loads the row's state. Otherwise, with no row or after the file changed

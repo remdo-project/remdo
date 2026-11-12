@@ -6,6 +6,7 @@ import type { Mark, Run } from './tree';
 const NAME = /^(.*?[^\\\s])::(?: |$)/;
 const NOT_PLAIN = /[*_`[\]<&\\]/;
 const EDGE_MARKS: readonly Mark[] = ['bold', 'italic', 'strike', 'underline'];
+const PROPERTIES = new Set(['id']);
 
 /** The name `text` starts with, when it reads as `name:: text`. */
 export function nameOf(text: string): string | null {
@@ -26,7 +27,8 @@ export function splitName(text: string): { name: string | null; rest: string } {
     if (name !== null && name.length === escape) return { name: null, rest: unescaped };
   }
   const name = nameOf(text);
-  if (name === null) return { name: null, rest: text };
+  // A property's name would make the note a property line, which isn't a note.
+  if (name === null || PROPERTIES.has(name)) return { name: null, rest: text };
   return { name, rest: text.slice(name.length + 2).replace(/^\s/, '') };
 }
 

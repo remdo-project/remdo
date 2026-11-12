@@ -84,6 +84,18 @@ describe('workspace rooms', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     }
   });
 
+  it('open an empty workspace without writing its file', async () => {
+    const workspace = await createWorkspace('');
+    const room = await open(workspace);
+    try {
+      await room.persisted();
+
+      expect((await readme(workspace)).version ?? null).toBeNull();
+    } finally {
+      room.close();
+    }
+  });
+
   it('save the state recovered from the file before any client syncs', async () => {
     const workspace = await createWorkspace('- a\n');
     const room = await open(workspace);

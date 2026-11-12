@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { $isListItemNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
-import { $getRoot, $isElementNode, $isTextNode, createEditor } from 'lexical';
+import { $getRoot, $isElementNode, $isTextNode, $setState, createEditor } from 'lexical';
 import type { LexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
 import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
+import { $getOrCreateChildList } from '#client/editor/outline/list-structure';
 import { editorConfig } from '#client/editor/runtime/config';
-import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
+import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { $applyTree } from './apply';
 import { $readTree } from './read';
 import { normalizeRuns, trimRuns } from './runs';
@@ -166,6 +167,48 @@ describe('applying to an editor', () => {
     }
     throw new Error(`No note holds ${cacheId}`);
   }
+
+  it('reads a note typed as a property line as its text', () => {
+    const editor = editorWith({ id: null, children: [note('placeholder')] });
+    const cacheId = (editor.getEditorState().read($readTree).children[0] as OutlineNote).cacheId!;
+    editor.update(() => {
+      const typed = $item(cacheId).getFirstChild();
+      if ($isTextNode(typed)) typed.setTextContent('id:: x');
+    }, { discrete: true });
+
+    expect(withoutCacheIds(editor.getEditorState().read($readTree))).toEqual(withoutCacheIds({ id: null, children: [note('id:: x')] }));
+  });
+
+  it('deletes every note the tree doesn\'t hold, including a second holder of a cache ID', () => {
+    const editor = editorWith({ id: null, children: [note('first'), note('second')] });
+    const [first, second] = editor.getEditorState().read($readTree).children as OutlineNote[];
+    editor.update(() => $setState($item(second!.cacheId!), noteIdState, first!.cacheId!), { discrete: true });
+
+    editor.update(() => $applyTree({ id: null, children: [first!] }), { discrete: true });
+
+    expect(editor.getEditorState().read($readTree)).toEqual({ id: null, children: [first] });
+  });
+
+  it('gives a note created twice from one cache ID a fresh one the second time', () => {
+    const editor = editorWith({ id: null, children: [note('a', { cacheId: 'same' }), note('b', { cacheId: 'same' })] });
+    const [a, b] = editor.getEditorState().read($readTree).children as OutlineNote[];
+
+    expect(a!.cacheId).toBe('same');
+    expect(b!.cacheId).not.toBe('same');
+  });
+
+  it('reads notes nested under a body as the notes after it', () => {
+    const editor = editorWith({ id: null, children: [{ kind: 'body', source: ['text'], cacheId: null }, note('under')] });
+    const [body, under] = editor.getEditorState().read($readTree).children;
+    editor.update(() => {
+      const nested = $getOrCreateChildList($item(body!.cacheId!));
+      nested.append($item(under!.cacheId!));
+    }, { discrete: true });
+
+    expect(withoutCacheIds(editor.getEditorState().read($readTree))).toEqual(withoutCacheIds({
+      id: null, children: [{ kind: 'body', source: ['text'], cacheId: null }, note('under')],
+    }));
+  });
 
   it('keeps the fold state of a note it moves and changes', () => {
     const editor = editorWith({ id: null, children: [note('a', { children: [note('x')] }), note('b')] });

@@ -29,8 +29,10 @@ export function $applyTree(document: Document): void {
   const list = root.getFirstChild();
   if (!$isListNode(list)) throw new Error('A normalized outline root holds one list.');
   const live = new Map<string, ListItemNode>();
+  const items: ListItemNode[] = [];
   const collect = (from: ListNode) => {
     for (const item of getContentSiblings(from)) {
+      items.push(item);
       const cacheId = $getNoteId(item);
       if (cacheId !== null && !live.has(cacheId)) live.set(cacheId, item);
       const nested = getNestedList(item);
@@ -40,7 +42,7 @@ export function $applyTree(document: Document): void {
   collect(list);
   const kept = new Set<ListItemNode>();
   $applyChildren(list, document.children, live, kept);
-  for (const item of [...live.values()]) {
+  for (const item of items) {
     if (!kept.has(item) && item.isAttached()) removeNoteSubtree(item);
   }
 }
@@ -58,7 +60,11 @@ function $applyChildren(list: ListNode, notes: readonly TreeNote[], live: Map<st
     let item = targets[index];
     if (!item) {
       item = $createListItemNode();
-      $setState(item, noteIdState, (note.kind === 'outline' ? note.id : null) ?? note.cacheId ?? createUniqueNoteId());
+      // A cache ID another note holds would duplicate it, so the created note gets a fresh one.
+      const claimed = (note.kind === 'outline' ? note.id : null) ?? note.cacheId;
+      const cacheId = claimed !== null && !live.has(claimed) ? claimed : createUniqueNoteId();
+      $setState(item, noteIdState, cacheId);
+      live.set(cacheId, item);
       $setState(item, markerState, note.kind === 'body' ? 'block' : markerToEditor(note.marker));
       kept.add(item);
       $place(list, previous, [item]);

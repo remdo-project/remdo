@@ -67,6 +67,14 @@ class WorkspaceRoomTests(TestCase):
         self.owner = User.objects.get(pk=self.owner.pk)
         self.assertEqual(authorize(self.owner).status_code, 403)
 
+    def test_integrations_cannot_open_the_room(self):
+        with patch("documents.internal.delegated_user", return_value=self.owner):
+            response = self.client.get(
+                self.base + "/authorize", HTTP_AUTHORIZATION="Bearer token", **self.headers
+            )
+
+        self.assertEqual(response.status_code, 403)
+
     def test_an_empty_workspace_loads_and_saves_without_writing_a_file(self):
         self.assertEqual(self.load(), {"version": None, "state": None, "tree": EMPTY})
 

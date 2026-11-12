@@ -42,7 +42,11 @@ export function $readTree(): Document {
 function $readNotes(list: ListNode): TreeNote[] {
   const notes: TreeNote[] = [];
   for (const item of getContentSiblings(list)) {
-    notes.push($readNote(item, list.getListType(), { afterNumber: isNumbered(notes.at(-1)) }));
+    const note = $readNote(item, list.getListType(), { afterNumber: isNumbered(notes.at(-1)) });
+    notes.push(note);
+    // A body has no children, so notes nested under one read as the notes after it.
+    const nested = note.kind === 'body' ? getNestedList(item) : null;
+    if (nested) notes.push(...$readNotes(nested));
   }
   return notes;
 }

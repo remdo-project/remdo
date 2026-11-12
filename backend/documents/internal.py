@@ -53,6 +53,9 @@ def authorize(request, document_id):
             get_object_or_404(Document, pk=document_id)
             return JsonResponse({"operator": True})
         return JsonResponse({"operator": True, "workspace": True})
+    if workspace is not None and bearer_token(request.headers.get("Authorization", "")):
+        # Integrations change a workspace through note operations; its room is the browser's.
+        return HttpResponse(status=403)
     user = _caller(request)
     if isinstance(user, HttpResponse):
         return user
