@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 
 import { getContentSiblings } from '#client/editor/outline/list-structure';
 import { NoteCheckedDisplayCache } from './checked-subtree';
-import { $getNoteMarker, $hasNoteCheckbox } from './note-marker';
+import { $noteMarkerViews } from './note-marker';
 
 function setData(element: HTMLElement, key: string, value: string | undefined): void {
   if (value === undefined) {
@@ -19,43 +19,32 @@ function setData(element: HTMLElement, key: string, value: string | undefined): 
 
 const ARIA_CHECKED = { checked: 'true', mixed: 'mixed', unchecked: 'false' } as const;
 
-function $syncCheckbox(
-  element: HTMLElement,
-  note: ListItemNode,
-  list: ListNodeType,
-  displays: NoteCheckedDisplayCache
-): void {
-  if (!$hasNoteCheckbox(note)) {
-    delete element.dataset.checkbox;
-    element.removeAttribute('role');
-    element.removeAttribute('tabindex');
-    element.removeAttribute('aria-checked');
-    return;
-  }
-  element.dataset.checkbox = 'true';
-  // Lexical gives only a check list's notes checkbox semantics, and resets them when it reconciles.
-  if (list.getListType() !== 'check') {
-    element.setAttribute('role', 'checkbox');
-    element.setAttribute('tabindex', '-1');
-    element.setAttribute('aria-checked', ARIA_CHECKED[displays.get(note)]);
-  }
-}
-
 function $syncList(editor: LexicalEditor, list: ListNodeType, displays: NoteCheckedDisplayCache): void {
-  let previous: number | null = null;
-  for (const note of getContentSiblings(list)) {
-    const [type, detail] = $getNoteMarker(note).split(':');
-    const number: number | null = type === 'number' ? (detail === undefined ? (previous ?? 0) + 1 : Number(detail)) : null;
-    previous = number;
+  const notes = getContentSiblings(list);
+  $noteMarkerViews(notes).forEach((view, index) => {
+    const note = notes[index]!;
     const element = editor.getElementByKey(note.getKey());
     if (!(element instanceof HTMLElement)) {
-      continue;
+      return;
     }
-    setData(element, 'marker', type);
-    setData(element, 'number', number === null ? undefined : String(number));
-    setData(element, 'headingLevel', type === 'heading' ? detail : undefined);
-    $syncCheckbox(element, note, list, displays);
-  }
+    setData(element, 'marker', view.kind);
+    setData(element, 'number', view.number === null ? undefined : String(view.number));
+    setData(element, 'headingLevel', view.headingLevel === null ? undefined : String(view.headingLevel));
+    setData(element, 'checkbox', view.checkbox ? 'true' : undefined);
+    // Lexical gives only a check list's notes checkbox semantics, and resets them when it reconciles.
+    if (list.getListType() === 'check') {
+      return;
+    }
+    if (view.checkbox) {
+      element.setAttribute('role', 'checkbox');
+      element.setAttribute('tabindex', '-1');
+      element.setAttribute('aria-checked', ARIA_CHECKED[displays.get(note)]);
+    } else {
+      element.removeAttribute('role');
+      element.removeAttribute('tabindex');
+      element.removeAttribute('aria-checked');
+    }
+  });
 }
 
 export function NoteMarkerPlugin() {

@@ -1,6 +1,7 @@
 import { $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import { $getState, createState } from 'lexical';
+import type { NoteMarkerView } from '#note-sdk';
 import { patchListItemStateConfig } from '#client/editor/runtime/list-item-state-config';
 import { $getNoteChecked } from './checked-state';
 
@@ -48,4 +49,20 @@ export function $hasNoteCheckbox(note: ListItemNode): boolean {
   }
   const list = note.getParent();
   return $isListNode(list) && list.getListType() === 'check';
+}
+
+/** How consecutive sibling notes' markers show, numbering each from its start or the note before it. */
+export function $noteMarkerViews(siblings: readonly ListItemNode[]): NoteMarkerView[] {
+  let previous: number | null = null;
+  return siblings.map((note) => {
+    const [kind, detail] = $getNoteMarker(note).split(':') as [NoteMarkerView['kind'], string | undefined];
+    const number = kind === 'number' ? (detail === undefined ? (previous ?? 0) + 1 : Number(detail)) : null;
+    previous = number;
+    return {
+      kind,
+      number,
+      headingLevel: kind === 'heading' ? Number(detail) : null,
+      checkbox: $hasNoteCheckbox(note),
+    };
+  });
 }

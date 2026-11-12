@@ -457,8 +457,7 @@ Remaining:
   gives each note its own marker and checkbox. The editor stores and shows
   them, but its gestures still change a list's type on the list, unchecking
   removes a box outside a check list instead of leaving it open, and `Enter`'s
-  new note takes no stored marker or checkbox. The search preview still shows
-  a list's type rather than each note's marker. The editor schema step of the
+  new note takes no stored marker or checkbox. The editor schema step of the
   [text format plan](text-format-plan.md) closes this with gestures, including
   Insertion's appended notes and the menu's checkbox action. Body lines and
   notes kept as Markdown source are stored but shown as plain notes until the
