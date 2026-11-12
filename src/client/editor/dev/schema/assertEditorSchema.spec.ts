@@ -95,7 +95,7 @@ describe('assertEditorSchema', () => {
     'reports when a nested list lacks list item children',
     meta({ expectedConsoleIssues: ['runtime.invariant list-wrapper-no-listitem path=0'] }),
     () => {
-      assertEditorSchema(editNotes(buildFixtureState('- note1\n    - note2'), { note2: (note) => note.children! }));
+      assertEditorSchema(editNotes(buildFixtureState('- note1\n    - note2'), { note2: (note) => note.children }));
     }
   );
 

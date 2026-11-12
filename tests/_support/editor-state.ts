@@ -1,13 +1,9 @@
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
+import type { SerializedNoteLinkNode } from '#client/editor/features/links/note-link-node';
 import { transformSerializedEditorState } from '#client/editor/runtime/serialized-editor-state';
 import { stripEditorStateDefaults } from '#tools/editor-state-defaults';
-
-interface NoteLinkSerializedNode extends SerializedLexicalNode {
-  type: 'note-link';
-  docId?: unknown;
-}
 
 /** Drops each note link's document ID where it names the current document, as fixtures store links. */
 export function prepareEditorStateForPersistence(
@@ -22,7 +18,7 @@ export function prepareEditorStateForPersistence(
     if (node.type !== 'note-link') {
       return node;
     }
-    const typedNode = node as NoteLinkSerializedNode;
+    const typedNode = node as SerializedNoteLinkNode;
     if (typedNode.docId === normalizedDocId) {
       const withoutDocId = { ...typedNode };
       delete withoutDocId.docId;
