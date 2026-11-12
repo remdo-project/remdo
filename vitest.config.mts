@@ -19,6 +19,7 @@ const nodeTests = [
   'tools/demo/*.spec.ts',
   'src/collaboration-server/server.spec.ts',
   'src/headless/editor-handler.spec.ts',
+  'src/headless/outline-tree/outline-tree.spec.ts',
   'tests/unit/editor-state-defaults.spec.ts',
   'src/client/editor/runtime/editor-state-persistence.spec.ts',
   'src/client/editor/runtime/serialized-editor-state.spec.ts',

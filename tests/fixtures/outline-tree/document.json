@@ -1,0 +1,292 @@
+{
+  "id": "Doc1",
+  "children": [
+    {
+      "kind": "body",
+      "source": [
+        "Intro paragraph",
+        "soft-wrapped across lines."
+      ],
+      "cacheId": null
+    },
+    {
+      "kind": "body",
+      "source": [
+        "A second body."
+      ],
+      "cacheId": null
+    },
+    {
+      "kind": "outline",
+      "marker": {
+        "kind": "heading",
+        "level": 2
+      },
+      "checkbox": null,
+      "name": null,
+      "runs": [
+        {
+          "kind": "text",
+          "text": "Title",
+          "marks": []
+        }
+      ],
+      "id": null,
+      "cacheId": null,
+      "children": [
+        {
+          "kind": "outline",
+          "marker": {
+            "kind": "bullet"
+          },
+          "checkbox": null,
+          "name": null,
+          "runs": [
+            {
+              "kind": "text",
+              "text": "plain ",
+              "marks": []
+            },
+            {
+              "kind": "text",
+              "text": "bold",
+              "marks": [
+                "bold"
+              ]
+            },
+            {
+              "kind": "text",
+              "text": " and ",
+              "marks": []
+            },
+            {
+              "kind": "text",
+              "text": "code",
+              "marks": [
+                "code"
+              ]
+            }
+          ],
+          "id": "k3x9",
+          "cacheId": null,
+          "children": []
+        },
+        {
+          "kind": "outline",
+          "marker": {
+            "kind": "number",
+            "start": 3
+          },
+          "checkbox": "checked",
+          "name": null,
+          "runs": [
+            {
+              "kind": "text",
+              "text": "see ",
+              "marks": []
+            },
+            {
+              "kind": "link",
+              "href": "note:k3x9",
+              "runs": [
+                {
+                  "kind": "text",
+                  "text": "it",
+                  "marks": [
+                    "italic"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "text",
+              "text": " on ",
+              "marks": []
+            },
+            {
+              "kind": "date",
+              "date": "2026-11-01"
+            }
+          ],
+          "id": null,
+          "cacheId": null,
+          "children": []
+        },
+        {
+          "kind": "outline",
+          "marker": {
+            "kind": "number",
+            "start": null
+          },
+          "checkbox": "open",
+          "name": "Status",
+          "runs": [
+            {
+              "kind": "text",
+              "text": "task",
+              "marks": []
+            }
+          ],
+          "id": null,
+          "cacheId": null,
+          "children": []
+        },
+        {
+          "kind": "outline",
+          "marker": {
+            "kind": "bullet"
+          },
+          "checkbox": null,
+          "name": null,
+          "runs": [
+            {
+              "kind": "text",
+              "text": "foo:: is literal",
+              "marks": []
+            }
+          ],
+          "id": null,
+          "cacheId": null,
+          "children": []
+        },
+        {
+          "kind": "outline",
+          "marker": {
+            "kind": "bullet"
+          },
+          "checkbox": null,
+          "name": null,
+          "runs": [
+            {
+              "kind": "verbatim",
+              "text": "line one\\\nline <b>two</b>"
+            }
+          ],
+          "id": null,
+          "cacheId": null,
+          "children": []
+        },
+        {
+          "kind": "outline",
+          "marker": {
+            "kind": "bullet"
+          },
+          "checkbox": null,
+          "name": null,
+          "runs": [
+            {
+              "kind": "text",
+              "text": "parent",
+              "marks": []
+            }
+          ],
+          "id": null,
+          "cacheId": null,
+          "children": [
+            {
+              "kind": "body",
+              "source": [
+                "A body under its note."
+              ],
+              "cacheId": null
+            },
+            {
+              "kind": "outline",
+              "marker": {
+                "kind": "bullet"
+              },
+              "checkbox": null,
+              "name": null,
+              "runs": [
+                {
+                  "kind": "text",
+                  "text": "child",
+                  "marks": []
+                }
+              ],
+              "id": null,
+              "cacheId": null,
+              "children": []
+            }
+          ]
+        },
+        {
+          "kind": "outline",
+          "marker": {
+            "kind": "bullet"
+          },
+          "checkbox": null,
+          "name": null,
+          "runs": [
+            {
+              "kind": "text",
+              "text": "counted",
+              "marks": []
+            }
+          ],
+          "id": null,
+          "cacheId": null,
+          "children": [
+            {
+              "kind": "outline",
+              "marker": {
+                "kind": "number",
+                "start": null
+              },
+              "checkbox": null,
+              "name": null,
+              "runs": [
+                {
+                  "kind": "text",
+                  "text": "one",
+                  "marks": []
+                }
+              ],
+              "id": null,
+              "cacheId": null,
+              "children": []
+            },
+            {
+              "kind": "outline",
+              "marker": {
+                "kind": "number",
+                "start": null
+              },
+              "checkbox": null,
+              "name": null,
+              "runs": [
+                {
+                  "kind": "text",
+                  "text": "two",
+                  "marks": []
+                }
+              ],
+              "id": null,
+              "cacheId": null,
+              "children": []
+            },
+            {
+              "kind": "outline",
+              "marker": {
+                "kind": "number",
+                "start": 1
+              },
+              "checkbox": null,
+              "name": null,
+              "runs": [
+                {
+                  "kind": "text",
+                  "text": "again",
+                  "marks": []
+                }
+              ],
+              "id": null,
+              "cacheId": null,
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

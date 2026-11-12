@@ -232,6 +232,7 @@ export const srcBoundaries = {
         'headless',
         'collaboration',
         'client-editor',
+        'domain',
         'note-sdk',
         'platform',
       ] } } } },

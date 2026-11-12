@@ -156,6 +156,29 @@ write automatically. A timeout does not imply cancellation or rollback. Reads
 retain the existing Markdown outline, and failures retain their code, message,
 and reconnection requirement.
 
+### Outline tree
+
+Node converts a workspace [document](specs/outliner/note-model.md#note-kinds)'s
+Yjs state to and from its outline tree: the [text format](format.md)'s note
+model as JSON, which Python reads from text and writes as text. The tree holds
+the document's ID and children, each outline note's marker, checkbox, name,
+text, ID, cache ID and children, and each body's lines as written. Fold state
+stays out of it.
+
+- **Read** returns the tree of a document's current Yjs state. Writing that
+  tree as text and reading the text back gives the same tree, cache IDs aside.
+  **Deterministic.**
+- **Save** returns the tree together with the Yjs state it was read from.
+- **Apply** changes a document's Yjs state to hold a given tree. A tree note
+  holding a cache ID updates the note holding it, a tree note without one is
+  created with a fresh cache ID, and a note no tree note holds is deleted.
+  Updated notes keep their fold state. **Deterministic.**
+  - A note whose content and place already match is left unwritten. Text
+    differing only in whitespace at its edges matches, so a space someone just
+    typed survives. **Deterministic.**
+  - Changed text is replaced only where it differs, so concurrent typing
+    elsewhere in the note survives. **Deterministic.**
+
 ### Document identity
 
 `docId` is RemDo's canonical document identity. It is intended to be globally

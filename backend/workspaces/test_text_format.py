@@ -1,4 +1,5 @@
 import dataclasses
+import json
 import re
 from pathlib import Path
 
@@ -257,3 +258,30 @@ class ReadingTests(SimpleTestCase):
                 self.assertEqual([child.source for child in children], bodies)
                 written = text_format.write(text_format.read(source))
                 self.assertEqual(_tree(text_format.read(written)), _tree(text_format.read(source)))
+
+
+class OutlineTreeTests(SimpleTestCase):
+    """The tree Node converts to and from Yjs, checked against the fixture its tests also use."""
+
+    fixture = REPO / "tests/fixtures/outline-tree/document"
+
+    def test_a_document_reads_as_the_shared_tree(self):
+        source = self.fixture.with_suffix(".md").read_text(encoding="utf8")
+        tree = json.loads(self.fixture.with_suffix(".json").read_text(encoding="utf8"))
+        self.assertEqual(text_format.to_json(text_format.read(source)), tree)
+
+    def test_the_shared_tree_writes_as_its_document(self):
+        source = self.fixture.with_suffix(".md").read_text(encoding="utf8")
+        tree = json.loads(self.fixture.with_suffix(".json").read_text(encoding="utf8"))
+        self.assertEqual(text_format.write(text_format.from_json(tree)), source)
+
+    def test_cache_ids_survive_the_json(self):
+        document = text_format.Document(
+            children=[
+                text_format.Note("body", ["text"], cache_id="b1"),
+                text_format.Note("outline", runs=[text_format.Run("text", "a")], cache_id="n1"),
+            ]
+        )
+        tree = text_format.to_json(document)
+        self.assertEqual([note["cacheId"] for note in tree["children"]], ["b1", "n1"])
+        self.assertEqual(text_format.to_json(text_format.from_json(tree)), tree)

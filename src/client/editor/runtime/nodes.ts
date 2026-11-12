@@ -9,11 +9,13 @@ import { DateNode } from '../features/date/date-node';
 import { BodyWrapperNode, NoteBodyNode } from '#client/editor/outline/note-body-node';
 import { NoteLinkNode } from '#client/editor/features/links/note-link-node';
 import { ensureNoteIdStateConfig } from './note-ids/note-id-state';
+import { ensureTextIdStateConfig } from './note-ids/text-id-state';
 
 ensureNoteIdStateConfig();
 ensureFoldStateConfig();
 ensureCheckedStateConfig();
 ensureNoteMarkerStateConfig();
+ensureTextIdStateConfig();
 
 export const editorNodes: CreateEditorArgs['nodes'] = [
   ListNode,

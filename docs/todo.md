@@ -464,6 +464,11 @@ Remaining:
   held as Markdown source in a workspace's Document wait for the editor to open
   those documents.
 
+- **Outline tree without a caller.** Node's [outline tree](architecture.md#outline-tree)
+  calls have no production caller until the cache row's save path uses them, so
+  the production unused-code audit fails. The cache row step of the
+  [text format plan](text-format-plan.md) closes this.
+
 - **Early editor operations.** After the [text format migration](text-format-plan.md),
   revisit the editor's structural operations against
   [note operations](specs/outliner/note-operations.md) and adjust those that
