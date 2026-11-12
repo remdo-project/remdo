@@ -1,10 +1,10 @@
 import { $getNoteByText, collectSerializedNodes, getSerializedRootNodes, meta, placeCaretAtNote, pressKey } from '#tests';
-import type { SerializedLexicalNode } from 'lexical';
 import { $getState, $setState } from 'lexical';
 import { expect, it } from 'vitest';
 
 import type { RemdoTestApi } from '#client/editor/dev';
 import { REORDER_NOTES_DOWN_COMMAND } from '#client/editor/foundation/commands';
+import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
 import { checkboxState, markerState } from './note-marker';
 
 const NOTES = ['note1', 'note2', 'note3'];
@@ -27,11 +27,15 @@ it('saves markers and checkboxes with each note and reads back only the values i
 
   const saved = collectSerializedNodes(
     getSerializedRootNodes(remdo.getEditorState()),
-    (node): node is SerializedLexicalNode & { marker?: unknown; checkbox?: unknown } => node.type === 'listitem'
+    (node): node is SerializedNoteListItemNode => node.type === 'listitem'
   ).map(({ marker, checkbox }) => [marker, checkbox]);
   expect(saved).toEqual([['heading:2', true], [undefined, undefined], ['number:0', undefined]]);
 
-  for (const value of ['number:07', 'heading:7', 'check', 3]) {
+  for (const value of ['bullet', 'number', 'number:0', 'number:999999999', 'heading:1', 'heading:6']) {
+    expect(markerState.parse(value)).toBe(value);
+  }
+  expect(checkboxState.parse(true)).toBe(true);
+  for (const value of ['number:07', 'number:1000000000', 'heading:7', 'check', 3]) {
     expect(markerState.parse(value)).toBeUndefined();
   }
   expect(checkboxState.parse('yes')).toBeUndefined();

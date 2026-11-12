@@ -5,6 +5,8 @@ import { BodyWrapperNode } from '#client/editor/outline/note-body-node';
 
 export type SerializedNoteListItemNode = SerializedListItemNode & {
   checkState?: boolean;
+  marker?: string;
+  checkbox?: boolean;
   noteId?: string;
   folded?: boolean;
   children: SerializedLexicalNode[];

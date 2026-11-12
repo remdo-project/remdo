@@ -459,9 +459,9 @@ Remaining:
   outside a check list without a checkbox. The editor schema step of the
   [text format plan](text-format-plan.md) closes this with display, then
   gestures, including Insertion's appended notes, the menu's checkbox action,
-  and `Enter`, whose new note takes no stored marker yet. Bodies held as
-  Markdown source in a workspace's Document wait for the editor to open those
-  documents.
+  and `Enter`, whose new note takes no stored marker or checkbox yet. Bodies
+  held as Markdown source in a workspace's Document wait for the editor to open
+  those documents.
 
 - **Early editor operations.** After the [text format migration](text-format-plan.md),
   revisit the editor's structural operations against
