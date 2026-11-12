@@ -20,21 +20,24 @@ describe('collaboration note markers', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
 
     await remdo.mutate(() => {
       $setState($getNoteByText('note1'), markerState, 'heading:2');
-      $setState($getNoteByText('note2'), markerState, 'number:3');
-      $setState($getNoteByText('note2'), checkboxState, true);
+      const note2 = $getNoteByText('note2');
+      $setState(note2, markerState, 'number:3');
+      $setState(note2, checkboxState, true);
     });
     await remdo.waitForSynced();
 
-    const expected = { marker: 'number:3', checkbox: true };
+    const expected = {
+      note1: { marker: 'heading:2', checkbox: undefined },
+      note2: { marker: 'number:3', checkbox: true },
+    };
+    const readNotes = (peer: RemdoTestApi) => ({ note1: readNote(peer, 'note1'), note2: readNote(peer, 'note2') });
     await waitFor(() => {
-      expect(readNote(secondary, 'note1')).toEqual({ marker: 'heading:2', checkbox: undefined });
-      expect(readNote(secondary, 'note2')).toEqual(expected);
+      expect(readNotes(secondary)).toEqual(expected);
     });
 
     const joined = await createCollabPeer(remdo);
     await joined.waitForSynced();
-    expect(readNote(joined, 'note1')).toEqual({ marker: 'heading:2', checkbox: undefined });
-    expect(readNote(joined, 'note2')).toEqual(expected);
+    expect(readNotes(joined)).toEqual(expected);
   });
 
   it('keeps a marker change and concurrent typing in the same note', meta({ fixture: 'flat' }), async ({ remdo }) => {
