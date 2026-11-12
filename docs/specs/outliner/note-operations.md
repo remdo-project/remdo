@@ -12,7 +12,7 @@ agents and integrations use them alike.
    every file read. A note at the depth limit reports whether it has children.
    When asked, it also returns a document's content.
    **Deterministic.**
-2. **Insert** adds new notes under a parent: outline notes and Markdown blocks
+2. **Insert** adds new notes under a parent: outline notes and bodies
    from a Markdown fragment nested as deep as needed, or workspaces, which may
    come with their document's content. In a document, the position is first,
    last, or before or after a sibling.
@@ -38,7 +38,7 @@ whitespace included. Replacements apply only to text. **Deterministic.**
 - **Workspace:** Read, Delete, Set text.
 - **Document:** Read, Insert, Set content, Ensure ID.
 - **Outline note:** Read, Insert, Move, Delete, Set text, Ensure ID.
-- **Markdown block:** Read, Move, Delete, Set text.
+- **Body:** Read, Move, Delete, Set text.
 
 An operation a kind doesn't offer is refused, and kinds this list doesn't name
 offer none. Deleting a workspace follows its

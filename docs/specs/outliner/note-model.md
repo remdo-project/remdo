@@ -112,13 +112,13 @@ form a tree of notes of the kinds below, which share the
   missing; the first change creates it. Its text is its name, independent of
   the file's.
 - **Document:** a `.md` file read as an outline in the
-  [RemDo text format](../../format.md). Its children are its Markdown blocks and
+  [RemDo text format](../../format.md). Its children are its bodies and
   outline notes. Its text is its file name without `.md`.
 - **Outline note:** a heading or list item of a document. Its children are its
-  Markdown blocks and outline notes. Its text is its own line as written:
+  bodies and outline notes. Its text is its own line as written:
   marker, checkbox, name and text.
-- **Markdown block:** other Markdown in a document. It has no children. Its
-  text is its Markdown as written.
+- **Body:** other Markdown in a document. It has no children. Its text is its
+  Markdown as written.
 
 Changing a note's text never changes its kind.
 
