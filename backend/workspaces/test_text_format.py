@@ -183,6 +183,23 @@ class ReadingTests(SimpleTestCase):
         self.assertEqual(document.children[0].source, ["---", "title: Trip", "---"])
         self.assertEqual(text_format.write(document), source)
 
+    def test_text_that_markdown_it_would_respell_is_kept(self):
+        cases = {
+            "- line one\\\n  line two\n": "- line one\\\n    line two\n",
+            "- [x](file:///tmp/a) and [y](javascript:void)\n": None,
+            "- [x](café.md)\n": None,
+            "# foo \\#\n": None,
+            "[a]: http://x\n\n- note\n": None,
+            "0. zero\n1. one\n": None,
+            "1. a\n\n3) b\n": "1. a\n3) b\n",
+            "- ` a`\n": None,
+        }
+        for source, expected in cases.items():
+            with self.subTest(source=source):
+                written = text_format.write(text_format.read(source))
+                self.assertEqual(written, expected or source)
+                self.assertEqual(text_format.write(text_format.read(written)), written)
+
     def test_a_numbered_list_keeps_a_first_number_other_than_one(self):
         source = "- parent\n\n    3. three\n    4. four\n"
         [note] = text_format.read(source).children

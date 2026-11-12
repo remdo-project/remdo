@@ -7,7 +7,7 @@ outline notes and bodies are read in the text format; operations that change the
 import base64
 import difflib
 import re
-from functools import cached_property, lru_cache
+from functools import cached_property
 
 from notes.core import Call, Refusal, with_children
 
@@ -28,12 +28,8 @@ def decode(content):
         return {"content": base64.b64encode(content).decode(), "contentEncoding": "base64"}
 
 
-@lru_cache(maxsize=64)
 def parsed_document(content):
-    """The text format's reading of a document's content; content that isn't UTF-8 reads empty.
-
-    Readings are shared by content, so callers don't change them.
-    """
+    """The text format's reading of a document's content; content that isn't UTF-8 reads empty."""
     try:
         return text_format.read(content.decode())
     except UnicodeDecodeError:
@@ -484,8 +480,11 @@ class Document(File):
 
     def read(self, depth, content=False):
         # A document keeps its path reference, which callers' expected versions name, until
-        # Ensure ID arrives; its own ID still resolves.
-        node = with_children(Note.read(self, depth), self.children(), depth)
+        # Ensure ID arrives; its own ID still resolves. At the depth limit it says nothing about
+        # children, so listing workspaces doesn't parse their documents.
+        node = Note.read(self, depth)
+        if depth > 0:
+            node["children"] = [child.read(depth - 1) for child in self.children()]
         if content:
             node.update(decode(self.content))
         return node
@@ -548,7 +547,8 @@ class TextNote(Note):
         return self.note.text
 
     def ref(self):
-        if self.note.id is not None:
+        # A shared ID resolves to neither note, so such a note keeps its positional reference.
+        if self.note.id is not None and len(self.call.holders(self.note.id)) == 1:
             return self.call.id_ref(self.note.id)
         return self.call.ref("/".join([self.path, *map(str, self.position)]))
 
@@ -649,13 +649,22 @@ class WorkspaceCall(Call):
             return None, None
         return self.note_at(document_path), tuple(int(index) for index in rest.split("/"))
 
+    def holders(self, note_id):
+        """The notes of the workspace that carry an ID, the documents themselves included."""
+        cached = self.__dict__.setdefault("_holders", {})
+        if note_id not in cached:
+            if self.single_file:
+                documents = [README]
+            else:
+                documents = [p for p in self.tree.files if self.tree.kind(p) == "document"]
+                self.tree.load(documents)
+            cached[note_id] = [
+                note for path in documents for note in self.note_at(path).with_id(note_id)
+            ]
+        return cached[note_id]
+
     def note_with_id(self, note_id, field):
-        if self.single_file:
-            documents = [README]
-        else:
-            documents = [path for path in self.tree.files if self.tree.kind(path) == "document"]
-            self.tree.load(documents)
-        found = [note for path in documents for note in self.note_at(path).with_id(note_id)]
+        found = self.holders(note_id)
         if len(found) != 1:
             # Two notes sharing an ID resolve to neither (docs/specs/outliner/note-ids.md).
             reason = "no note has" if not found else "more than one note has"

@@ -474,9 +474,9 @@ class MultiFileNoteOperationTests(TestCase):
             ],
             [
                 (self.ref("a"), "folder", "a", True),
-                (self.ref("b.md"), "document", "b", True),
+                (self.ref("b.md"), "document", "b", None),
                 (self.ref("c.txt"), "file", "c.txt", False),
-                (self.ref("empty.md"), "document", "empty", False),
+                (self.ref("empty.md"), "document", "empty", None),
             ],
         )
         self.assertEqual(
@@ -624,6 +624,18 @@ class SingleFileWorkspaceTests(TestCase):
         with self.assertRaises(notes.Refusal) as refusal:
             notes.read(self.owner, f"{self.workspace.pk}/README.md/{'9' * 5000}")
         self.assertEqual(refusal.exception.code, "INVALID_ARGUMENT")
+
+    def test_notes_sharing_an_id_are_listed_by_position(self):
+        content = b"- a\n    - id:: twin\n- b\n    - id:: twin\n"
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, content)})
+        ws = self.workspace.pk
+
+        children = notes.read(self.owner, self.readme, depth=1)["children"]
+
+        self.assertEqual(
+            [child["ref"] for child in children], [f"{ws}/README.md/0", f"{ws}/README.md/1"]
+        )
+        self.assertEqual(notes.read(self.owner, children[1]["ref"])["text"], "- b")
 
     def test_a_document_holds_only_utf8_text(self):
         binary = {"content": "/wA=", "contentEncoding": "base64"}

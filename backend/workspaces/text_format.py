@@ -27,6 +27,11 @@ NOTE_ID = re.compile(r"[A-Za-z0-9]{1,20}")
 MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 _markdown = MarkdownIt("commonmark", {"maxNesting": MAX_NESTING}).enable("strikethrough")
+# Reading keeps every link target as written: markdown-it's checks and encoding exist for rendering
+# HTML, and would turn `file:` links into text and `café.md` into `caf%C3%A9.md`.
+_markdown.validateLink = lambda url: True
+_markdown.normalizeLink = lambda url: url
+_markdown.normalizeLinkText = lambda url: url
 
 
 @dataclass
@@ -65,19 +70,22 @@ def read(source):
     lines = source.replace("\r\n", "\n").replace("\r", "\n").removesuffix("\n").split("\n")
     document = Document()
     parsed = lines
+    first_line = 0
     if lines and lines[0] == "---" and "---" in lines[1:]:
         end = lines.index("---", 1)
         document.children.append(Note("body", lines[: end + 1]))
         parsed = ["" if index <= end else line for index, line in enumerate(lines)]
+        first_line = end + 1
     tokens = _markdown.parse("\n".join(parsed))
-    _Reader(lines, tokens).section(document)
+    _Reader(lines, tokens, first_line).section(document)
     return document
 
 
 class _Reader:
-    def __init__(self, lines, tokens):
+    def __init__(self, lines, tokens, first_line):
         self.lines = lines
         self.tokens = tokens
+        self.first_line = first_line
         self.identified = set()
 
     def section(self, document):
@@ -105,7 +113,7 @@ class _Reader:
         item's lines `region`. Lines no token covers, such as content nested past the parser's
         limit, are kept as a body rather than dropped."""
         in_item = region is not None
-        last = region[0] if region else None
+        last = region[0] if region else self.first_line
         body = None
 
         def flush():
@@ -162,7 +170,8 @@ class _Reader:
 
     def list(self, open_index, close, owner):
         ordered = self.tokens[open_index].type == "ordered_list_open"
-        number = int(self.tokens[open_index].attrGet("start") or 1)
+        start = self.tokens[open_index].attrGet("start")
+        number = 1 if start is None else int(start)
         first = True
         index = open_index + 1
         while index < close:
@@ -249,7 +258,12 @@ def _runs(tokens, content):
         None,
     )
     if unmodelled:
-        return [Run("verbatim", re.sub(r"\n\s*", " ", content).strip())]
+        # A hard break keeps the text on its lines; other continuation lines join into one.
+        if unmodelled.type == "hardbreak":
+            source = "\n".join(line.lstrip() for line in content.strip().split("\n"))
+        else:
+            source = re.sub(r"\n\s*", " ", content).strip()
+        return [Run("verbatim", source)]
     top = []
     target = top
     marks = []
@@ -359,9 +373,10 @@ def _shared_marks(link):
 
 
 def _trim(runs):
-    if runs and runs[0].kind == "text":
+    """Whitespace at a text's edges isn't Text, but a code span's own spaces are its content."""
+    if runs and runs[0].kind == "text" and "code" not in runs[0].marks:
         runs[0].text = runs[0].text.lstrip()
-    if runs and runs[-1].kind == "text":
+    if runs and runs[-1].kind == "text" and "code" not in runs[-1].marks:
         runs[-1].text = runs[-1].text.rstrip()
     return [run for run in runs if run.kind != "text" or run.text]
 
@@ -442,7 +457,14 @@ def _owner_children(children, note_id, out):
 
 
 def _first_number(note):
-    return (note.marker[1] or 1) - 1 if note.marker[0] == "number" else 0
+    if note.marker[0] != "number":
+        return 0
+    return (1 if note.marker[1] is None else note.marker[1]) - 1
+
+
+def _starts_new_list(note, previous):
+    """A numbered note with its own start after numbered siblings begins another list."""
+    return note.marker[0] == "number" and previous == "number" and note.marker[1] is not None
 
 
 def _separate(out):
@@ -454,6 +476,7 @@ def _section(children, out):
     in_list = False
     numbered = 0
     previous = None
+    delimiter = "."
     for child in children:
         if child.kind == "body":
             _separate(out)
@@ -461,26 +484,36 @@ def _section(children, out):
             in_list = False
         elif child.marker[0] == "heading":
             _separate(out)
-            out.append(f"{'#' * child.marker[1]} {_note_text(child)}".rstrip())
+            text = _note_text(child)
+            # Trailing `#`s after a space would read as the heading's closing sequence.
+            text = re.sub(r"(^|[ \t])(#+)([ \t]*)$", r"\1\\\2\3", text)
+            out.append(f"{'#' * child.marker[1]} {text}".rstrip())
             _owner_children(child.children, child.id, out)
             in_list = False
         else:
             if not in_list:
                 _separate(out)
-            if not in_list or previous != child.marker[0]:
+            if _starts_new_list(child, previous if in_list else None):
+                # Only a new delimiter starts another numbered list right after one.
+                delimiter = ")" if delimiter == "." else "."
                 numbered = _first_number(child)
+            elif not in_list or previous != child.marker[0]:
+                numbered = _first_number(child)
+                delimiter = "."
             numbered += 1
-            _item(child, "", numbered, out)
+            _item(child, "", numbered, out, delimiter)
             in_list = True
             previous = child.marker[0]
 
 
-def _item(note, indent, number, out):
-    marker = f"{number}." if note.marker[0] == "number" else "-"
+def _item(note, indent, number, out, delimiter="."):
+    marker = f"{number}{delimiter}" if note.marker[0] == "number" else "-"
     box = "" if note.checkbox is None else "[x] " if note.checkbox == "checked" else "[ ] "
     text = _note_text(note)
-    out.append(f"{indent}{marker} {box}{text}".rstrip())
     inner = indent + " " * max(4, len(marker) + 1)
+    first, *more = text.split("\n")
+    out.append(f"{indent}{marker} {box}{first}".rstrip())
+    out.extend(f"{inner}{line}" for line in more)
     rest = note.children
     under_text = False
     if rest and rest[0].kind == "body":
@@ -492,6 +525,7 @@ def _item(note, indent, number, out):
         under_text = True
     numbered = 0
     previous = None
+    delimiter = "."
     after_children = False
     for child in rest:
         if child.kind == "body":
@@ -503,13 +537,17 @@ def _item(note, indent, number, out):
         directly_under_text = not under_text and not after_children and text
         empty = _note_text(child) == "" and child.checkbox is None
         # Only `1.` can interrupt a paragraph, so another first number needs a blank line before it.
-        late_start = child.marker[0] == "number" and (child.marker[1] or 1) != 1
+        late_start = child.marker[0] == "number" and child.marker[1] not in (None, 1)
         if directly_under_text and (empty or late_start):
             out.append("")
-        if previous != child.marker[0]:
+        if _starts_new_list(child, previous):
+            delimiter = ")" if delimiter == "." else "."
             numbered = _first_number(child)
+        elif previous != child.marker[0]:
+            numbered = _first_number(child)
+            delimiter = "."
         numbered += 1
-        _item(child, inner, numbered, out)
+        _item(child, inner, numbered, out, delimiter)
         previous = child.marker[0]
         after_children = True
 
