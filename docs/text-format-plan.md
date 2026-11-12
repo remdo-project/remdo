@@ -87,9 +87,9 @@ unchanged.
   integrations.
 - Python owns the text format's reader and its canonical writer, on `markdown-it-py`.
   It matched the JavaScript `markdown-it` on 714 inputs, structure and line
-  spans included. A JavaScript reader remains for paste and test fixtures.
-  JavaScript isn't required to write Markdown; where it does, as for copy,
-  cases shared with Python's writer keep both identical.
+  spans included. A JavaScript reader remains in test support for unit-test
+  fixtures and expected outlines. Paste reads HTML and plain text and copy
+  writes plain text, so the app needs no Markdown reader or writer.
 - Node shrinks to the Yjs relay and converts Yjs to and from a JSON outline
   tree. The tree holds a document, outline notes and bodies. An outline note,
   headings included, has its own marker, checkbox, name, text runs (marked
@@ -194,8 +194,8 @@ once stage 3 lands.
         helper and the test bridge.
      2. Express expected outlines and selections as
         [test documents](specs/testing/test-documents.md), compared as trees
-        by a JavaScript reader in test support that moves into the app when
-        paste needs it, so tests need no second writer. Pilot it on a few
+        by a JavaScript reader in test support, so tests need no second
+        writer. Pilot it on a few
         specs before scripting the rest. A body is compared literally with its
         plain text, one `>` line per body line. Notes built from variables
         move to interpolated Markdown. Checks of only the selection keep
@@ -310,6 +310,9 @@ once stage 3 lands.
    - Give the remaining existing kinds, such as account roots and user data
      notes, note operations or retire them.
    - Drop editor documents from the sources and their sharing rules.
+   - Load browser and collaboration test fixtures as production loads
+     documents, through Python's reader and Node's tree, and check that the
+     JavaScript test reader reads every fixture as Python's does.
    - Rename what remains of the open document to the editor session.
    - Fold the remaining `docs/todo.md`, legacy backlog and format Follow-up
      items into their owners, then delete this plan.
@@ -407,5 +410,5 @@ Switch new documents by reseeding from text once all of these hold:
 - Email rendering, late offline migration and Yjs undo across a reseed are
   untested.
 - Search was designed from research, not spikes.
-- Python and JavaScript readers agree, but the outline tree and the Python
-  writer haven't been spiked. The real-server tests stored text in a Git repository.
+- Python and JavaScript readers agree. The real-server tests stored text in a
+  Git repository.
