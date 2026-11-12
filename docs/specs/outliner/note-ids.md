@@ -138,5 +138,7 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
    and a reference to that ID resolves to neither.
 6. A [reference](./note-model.md#note-kinds) is `me` for the caller's account
    root, `<workspaceId>` for a workspace, `<workspaceId>_<id>` for a note with
-   an ID, and `<workspaceId>/<path>` for any other note of the workspace.
+   an ID, and `<workspaceId>/<path>` for a folder or file. Any other note of a
+   document has a temporary reference that Read returns, valid while its
+   document is unchanged; its form isn't part of the contract.
    **Deterministic.**

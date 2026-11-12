@@ -474,9 +474,9 @@ class MultiFileNoteOperationTests(TestCase):
             ],
             [
                 (self.ref("a"), "folder", "a", True),
-                (self.ref("b.md"), "document", "b", None),
+                (self.ref("b.md"), "document", "b", True),
                 (self.ref("c.txt"), "file", "c.txt", False),
-                (self.ref("empty.md"), "document", "empty", None),
+                (self.ref("empty.md"), "document", "empty", False),
             ],
         )
         self.assertEqual(
@@ -565,6 +565,60 @@ class SingleFileWorkspaceTests(TestCase):
 
         self.assertEqual(refusal.exception.code, "NOT_FOUND")
         self.assertFalse(Workspace.objects.exists())
+
+    def test_read_lists_a_documents_outline_notes_and_bodies(self):
+        content = "- id:: doc\n\n# Trip\n\nIntro\n\n- [x] pack:: bags\n    > a body\n    - id:: k3x9\n    - socks\n"
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, content.encode())})
+        ws = self.workspace.pk
+
+        def shape(node):
+            children = [shape(child) for child in node.get("children", [])]
+            return (node["ref"], node["kind"], node["text"], children)
+
+        self.assertEqual(
+            shape(notes.read(self.owner, self.readme, depth=4)),
+            (
+                f"{ws}_doc",
+                "document",
+                "README",
+                [
+                    (
+                        f"{ws}/README.md/0",
+                        "outlineNote",
+                        "# Trip",
+                        [
+                            (f"{ws}/README.md/0/0", "body", "Intro", []),
+                            (
+                                f"{ws}_k3x9",
+                                "outlineNote",
+                                "- [x] pack:: bags",
+                                [
+                                    (f"{ws}/README.md/0/1/0", "body", "a body", []),
+                                    (f"{ws}/README.md/0/1/1", "outlineNote", "- socks", []),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        )
+        for ref, text in (
+            (f"{ws}/README.md/0/1/1", "- socks"),
+            (f"{ws}_k3x9", "- [x] pack:: bags"),
+        ):
+            with self.subTest(ref=ref):
+                node = notes.read(self.owner, ref, depth=0)
+                self.assertEqual((node["text"], node["operations"]), (text, ["read"]))
+                self.assertEqual(node["version"], store.read(self.workspace, "README.md").blob_hash)
+
+    def test_a_handle_past_the_documents_notes_and_a_shared_id_are_not_found(self):
+        content = b"- a\n    - id:: twin\n- b\n    - id:: twin\n"
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, content)})
+        ws = self.workspace.pk
+        for ref in (f"{ws}/README.md/5", f"{ws}/README.md/0/0", f"{ws}_twin"):
+            with self.subTest(ref=ref), self.assertRaises(notes.Refusal) as refusal:
+                notes.read(self.owner, ref)
+            self.assertEqual(refusal.exception.code, "NOT_FOUND")
 
     def test_a_document_holds_only_utf8_text(self):
         binary = {"content": "/wA=", "contentEncoding": "base64"}
