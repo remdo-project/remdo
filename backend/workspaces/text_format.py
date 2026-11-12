@@ -15,7 +15,7 @@ from markdown_it import MarkdownIt
 # nested past nine list levels, which would leave part of a document unread.
 MAX_NESTING = 400
 NAME = re.compile(r"^(.*?[^\\\s])::(?: |$)")
-PROPERTY = re.compile(r"^(id)::(?: (.*))?$")
+PROPERTY = re.compile(r"^id::(?: |$)")
 CHECKBOX = re.compile(r"^\[([ xX])\](?:[ \t]+|$)")
 MARKS = {"strong": "bold", "em": "italic", "s": "strike"}
 MARK_ORDER = ("bold", "italic", "strike", "underline")
@@ -78,7 +78,7 @@ class _Reader:
     def __init__(self, lines, tokens):
         self.lines = lines
         self.tokens = tokens
-        self.stated = {}
+        self.identified = set()
 
     def section(self, document):
         sections = [(0, document)]
@@ -97,11 +97,13 @@ class _Reader:
             owner().children.append(note)
             sections.append((level, note))
 
-        self.blocks(0, len(self.tokens), owner, False, 0, heading)
+        self.blocks(0, len(self.tokens), owner, 0, heading)
 
-    def blocks(self, start, end, owner, in_item, indent, on_heading=None, region=None):
-        """Read tokens[start, end) as an owner's blocks; lines of `region` no token covers, such
-        as content nested past the parser's limit, are kept as a body rather than dropped."""
+    def blocks(self, start, end, owner, indent, on_heading=None, region=None):
+        """Read tokens[start, end) as an owner's blocks: a document's or heading's, or a list
+        item's lines `region`. Lines no token covers, such as content nested past the parser's
+        limit, are kept as a body rather than dropped."""
+        in_item = region is not None
         last = region[0] if region else None
         body = None
 
@@ -152,12 +154,8 @@ class _Reader:
             else:
                 add(first, stop, in_item and token.type == "blockquote_open")
             index = close + 1
-        tail = region[1] if region else len(self.lines) if end == len(self.tokens) else None
-        if (
-            tail is not None
-            and last is not None
-            and any(line.strip() for line in self.lines[last:tail])
-        ):
+        tail = region[1] if region else len(self.lines)
+        if last is not None and any(line.strip() for line in self.lines[last:tail]):
             add(last, tail, False)
         flush()
 
@@ -185,10 +183,10 @@ class _Reader:
             inline = self.tokens[open_index + 2]
         content = inline.content if inline else ""
         unboxed = CHECKBOX.sub("", content, count=1)
-        if inline and PROPERTY.match(unboxed.split("\n")[0]):
+        if PROPERTY.match(unboxed.split("\n")[0]):
             # A property's first line takes effect even when its value has none; later ones are ignored.
-            if "id" not in self.stated.setdefault(id(owner), set()):
-                self.stated[id(owner)].add("id")
+            if id(owner) not in self.identified:
+                self.identified.add(id(owner))
                 text = _plain(_strip_prefix(inline.children or [], CHECKBOX))
                 value = text.partition("::")[2].strip()
                 if NOTE_ID.fullmatch(value):
@@ -207,9 +205,7 @@ class _Reader:
         self.fill(note, content, inline, bool(checkbox))
         owner.children.append(note)
         region = (stop, self.tokens[open_index].map[1])
-        self.blocks(
-            text_end, close, lambda: note, True, _item_indent(self.lines[line]), region=region
-        )
+        self.blocks(text_end, close, lambda: note, _item_indent(self.lines[line]), region=region)
 
     def fill(self, note, content, inline, checkbox=False):
         if inline is None:
@@ -241,7 +237,7 @@ def _runs(tokens, content):
     top = []
     target = top
     marks = []
-    date = None
+    in_date = False
 
     def push(text, extra=()):
         if not text:
@@ -258,9 +254,8 @@ def _runs(tokens, content):
             if token.type == "html_inline"
             else MARKS.get(re.sub(r"_(open|close)$", "", token.type))
         )
-        if date is not None:
-            if token.type == "link_close":
-                date = None
+        if in_date:
+            in_date = token.type != "link_close"
         elif mark:
             if token.nesting == 1 or token.content == "<u>":
                 marks.append(mark)
@@ -279,15 +274,12 @@ def _runs(tokens, content):
             found = _date(href)
             if found:
                 # A date's label is presentation: it reads as its date, labelled as tools write it.
-                link = Run(
-                    "date", f"{found.day} {MONTHS[found.month - 1]} {found.year}", href=href[5:]
-                )
+                label = f"{found.day} {MONTHS[found.month - 1]} {found.year}"
+                top.append(Run("date", label, href=href[5:]))
+                in_date = True
             else:
                 link = Run("link", href=href)
-            top.append(link)
-            if found:
-                date = link
-            else:
+                top.append(link)
                 target = link.runs
         elif token.type == "link_close":
             target = top
@@ -300,7 +292,7 @@ def _normalize(runs):
     segment = []
 
     def flush():
-        for mark in ("bold", "italic", "strike", "underline"):
+        for mark in MARK_ORDER:
             index = 0
             while index < len(segment):
                 if mark not in segment[index][1]:
@@ -315,15 +307,20 @@ def _normalize(runs):
                             break
                         segment[i][1].discard(mark)
                 index = end
+        pieces = []  # runs, or [marks, characters] for text, joined once at the end
         for char, marks in segment:
             if not isinstance(char, str):
-                out.append(char)
+                pieces.append(char)
                 continue
             key = tuple(sorted(marks))
-            if out and out[-1].kind == "text" and out[-1].marks == key:
-                out[-1].text += char
+            if pieces and isinstance(pieces[-1], list) and pieces[-1][0] == key:
+                pieces[-1][1].append(char)
             else:
-                out.append(Run("text", char, key))
+                pieces.append([key, [char]])
+        out.extend(
+            Run("text", "".join(piece[1]), piece[0]) if isinstance(piece, list) else piece
+            for piece in pieces
+        )
         segment.clear()
 
     for run in runs:
@@ -408,15 +405,23 @@ def _looks_named(text):
 def write(document):
     """The canonical text of a document: what tools write, which reads back as the same tree."""
     out = []
-    children = document.children
+    _owner_children(document.children, document.id, out)
+    return "\n".join(out) + "\n" if out else ""
+
+
+def _owner_children(children, note_id, out):
+    """A document's or heading's children: its first body, then its ID, then the rest."""
     if children and children[0].kind == "body":
         _section(children[:1], out)
         children = children[1:]
-    if document.id is not None:
+    if note_id is not None:
         _separate(out)
-        out.append(f"- id:: {document.id}")
+        out.append(f"- id:: {note_id}")
     _section(children, out)
-    return "\n".join(out) + "\n" if out else ""
+
+
+def _first_number(note):
+    return (note.marker[1] or 1) - 1 if note.marker[0] == "number" else 0
 
 
 def _separate(out):
@@ -436,20 +441,13 @@ def _section(children, out):
         elif child.marker[0] == "heading":
             _separate(out)
             out.append(f"{'#' * child.marker[1]} {_note_text(child)}".rstrip())
-            rest = child.children
-            if rest and rest[0].kind == "body":
-                _section(rest[:1], out)
-                rest = rest[1:]
-            if child.id is not None:
-                _separate(out)
-                out.append(f"- id:: {child.id}")
-            _section(rest, out)
+            _owner_children(child.children, child.id, out)
             in_list = False
         else:
             if not in_list:
                 _separate(out)
             if not in_list or previous != child.marker[0]:
-                numbered = (child.marker[1] or 1) - 1 if child.marker[0] == "number" else 0
+                numbered = _first_number(child)
             numbered += 1
             _item(child, "", numbered, out)
             in_list = True
@@ -488,7 +486,7 @@ def _item(note, indent, number, out):
         if directly_under_text and (empty or late_start):
             out.append("")
         if previous != child.marker[0]:
-            numbered = (child.marker[1] or 1) - 1 if child.marker[0] == "number" else 0
+            numbered = _first_number(child)
         numbered += 1
         _item(child, inner, numbered, out)
         previous = child.marker[0]
@@ -503,39 +501,23 @@ def _note_text(note):
 
 
 def write_runs(runs, line_start=False):
-    out = ""
+    out = []
     open_marks = []
+    at_start = line_start
 
-    def close_all():
-        nonlocal out
-        while open_marks:
-            out += CLOSE[open_marks.pop()]
+    def retarget(wanted):
+        while any(mark not in wanted for mark in open_marks):
+            out.append(CLOSE[open_marks.pop()])
+        for mark in MARK_ORDER:
+            if mark in wanted and mark not in open_marks:
+                out.append(OPEN[mark])
+                open_marks.append(mark)
 
     for index, run in enumerate(runs):
-        if run.kind not in ("text", "link"):
-            close_all()
-            if run.kind == "verbatim":
-                out += run.text
-            elif run.kind == "date":
-                out += f"[{_escape(run.text)}](date:{run.href})"
-            else:
-                href = f"<{run.href}>" if re.search(r"[\s()<>]", run.href) else run.href
-                out += f"[{write_runs(run.runs)}]({href})"
-            continue
         if run.kind == "link":
             following = runs[index + 1] if index + 1 < len(runs) else None
-            continuing = (
-                set(following.marks)
-                if following is not None and following.kind == "text"
-                else set()
-            )
-            kept = _shared_marks(run) & (set(open_marks) | continuing)
-            while any(mark not in kept for mark in open_marks):
-                out += CLOSE[open_marks.pop()]
-            for mark in MARK_ORDER:
-                if mark in kept and mark not in open_marks:
-                    out += OPEN[mark]
-                    open_marks.append(mark)
+            continuing = set(following.marks) if following and following.kind == "text" else set()
+            retarget(_shared_marks(run) & (set(open_marks) | continuing))
             href = f"<{run.href}>" if re.search(r"[\s()<>]", run.href) else run.href
             label = [
                 dataclasses.replace(
@@ -543,19 +525,18 @@ def write_runs(runs, line_start=False):
                 )
                 for inner in run.runs
             ]
-            out += f"[{write_runs(label)}]({href})"
-            continue
-        wanted = [mark for mark in MARK_ORDER if mark in run.marks]
-        while any(mark not in wanted for mark in open_marks):
-            out += CLOSE[open_marks.pop()]
-        for mark in wanted:
-            if mark not in open_marks:
-                out += OPEN[mark]
-                open_marks.append(mark)
-        at_start = line_start and re.sub(r"[*~]|</?u>", "", out) == ""
-        out += _code(run.text) if "code" in run.marks else _escape(run.text, at_start)
-    close_all()
-    return out
+            out.append(f"[{write_runs(label)}]({href})")
+        elif run.kind == "text":
+            retarget(set(run.marks))
+            out.append(_code(run.text) if "code" in run.marks else _escape(run.text, at_start))
+        else:
+            retarget(set())
+            out.append(
+                run.text if run.kind == "verbatim" else f"[{_escape(run.text)}](date:{run.href})"
+            )
+        at_start = False
+    retarget(set())
+    return "".join(out)
 
 
 def _code(text):

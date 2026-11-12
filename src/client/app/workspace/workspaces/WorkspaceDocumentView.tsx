@@ -225,7 +225,7 @@ export function WorkspaceDocumentView({
     queryKey,
     // The loaded view keeps its own base, so a reopened view must read fresh content, not a cached read.
     gcTime: 0,
-    queryFn: ({ signal }) => readNote(ref, { content: true }, signal),
+    queryFn: ({ signal }) => readNote(ref, { content: true, depth: 0 }, signal),
   });
   if (readme.data) {
     return (

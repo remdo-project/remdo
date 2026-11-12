@@ -3,13 +3,10 @@ import re
 from pathlib import Path
 
 from django.test import SimpleTestCase
-from markdown_it import MarkdownIt
 
 from . import text_format
 
 REPO = Path(__file__).resolve().parents[2]
-RENDERER = MarkdownIt("commonmark", {"maxNesting": text_format.MAX_NESTING}).enable("strikethrough")
-
 HOSTILE = """\
 - id\\:: x
 - \\# not a heading
@@ -49,7 +46,7 @@ HOSTILE = """\
 
 def _rendered(source):
     """markdown-it's HTML with inline markup kept and whitespace dropped, to compare two texts."""
-    html = RENDERER.render(source)
+    html = text_format._markdown.render(source)
     html = re.sub(r"<(/?)(strong|em|s|u|code)>", lambda m: f"\x01{m[1]}{m[2]}\x02", html)
     # A date's label is presentation, so a date link compares by its target alone.
     html = re.sub(r'<a href="(date:[^"]*)">.*?</a>', lambda m: f"\x01a {m[1]}\x02", html)

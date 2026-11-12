@@ -1,6 +1,6 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from workspaces.source import KINDS as WORKSPACE_KINDS
+from workspaces.source import NOTE_KINDS as WORKSPACE_KINDS
 
 from .core import OPERATIONS
 from .service import AccountRoot

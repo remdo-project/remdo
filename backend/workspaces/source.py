@@ -7,7 +7,7 @@ outline notes and bodies are read in the text format; operations that change the
 import base64
 import difflib
 import re
-from functools import cached_property
+from functools import cached_property, lru_cache
 
 from notes.core import Call, Refusal, with_children
 
@@ -26,8 +26,12 @@ def decode(content):
         return {"content": base64.b64encode(content).decode(), "contentEncoding": "base64"}
 
 
+@lru_cache(maxsize=64)
 def parsed_document(content):
-    """The text format's reading of a document's content; content that isn't UTF-8 reads empty."""
+    """The text format's reading of a document's content; content that isn't UTF-8 reads empty.
+
+    Readings are shared by content, so callers don't change them.
+    """
     try:
         return text_format.read(content.decode())
     except UnicodeDecodeError:
@@ -40,10 +44,17 @@ def _walk(notes, position=()):
         yield from _walk(note.children, position + (index,))
 
 
+def _identified(parsed):
+    """The positions and notes of a parsed document that carry an ID; the document's own is first."""
+    if parsed.id is not None:
+        yield None, parsed
+    yield from (
+        (position, note) for position, note in _walk(parsed.children) if note.id is not None
+    )
+
+
 def ids_in(content):
-    document = parsed_document(content)
-    ids = [] if document.id is None else [document.id]
-    return ids + [note.id for _, note in _walk(document.children) if note.id is not None]
+    return [note.id for _, note in _identified(parsed_document(content))]
 
 
 def _name(path):
@@ -230,9 +241,12 @@ class Note:
     def text(self):
         return _name(self.path)
 
+    def ref(self):
+        return self.call.ref(self.path)
+
     def read(self, depth, content=False):
         return {
-            "ref": self.call.ref(self.path),
+            "ref": self.ref(),
             "kind": self.kind,
             "text": self.text,
             "operations": list(self.operations),
@@ -371,7 +385,6 @@ class Folder(Movable, Container):
 class File(Movable):
     kind = "file"
     operations = ("read", "move", "delete", "setText", "setContent")
-    children_known = True
 
     @classmethod
     def name_for(cls, call, text):
@@ -399,8 +412,7 @@ class File(Movable):
 
     def read(self, depth, content=False):
         node = super().read(depth)
-        if self.children_known:
-            node["hasChildren"] = False
+        node["hasChildren"] = False
         if content:
             node.update(decode(self.content))
         return node
@@ -476,6 +488,13 @@ class Document(File):
             node.update(decode(self.content))
         return node
 
+    def identified(self):
+        """Its notes that carry an ID, the document itself included when it has one."""
+        return [
+            self if position is None else TextNote(self, position, note)
+            for position, note in _identified(self.parsed)
+        ]
+
     def note_at_position(self, position):
         notes, note = self.parsed.children, None
         for index in position:
@@ -487,7 +506,7 @@ class Document(File):
 
     def check_content(self, current, content):
         self.check_text(self.call, content)
-        if sorted(ids_in(content)) != sorted(ids_in(current)):
+        if sorted(ids_in(content)) != sorted(note.id for _, note in _identified(self.parsed)):
             self.call.refuse("INVALID_ARGUMENT", "content: Set content can't add or remove IDs.")
 
 
@@ -502,21 +521,24 @@ class Readme(Document):
         return self.tree.files.get(self.path)
 
 
-class TextNote:
+class TextNote(Note):
     """An outline note or body of a document, as the text format reads it.
 
     A note without an ID is referenced by its position, a handle Read returns for passing back
     while the document is unchanged; its form isn't part of the contract.
     """
 
-    operations = ("read",)
+    kinds = ("outlineNote", "body")
 
     def __init__(self, document, position, note):
-        self.call = document.call
+        super().__init__(document.call, document.path)
         self.document = document
         self.position = position
         self.note = note
-        self.kind = "outlineNote" if note.kind == "outline" else "body"
+        self.kind = self.kinds[0] if note.kind == "outline" else self.kinds[1]
+
+    def version(self):
+        return self.document.version()
 
     @property
     def text(self):
@@ -525,7 +547,7 @@ class TextNote:
     def ref(self):
         if self.note.id is not None:
             return self.call.id_ref(self.note.id)
-        return self.call.ref("/".join([self.document.path, *map(str, self.position)]))
+        return self.call.ref("/".join([self.path, *map(str, self.position)]))
 
     def children(self):
         return [
@@ -534,24 +556,11 @@ class TextNote:
         ]
 
     def read(self, depth, content=False):
-        node = {
-            "ref": self.ref(),
-            "kind": self.kind,
-            "text": self.text,
-            "operations": list(self.operations),
-            "version": self.document.version(),
-        }
-        return with_children(node, self.children(), depth)
+        return with_children(super().read(depth), self.children(), depth)
 
 
-KINDS = {
-    "workspace": Workspace,
-    "folder": Folder,
-    "document": Document,
-    "file": File,
-    "outlineNote": TextNote,
-    "body": TextNote,
-}
+KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file": File}
+NOTE_KINDS = [*KINDS, *TextNote.kinds]
 Container.holds = {"document": Document, "file": File}
 
 
@@ -643,17 +652,12 @@ class WorkspaceCall(Call):
             if self.single_file
             else [path for path in self.tree.files if self.tree.kind(path) == "document"]
         )
-        found = []
-        for path in documents:
-            document = self.note_at(path)
-            parsed = document.parsed
-            if parsed.id == note_id:
-                found.append(document)
-            found += [
-                TextNote(document, position, note)
-                for position, note in _walk(parsed.children)
-                if note.id == note_id
-            ]
+        found = [
+            note
+            for path in documents
+            for note in self.note_at(path).identified()
+            if (note.parsed.id if isinstance(note, Document) else note.note.id) == note_id
+        ]
         if len(found) != 1:
             # Two notes sharing an ID resolve to neither (docs/specs/outliner/note-ids.md).
             reason = "no note has" if not found else "more than one note has"
