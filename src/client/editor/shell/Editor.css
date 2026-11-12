@@ -229,8 +229,7 @@
   pointer-events: none;
 }
 
-.remdo-outline li.list-item.list-item-checked::after,
-.remdo-outline li.list-item.list-item-unchecked::after {
+.remdo-outline li.list-item[data-checkbox]::after {
   content: '';
   position: absolute;
   left: var(--checkbox-left);
@@ -257,16 +256,33 @@
   outline: none;
 }
 
-.remdo-outline ol.list-ol {
-  counter-reset: remdo-ordered;
+/* A heading's text grows, not its row, so its bullet and text keep every note's column. */
+.remdo-outline li.list-item[data-heading-level] {
+  font-weight: 600;
+  line-height: var(--list-line-height);
 }
 
-.remdo-outline ol.list-ol > li.list-item:not(.list-nested-item) {
-  counter-increment: remdo-ordered;
+.remdo-outline li.list-item[data-heading-level='1'] {
+  --list-line-height: 2.25rem;
+  --heading-font-size: 1.5em;
 }
 
-.remdo-outline ol.list-ol > li.list-item:not(.list-nested-item)::before {
-  content: counter(remdo-ordered) '.';
+.remdo-outline li.list-item[data-heading-level='2'] {
+  --list-line-height: 2rem;
+  --heading-font-size: 1.3em;
+}
+
+.remdo-outline li.list-item[data-heading-level='3'] {
+  --list-line-height: 1.85rem;
+  --heading-font-size: 1.15em;
+}
+
+.remdo-outline li.list-item[data-heading-level] > * {
+  font-size: var(--heading-font-size, 1em);
+}
+
+.remdo-outline li.list-item[data-number]::before {
+  content: attr(data-number) '.';
   background-color: transparent;
   mask-image: none;
   -webkit-mask-image: none;
@@ -282,8 +298,7 @@
   top: var(--remdo-row-padding);
 }
 
-.remdo-outline li.list-item.list-item-checked,
-.remdo-outline li.list-item.list-item-unchecked {
+.remdo-outline li.list-item[data-checkbox] {
   --checkbox-left: calc(var(--bullet-left) + var(--bullet-width) + var(--checkbox-gap));
   --checkbox-mask-image: url('/icons/checkbox-unchecked.svg');
   --checkbox-mask-size: var(--checkbox-width) var(--checkbox-width);
