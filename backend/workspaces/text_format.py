@@ -1,0 +1,533 @@
+"""The RemDo text format (docs/format.md): Markdown read into a tree of notes, and written back.
+
+The tree holds a document, outline notes (headings included) and bodies, each note with its own
+lines as written. A body holds any other Markdown verbatim.
+"""
+
+import dataclasses
+import re
+from dataclasses import dataclass, field
+
+from markdown_it import MarkdownIt
+
+# Deep enough for any outline people write; the parser's default of 20 levels drops content
+# nested past nine list levels, which would leave part of a document unread.
+MAX_NESTING = 400
+NAME = re.compile(r"^(.*?[^\\\s])::(?: |$)")
+PROPERTY = re.compile(r"^(id)::(?: (.*))?$")
+CHECKBOX = re.compile(r"^\[([ xX])\](?:[ \t]+|$)")
+MARKS = {"strong": "bold", "em": "italic", "s": "strike"}
+MARK_ORDER = ("bold", "italic", "strike", "underline")
+OPEN = {"bold": "**", "italic": "*", "strike": "~~", "underline": "<u>"}
+CLOSE = {"bold": "**", "italic": "*", "strike": "~~", "underline": "</u>"}
+DATE = re.compile(r"^date:(\d{4}-\d{2}-\d{2})$")
+
+_markdown = MarkdownIt("commonmark", {"maxNesting": MAX_NESTING}).enable("strikethrough")
+
+
+@dataclass
+class Run:
+    kind: str  # text, link, date or verbatim
+    text: str = ""
+    marks: tuple = ()
+    href: str = ""
+    runs: list = field(default_factory=list)
+
+
+@dataclass
+class Note:
+    kind: str  # outline or body
+    source: list = field(default_factory=list)  # the note's own lines as written
+    marker: tuple = ("bullet",)  # ("bullet",), ("number", start or None) or ("heading", level)
+    checkbox: str | None = None  # open or checked
+    name: str | None = None
+    runs: list = field(default_factory=list)
+    id: str | None = None
+    children: list = field(default_factory=list)
+
+    @property
+    def text(self):
+        return "\n".join(self.source)
+
+
+@dataclass
+class Document:
+    id: str | None = None
+    children: list = field(default_factory=list)
+
+
+def read(source):
+    """The document a Markdown text reads as; any text reads as one."""
+    lines = source.replace("\r\n", "\n").replace("\r", "\n").removesuffix("\n").split("\n")
+    document = Document()
+    parsed = lines
+    if lines and lines[0] == "---" and "---" in lines[1:]:
+        end = lines.index("---", 1)
+        document.children.append(Note("body", lines[: end + 1]))
+        parsed = ["" if index <= end else line for index, line in enumerate(lines)]
+    tokens = _markdown.parse("\n".join(parsed))
+    _Reader(lines, tokens).section(document)
+    return document
+
+
+class _Reader:
+    def __init__(self, lines, tokens):
+        self.lines = lines
+        self.tokens = tokens
+
+    def section(self, document):
+        sections = [(0, document)]
+
+        def owner():
+            return sections[-1][1]
+
+        def heading(index):
+            token = self.tokens[index]
+            level = int(token.tag[1:])
+            while len(sections) > 1 and sections[-1][0] >= level:
+                sections.pop()
+            inline = self.tokens[index + 1]
+            note = Note("outline", [self.lines[token.map[0]].strip()], ("heading", level))
+            self.fill(note, inline.content, inline)
+            owner().children.append(note)
+            sections.append((level, note))
+
+        self.blocks(0, len(self.tokens), owner, False, 0, heading)
+
+    def blocks(self, start, end, owner, in_item, indent, on_heading=None):
+        last = None
+        body = None
+
+        def flush():
+            nonlocal body
+            if body is None:
+                return
+            segments, holder = body
+            lines = []
+            for index, (first, stop, quoted) in enumerate(segments):
+                if index:
+                    lines.extend("" for _ in range(segments[index - 1][1], first))
+                raw = self.lines[first:stop]
+                lines.extend(
+                    [re.sub(r"^\s*>\s?", "", line) for line in raw]
+                    if quoted
+                    else _dedent(raw, indent)
+                )
+            holder.children.append(Note("body", lines))
+            body = None
+
+        def add(first, stop, quoted):
+            # Adjacent blocks form one body, as the format says.
+            nonlocal body
+            if body and body[1] is owner() and first >= body[0][-1][1]:
+                body[0].append((first, stop, quoted))
+            else:
+                flush()
+                body = ([(first, stop, quoted)], owner())
+
+        index = start
+        while index < end:
+            token = self.tokens[index]
+            if token.nesting == -1 or token.map is None:
+                index += 1
+                continue
+            first, stop = token.map
+            if last is not None and any(line.strip() for line in self.lines[last:first]):
+                add(last, first, False)
+            last = stop
+            close = _close_of(self.tokens, index) if token.nesting == 1 else index
+            if token.type == "heading_open" and on_heading:
+                flush()
+                on_heading(index)
+            elif token.type in ("bullet_list_open", "ordered_list_open"):
+                flush()
+                self.list(index, close, owner())
+            else:
+                add(first, stop, in_item and token.type == "blockquote_open")
+            index = close + 1
+        if not in_item and end == len(self.tokens) and last is not None:
+            if any(line.strip() for line in self.lines[last:]):
+                add(last, len(self.lines), False)
+        flush()
+
+    def list(self, open_index, close, owner):
+        ordered = self.tokens[open_index].type == "ordered_list_open"
+        start = int(self.tokens[open_index].attrGet("start") or 1)
+        first = True
+        index = open_index + 1
+        while index < close:
+            if self.tokens[index].type == "list_item_open":
+                item_close = _close_of(self.tokens, index)
+                marker = (
+                    ("number", start if first and start != 1 else None) if ordered else ("bullet",)
+                )
+                self.item(index, item_close, owner, marker)
+                first = False
+                index = item_close
+            index += 1
+
+    def item(self, open_index, close, owner, marker):
+        line = self.tokens[open_index].map[0]
+        after = self.tokens[open_index + 1] if open_index + 1 < close else None
+        inline = None
+        if after is not None and after.type == "paragraph_open" and after.map[0] == line:
+            inline = self.tokens[open_index + 2]
+        content = inline.content if inline else ""
+        prop = PROPERTY.match(content.split("\n")[0]) if inline else None
+        if prop:
+            value = (prop.group(2) or "").strip()
+            if owner.id is None and re.fullmatch(r"\S+", value):
+                owner.id = value
+            return
+        text_end = _close_of(self.tokens, open_index + 1) + 1 if inline else open_index + 1
+        stop = self.tokens[open_index + 1].map[1] if inline else line + 1
+        source = _dedent(
+            self.lines[line:stop], len(self.lines[line]) - len(self.lines[line].lstrip())
+        )
+        note = Note("outline", source, marker)
+        checkbox = CHECKBOX.match(content)
+        if checkbox:
+            note.checkbox = "open" if checkbox.group(1) == " " else "checked"
+            content = content[checkbox.end() :]
+        self.fill(note, content, inline, bool(checkbox))
+        owner.children.append(note)
+        self.blocks(text_end, close, lambda: note, True, _item_indent(self.lines[line]))
+
+    def fill(self, note, content, inline, checkbox=False):
+        if inline is None:
+            return
+        tokens = inline.children or []
+        if checkbox:
+            tokens = _strip_prefix(tokens, CHECKBOX)
+        name = _looks_named(content)
+        if name:
+            note.name = name.group(1)
+            tokens = _strip_prefix(tokens, re.compile(re.escape(note.name) + r"::\s?"))
+            content = content[name.end() :]
+        note.runs = _runs(tokens, content)
+
+
+def _runs(tokens, content):
+    unmodelled = next(
+        (
+            token
+            for token in tokens
+            if token.type in ("image", "hardbreak")
+            or (token.type == "html_inline" and not re.fullmatch(r"</?u>", token.content))
+            or (token.type == "link_open" and token.markup == "autolink")
+        ),
+        None,
+    )
+    if unmodelled:
+        return [Run("verbatim", re.sub(r"\n\s*", " ", content).strip())]
+    top = []
+    target = top
+    marks = []
+    date = None
+
+    def push(text, extra=()):
+        if not text:
+            return
+        current = tuple(sorted(set(marks) | set(extra)))
+        if target and target[-1].kind == "text" and target[-1].marks == current:
+            target[-1].text += text
+        else:
+            target.append(Run("text", text, current))
+
+    for token in tokens:
+        mark = (
+            "underline"
+            if token.type == "html_inline"
+            else MARKS.get(re.sub(r"_(open|close)$", "", token.type))
+        )
+        if date is not None:
+            if token.type == "link_close":
+                date = None
+            elif token.type in ("text", "code_inline"):
+                date.text += token.content
+        elif mark:
+            if token.nesting == 1 or token.content == "<u>":
+                marks.append(mark)
+            elif mark in marks:
+                marks.reverse()
+                marks.remove(mark)
+                marks.reverse()
+        elif token.type == "text":
+            push(token.content)
+        elif token.type == "softbreak":
+            push(" ")
+        elif token.type == "code_inline":
+            push(token.content, ("code",))
+        elif token.type == "link_open":
+            href = token.attrGet("href") or ""
+            found = DATE.match(href)
+            link = Run("date", href=found.group(1)) if found else Run("link", href=href)
+            top.append(link)
+            if found:
+                date = link
+            else:
+                target = link.runs
+        elif token.type == "link_close":
+            target = top
+    return _trim(_normalize(top))
+
+
+def _normalize(runs):
+    """Whitespace at the edge of a marked span carries no mark, as tools move marks off it."""
+    out = []
+    segment = []
+
+    def flush():
+        for mark in ("bold", "italic", "strike", "underline"):
+            index = 0
+            while index < len(segment):
+                if mark not in segment[index][1]:
+                    index += 1
+                    continue
+                end = index
+                while end < len(segment) and mark in segment[end][1]:
+                    end += 1
+                for edge in (range(index, end), range(end - 1, index - 1, -1)):
+                    for i in edge:
+                        if not (isinstance(segment[i][0], str) and segment[i][0].isspace()):
+                            break
+                        segment[i][1].discard(mark)
+                index = end
+        for char, marks in segment:
+            if not isinstance(char, str):
+                out.append(char)
+                continue
+            key = tuple(sorted(marks))
+            if out and out[-1].kind == "text" and out[-1].marks == key:
+                out[-1].text += char
+            else:
+                out.append(Run("text", char, key))
+        segment.clear()
+
+    for run in runs:
+        if run.kind == "text":
+            segment.extend((char, set(run.marks)) for char in run.text)
+        elif run.kind == "link":
+            run.runs = _normalize(run.runs)
+            # A link whose label carries a mark doesn't end that mark's span around it.
+            segment.append((run, _shared_marks(run)))
+        else:
+            flush()
+            out.append(run)
+    flush()
+    return out
+
+
+def _shared_marks(link):
+    texts = [run for run in link.runs if run.kind == "text"]
+    return set.intersection(*(set(run.marks) for run in texts)) - {"code"} if texts else set()
+
+
+def _trim(runs):
+    if runs and runs[0].kind == "text":
+        runs[0].text = runs[0].text.lstrip()
+    if runs and runs[-1].kind == "text":
+        runs[-1].text = runs[-1].text.rstrip()
+    return [run for run in runs if run.kind != "text" or run.text]
+
+
+def _strip_prefix(tokens, pattern):
+    if not tokens or tokens[0].type != "text":
+        return tokens
+    first = tokens[0].copy()
+    first.content = pattern.sub("", first.content, count=1)
+    return [first, *tokens[1:]]
+
+
+def _close_of(tokens, open_index):
+    close = re.sub(r"_open$", "_close", tokens[open_index].type)
+    level = tokens[open_index].level
+    index = open_index + 1
+    while tokens[index].type != close or tokens[index].level != level:
+        index += 1
+    return index
+
+
+def _item_indent(line):
+    match = re.match(r"^(\s*)([-*+]|\d+[.)])(\s+|$)", line)
+    return len(match.group(0)) if match else 0
+
+
+def _dedent(lines, limit):
+    widths = [len(line) - len(line.lstrip()) for line in lines if line.strip()]
+    width = min([limit, *widths])
+    return [line[min(width, len(line) - len(line.lstrip())) :] for line in lines]
+
+
+def _looks_named(text):
+    """Text that reads as `name:: text`: a plain name, free of Markdown, before an unescaped `::`."""
+    match = NAME.match(text)
+    return match if match and not re.search(r"[*_`\[\]<&\\]", match.group(1)) else None
+
+
+def write(document):
+    """The canonical text of a document: what tools write, which reads back as the same tree."""
+    out = []
+    children = document.children
+    if children and children[0].kind == "body":
+        _section(children[:1], out)
+        children = children[1:]
+    if document.id is not None:
+        _separate(out)
+        out.append(f"- id:: {document.id}")
+    _section(children, out)
+    return "\n".join(out) + "\n" if out else ""
+
+
+def _separate(out):
+    if out and out[-1] != "":
+        out.append("")
+
+
+def _section(children, out):
+    in_list = False
+    numbered = 0
+    previous = None
+    for child in children:
+        if child.kind == "body":
+            _separate(out)
+            out.extend(child.source)
+            in_list = False
+        elif child.marker[0] == "heading":
+            _separate(out)
+            out.append(f"{'#' * child.marker[1]} {_note_text(child)}".rstrip())
+            rest = child.children
+            if rest and rest[0].kind == "body":
+                _section(rest[:1], out)
+                rest = rest[1:]
+            if child.id is not None:
+                _separate(out)
+                out.append(f"- id:: {child.id}")
+            _section(rest, out)
+            in_list = False
+        else:
+            if not in_list:
+                _separate(out)
+            if not in_list or previous != child.marker[0]:
+                numbered = (child.marker[1] or 1) - 1 if child.marker[0] == "number" else 0
+            numbered += 1
+            _item(child, "", numbered, out)
+            in_list = True
+            previous = child.marker[0]
+
+
+def _item(note, indent, number, out):
+    marker = f"{number}." if note.marker[0] == "number" else "-"
+    box = "" if note.checkbox is None else "[x] " if note.checkbox == "checked" else "[ ] "
+    text = _note_text(note)
+    out.append(f"{indent}{marker} {box}{text}".rstrip())
+    inner = indent + " " * max(4, len(marker) + 1)
+    rest = note.children
+    under_text = False
+    if rest and rest[0].kind == "body":
+        out.extend(f"{inner}> {line}".rstrip() for line in rest[0].source)
+        rest = rest[1:]
+        under_text = True
+    if note.id is not None:
+        out.append(f"{inner}- id:: {note.id}")
+        under_text = True
+    numbered = 0
+    previous = None
+    after_children = False
+    for child in rest:
+        if child.kind == "body":
+            out.append("")
+            out.extend(f"{inner}> {line}".rstrip() for line in child.source)
+            previous = None
+            after_children = True
+            continue
+        directly_under_text = not under_text and not after_children and text
+        empty = _note_text(child) == "" and child.checkbox is None
+        # Only `1.` can interrupt a paragraph, so another first number needs a blank line before it.
+        late_start = child.marker[0] == "number" and (child.marker[1] or 1) != 1
+        if directly_under_text and (empty or late_start):
+            out.append("")
+        if previous != child.marker[0]:
+            numbered = (child.marker[1] or 1) - 1 if child.marker[0] == "number" else 0
+        numbered += 1
+        _item(child, inner, numbered, out)
+        previous = child.marker[0]
+        after_children = True
+
+
+def _note_text(note):
+    text = write_runs(note.runs, line_start=True)
+    if note.name is not None:
+        return f"{note.name}:: {text}".rstrip()
+    return text.replace("::", "\\::", 1) if _looks_named(text) else text
+
+
+def write_runs(runs, line_start=False):
+    out = ""
+    open_marks = []
+
+    def close_all():
+        nonlocal out
+        while open_marks:
+            out += CLOSE[open_marks.pop()]
+
+    for index, run in enumerate(runs):
+        if run.kind not in ("text", "link"):
+            close_all()
+            if run.kind == "verbatim":
+                out += run.text
+            elif run.kind == "date":
+                out += f"[{_escape(run.text)}](date:{run.href})"
+            else:
+                href = f"<{run.href}>" if re.search(r"[\s()<>]", run.href) else run.href
+                out += f"[{write_runs(run.runs)}]({href})"
+            continue
+        if run.kind == "link":
+            following = runs[index + 1] if index + 1 < len(runs) else None
+            continuing = (
+                set(following.marks)
+                if following is not None and following.kind == "text"
+                else set()
+            )
+            kept = _shared_marks(run) & (set(open_marks) | continuing)
+            while any(mark not in kept for mark in open_marks):
+                out += CLOSE[open_marks.pop()]
+            for mark in MARK_ORDER:
+                if mark in kept and mark not in open_marks:
+                    out += OPEN[mark]
+                    open_marks.append(mark)
+            href = f"<{run.href}>" if re.search(r"[\s()<>]", run.href) else run.href
+            label = [
+                dataclasses.replace(
+                    inner, marks=tuple(m for m in inner.marks if m not in open_marks)
+                )
+                for inner in run.runs
+            ]
+            out += f"[{write_runs(label)}]({href})"
+            continue
+        wanted = [mark for mark in MARK_ORDER if mark in run.marks]
+        while any(mark not in wanted for mark in open_marks):
+            out += CLOSE[open_marks.pop()]
+        for mark in wanted:
+            if mark not in open_marks:
+                out += OPEN[mark]
+                open_marks.append(mark)
+        at_start = line_start and re.sub(r"[*~]|</?u>", "", out) == ""
+        out += _code(run.text) if "code" in run.marks else _escape(run.text, at_start)
+    close_all()
+    return out
+
+
+def _code(text):
+    longest = max((len(match) for match in re.findall(r"`+", text)), default=0)
+    fence = "`" * (longest + 1)
+    padded = longest > 0 or text.startswith("`") or text.endswith("`")
+    return f"{fence} {text} {fence}" if padded else f"`{text}`"
+
+
+def _escape(text, at_line_start=False):
+    escaped = re.sub(r"([\\`*_\[\]<&~])", r"\\\1", text)
+    if at_line_start:
+        escaped = re.sub(r"^([#>+-])", r"\\\1", escaped)
+        escaped = re.sub(r"^(\d+)([.)])", r"\1\\\2", escaped)
+    return escaped
