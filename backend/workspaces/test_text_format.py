@@ -229,6 +229,18 @@ class ReadingTests(SimpleTestCase):
         [note] = text_format.read("3. id:: x\n4. four\n").children
         self.assertEqual(note.marker, ("number", 4))
 
-    def test_a_block_after_a_list_items_text_is_one_body(self):
-        [note] = text_format.read("- a\n\n    paragraph\n\n    > quote\n").children
-        self.assertEqual([child.kind for child in note.children], ["body"])
+    def test_each_top_level_element_is_its_own_body(self):
+        cases = {
+            "- a\n\n  paragraph\n\n  > quote\n": [["paragraph"], ["quote"]],
+            "- a\n    > one\n    >\n    > two\n": [["one"], ["two"]],
+            "intro\n\nmore\n\n> kept quote\n": [["intro"], ["more"], ["> kept quote"]],
+            "# T\n\n> - x\n> - y\n": [["- x", "- y"]],
+        }
+        for source, bodies in cases.items():
+            with self.subTest(source=source):
+                notes = text_format.read(source).children
+                owner = notes[0] if notes[0].kind == "outline" else None
+                children = owner.children if owner else notes
+                self.assertEqual([child.source for child in children], bodies)
+                written = text_format.write(text_format.read(source))
+                self.assertEqual(_tree(text_format.read(written)), _tree(text_format.read(source)))

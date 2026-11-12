@@ -59,11 +59,10 @@ An outline note holds:
     > - Tools write `1.` where another number could not interrupt a paragraph
     > - Tools write a blank line before an empty first child after parent text
     > - Tools wrap a body under a list item in `>` lines
+    > - Each top-level element is its own body and one editor line
     > - Under a heading, a block holding a list or heading keeps its `>` lines
-    > - That `>` is a wrapper, so each element inside is one editor line
-    > - Any other quote keeps `>` as content and stays one editor line
-    > - Adjacent blocks form one body
-    > - One top-level element in a block is one editor line
+    > - That `>` is a wrapper, so each element inside is its own body
+    > - Any other quote keeps `>` as content and is one body
     > - A soft-wrapped paragraph is one editor line holding breaks
     > - Tools separate lines they move or write with a blank line or `>`
 - ID:: optional and added lazily, such as when a note is first referenced
