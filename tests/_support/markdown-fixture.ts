@@ -1,7 +1,9 @@
 import { IS_BOLD, IS_CODE, IS_ITALIC, IS_STRIKETHROUGH, IS_UNDERLINE } from 'lexical';
-import type { SerializedEditorState } from 'lexical';
+import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import type { Token } from 'markdown-it';
 
+import { transformSerializedEditorState } from '#client/editor/runtime/serialized-editor-state';
+import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
 import { createNoteIdAvoiding, normalizeNoteId } from '#domain/notes/ids';
 import { parseDocumentRef } from '#document-routes';
 import { restoreEditorStateDefaults } from '#tools/editor-state-defaults';
@@ -9,7 +11,8 @@ import type { MarkdownItem, MarkdownNote } from './markdown-outline';
 import { readMarkdownOutline } from './markdown-outline';
 import { flattenOutline } from './outline';
 
-interface SerializedNode {
+/** A node as the builder writes it, before restoreEditorStateDefaults fills in Lexical's defaults. */
+interface UnfilledNode {
   type: string;
   [key: string]: unknown;
 }
@@ -18,9 +21,9 @@ export function buildFixtureState(source: string): SerializedEditorState {
   const { notes, items, selection } = readMarkdownOutline(source);
   if (selection) throw new Error('A fixture holds no selection.');
   const ids = assignIds(notes);
-  const list = (siblings: MarkdownNote[], depth: number): SerializedNode => {
+  const list = (siblings: MarkdownNote[], depth: number): UnfilledNode => {
     const kind = listKind(siblings, items);
-    const children: SerializedNode[] = [];
+    const children: UnfilledNode[] = [];
     let value = 1;
     for (const note of siblings) {
       const item = items.get(note)!;
@@ -67,8 +70,8 @@ export function buildFixtureState(source: string): SerializedEditorState {
 
 const MARK_FORMATS = new Map([['strong', IS_BOLD], ['em', IS_ITALIC], ['s', IS_STRIKETHROUGH]]);
 
-function inlineNodes(tokens: Token[]): SerializedNode[] {
-  const top: SerializedNode[] = [];
+function inlineNodes(tokens: Token[]): UnfilledNode[] {
+  const top: UnfilledNode[] = [];
   let target = top;
   const marks: number[] = [];
   const pushText = (text: string, extra = 0) => {
@@ -94,7 +97,7 @@ function inlineNodes(tokens: Token[]): SerializedNode[] {
       const link = linkNode(String(token.attrGet('href') ?? ''));
       top.push(link);
       // A date's label is derived from its date, so its text goes nowhere.
-      target = (link.children as SerializedNode[] | undefined) ?? [];
+      target = (link.children as UnfilledNode[] | undefined) ?? [];
     } else if (token.type === 'link_close') {
       target = top;
     } else {
@@ -105,11 +108,11 @@ function inlineNodes(tokens: Token[]): SerializedNode[] {
   return top;
 }
 
-function bodyNodes(lines: Token[][]): SerializedNode[] {
+function bodyNodes(lines: Token[][]): UnfilledNode[] {
   return lines.flatMap((tokens, index) => [...(index > 0 ? [{ type: 'linebreak' }] : []), ...inlineNodes(tokens)]);
 }
 
-function linkNode(href: string): SerializedNode {
+function linkNode(href: string): UnfilledNode {
   const date = /^date:(\d{4}-\d{2}-\d{2})$/.exec(href);
   if (date) return { type: 'date', isoDate: date[1] };
   const target = /^note:(.+)$/.exec(href)?.[1] ?? '';
@@ -152,4 +155,31 @@ function assignIds(notes: MarkdownNote[]): Map<MarkdownNote, string> {
     ids.set(note, id);
   }
   return ids;
+}
+
+type NoteEdit = (note: SerializedNoteListItemNode) => SerializedLexicalNode | SerializedLexicalNode[];
+
+/**
+ * Replaces each named note's list item with what its edit returns, in place among its siblings, then fills in
+ * the Lexical defaults the edits leave out.
+ */
+export function editNotes(state: SerializedEditorState, edits: Record<string, NoteEdit>): SerializedEditorState {
+  const edited = new Set<string>();
+  const result = transformSerializedEditorState(state, (node) => {
+    const { children } = node as { children?: SerializedLexicalNode[] };
+    if (!children) return node;
+    const withEdits: SerializedLexicalNode & { children: SerializedLexicalNode[] } = {
+      ...node,
+      children: children.flatMap((child) => {
+        const { noteId } = child as SerializedNoteListItemNode;
+        if (child.type !== 'listitem' || noteId === undefined || !Object.hasOwn(edits, noteId)) return [child];
+        edited.add(noteId);
+        return edits[noteId]!(child as SerializedNoteListItemNode);
+      }),
+    };
+    return withEdits;
+  });
+  const missing = Object.keys(edits).filter((noteId) => !edited.has(noteId));
+  if (missing.length > 0) throw new Error(`No note ${missing.join(', ')} to edit.`);
+  return restoreEditorStateDefaults(result);
 }

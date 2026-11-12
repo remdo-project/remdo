@@ -1,9 +1,10 @@
 import type { Page } from '@playwright/test';
 import { parseDocumentRef } from '#document-routes';
 import { readFixture } from '#tools/fixtures';
+import type { Fixture } from '#tools/fixtures';
 
-export async function load(page: Page, fixtureName: string): Promise<void> {
-  const payload = await readFixture(fixtureName);
+export async function load(page: Page, fixture: Fixture): Promise<void> {
+  const payload = await readFixture(fixture);
   await replaceDocument(page, payload);
 }
 

@@ -6,7 +6,7 @@ import { listFixtureNames, readFixtureMarkdown } from '#tools/fixtures';
 
 describe('toMatchOutline smoke coverage', async () => {
   for (const fixture of await listFixtureNames()) {
-    const markdown = (await readFixtureMarkdown(fixture))!;
+    const markdown = await readFixtureMarkdown(fixture);
     it(`loads ${fixture} as its test document describes`, meta({ fixture }), async ({ remdo }) => {
       expect(remdo).toMatchOutline(markdown);
       const documentId = remdo.getCollabDocId();

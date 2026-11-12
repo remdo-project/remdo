@@ -1,12 +1,8 @@
-import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
+import type { SerializedEditorState } from 'lexical';
 
 import { normalizeNoteIdOrThrow } from '#domain/notes/ids';
+import type { SerializedNoteLinkNode } from '#client/editor/features/links/note-link-node';
 import { transformSerializedEditorState } from '#client/editor/runtime/serialized-editor-state';
-
-interface NoteLinkSerializedNode extends SerializedLexicalNode {
-  type: 'note-link';
-  docId?: unknown;
-}
 
 export function prepareEditorStateForRuntime(
   persistedState: SerializedEditorState,
@@ -20,7 +16,7 @@ export function prepareEditorStateForRuntime(
     if (node.type !== 'note-link') {
       return node;
     }
-    const typedNode = node as NoteLinkSerializedNode;
+    const typedNode = node as SerializedNoteLinkNode;
     if (typedNode.docId === undefined) {
       return {
         ...typedNode,

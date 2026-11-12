@@ -1,31 +1,20 @@
-import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
+import type { SerializedLexicalNode } from 'lexical';
 import { act } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { brokenEditorStates } from '#tests-common/broken-editor-states';
 import { meta } from '#tests';
 import { assertEditorSchema } from '#client/editor/dev/schema/assertEditorSchema';
-import duplicateNoteId from '#fixtures/editor-schema/duplicate-note-id.json';
-import emptyText from '#fixtures/editor-schema/empty-text.json';
-import indentJump from '#fixtures/editor-schema/indent-jump.json';
-import listWrapperNoListitem from '#fixtures/editor-schema/list-wrapper-no-listitem.json';
-import missingNoteId from '#fixtures/editor-schema/missing-note-id.json';
-import minimalValid from '#fixtures/editor-schema/minimal-valid.json';
-import wrapperOrphan from '#fixtures/editor-schema/wrapper-orphan.json';
-import wrapperOrphanAfterWrapper from '#fixtures/editor-schema/wrapper-orphan-after-wrapper.json';
-import wrapperWithoutSibling from '#fixtures/editor-schema/wrapper-without-sibling.json';
+import { buildFixtureState, editNotes } from '#tests-common/markdown-fixture';
 
 describe('assertEditorSchema', () => {
-  const cast = (data: unknown) => data as SerializedEditorState;
+  const minimalValid = () => buildFixtureState('- note1');
 
   it('accepts a minimal valid outline', () => {
-    expect(() => assertEditorSchema(cast(minimalValid))).not.toThrow();
+    expect(() => assertEditorSchema(minimalValid())).not.toThrow();
   });
 
-  const stateWithContent = (content: SerializedLexicalNode[]) => {
-    const state = structuredClone(minimalValid);
-    const note: { children: SerializedLexicalNode[] } = state.root.children[0]!.children[0]!;
-    note.children = content;
-    return cast(state);
-  };
+  const stateWithContent = (content: SerializedLexicalNode[]) =>
+    editNotes(minimalValid(), { note1: (note) => ({ ...note, children: content }) });
 
   const lineBreak = { type: 'linebreak', version: 1 };
   const link = { type: 'link', version: 1, children: [lineBreak] };
@@ -44,14 +33,11 @@ describe('assertEditorSchema', () => {
   );
 
   it('accepts line breaks in a body', () => {
-    const state = structuredClone(minimalValid);
-    const siblings: SerializedLexicalNode[] = state.root.children[0]!.children;
     const bodyWrapper = {
       type: 'note-body-wrapper', version: 1,
       children: [{ type: 'note-body', version: 1, children: [lineBreak, link] }],
     };
-    siblings.push(bodyWrapper);
-    assertEditorSchema(cast(state));
+    assertEditorSchema(editNotes(minimalValid(), { note1: (note) => [note, bodyWrapper] }));
   });
 
   it(
@@ -69,7 +55,7 @@ describe('assertEditorSchema', () => {
     'reports when a content item is missing a noteId',
     meta({ expectedConsoleIssues: ['runtime.invariant missing-note-id path=0 noteId=undefined'] }),
     () => {
-      assertEditorSchema(cast(missingNoteId));
+      assertEditorSchema(brokenEditorStates.missingNoteId());
     }
   );
 
@@ -77,7 +63,7 @@ describe('assertEditorSchema', () => {
     'reports when noteIds are duplicated',
     meta({ expectedConsoleIssues: ['runtime.invariant duplicate-note-id path=1 noteId=duplicated'] }),
     () => {
-      assertEditorSchema(cast(duplicateNoteId));
+      assertEditorSchema(brokenEditorStates.duplicateNoteId());
     }
   );
 
@@ -85,7 +71,7 @@ describe('assertEditorSchema', () => {
     'reports for wrapper list item without preceding sibling',
     meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
     () => {
-      assertEditorSchema(cast(wrapperWithoutSibling));
+      assertEditorSchema(editNotes(buildFixtureState('- orphaning\n    - note1'), { orphaning: () => [] }));
     }
   );
 
@@ -93,7 +79,7 @@ describe('assertEditorSchema', () => {
     'reports for wrapper list item at list start',
     meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
     () => {
-      assertEditorSchema(cast(wrapperOrphan));
+      assertEditorSchema(brokenEditorStates.wrapperWithoutPreviousNote());
     }
   );
 
@@ -101,7 +87,7 @@ describe('assertEditorSchema', () => {
     'reports for wrapper list item after another wrapper',
     meta({ expectedConsoleIssues: ['runtime.invariant wrapper-without-sibling path=root'] }),
     () => {
-      assertEditorSchema(cast(wrapperOrphanAfterWrapper));
+      assertEditorSchema(brokenEditorStates.wrapperAfterWrapper());
     }
   );
 
@@ -109,7 +95,7 @@ describe('assertEditorSchema', () => {
     'reports when a nested list lacks list item children',
     meta({ expectedConsoleIssues: ['runtime.invariant list-wrapper-no-listitem path=0'] }),
     () => {
-      assertEditorSchema(cast(listWrapperNoListitem));
+      assertEditorSchema(editNotes(buildFixtureState('- note1\n    - note2'), { note2: (note) => note.children }));
     }
   );
 
@@ -117,11 +103,14 @@ describe('assertEditorSchema', () => {
     'reports on indent jumps greater than one level',
     meta({ expectedConsoleIssues: ['runtime.invariant indent-jump path=1 parentIndent=0 entryIndent=2'] }),
     () => {
-      assertEditorSchema(cast(indentJump));
+      assertEditorSchema(editNotes(buildFixtureState('- note1\n- note2'), { note2: (note) => ({ ...note, indent: 2 }) }));
     }
   );
 
   it('ignores list items with empty text content', () => {
-    expect(() => assertEditorSchema(cast(emptyText))).not.toThrow();
+    const emptyTextNode = editNotes(buildFixtureState('-\n    - id:: empty'), {
+      empty: (note) => ({ ...note, children: [{ type: 'text', version: 1, text: '' }] }),
+    });
+    expect(() => assertEditorSchema(emptyTextNode)).not.toThrow();
   });
 });

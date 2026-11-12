@@ -1,10 +1,11 @@
+import type { Fixture } from '#tools/fixtures';
 import type { SelectionSnapshot } from '#tests';
 import type { RemdoTestApi } from '#client/editor/dev';
 import type { EditorViewBindings } from '#client/editor/view/EditorViewProvider';
 
 interface RemdoTaskMeta {
   collabDocId?: string;
-  fixture?: string;
+  fixture?: Fixture;
   fixtureSchemaBypass?: boolean;
   expectedConsoleIssues?: string[];
   viewProps?: EditorViewBindings;

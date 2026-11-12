@@ -1,3 +1,4 @@
+import type { Fixture } from '#tools/fixtures';
 import { expect, setExpectedConsoleIssues } from '#e2e/fixtures';
 import type { Page } from '#e2e/fixtures';
 import { parseDocumentRef } from '#document-routes';
@@ -45,12 +46,12 @@ export async function createEditorHarness(page: Page, docId: string) {
 
   return {
     docId,
-    load: (name: string, options?: EditorLoadOptions) => {
+    load: (fixture: Fixture, options?: EditorLoadOptions) => {
       const expectedCodes = options?.expectedConsoleIssues;
       if (expectedCodes?.length) {
         setExpectedConsoleIssues(page, expectedCodes);
       }
-      return load(page, name);
+      return load(page, fixture);
     },
     getEditorState: () => getEditorState(page),
   };
