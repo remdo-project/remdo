@@ -31,11 +31,11 @@ In decreasing priority:
 
 ## Note model
 
-A document is a note whose children are Markdown blocks and outline notes, in
+A document is a note whose children are bodies and outline notes, in
 file order; its name is held outside the text.
 A heading contains everything up to the next heading of its level or higher.
 
-A Markdown block is a note holding any Markdown other than a heading or list;
+A body is a note holding any Markdown other than a heading or list;
 headings and lists inside it are plain content.
 
 An outline note holds:
@@ -49,19 +49,20 @@ An outline note holds:
 - Text:: one line of inline rich text, including links
     > - Tools write one line; continuation lines in a paragraph join into Text
     > - Links use Markdown syntax with a URI target, as in [note IDs](note:k3x9)
+    > - A date link reads as its `date:` target; its label is presentation
     > - Tools escape Text that would otherwise read as Markdown structure
     > - Whitespace at its start and end is not Text, even as a character
     >   reference
-- Children:: an ordered list of Markdown blocks and outline notes, without
+- Children:: an ordered list of bodies and outline notes, without
   [property](#properties) lines
     > - Tools indent children under a list item by 4 spaces per level
     > - Tools write `1.` where another number could not interrupt a paragraph
     > - Tools write a blank line before an empty first child after parent text
-    > - Tools wrap a Markdown block under a list item in `>` lines
+    > - Tools wrap a body under a list item in `>` lines
     > - Under a heading, a block holding a list or heading keeps its `>` lines
     > - That `>` is a wrapper, so each element inside is one editor line
     > - Any other quote keeps `>` as content and stays one editor line
-    > - Adjacent blocks form one Markdown block
+    > - Adjacent blocks form one body
     > - One top-level element in a block is one editor line
     > - A soft-wrapped paragraph is one editor line holding breaks
     > - Tools separate lines they move or write with a blank line or `>`
@@ -84,7 +85,7 @@ the note it applies to.
   block comes first
 - A value the property doesn't define has no effect
 - Property names match exactly
-- Tools write a note's first block, then its properties, then its other
+- Tools write a note's first body, then its properties, then its other
   children, and may fix, report or keep other property lines
 
 ## Canonical spelling
@@ -96,7 +97,7 @@ Tools write:
 - Bold, italic:: `**x**`, `*x*`, with marks moved off surrounding whitespace
 - Strikethrough:: `~~x~~`, with marks moved off surrounding whitespace
 - Underline:: `<u>x</u>`
-- Date:: `[1 Nov](date:2026-11-01)`
+- Date:: `[1 Nov 2026](date:2026-11-01)`: day, short English month and year
 - Note or document link:: `[x](note:k3x9)`, or `[x](note:Hq3vZp8Lmx_k3x9)` in
   another workspace
 - Other file link:: relative path, as in `[x](../assets/chart.png)`
@@ -116,4 +117,3 @@ The [adoption plan](text-format-plan.md) tracks repository integration.
 - Insert a blank line before a list that follows an HTML block
 - Keep inline HTML when its note is edited
 - Define spellings for autolinks, flanking cases and an empty document
-- Reconcile date labels with the dates specification

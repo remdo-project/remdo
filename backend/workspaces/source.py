@@ -1,7 +1,7 @@
 """The workspace source: its document, folders and plain files as notes, one class per kind.
 
 A workspace holds one document, README.md, until multi-file workspaces return. Outline notes,
-Markdown blocks and Ensure ID arrive with the text format parser.
+bodies and Ensure ID arrive with the text format parser.
 """
 
 import base64

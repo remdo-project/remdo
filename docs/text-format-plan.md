@@ -143,9 +143,9 @@ unchanged.
 
 ### Documents and bodies
 
-- A body is any Markdown block among a note's children, and behaves as its own
-  editing region. The editor creates at most one, first; a loaded note may
-  hold several, and loading keeps each in place.
+- A body is any other block of Markdown among a note's children, and behaves
+  as its own editing region. The editor creates at most one, first; a loaded
+  note may hold several, and loading keeps each in place.
 - Body lines start as Markdown source, rendered per line when not being edited.
   Rich paragraph lines can follow if users ask, with no text change.
 - The editor keeps a note's name in its text, with any escape that stops text
@@ -213,15 +213,15 @@ once stage 3 lands.
         IDs the editor generates count as internal, and expected outlines
         don't state them. Once a suite's fixtures are Markdown, its expected
         outlines state every other ID their notes carry; until then they
-        compare only the IDs they state. The reader then holds Markdown blocks
+        compare only the IDs they state. The reader then holds bodies
         after a note's outline children, which it refuses today.
      5. Delete the JSON fixtures, including the invalid-schema ones, once tests
         build editor-only and broken states from Markdown documents.
    - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and
      the corpus, with a throwaway writer, keeps what each document reads as,
      writes text that a second round trip leaves unchanged, reports what it
-     loses, and settles the schema, including how editor bodies map to
-     Markdown blocks.
+     loses, and settles the schema, including how editor bodies map to the
+     text.
    - Add the Python reader and canonical writer, and let Read list a document's
      outline notes and blocks. Test that the writer keeps what unusual Markdown
      reads as, not only text that round-trips unchanged. The writer keeps a
@@ -247,7 +247,7 @@ once stage 3 lands.
      first change people see. It comes before outline note operations, which
      would otherwise give the editor an independent reference, so integration
      problems surface early.
-   - Add Python note operations for outline notes and Markdown blocks, and
+   - Add Python note operations for outline notes and bodies, and
      their MCP tools, starting with Set text and Ensure ID. Let each note
      resolve its own children and name the kinds it holds, instead of deciding
      kinds from paths, and let each kind class register itself.
