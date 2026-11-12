@@ -453,6 +453,15 @@ Remaining:
 
 ### Outliner
 
+- **Per-note markers and checkboxes.** [List types](specs/outliner/list-types.md)
+  gives each note its own marker and checkbox, but the editor still keeps a
+  list's type on the list, shows a check list's checkbox in place of its
+  bullet, and shows a checked note outside a check list without a checkbox.
+  The editor schema step of the [text format plan](text-format-plan.md) closes
+  this in three changes: storage, display, then gestures, including Insertion's
+  appended notes and the menu's checkbox action. Bodies held as Markdown source
+  in a workspace's Document wait for the editor to open those documents.
+
 - **Early editor operations.** After the [text format migration](text-format-plan.md),
   revisit the editor's structural operations against
   [note operations](specs/outliner/note-operations.md) and adjust those that

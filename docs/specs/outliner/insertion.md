@@ -72,7 +72,9 @@ text makes the append
 - A described checked state applies to its own note only.
 - The parent's existing child list keeps its type. A missing child list,
   including one created for a described note without a described list type,
-  takes the type of the list containing its parent.
+  takes the type of the list containing its parent. Each appended note is
+  numbered in a number list and bulleted otherwise, with an open checkbox in a
+  check list, by its list's [type](./list-types.md#supported-types).
 - A caret in a replaced note moves to the first appended note; focus and
   selection are otherwise unchanged.
 - The append is one local update, so undo never removes part of it.

@@ -16,7 +16,10 @@ navigation, lifecycle, and merge behavior.
    note. The body travels with the note through indent/outdent, reorder,
    structural delete, and [clipboard](./clipboard.md) copy/cut/paste. A middle
    [split](./insertion.md#default-behavior-caret-selection) transfers the body
-   to the fresh note holding the trailing text.
+   to the fresh note holding the trailing text. In a workspace's
+   [Document](./note-model.md#note-kinds), a note may hold several bodies, each
+   shown in its place among the note's children; the add gesture continues the
+   first.
 3. **Visually distinct.** A body renders set apart from the note's content. If
    its owning note is [checked](./list-types.md#checked-state), the body text is crossed out with the note.
 4. **Visibility follows the note.** A body is displayed exactly when its owning
@@ -26,7 +29,9 @@ navigation, lifecycle, and merge behavior.
    with its note. A body is never independently collapsed.
 5. **Inline content.** Body text supports the same inline content as
    note content — [inline formatting](./inline-formatting.md) and `@` note
-   links (see [Links](./links.md)).
+   links (see [Links](./links.md)). In a workspace's Document, body text is its Markdown
+   source, shown as written, and inline formatting and `@` note links do not
+   apply to it.
 
 ## Selection and structural targeting
 

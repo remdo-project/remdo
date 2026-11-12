@@ -52,8 +52,9 @@ contract.
    - Delete… for an editor document the current user owns, per [Document deletion](../access/access-control.md#document-deletion).
    - Rename… and Delete… for a workspace, per [Workspace actions](./home.md#workspace-actions).
 4. Children actions:
-   - Child list type actions per [List types](./list-types.md#type-conversion), showing only
-     the two non-current options; hidden for leaf notes.
+   - Child list type actions per [List types](./list-types.md#type-conversion), hidden for
+     leaf notes: to bullet and to number, each hidden when it would change no
+     marker, and removing checkboxes for a check list, otherwise to check.
 5. View actions:
    - Zoom out per [Zoom](./zoom.md#zooming-out), shortcut `O` when the menu is
      open.

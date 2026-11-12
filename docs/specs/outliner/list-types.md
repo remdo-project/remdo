@@ -1,23 +1,48 @@
 # List types
 
-[Editor notes](./note-model.md#note-kinds) support the outliner's list types,
-list-type conversion, and checked state, including target resolution for
-checked-state changes. [Selection states](./selection.md#selection-states) and [note ranges](./selection.md#note-ranges) are defined by Selection.
+[Editor notes](./note-model.md#note-kinds) support the outliner's markers,
+checkboxes, list types, list-type conversion, and checked state, including
+target resolution for checked-state changes.
+[Selection states](./selection.md#selection-states) and [note ranges](./selection.md#note-ranges) are defined by Selection.
+
+## Markers and checkboxes
+
+Each note has its own marker and checkbox, as the
+[text format](../../format.md) holds them.
+
+- **Bullet:** shows a bullet.
+- **Number:** shows its start when it has one, otherwise one more than the
+  sibling before it when that sibling is numbered, otherwise 1.
+- **Heading:** shows a bullet, with its text styled by its level.
+- **Checkbox:** none, open, or checked, shown after the marker whatever the
+  marker is.
+
+A note keeps its marker and checkbox wherever it moves. A note the editor
+creates from another, as by `Enter` or a split, takes that note's marker
+without its start, and an open checkbox when that note has one.
 
 ## Supported types
 
-A list's type is a property of the list, not of an individual note. The
-supported types are bullet, number, and check.
+A list's items are its outline notes other than headings. Its type is check
+when every item has a checkbox, otherwise number when every item is numbered,
+otherwise bullet, including when it has no items.
 
 ## Type conversion
 
-Changing a list's type converts only that list; nested lists keep their own
-types unless changed separately.
+Converting a list acts on that list's items only; nested lists keep theirs.
+
+- **To bullet or number:** each item takes that marker, keeping its checkbox.
+- **To check:** each item without a checkbox takes an open one, keeping its
+  marker.
+- **Removing checkboxes:** each open checkbox is removed; checked notes keep
+  theirs.
 
 ## Checked state
 
-A note's checked state is independent of its list type: the state remains
-visible in every list type and survives list-type changes, reload, and collaboration.
+A note is checked when its checkbox is checked. Checking a note without a
+checkbox gives it a checked one, and unchecking leaves an open one. Checked
+state survives list-type changes, reload, and collaboration. Bodies have no
+checked state.
 
 Setting a note's checked state is recursive: the note and all of its
 descendants take the same state.
@@ -38,10 +63,10 @@ unchecked when every one of them is already checked, otherwise checked.
 
 [A caret or inline text selection](./selection.md#selection-states) in an [outline selection region](./selection.md#selection-states) targets the editor
 note owning the region; [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
-body selection region to its editor note. The marker of a note in a check-type
-list targets the clicked note while that note is outside any
+body selection region to its editor note. A note's checkbox targets the
+clicked note while that note is outside any
 [structural selection](./selection.md#selection-states). A structural selection
-— including a marker click on a note inside it — targets its
+— including a checkbox click on a note inside it — targets its
 [selected note range](./selection.md#note-ranges). Other surfaces — the [note
 menu](./menu.md), [desktop editing toolbar](./desktop-toolbar.md), and [mobile action toolbar](./mobile-toolbar.md) — supply
 their own targets, as their contracts define.

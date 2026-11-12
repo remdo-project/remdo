@@ -113,8 +113,8 @@ same text. Every row uses the same layout regardless of highlight.
 6. Every ancestor crumb is activatable; activating it zooms that ancestor and
    ends Search Mode, exactly like accepting a result.
 7. The child preview shows the first two direct children of the match rendered
-   with the outline's own list markers (bullet, number, or checkbox per child's
-   list type, checked children struck through), matching how they look in the
+   with the outline's own [markers and checkboxes](./list-types.md#markers-and-checkboxes),
+   checked children struck through, matching how they look in the
    editor. A match with no children shows no preview; a match with more than two
    children indicates the remaining count.
 
