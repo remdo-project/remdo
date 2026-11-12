@@ -85,14 +85,18 @@ unchanged.
   blocks. `backend/notes` holds what sources share, the account root, and the
   one entry point that reads notes and applies calls for MCP, the REST API and
   integrations.
-- Python owns the text format's reader and its only writer, on `markdown-it-py`.
+- Python owns the text format's reader and its canonical writer, on `markdown-it-py`.
   It matched the JavaScript `markdown-it` on 714 inputs, structure and line
   spans included. A JavaScript reader remains for paste and test fixtures.
+  JavaScript isn't required to write Markdown; where it does, as for copy,
+  cases shared with Python's writer keep both identical.
 - Node shrinks to the Yjs relay and converts Yjs to and from a JSON outline
-  tree; it never writes Markdown. The tree holds notes with their markers and
-  checked state, headings, bodies, inline runs, dates and links, with anything
-  else as verbatim source, and each note's cache ID. Three calls carry it: save
-  to a tree, apply a tree to live Yjs by cache ID, and read the live tree.
+  tree. The tree holds a document, outline notes and bodies. An outline note,
+  headings included, has its own marker, checkbox, name, text runs (marked
+  text, links, dates, or verbatim source), `id` property and cache ID; a body
+  holds verbatim source lines. Fold state stays out of it. Three calls carry
+  it: save to a tree, apply a tree to live Yjs by cache ID, and read the live
+  tree.
   Retiring Node later means replacing the relay.
 - The editor runs note operations for the person typing; Python runs them for
   everyone else. Shared cases check that both give the same result.
@@ -139,10 +143,13 @@ unchanged.
 
 ### Documents and bodies
 
-- A body is the first run of Markdown block lines before any outline child. It
-  is stored as ordinary children and behaves as its own editing region.
+- A body is any Markdown block among a note's children, and behaves as its own
+  editing region. The editor creates at most one, first; a loaded note may
+  hold several, and loading keeps each in place.
 - Body lines start as Markdown source, rendered per line when not being edited.
   Rich paragraph lines can follow if users ask, with no text change.
+- The editor keeps a note's name in its text, with any escape that stops text
+  from reading as a name, so `foo:: x` names and `foo\:: x` stays literal.
 - `folded` stays in Yjs node state.
 
 ## How steps land
@@ -217,13 +224,17 @@ once stage 3 lands.
      Markdown blocks.
    - Add the Python reader and canonical writer, and let Read list a document's
      outline notes and blocks. Test that the writer keeps what unusual Markdown
-     reads as, not only text that round-trips unchanged.
+     reads as, not only text that round-trips unchanged. The writer keeps a
+     mark open across a link whose label carries it, and joins a note's
+     continuation lines; keeping a note's existing line breaks waits until
+     users object to that churn.
    - Write operation cases once, as text before, operations, and text after or
      the refusal. Test them on Python's note operations, and check each other
      surface, such as MCP or the editor, with only a few of the same cases. Add
      this rule to the [testing policy](dev/testing.md) once it has worked.
    - Extend the editor schema with headings, `block` lines, per-note markers and
-     independent checkboxes. Use `line` or `group` storage with no body wrapper.
+     independent checkboxes. Use `line` or `group` storage with no body wrapper,
+     holding body lines as Markdown source.
    - Add Node's three calls, the cache row, the one-transaction save and hash
      recovery.
    - Add cache IDs on RemDo's own node state, with three sync steps: transfer to
