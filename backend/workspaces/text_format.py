@@ -601,7 +601,12 @@ def write_runs(runs, line_start=False):
 def _code(text):
     longest = max((len(match) for match in re.findall(r"`+", text)), default=0)
     fence = "`" * (longest + 1)
-    padded = longest > 0 or text.startswith("`") or text.endswith("`")
+    padded = (
+        longest > 0
+        or text.startswith("`")
+        or text.endswith("`")
+        or (text.startswith(" ") and text.endswith(" ") and text.strip(" "))
+    )
     return f"{fence} {text} {fence}" if padded else f"`{text}`"
 
 
