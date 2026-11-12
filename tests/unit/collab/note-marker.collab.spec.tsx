@@ -1,7 +1,8 @@
-import { $getNoteByText, meta, placeCaretAtNote, typeText } from '#tests';
-import { waitFor } from '@testing-library/react';
-import { $getState, $setState } from 'lexical';
-import { describe, expect, it } from 'vitest';
+import { $getNoteByText, meta } from '#tests';
+import { act, waitFor } from '@testing-library/react';
+import { $getState, $isTextNode, $setState } from 'lexical';
+import { describe, expect, it, vi } from 'vitest';
+import { CollabSession } from '#collaboration/session';
 
 import type { RemdoTestApi } from '#client/editor/dev';
 import { checkboxState, markerState } from '#client/editor/features/list-types/note-marker';
@@ -36,21 +37,42 @@ describe('collaboration note markers', { timeout: COLLAB_LONG_TIMEOUT_MS }, () =
     });
 
     const joined = await createCollabPeer(remdo);
-    await joined.waitForSynced();
-    expect(readNotes(joined)).toEqual(expected);
+    await waitFor(() => {
+      expect(readNotes(joined)).toEqual(expected);
+    });
   });
 
-  it('keeps a marker change and concurrent typing in the same note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  it('keeps a marker change and typing made offline in the same note', meta({ fixture: 'flat' }), async ({ remdo }) => {
+    const attach = vi.spyOn(CollabSession.prototype, 'attach');
     const secondary = await createCollabPeer(remdo);
-    await placeCaretAtNote(secondary, 'note2', Number.POSITIVE_INFINITY);
+    const session = (attach.mock.contexts as CollabSession[]).at(-1)!;
+    const provider = session.getProvider()!;
 
-    await Promise.all([
-      remdo.mutate(() => {
+    try {
+      await act(async () => provider.disconnect());
+      await waitFor(() => expect(session.snapshot().synced).toBe(false));
+      await act(async () => {
+        secondary.editor.update(
+          () => {
+            const text = $getNoteByText('note2').getFirstChild();
+            if ($isTextNode(text)) {
+              text.spliceText(text.getTextContentSize(), 0, ' typed');
+            }
+          },
+          { discrete: true }
+        );
+      });
+      await remdo.mutate(() => {
         $setState($getNoteByText('note2'), markerState, 'heading:1');
-      }),
-      typeText(secondary, ' typed'),
-    ]);
-    await Promise.all([remdo.waitForSynced(), secondary.waitForSynced()]);
+      });
+      await remdo.waitForSynced();
+    } finally {
+      await act(async () => {
+        await provider.connect();
+        await session.awaitSynced();
+      });
+      attach.mockRestore();
+    }
 
     await waitFor(() => {
       for (const peer of [remdo, secondary]) {

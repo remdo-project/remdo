@@ -454,7 +454,8 @@ Remaining:
 ### Outliner
 
 - **Per-note markers and checkboxes.** [List types](specs/outliner/list-types.md)
-  gives each note its own marker and checkbox. The editor stores both but
+  gives each note its own marker and checkbox. The editor stores both, and
+  marks body lines and notes it keeps as Markdown source, but
   still shows and changes a list's type on the list, and shows a checked note
   outside a check list without a checkbox. The editor schema step of the
   [text format plan](text-format-plan.md) closes this with display, then

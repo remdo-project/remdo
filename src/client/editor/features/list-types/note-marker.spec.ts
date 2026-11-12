@@ -1,13 +1,23 @@
 import { $getNoteByText, collectSerializedNodes, getSerializedRootNodes, meta, placeCaretAtNote, pressKey } from '#tests';
+import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { $getState, $setState } from 'lexical';
 import { expect, it } from 'vitest';
 
 import type { RemdoTestApi } from '#client/editor/dev';
 import { REORDER_NOTES_DOWN_COMMAND } from '#client/editor/foundation/commands';
 import type { SerializedNoteListItemNode } from '#client/editor/runtime/serialized-note-types';
-import { checkboxState, markerState } from './note-marker';
+import { checkboxState, markerState, verbatimState } from './note-marker';
 
 const NOTES = ['note1', 'note2', 'note3'];
+
+const isListItem = (node: SerializedLexicalNode): node is SerializedNoteListItemNode => node.type === 'listitem';
+
+const savedItems = (state: SerializedEditorState) =>
+  collectSerializedNodes(getSerializedRootNodes(state), isListItem).map(({ marker, checkbox, verbatim }) => [
+    marker,
+    checkbox,
+    verbatim,
+  ]);
 
 const readStates = (remdo: RemdoTestApi) =>
   remdo.validate(() =>
@@ -17,28 +27,38 @@ const readStates = (remdo: RemdoTestApi) =>
     })
   );
 
-it('saves markers and checkboxes with each note and reads back only the values it holds', meta({ fixture: 'flat' }), async ({ remdo }) => {
+it('saves markers, checkboxes and verbatim flags with each note', meta({ fixture: 'flat' }), async ({ remdo }) => {
   await remdo.mutate(() => {
     const note1 = $getNoteByText('note1');
     $setState(note1, markerState, 'heading:2');
     $setState(note1, checkboxState, true);
-    $setState($getNoteByText('note3'), markerState, 'number:0');
+    $setState($getNoteByText('note2'), verbatimState, true);
+    $setState($getNoteByText('note3'), markerState, 'block');
   });
 
-  const saved = collectSerializedNodes(
-    getSerializedRootNodes(remdo.getEditorState()),
-    (node): node is SerializedNoteListItemNode => node.type === 'listitem'
-  ).map(({ marker, checkbox }) => [marker, checkbox]);
-  expect(saved).toEqual([['heading:2', true], [undefined, undefined], ['number:0', undefined]]);
+  expect(savedItems(remdo.getEditorState())).toEqual([
+    ['heading:2', true, undefined],
+    [undefined, undefined, true],
+    ['block', undefined, undefined],
+  ]);
+});
 
-  for (const value of ['bullet', 'number', 'number:0', 'number:999999999', 'heading:1', 'heading:6']) {
-    expect(markerState.parse(value)).toBe(value);
+it('loads only the stored values it holds', meta({ fixture: 'flat' }), async ({ remdo }) => {
+  const valid = ['bullet', 'block', 'number', 'number:0', 'number:999999999', 'heading:1', 'heading:6'];
+  const invalid = ['number:07', 'number:-1', 'number:1000000000', 'heading:7', 'check', 3];
+  const loaded = (stored: Record<string, unknown>) => {
+    const state = remdo.getEditorState();
+    const [item] = collectSerializedNodes(getSerializedRootNodes(state), isListItem);
+    Object.assign(item!, stored);
+    return savedItems(remdo.editor.parseEditorState(JSON.stringify(state)).toJSON())[0];
+  };
+
+  for (const marker of valid) {
+    expect(loaded({ marker, checkbox: true, verbatim: true })).toEqual([marker, true, true]);
   }
-  expect(checkboxState.parse(true)).toBe(true);
-  for (const value of ['number:07', 'number:1000000000', 'heading:7', 'check', 3]) {
-    expect(markerState.parse(value)).toBeUndefined();
+  for (const marker of invalid) {
+    expect(loaded({ marker, checkbox: false, verbatim: 'yes' })).toEqual([undefined, undefined, undefined]);
   }
-  expect(checkboxState.parse('yes')).toBeUndefined();
 });
 
 it('keeps each note its own marker and checkbox through indent, outdent and reorder', meta({ fixture: 'flat' }), async ({ remdo }) => {
