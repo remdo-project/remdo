@@ -578,7 +578,7 @@ class SingleFileWorkspaceTests(TestCase):
         self.assertEqual(
             shape(notes.read(self.owner, self.readme, depth=4)),
             (
-                f"{ws}_doc",
+                self.readme,
                 "document",
                 "README",
                 [

@@ -7,6 +7,7 @@ outline notes and bodies are read in the text format; operations that change the
 import base64
 import difflib
 import re
+from functools import cached_property
 
 from notes.core import Call, Refusal, with_children
 
@@ -460,7 +461,7 @@ class Document(File):
     def has_children(self):
         return bool(self.parsed.children)
 
-    @property
+    @cached_property
     def parsed(self):
         return parsed_document(self.content)
 
@@ -468,9 +469,9 @@ class Document(File):
         return [TextNote(self, (index,), note) for index, note in enumerate(self.parsed.children)]
 
     def read(self, depth, content=False):
+        # A document keeps its path reference, which callers' expected versions name, until
+        # Ensure ID arrives; its own ID still resolves.
         node = with_children(Note.read(self, depth), self.children(), depth)
-        if self.parsed.id is not None:
-            node["ref"] = self.call.id_ref(self.parsed.id)
         if content:
             node.update(decode(self.content))
         return node

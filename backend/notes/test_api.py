@@ -59,6 +59,20 @@ class NotesApiTests(TestCase):
         self.assertEqual(deleted.status_code, 200, deleted.json())
         self.assertFalse(Workspace.objects.exists())
 
+    def test_a_documents_notes_read_through_their_references(self):
+        workspace = Workspace.objects.create(name="Trip", owner=self.user)
+        content = b"- pack\n    - id:: k3x9\n    - socks\n"
+        store.commit(workspace, self.user, "", {"README.md": (None, content)})
+
+        listed = self.read(f"{workspace.pk}/README.md", depth=2).json()
+        [pack] = listed["children"]
+        [socks] = pack["children"]
+
+        self.assertEqual((pack["ref"], pack["kind"]), (f"{workspace.pk}_k3x9", "outlineNote"))
+        for ref, text in ((pack["ref"], "- pack"), (socks["ref"], "- socks")):
+            with self.subTest(ref=ref):
+                self.assertEqual(self.read(ref, depth=0).json()["text"], text)
+
     def test_refusals_carry_their_code_operation_and_current_versions(self):
         workspace = Workspace.objects.create(name="Trip", owner=self.user)
         store.commit(workspace, self.user, "", {"README.md": (None, b"- theirs\n")})

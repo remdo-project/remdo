@@ -5,6 +5,7 @@ lines as written. A body holds any other Markdown verbatim.
 """
 
 import dataclasses
+import datetime
 import re
 from dataclasses import dataclass, field
 
@@ -20,7 +21,10 @@ MARKS = {"strong": "bold", "em": "italic", "s": "strike"}
 MARK_ORDER = ("bold", "italic", "strike", "underline")
 OPEN = {"bold": "**", "italic": "*", "strike": "~~", "underline": "<u>"}
 CLOSE = {"bold": "**", "italic": "*", "strike": "~~", "underline": "</u>"}
-DATE = re.compile(r"^date:(\d{4}-\d{2}-\d{2})$")
+DATE = re.compile(r"^date:(\d{4})-(\d{2})-(\d{2})$")
+# The note ID alphabet (docs/specs/outliner/note-ids.md): no `-` or `_`, at most 20 characters.
+NOTE_ID = re.compile(r"[A-Za-z0-9]{1,20}")
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 _markdown = MarkdownIt("commonmark", {"maxNesting": MAX_NESTING}).enable("strikethrough")
 
@@ -74,6 +78,7 @@ class _Reader:
     def __init__(self, lines, tokens):
         self.lines = lines
         self.tokens = tokens
+        self.stated = {}
 
     def section(self, document):
         sections = [(0, document)]
@@ -94,8 +99,10 @@ class _Reader:
 
         self.blocks(0, len(self.tokens), owner, False, 0, heading)
 
-    def blocks(self, start, end, owner, in_item, indent, on_heading=None):
-        last = None
+    def blocks(self, start, end, owner, in_item, indent, on_heading=None, region=None):
+        """Read tokens[start, end) as an owner's blocks; lines of `region` no token covers, such
+        as content nested past the parser's limit, are kept as a body rather than dropped."""
+        last = region[0] if region else None
         body = None
 
         def flush():
@@ -145,9 +152,13 @@ class _Reader:
             else:
                 add(first, stop, in_item and token.type == "blockquote_open")
             index = close + 1
-        if not in_item and end == len(self.tokens) and last is not None:
-            if any(line.strip() for line in self.lines[last:]):
-                add(last, len(self.lines), False)
+        tail = region[1] if region else len(self.lines) if end == len(self.tokens) else None
+        if (
+            tail is not None
+            and last is not None
+            and any(line.strip() for line in self.lines[last:tail])
+        ):
+            add(last, tail, False)
         flush()
 
     def list(self, open_index, close, owner):
@@ -173,11 +184,15 @@ class _Reader:
         if after is not None and after.type == "paragraph_open" and after.map[0] == line:
             inline = self.tokens[open_index + 2]
         content = inline.content if inline else ""
-        prop = PROPERTY.match(content.split("\n")[0]) if inline else None
-        if prop:
-            value = (prop.group(2) or "").strip()
-            if owner.id is None and re.fullmatch(r"\S+", value):
-                owner.id = value
+        unboxed = CHECKBOX.sub("", content, count=1)
+        if inline and PROPERTY.match(unboxed.split("\n")[0]):
+            # A property's first line takes effect even when its value has none; later ones are ignored.
+            if "id" not in self.stated.setdefault(id(owner), set()):
+                self.stated[id(owner)].add("id")
+                text = _plain(_strip_prefix(inline.children or [], CHECKBOX))
+                value = text.partition("::")[2].strip()
+                if NOTE_ID.fullmatch(value):
+                    owner.id = value
             return
         text_end = _close_of(self.tokens, open_index + 1) + 1 if inline else open_index + 1
         stop = self.tokens[open_index + 1].map[1] if inline else line + 1
@@ -191,7 +206,10 @@ class _Reader:
             content = content[checkbox.end() :]
         self.fill(note, content, inline, bool(checkbox))
         owner.children.append(note)
-        self.blocks(text_end, close, lambda: note, True, _item_indent(self.lines[line]))
+        region = (stop, self.tokens[open_index].map[1])
+        self.blocks(
+            text_end, close, lambda: note, True, _item_indent(self.lines[line]), region=region
+        )
 
     def fill(self, note, content, inline, checkbox=False):
         if inline is None:
@@ -243,8 +261,6 @@ def _runs(tokens, content):
         if date is not None:
             if token.type == "link_close":
                 date = None
-            elif token.type in ("text", "code_inline"):
-                date.text += token.content
         elif mark:
             if token.nesting == 1 or token.content == "<u>":
                 marks.append(mark)
@@ -260,8 +276,14 @@ def _runs(tokens, content):
             push(token.content, ("code",))
         elif token.type == "link_open":
             href = token.attrGet("href") or ""
-            found = DATE.match(href)
-            link = Run("date", href=found.group(1)) if found else Run("link", href=href)
+            found = _date(href)
+            if found:
+                # A date's label is presentation: it reads as its date, labelled as tools write it.
+                link = Run(
+                    "date", f"{found.day} {MONTHS[found.month - 1]} {found.year}", href=href[5:]
+                )
+            else:
+                link = Run("link", href=href)
             top.append(link)
             if found:
                 date = link
@@ -329,6 +351,24 @@ def _trim(runs):
     if runs and runs[-1].kind == "text":
         runs[-1].text = runs[-1].text.rstrip()
     return [run for run in runs if run.kind != "text" or run.text]
+
+
+def _date(href):
+    found = DATE.match(href)
+    if not found:
+        return None
+    try:
+        return datetime.date(*(int(part) for part in found.groups()))
+    except ValueError:
+        return None
+
+
+def _plain(tokens):
+    return "".join(
+        " " if token.type == "softbreak" else token.content
+        for token in tokens
+        if token.type in ("text", "code_inline", "softbreak")
+    )
 
 
 def _strip_prefix(tokens, pattern):

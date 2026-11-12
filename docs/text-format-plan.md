@@ -248,7 +248,9 @@ once stage 3 lands.
      would otherwise give the editor an independent reference, so integration
      problems surface early.
    - Add Python note operations for outline notes and bodies, and
-     their MCP tools, starting with Set text and Ensure ID. Let each note
+     their MCP tools, starting with Set text and Ensure ID. A document with an
+     ID then reads by its ID reference, once expected versions accept one;
+     until then Read gives it its path. Let each note
      resolve its own children and name the kinds it holds, instead of deciding
      kinds from paths, and let each kind class register itself.
    - Move the open document's semantic operations into note operations, as a

@@ -51,6 +51,8 @@ def _rendered(source):
     """markdown-it's HTML with inline markup kept and whitespace dropped, to compare two texts."""
     html = RENDERER.render(source)
     html = re.sub(r"<(/?)(strong|em|s|u|code)>", lambda m: f"\x01{m[1]}{m[2]}\x02", html)
+    # A date's label is presentation, so a date link compares by its target alone.
+    html = re.sub(r'<a href="(date:[^"]*)">.*?</a>', lambda m: f"\x01a {m[1]}\x02", html)
     html = re.sub(r'<a href="([^"]*)">', lambda m: f"\x01a {m[1]}\x02", html).replace(
         "</a>", "\x01/a\x02"
     )
@@ -127,6 +129,15 @@ class ReadingTests(SimpleTestCase):
             with self.subTest(source=source[:30]):
                 text_format.write(text_format.read(source))
 
+    def test_content_nested_past_the_parsers_limit_is_kept_as_a_body(self):
+        source = "".join("    " * depth + f"- level {depth}\n" for depth in range(260))
+        notes, depth = text_format.read(source).children, 0
+        while notes and notes[-1].kind == "outline":
+            depth += 1
+            notes = notes[-1].children
+        self.assertGreater(depth, 100)
+        self.assertIn("level 259", "\n".join(notes[-1].source))
+
     def test_deep_nesting_keeps_every_note(self):
         source = "".join("    " * depth + f"- level {depth}\n" for depth in range(60))
         notes = text_format.read(source).children
@@ -148,6 +159,32 @@ class ReadingTests(SimpleTestCase):
             ("* [x] pack:: bags", "checked", "pack", "k3x9"),
         )
         self.assertEqual([child.text for child in pack.children], ["body"])
+
+    def test_a_notes_first_id_line_decides_its_id(self):
+        cases = {
+            "- a\n    - id:: two words\n    - id:: good\n": None,
+            "- a\n    - [ ] id:: boxed\n": "boxed",
+            "- a\n    - id:: a\\_b\n": None,
+            "- a\n    - id:: &#120;\n": "x",
+            "- a\n    - id:: a\n      b\n": None,
+            "- a\n    - id:: a/b\n": None,
+        }
+        for source, expected in cases.items():
+            with self.subTest(source=source):
+                [note] = text_format.read(source).children
+                self.assertEqual((note.id, note.children), (expected, []))
+
+    def test_a_date_reads_as_its_date_with_the_canonical_label(self):
+        written = text_format.write(text_format.read("- due [Jan 1](date:2026-07-09)\n"))
+        self.assertEqual(written, "- due [9 Jul 2026](date:2026-07-09)\n")
+        invalid = "- [x](date:2026-13-40)\n"
+        self.assertEqual(text_format.write(text_format.read(invalid)), invalid)
+
+    def test_front_matter_is_the_documents_first_body(self):
+        source = "---\ntitle: Trip\n---\n\n# Trip\n"
+        document = text_format.read(source)
+        self.assertEqual(document.children[0].source, ["---", "title: Trip", "---"])
+        self.assertEqual(text_format.write(document), source)
 
     def test_a_numbered_list_keeps_a_first_number_other_than_one(self):
         source = "- parent\n\n    3. three\n    4. four\n"
