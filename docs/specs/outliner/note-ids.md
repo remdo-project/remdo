@@ -135,8 +135,11 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
    and leaf and fold rules ignore it. Set content can't add an ID the document
    lacked. **Deterministic.**
 5. When text written outside RemDo gives two notes one ID, reads report both,
-   and a reference to that ID resolves to neither.
+   each by its temporary reference, and a reference to that ID resolves to
+   neither.
 6. A [reference](./note-model.md#note-kinds) is `me` for the caller's account
    root, `<workspaceId>` for a workspace, `<workspaceId>_<id>` for a note with
-   an ID, and `<workspaceId>/<path>` for any other note of the workspace.
+   an ID, and `<workspaceId>/<path>` for a folder or file. Any other note of a
+   document has a temporary reference that Read returns, valid while its
+   document is unchanged; its form isn't part of the contract.
    **Deterministic.**

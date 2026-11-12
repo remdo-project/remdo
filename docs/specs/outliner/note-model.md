@@ -125,9 +125,10 @@ Changing a note's text never changes its kind.
 A reference is a string that Read returns for every note and callers pass back
 unchanged; [Note IDs](./note-ids.md#ids-in-workspaces) spells its forms. A
 workspace's notes are referenced through their workspace, either by ID, once
-they have one, or by path. An ID reference survives renames and moves; a path
-reference names whatever is at that path. Read returns a note's ID reference
-when it has an ID. **Deterministic.**
+they have one, by path for its folders and files, or for any other note of a
+document by a temporary reference. An ID reference survives renames and
+moves; a path reference names whatever is at that path. Read returns a note's
+ID reference when it has an ID. **Deterministic.**
 
 ## Future
 

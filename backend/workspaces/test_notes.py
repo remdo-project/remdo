@@ -566,6 +566,87 @@ class SingleFileWorkspaceTests(TestCase):
         self.assertEqual(refusal.exception.code, "NOT_FOUND")
         self.assertFalse(Workspace.objects.exists())
 
+    def test_read_lists_a_documents_outline_notes_and_bodies(self):
+        content = "- id:: doc\n\n# Trip\n\nIntro\n\n- [x] pack:: bags\n    > a body\n    - id:: k3x9\n    - socks\n"
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, content.encode())})
+        ws = self.workspace.pk
+
+        def shape(node):
+            children = [shape(child) for child in node.get("children", [])]
+            return (node["ref"], node["kind"], node["text"], children)
+
+        self.assertEqual(
+            shape(notes.read(self.owner, self.readme, depth=4)),
+            (
+                self.readme,
+                "document",
+                "README",
+                [
+                    (
+                        f"{ws}/README.md/0",
+                        "outlineNote",
+                        "# Trip",
+                        [
+                            (f"{ws}/README.md/0/0", "body", "Intro", []),
+                            (
+                                f"{ws}_k3x9",
+                                "outlineNote",
+                                "- [x] pack:: bags",
+                                [
+                                    (f"{ws}/README.md/0/1/0", "body", "a body", []),
+                                    (f"{ws}/README.md/0/1/1", "outlineNote", "- socks", []),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        )
+        for ref, text in (
+            (f"{ws}/README.md/0/1/1", "- socks"),
+            (f"{ws}_k3x9", "- [x] pack:: bags"),
+        ):
+            with self.subTest(ref=ref):
+                node = notes.read(self.owner, ref, depth=0)
+                self.assertEqual((node["text"], node["operations"]), (text, ["read"]))
+                self.assertEqual(node["version"], store.read(self.workspace, "README.md").blob_hash)
+
+    def test_a_handle_past_the_documents_notes_and_a_shared_id_are_not_found(self):
+        content = b"- a\n    - id:: twin\n- b\n    - id:: twin\n"
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, content)})
+        ws = self.workspace.pk
+        for ref in (f"{ws}/README.md/5", f"{ws}/README.md/0/0", f"{ws}_twin"):
+            with self.subTest(ref=ref), self.assertRaises(notes.Refusal) as refusal:
+                notes.read(self.owner, ref)
+            self.assertEqual(refusal.exception.code, "NOT_FOUND")
+
+    def test_a_handle_too_long_to_name_a_position_is_refused(self):
+        with self.assertRaises(notes.Refusal) as refusal:
+            notes.read(self.owner, f"{self.workspace.pk}/README.md/{'9' * 5000}")
+        self.assertEqual(refusal.exception.code, "INVALID_ARGUMENT")
+
+    def test_notes_sharing_an_id_are_listed_by_position(self):
+        content = b"- a\n    - id:: twin\n- b\n    - id:: twin\n"
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, content)})
+        ws = self.workspace.pk
+
+        children = notes.read(self.owner, self.readme, depth=1)["children"]
+
+        self.assertEqual(
+            [child["ref"] for child in children], [f"{ws}/README.md/0", f"{ws}/README.md/1"]
+        )
+        self.assertEqual(notes.read(self.owner, children[1]["ref"])["text"], "- b")
+
+    def test_reading_a_document_parses_it_a_fixed_number_of_times_whatever_its_ids(self):
+        content = "".join(f"- note {i}\n    - id:: n{i}\n" for i in range(5)).encode()
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, content)})
+
+        with mock.patch.object(source.text_format, "read", wraps=source.text_format.read) as read:
+            children = notes.read(self.owner, self.readme, depth=1)["children"]
+
+        self.assertEqual(len(children), 5)
+        self.assertLessEqual(read.call_count, 2)
+
     def test_a_document_holds_only_utf8_text(self):
         binary = {"content": "/wA=", "contentEncoding": "base64"}
 

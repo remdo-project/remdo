@@ -1,23 +1,24 @@
 """The workspace source: its document, folders and plain files as notes, one class per kind.
 
-A workspace holds one document, README.md, until multi-file workspaces return. Outline notes,
-bodies and Ensure ID arrive with the text format parser.
+A workspace holds one document, README.md, until multi-file workspaces return. A document's
+outline notes and bodies are read in the text format; operations that change them arrive later.
 """
 
 import base64
 import difflib
 import re
+from functools import cached_property
 
 from notes.core import Call, Refusal, with_children
 
-from . import models, store
+from . import models, store, text_format
 from .models import WORKSPACE_NAME_MAX_LENGTH
 
 DOCUMENT_SUFFIX = ".md"
 README = "README.md"
 MISSING_WORKSPACE = "The workspace is not available. Read the account root for them."
-# The text format's ID note, as in `- id:: k3x9`; the format parser replaces this.
-ID_NOTE = re.compile(r"^[ \t>]*[-*+][ \t]+id::[ \t]*(\S+)[ \t]*\r?$", re.MULTILINE)
+# Bounded positions stay under Python's limit on digits converted to an int.
+POSITIONED = re.compile(rf"(.+{re.escape(DOCUMENT_SUFFIX)})/(\d{{1,9}}(?:/\d{{1,9}})*)")
 
 
 def decode(content):
@@ -27,19 +28,31 @@ def decode(content):
         return {"content": base64.b64encode(content).decode(), "contentEncoding": "base64"}
 
 
+def parsed_document(content):
+    """The text format's reading of a document's content; content that isn't UTF-8 reads empty."""
+    try:
+        return text_format.read(content.decode())
+    except UnicodeDecodeError:
+        return text_format.Document()
+
+
+def _walk(notes, position=()):
+    for index, note in enumerate(notes):
+        yield position + (index,), note
+        yield from _walk(note.children, position + (index,))
+
+
+def _identified(parsed):
+    """The positions and notes of a parsed document that carry an ID; the document's own is first."""
+    if parsed.id is not None:
+        yield None, parsed
+    yield from (
+        (position, note) for position, note in _walk(parsed.children) if note.id is not None
+    )
+
+
 def ids_in(content):
-    try:
-        return ID_NOTE.findall(content.decode())
-    except UnicodeDecodeError:
-        return []
-
-
-def document_has_children(content):
-    try:
-        text = content.decode()
-    except UnicodeDecodeError:
-        return bool(content)
-    return bool(ID_NOTE.sub("", text).strip())
+    return [note.id for _, note in _identified(parsed_document(content))]
 
 
 def _name(path):
@@ -226,9 +239,12 @@ class Note:
     def text(self):
         return _name(self.path)
 
+    def ref(self):
+        return self.call.ref(self.path)
+
     def read(self, depth, content=False):
         return {
-            "ref": self.call.ref(self.path),
+            "ref": self.ref(),
             "kind": self.kind,
             "text": self.text,
             "operations": list(self.operations),
@@ -367,7 +383,6 @@ class Folder(Movable, Container):
 class File(Movable):
     kind = "file"
     operations = ("read", "move", "delete", "setText", "setContent")
-    children_known = True
 
     @classmethod
     def name_for(cls, call, text):
@@ -395,8 +410,7 @@ class File(Movable):
 
     def read(self, depth, content=False):
         node = super().read(depth)
-        if self.children_known:
-            node["hasChildren"] = False
+        node["hasChildren"] = False
         if content:
             node.update(decode(self.content))
         return node
@@ -433,9 +447,6 @@ class Document(File):
     def operations(self):
         return ("read", "setContent") if self.call.single_file else super().operations
 
-    # Until the format parser lists a document's children, Read can't say whether it has any.
-    children_known = False
-
     @classmethod
     def name_for(cls, call, text):
         return Movable.name_for(call, text) + DOCUMENT_SUFFIX
@@ -458,7 +469,41 @@ class Document(File):
         return _name(self.path)[: -len(DOCUMENT_SUFFIX)]
 
     def has_children(self):
-        return document_has_children(self.content)
+        return bool(self.parsed.children)
+
+    @cached_property
+    def parsed(self):
+        return parsed_document(self.content)
+
+    def children(self):
+        return [TextNote(self, (index,), note) for index, note in enumerate(self.parsed.children)]
+
+    def read(self, depth, content=False):
+        # A document keeps its path reference, which callers' expected versions name, until
+        # Ensure ID arrives; its own ID still resolves. At the depth limit it says nothing about
+        # children, so listing workspaces doesn't parse their documents.
+        node = Note.read(self, depth)
+        if depth > 0:
+            node["children"] = [child.read(depth - 1) for child in self.children()]
+        if content:
+            node.update(decode(self.content))
+        return node
+
+    def identified(self):
+        """Its notes that carry an ID, with their IDs, the document itself included."""
+        return [
+            (note.id, self if position is None else TextNote(self, position, note))
+            for position, note in _identified(self.parsed)
+        ]
+
+    def note_at_position(self, position):
+        notes, note = self.parsed.children, None
+        for index in position:
+            if index >= len(notes):
+                return None
+            note = notes[index]
+            notes = note.children
+        return TextNote(self, position, note)
 
     def check_content(self, current, content):
         self.check_text(self.call, content)
@@ -477,7 +522,47 @@ class Readme(Document):
         return self.tree.files.get(self.path)
 
 
+class TextNote(Note):
+    """An outline note or body of a document, as the text format reads it.
+
+    A note without an ID is referenced by its position, a handle Read returns for passing back
+    while the document is unchanged; its form isn't part of the contract.
+    """
+
+    kinds = ("outlineNote", "body")
+
+    def __init__(self, document, position, note):
+        super().__init__(document.call, document.path)
+        self.document = document
+        self.position = position
+        self.note = note
+        self.kind = self.kinds[0] if note.kind == "outline" else self.kinds[1]
+
+    def version(self):
+        return self.document.version()
+
+    @property
+    def text(self):
+        return self.note.text
+
+    def ref(self):
+        # A shared ID resolves to neither note, so such a note keeps its positional reference.
+        if self.note.id is not None and len(self.call.holders(self.note.id)) == 1:
+            return self.call.id_ref(self.note.id)
+        return self.call.ref("/".join([self.path, *map(str, self.position)]))
+
+    def children(self):
+        return [
+            TextNote(self.document, (*self.position, index), child)
+            for index, child in enumerate(self.note.children)
+        ]
+
+    def read(self, depth, content=False):
+        return with_children(super().read(depth), self.children(), depth)
+
+
 KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file": File}
+NOTE_KINDS = [*KINDS, *TextNote.kinds]
 Container.holds = {"document": Document, "file": File}
 
 
@@ -541,14 +626,55 @@ class WorkspaceCall(Call):
     def note(self, ref, field="target"):
         _, path, note_id = self.parsed(ref, field)
         if note_id:
-            self.refuse(
-                "INVALID_ARGUMENT",
-                f"{field}: ID references arrive with outline notes; use the path Read returns.",
-            )
+            return self.note_with_id(note_id, field)
+        document, position = self.positioned(path)
+        if document is not None:
+            note = document.note_at_position(position)
+            if note is None:
+                self.refuse("NOT_FOUND", f"{field}: no note at {path!r}.")
+            return note
         path = self.path(path, field)
         if not self.is_readme(path) and self.tree.kind(path) is None:
             self.refuse("NOT_FOUND", f"{field}: no note at {path!r}.")
         return self.note_at(path)
+
+    def positioned(self, path):
+        """The document and position a note's positional handle names, if it is one."""
+        match = POSITIONED.fullmatch(path)
+        if not match:
+            return None, None
+        document_path, rest = match.groups()
+        if not self.is_readme(document_path) and self.tree.kind(document_path) != "document":
+            return None, None
+        return self.note_at(document_path), tuple(int(index) for index in rest.split("/"))
+
+    def holders(self, note_id):
+        """The notes of the workspace that carry an ID, the documents themselves included."""
+        return self._holders.get(note_id, [])
+
+    @cached_property
+    def _holders(self):
+        if self.single_file:
+            documents = [README]
+        else:
+            documents = [p for p in self.tree.files if self.tree.kind(p) == "document"]
+            self.tree.load(documents)
+        holders = {}
+        for path in documents:
+            for note_id, note in self.note_at(path).identified():
+                holders.setdefault(note_id, []).append(note)
+        return holders
+
+    def note_with_id(self, note_id, field):
+        found = self.holders(note_id)
+        if len(found) != 1:
+            # Two notes sharing an ID resolve to neither (docs/specs/outliner/note-ids.md).
+            reason = "no note has" if not found else "more than one note has"
+            self.refuse("NOT_FOUND", f"{field}: {reason} ID {note_id!r}.")
+        return found[0]
+
+    def id_ref(self, note_id):
+        return f"{self.workspace.pk}_{note_id}"
 
     def note_at(self, path):
         if self.is_readme(path):

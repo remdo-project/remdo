@@ -40,17 +40,16 @@ class AccountRootAndReferenceTests(TestCase):
                 node = notes.read(self.owner, ref, depth=0)
                 self.assertEqual((node["ref"], node["kind"]), (ref, kind))
 
-    def test_malformed_and_id_references_are_refused(self):
-        for ref in (
-            "",
-            "/a.md",
-            f"{self.workspace.pk}/",
-            f"{self.workspace.pk}_",
-            f"{self.workspace.pk}_k3x9",
-        ):
+    def test_malformed_references_are_refused(self):
+        for ref in ("", "/a.md", f"{self.workspace.pk}/", f"{self.workspace.pk}_"):
             with self.subTest(ref=ref), self.assertRaises(notes.Refusal) as refusal:
                 notes.read(self.owner, ref)
             self.assertEqual(refusal.exception.code, "INVALID_ARGUMENT")
+
+    def test_an_id_no_note_has_is_not_found(self):
+        with self.assertRaises(notes.Refusal) as refusal:
+            notes.read(self.owner, f"{self.workspace.pk}_k3x9")
+        self.assertEqual(refusal.exception.code, "NOT_FOUND")
 
     def test_the_account_root_lists_workspaces_by_name(self):
         user = User.objects.create_user("new@example.test", "New-password-123")

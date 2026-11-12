@@ -9,7 +9,8 @@ agents and integrations use them alike.
 
 1. **Read** returns a note's text and, to a requested depth, its children, with
    each note's reference, kind and the operations it offers, and the version of
-   every file read. A note at the depth limit reports whether it has children.
+   every file read. A note at the depth limit reports whether it has children,
+   except a document, so listing workspaces doesn't read their documents.
    When asked, it also returns a document's content.
    **Deterministic.**
 2. **Insert** adds new notes under a parent: outline notes and bodies
