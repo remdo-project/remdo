@@ -16,6 +16,8 @@ A second body.
     line <b>two</b>
 - parent
     > A body under its note.
+    >
+    > Its second paragraph.
     - child
 - counted
     1. one

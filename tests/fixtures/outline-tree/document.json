@@ -186,7 +186,9 @@
             {
               "kind": "body",
               "source": [
-                "A body under its note."
+                "A body under its note.",
+                "",
+                "Its second paragraph."
               ],
               "cacheId": null
             },
