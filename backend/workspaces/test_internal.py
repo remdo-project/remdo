@@ -151,6 +151,30 @@ class WorkspaceRoomTests(TestCase):
         self.assertFalse(DocumentState.objects.exists())
         self.assertFalse(Blob.objects.filter(hash=version).exists())
 
+    def test_saves_and_loads_that_cant_succeed_are_refused_and_reported(self):
+        store.commit(self.workspace, self.owner, "agent", {"README.md": (None, b"- a\n")})
+        version = self.readme().blob_hash
+        with (
+            override_settings(SENTRY_DSN="https://public@example.invalid/1"),
+            patch("sentry_sdk.capture_message") as report,
+            patch("workspaces.internal.FILE_MAX_BYTES", 8),
+        ):
+            too_large = self.save(tree_of("- longer than eight bytes\n"), version)
+            malformed = self.save({"id": None}, version)
+            store.commit(self.workspace, self.owner, "agent", {"README.md": (version, b"\xff\n")})
+            unreadable = self.client.get(self.content, **self.headers)
+
+        self.assertEqual(
+            [(r.status_code, r.json()) for r in (too_large, malformed, unreadable)],
+            [(422, {"code": code}) for code in ("TOO_LARGE", "MALFORMED", "UNREADABLE")],
+        )
+        self.assertEqual(
+            [call.kwargs["tags"] for call in report.call_args_list],
+            [{"workspace.refusal": code} for code in ("TOO_LARGE", "MALFORMED", "UNREADABLE")],
+        )
+        self.assertEqual(Revision.objects.filter(workspace=self.workspace).count(), 2)
+        self.assertFalse(DocumentState.objects.exists())
+
     def test_a_failed_state_write_leaves_no_revision(self):
         with (
             patch.object(DocumentState.objects, "update_or_create", side_effect=DatabaseError),

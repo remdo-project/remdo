@@ -12,7 +12,7 @@ from documents.notices import notify_document_list_changed
 from notes.service import can_use_workspaces
 
 from . import store, text_format
-from .models import DocumentState, Workspace
+from .models import FILE_MAX_BYTES, DocumentState, Workspace
 from .source import README
 
 SAVE_MESSAGE = "Edit in the editor"
@@ -51,6 +51,19 @@ def _tree(file):
     return tree_of(file.content or b"")
 
 
+def _refuse(reason):
+    if settings.SENTRY_DSN:
+        import sentry_sdk
+
+        sentry_sdk.capture_message(
+            "Workspace room refused",
+            level="warning",
+            tags={"workspace.refusal": reason},
+            fingerprint=["workspace-room-refused", reason],
+        )
+    return JsonResponse({"code": reason}, status=422)
+
+
 def _load(workspace):
     """The room's state, with the file's tree when the state doesn't hold the current file."""
     file = store.read(workspace, README)
@@ -60,27 +73,42 @@ def _load(workspace):
         "state": base64.b64encode(bytes(row.state)).decode() if row else None,
     }
     if row is None or row.blob_id != file.blob_hash:
-        body["tree"] = _tree(file)
+        try:
+            body["tree"] = _tree(file)
+        except UnicodeDecodeError:
+            return _refuse("UNREADABLE")
     return JsonResponse(body)
 
 
 def _save(request, workspace):
     """Write the tree's text and the state holding it together, or refuse a stale state."""
-    data = json.loads(request.read())
-    state = base64.b64decode(data["state"])
-    content = text_format.write(text_format.from_json(data["tree"])).encode()
-    with transaction.atomic():
-        locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
-        file = store.read(locked, README)
-        if file.blob_hash != data["version"]:
-            return JsonResponse({"version": file.blob_hash, "tree": _tree(file)}, status=409)
-        version = file.blob_hash
-        # The file's own spelling stays until a save changes what it reads as.
-        if tree_of(content) != _tree(file):
-            store.commit(locked, locked.owner, SAVE_MESSAGE, {README: (file.blob_hash, content)})
-            version = store.blob_hash(content)
-            notify_document_list_changed([locked.owner_id])
-        DocumentState.objects.update_or_create(
-            workspace=locked, defaults={"state": state, "blob_id": version}
-        )
+    try:
+        data = json.loads(request.read())
+        state = base64.b64decode(data["state"])
+        content = text_format.write(text_format.from_json(data["tree"])).encode()
+    except KeyError, TypeError, ValueError, AttributeError:
+        return _refuse("MALFORMED")
+    if len(content) > FILE_MAX_BYTES:
+        return _refuse("TOO_LARGE")
+    try:
+        return _write(workspace, data["version"], state, content)
+    except UnicodeDecodeError:
+        return _refuse("UNREADABLE")
+
+
+@transaction.atomic
+def _write(workspace, base, state, content):
+    locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
+    file = store.read(locked, README)
+    if file.blob_hash != base:
+        return JsonResponse({"version": file.blob_hash, "tree": _tree(file)}, status=409)
+    version = file.blob_hash
+    # The file's own spelling stays until a save changes what it reads as.
+    if tree_of(content) != _tree(file):
+        store.commit(locked, locked.owner, SAVE_MESSAGE, {README: (file.blob_hash, content)})
+        version = store.blob_hash(content)
+        notify_document_list_changed([locked.owner_id])
+    DocumentState.objects.update_or_create(
+        workspace=locked, defaults={"state": state, "blob_id": version}
+    )
     return JsonResponse({"version": version})

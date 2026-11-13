@@ -267,6 +267,11 @@ and is deleted with its workspace.
 - **Stale save:** when the file changed since the state's version, the save
   writes nothing, and the room applies the current file's tree, as on load,
   before saving again. **Deterministic.**
+- **Refusal:** a save whose text is over the file limit or whose tree is
+  malformed, or a load or save of a file that isn't UTF-8 text, writes nothing
+  and is [reported](specs/runtime/configuration.md#error-reporting). The room
+  tries again only after its next edit, and may unload with the edits left to
+  its clients. **Deterministic.**
 
 One active instance owns collaboration writes. Its SQLite database when
 selected uses its persistent storage root; its

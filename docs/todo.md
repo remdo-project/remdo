@@ -472,6 +472,10 @@ Remaining:
   `id::`, are lost. The cache ID step of the [text format plan](text-format-plan.md)
   closes this for notes whose text is unchanged, by giving a recreated
   identical note its old cache ID.
+- **Refused workspace saves out of sight.** A workspace room whose save is
+  [refused](architecture.md#workspace-document-state) tells none of its
+  clients, and a refused load leaves the client reconnecting, reported again
+  each time. The editor shows both once it opens a workspace's Document.
 - **Typing lost to a stale save.** When a workspace's file changes while its
   room is open, the room's next save applies the file, discarding what was
   typed since its last save. Stage 4 of the

@@ -49,12 +49,18 @@ class DocumentDeleted extends Error {
   constructor() { super('collaboration.document-deleted'); }
 }
 
+// Django refused a workspace room's save for good; another try succeeds only after an edit.
+class SaveRefused extends Error {
+  constructor() { super('collaboration.save-refused'); }
+}
+
 export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, documentSlots = 1 }: ServerOptions) {
   if (!secret) throw new Error('COLLAB_INTERNAL_SECRET is required.');
   const editorRequests = new Set<Promise<void>>();
   const handleEditor = createEditorHandler(appOrigin, documentSlots);
   const dirty = new Map<Document, number>();
   const deleted = new WeakSet<Document>();
+  const refused = new WeakSet<Document>();
   const retries = new Map<Document, ReturnType<typeof setTimeout>>();
   const retryDelays = new Map<Document, number>();
   const documentListSockets = new Map<string, Set<WebSocket>>();
@@ -189,14 +195,19 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
         server.hocuspocus.closeConnections(document.name);
         throw new DocumentDeleted();
       }
+      if (response.status === 422) {
+        refused.add(document);
+        throw new SaveRefused();
+      }
       if (!response.ok) throw new Error('collaboration.store-failed');
+      refused.delete(document);
       if (dirty.get(document) === savedRevision) dirty.delete(document);
       clearTimeout(retries.get(document));
       retries.delete(document);
       retryDelays.delete(document);
     } catch (error) {
       if (error instanceof DocumentDeleted) throw error;
-      scheduleRetry(document);
+      if (!(error instanceof SaveRefused)) scheduleRetry(document);
       // Hocuspocus logs hook failures: never attach the request, content, or original error.
       throw new Error('collaboration.store-failed');
     }
@@ -356,7 +367,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       if (!deleted.has(document)) dirty.set(document, ++revision);
     },
     async beforeUnloadDocument({ document }) {
-      if (dirty.has(document)) {
+      // A refused room's edits stay with its clients, which sync them again on reconnecting.
+      if (dirty.has(document) && !refused.has(document)) {
         scheduleRetry(document);
         throw new Error('collaboration.store-pending');
       }

@@ -669,6 +669,25 @@ it('backs off repeated store failures and resets the delay after recovery', asyn
   }
 });
 
+it('tries a refused workspace save again only after another edit', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout'] });
+  const provider = connect('workspace:ws');
+  await vi.waitFor(() => expect(provider.synced).toBe(true));
+  workspaceReplies = Array.from({ length: 10 }, () => ({ status: 422, body: { code: 'TOO_LARGE' } }));
+  provider.document.getText('text').insert(0, 'typed');
+  expect(await persist(provider)).toBe('failed');
+  await vi.advanceTimersByTimeAsync(10_000);
+  const refusedSaves = workspaceSaves.length;
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(workspaceSaves.length).toBe(refusedSaves);
+  expectDiagnostics(['[onStoreDocument]', 'Caught error during storeDocumentHooks. Document stays in memory to avoid data loss']);
+
+  workspaceReplies = [];
+  provider.document.getText('text').insert(0, 'more ');
+  expect(await persist(provider)).toBe('persisted');
+  vi.useRealTimers();
+});
+
 it('keeps the file version a workspace room applied when the save after it fails', async () => {
   const provider = connect('workspace:ws');
   await expect.poll(() => provider.synced).toBe(true);
