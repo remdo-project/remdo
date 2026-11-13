@@ -465,10 +465,10 @@ Remaining:
   note right after a heading at that heading's level.
 
 - **Read-only workspace outline.** A workspace's Document opens as a read-only
-  outline beside its Markdown text box. The outline shows a file change made
-  while it's open only once a client saves or the room reloads, since a reader
-  never saves; editing the outline and agent edits through the room's tree
-  close this.
+  outline, with its Markdown text box as a second view. The outline shows a file
+  change made while it's open only once a client saves or the room reloads,
+  since a reader never saves; editing the outline and agent edits through the
+  room's tree close this.
 
 - **Cache IDs through recovery.** [Workspace document state](architecture.md#workspace-document-state)
   recovers from a changed file by applying its tree, which holds no cache IDs.
@@ -478,7 +478,8 @@ Remaining:
 - **Refused workspace saves out of sight.** A workspace room whose save is
   [refused](architecture.md#workspace-document-state) tells none of its
   clients, and a refused load leaves the client reconnecting, reported again
-  each time. The editor shows both once it opens a workspace's Document.
+  each time. The read-only outline shows neither; the editable outline shows
+  both.
 - **Changes an open head undoes.** A live document's saves that return a file
   to what the open head's parent holds leave the head with a change that
   changes nothing, which the [store](specs/workspaces/store.md#commits) would

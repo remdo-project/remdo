@@ -28,11 +28,6 @@
   text-decoration: line-through;
 }
 
-/* A block line holds Markdown source, whose line breaks are content. */
-.remdo-outline li.list-item[data-marker='block'] {
-  white-space: pre-wrap;
-}
-
 .remdo-outline li.list-item[data-marker='block']::before {
   content: none;
 }

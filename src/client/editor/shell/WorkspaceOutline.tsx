@@ -10,6 +10,7 @@ import { createProviderFactory } from '#collaboration/runtime';
 import { editorConfig } from '#client/editor/runtime/config';
 import { NoteCheckedDisplayPlugin } from '#client/editor/features/list-types/NoteCheckedDisplayPlugin';
 import { NoteMarkerPlugin } from '#client/editor/features/list-types/NoteMarkerPlugin';
+import '../features/note-body/note-body.css';
 import './Editor.css';
 
 const outlineViewExtension = defineExtension({ ...editorConfig, name: 'remdo-outline-view', editable: false });
