@@ -1,8 +1,9 @@
-import { Alert, Button, Group, Stack, Textarea } from '@mantine/core';
+import { Alert, Button, Group, SegmentedControl, Stack, Textarea } from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { ZoomBreadcrumbs } from '#client/editor/view/workspace';
+import WorkspaceOutline from '#client/editor/shell/WorkspaceOutline';
 import { APP_TITLE, formatNavigationLabel } from '#client/ui/navigation-label';
 import { DocumentMenu } from '../document/DocumentMenu';
 import { useDocumentDialogs } from '../document/useDocumentDialogs';
@@ -75,9 +76,6 @@ function DocumentShell({
         </div>
       </div>
       <Stack className="workspace-document" gap="sm">
-        <p className="workspace-document-note">
-          Markdown as written. The outline editor for workspace documents comes later.
-        </p>
         {children}
       </Stack>
       {documentDialog}
@@ -107,6 +105,7 @@ function LoadedDocument({
   const [error, setError] = useState<{ title: string; message: string } | null>(null);
   // The latest read already taken over or offered as a conflict, so it is handled once.
   const [decided, setDecided] = useState(latest.version);
+  const [view, setView] = useState<'outline' | 'markdown'>('outline');
 
   const adopt = (next: Base) => {
     setBase(next);
@@ -189,28 +188,45 @@ function LoadedDocument({
           {error.message}
         </Alert>
       )}
-      <Textarea
-        aria-label={`${workspace.getText()} Markdown`}
-        className="workspace-document-text"
-        onChange={(event) => setDraft(event.currentTarget.value)}
-        onKeyDown={(event) => {
-          if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
-            event.preventDefault();
-            if (saveEnabled) void save(base.version);
-          }
-        }}
-        resize="vertical"
-        rows={18}
-        spellCheck={false}
-        value={draft}
+      <SegmentedControl
+        aria-label="Document view"
+        data={[{ label: 'Outline', value: 'outline' }, { label: 'Markdown', value: 'markdown' }]}
+        onChange={setView}
+        size="xs"
+        value={view}
       />
+      {view === 'outline' ? (
+        <>
+          <p className="workspace-document-note">Read-only for now; switch to Markdown to edit.</p>
+          <WorkspaceOutline workspaceId={workspace.getId()} />
+        </>
+      ) : (
+        <>
+          <p className="workspace-document-note">Markdown as written.</p>
+          <Textarea
+            aria-label={`${workspace.getText()} Markdown`}
+            className="workspace-document-text"
+            onChange={(event) => setDraft(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+                event.preventDefault();
+                if (saveEnabled) void save(base.version);
+              }
+            }}
+            resize="vertical"
+            rows={18}
+            spellCheck={false}
+            value={draft}
+          />
+        </>
+      )}
     </DocumentShell>
   );
 }
 
-// TODO: Temporary until the editor reads text (docs/text-format-plan.md, stage 3): a workspace's
-// document opens as its Markdown in a plain text box. Probe: open a workspace from Home; the
-// outline editor replaces this view.
+// TODO: Temporary until the outline is editable (docs/text-format-plan.md, stage 3): a workspace's
+// document opens as a read-only outline, edited as Markdown in a plain text box. Probe: open a
+// workspace from Home; editing the outline replaces the Markdown view.
 export function WorkspaceDocumentView({
   workspace,
   onClose,

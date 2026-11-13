@@ -377,11 +377,11 @@ Switch new documents by reseeding from text once all of these hold:
   document since its read; stage 4's live merge reduces that.
 - Until stage 3, Read returns a document's content but not its children, nor
   whether it has any, and Insert into a document and Ensure ID are refused.
-- Until stage 3, a workspace's document opens as its Markdown in a plain text
-  box. Save applies Set content with the version read; a stale save keeps the
-  typed text and offers to reload the current content or overwrite it. A save
-  made elsewhere reloads the box when it holds no unsaved edits, and otherwise
-  offers the same choice at once.
+- Until stage 3, a workspace's document opens as a read-only outline and is
+  edited as its Markdown in a plain text box. Save applies Set content with the
+  version read; a stale save keeps the typed text and offers to reload the
+  current content or overwrite it. A save made elsewhere reloads the box when it
+  holds no unsaved edits, and otherwise offers the same choice at once.
 - Until stage 5, Read of the account root lists its workspaces but not its
   [user-data](specs/outliner/user-data.md#hierarchy) collections, and an open
   workspace has no URL: a reload returns to Home.
