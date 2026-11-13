@@ -467,11 +467,10 @@ Remaining:
   editor opens a workspace's Document.
 
 - **Cache IDs through recovery.** [Workspace document state](architecture.md#workspace-document-state)
-  recovers from a changed file by applying its tree, which holds no cache IDs,
-  so every note is recreated: fold state, and zoom URLs to notes without an
-  `id::`, are lost. The cache ID step of the [text format plan](text-format-plan.md)
-  closes this for notes whose text is unchanged, by giving a recreated
-  identical note its old cache ID.
+  recovers from a changed file by applying its tree, which holds no cache IDs.
+  [Apply](architecture.md#outline-tree) keeps a note whose text is unchanged
+  among its siblings, but a note the file edits or moves to another parent is
+  recreated, losing its fold state and, without an `id::`, its zoom URL.
 - **Refused workspace saves out of sight.** A workspace room whose save is
   [refused](architecture.md#workspace-document-state) tells none of its
   clients, and a refused load leaves the client reconnecting, reported again

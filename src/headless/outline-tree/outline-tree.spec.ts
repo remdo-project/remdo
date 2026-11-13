@@ -133,6 +133,53 @@ describe('the outline tree', () => {
     expect([a.cacheId, b.cacheId, c.cacheId]).not.toContain(third!.cacheId);
   });
 
+  // A tree read from a file carries no cache IDs.
+  const fromFile = (tree: Document): Document => JSON.parse(JSON.stringify(tree, (key, entry: unknown) => (key === 'cacheId' ? null : entry))) as Document;
+  const cacheIds = (doc: Y.Doc) => (readTree(doc).children as OutlineNote[]).map((child) => child.cacheId);
+
+  it('keeps the cache IDs of notes a file tree leaves as they were, and gives a changed note a new one', () => {
+    const doc = opened({ id: null, children: [note('a'), note('b'), note('c')] });
+    const [a, b, c] = cacheIds(doc);
+
+    applyTree(doc, fromFile(retext(readTree(doc), 'b', 'b by agent')));
+
+    const [afterA, afterB, afterC] = cacheIds(doc);
+    expect([afterA, afterC]).toEqual([a, c]);
+    expect([a, b, c]).not.toContain(afterB);
+  });
+
+  it('matches a file tree\'s moved and repeated notes by content, in order', () => {
+    const doc = opened({ id: null, children: [note('x'), note('y'), note('x')] });
+    const [x1, y, x2] = cacheIds(doc);
+
+    applyTree(doc, fromFile({ id: null, children: [note('y'), note('x'), note('x')] }));
+
+    expect(cacheIds(doc)).toEqual([y, x2, x1]);
+  });
+
+  it('matches a note by what it reads as, whatever edge whitespace was typed into it', () => {
+    const doc = opened({ id: null, children: [note('abc')] });
+    const tree = readTree(doc);
+    const typed = structuredClone(tree);
+    (typed.children[0] as OutlineNote).runs = [text('abc ')];
+    applyTree(doc, typed);
+
+    applyTree(doc, fromFile(tree));
+
+    expect(cacheIds(doc)).toEqual([(tree.children[0] as OutlineNote).cacheId]);
+  });
+
+  it('leaves a note the tree names by cache ID to that note, even when another note has its content', () => {
+    const doc = opened({ id: null, children: [note('a'), note('p')] });
+    const [a, p] = cacheIds(doc);
+
+    applyTree(doc, { id: null, children: [note('a'), note('p', { cacheId: p, children: [note('a', { cacheId: a })] })] });
+
+    const [created, parent] = readTree(doc).children as OutlineNote[];
+    expect(parent!.children[0]!.cacheId).toBe(a);
+    expect(created!.cacheId).not.toBe(a);
+  });
+
   it('returns the state it read from when saving', () => {
     const doc = opened({ id: null, children: [note('a')] });
     const { tree, state } = saveTree(doc);
