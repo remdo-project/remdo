@@ -171,9 +171,12 @@ stays out of it.
   tree, cache IDs aside. **Deterministic.**
 - **Save** returns the tree together with the Yjs state it was read from.
 - **Apply** changes a document's Yjs state to hold a given tree. A tree note
-  holding a cache ID updates the note holding it, a tree note without one is
-  created with a fresh cache ID, and a note no tree note holds is deleted.
-  Updated notes keep their fold state. **Deterministic.**
+  holding a cache ID updates the note holding it. A tree note without one, as
+  in a tree read from a file, updates an unclaimed sibling with the same kind,
+  name and text, in order, and is otherwise created with a fresh cache ID; a
+  note is never matched by its position alone, so a note replaced in place
+  never inherits another's ID. A note no tree note holds is deleted. Updated
+  notes keep their fold state. **Deterministic.**
   - A note whose content and place already match is left unwritten. Text
     differing only in whitespace at its edges matches, so a space someone just
     typed survives. **Deterministic.**

@@ -23,8 +23,9 @@ import { isPlainText, isSpace, joinName } from './runs';
 import type { Document, Run, TreeNote } from './tree';
 
 /**
- * Change the editor to hold `document`, matching notes by cache ID. Notes already as the tree
- * says, and their unchanged text, are left unwritten. Call inside an editor update.
+ * Change the editor to hold `document`, matching notes by cache ID, then notes without one by
+ * identical content among siblings. Notes already as the tree says, and their unchanged text, are
+ * left unwritten. Call inside an editor update.
  */
 export function $applyTree(document: Document): void {
   const root = $getRoot();
@@ -39,19 +40,34 @@ export function $applyTree(document: Document): void {
     if (cacheId !== null && !live.has(cacheId)) live.set(cacheId, item);
   });
   const kept = new Set<ListItemNode>();
-  $applyChildren(list, document.children, live, kept);
+  const wanted = new Set<string>();
+  const collect = (notes: readonly TreeNote[]) => notes.forEach((note) => {
+    if (note.cacheId !== null) wanted.add(note.cacheId);
+    if (note.kind === 'outline') collect(note.children);
+  });
+  collect(document.children);
+  $applyChildren(list, document.children, { live, kept, wanted });
   for (const item of items) {
     if (!kept.has(item) && item.isAttached()) removeNoteSubtree(item);
   }
 }
 
-function $applyChildren(list: ListNode, notes: readonly TreeNote[], live: Map<string, ListItemNode>, kept: Set<ListItemNode>) {
+interface Matching {
+  live: Map<string, ListItemNode>;
+  kept: Set<ListItemNode>;
+  /** Cache IDs the tree names, whose holders content matching leaves for them. */
+  wanted: Set<string>;
+}
+
+function $applyChildren(list: ListNode, notes: readonly TreeNote[], matching: Matching) {
+  const { live, kept } = matching;
   const targets = notes.map((note) => {
     const item = note.cacheId === null ? undefined : live.get(note.cacheId);
     if (!item || kept.has(item)) return null;
     kept.add(item);
     return item;
   });
+  $matchByContent(list, notes, targets, matching);
   const stay = inPlace(getContentSiblings(list), targets);
   let previous: ListItemNode | null = null;
   notes.forEach((note, index) => {
@@ -73,9 +89,45 @@ function $applyChildren(list: ListNode, notes: readonly TreeNote[], live: Map<st
     }
     $updateNote(item, note, list.getListType(), isNumbered(notes[index - 1]));
     if (note.kind === 'outline' && note.children.length > 0) {
-      $applyChildren($getOrCreateChildList(item), note.children, live, kept);
+      $applyChildren($getOrCreateChildList(item), note.children, matching);
     }
     previous = item;
+  });
+}
+
+/** What a note says: its kind, name and text, not its marker, checkbox or ID. */
+const contentKey = (note: TreeNote) =>
+  JSON.stringify(note.kind === 'body' ? ['body', note.source] : ['outline', note.name, note.runs]);
+
+/**
+ * Give notes without a cache ID, as a tree read from a file has, an unclaimed sibling with the same
+ * content, in order. Never by position alone: a note replaced in place must not inherit an ID.
+ */
+function $matchByContent(list: ListNode, notes: readonly TreeNote[], targets: (ListItemNode | null)[], { kept, wanted }: Matching) {
+  const current = getContentSiblings(list);
+  const position = new Map(current.map((item, index) => [item, index]));
+  const unclaimed = new Map<string, ListItemNode[]>();
+  for (const item of current) {
+    const cacheId = $getNoteId(item);
+    if (kept.has(item) || (cacheId !== null && wanted.has(cacheId))) continue;
+    const key = contentKey($readNote(item, list.getListType(), { children: false }));
+    unclaimed.set(key, [...unclaimed.get(key) ?? [], item]);
+  }
+  let after = -1;
+  notes.forEach((note, index) => {
+    const target = targets[index];
+    if (target) {
+      after = Math.max(after, position.get(target) ?? after);
+      return;
+    }
+    if (note.cacheId !== null) return;
+    const candidates = unclaimed.get(contentKey(note));
+    if (!candidates?.length) return;
+    const next = candidates.findIndex((item) => position.get(item)! > after);
+    const [match] = candidates.splice(next === -1 ? 0 : next, 1);
+    targets[index] = match!;
+    kept.add(match!);
+    after = position.get(match!)!;
   });
 }
 
@@ -217,8 +269,9 @@ function sameAtom(a: Atom, b: Atom): boolean {
   return a.kind === 'break';
 }
 
+// A link's own spaces are its text, as reading keeps them.
 const isEdgeSpace = (atom: Atom | undefined) =>
-  atom?.kind === 'char' && isSpace(atom.char) && (atom.format & FORMAT_BITS.get('code')!) === 0;
+  atom?.kind === 'char' && atom.link === null && isSpace(atom.char) && (atom.format & FORMAT_BITS.get('code')!) === 0;
 
 /**
  * Replace only the atoms that differ. Whitespace at an outline note's edges isn't its text, so the

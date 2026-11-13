@@ -1,6 +1,5 @@
 import base64
 import json
-from datetime import UTC, datetime
 from unittest.mock import patch
 
 from accounts.models import User
@@ -42,13 +41,8 @@ class WorkspaceRoomTests(TestCase):
         self.assertEqual(response.status_code, 200)
         return response.json()
 
-    def save(self, tree, version, state=b"state", commit=True):
-        body = {
-            "state": base64.b64encode(state).decode(),
-            "tree": tree,
-            "version": version,
-            "commit": commit,
-        }
+    def save(self, tree, version, state=b"state"):
+        body = {"state": base64.b64encode(state).decode(), "tree": tree, "version": version}
         return self.client.put(
             self.content,
             json.dumps(body),
@@ -84,9 +78,7 @@ class WorkspaceRoomTests(TestCase):
         self.assertEqual([bearer.status_code, operator.status_code], [403, 403])
 
     def test_an_empty_workspace_loads_and_saves_without_writing_a_file(self):
-        self.assertEqual(
-            self.load(), {"version": None, "state": None, "uncommittedSince": None, "tree": EMPTY}
-        )
+        self.assertEqual(self.load(), {"version": None, "state": None, "tree": EMPTY})
 
         self.assertEqual(self.save(EMPTY, None).json(), {"version": None})
 
@@ -97,29 +89,10 @@ class WorkspaceRoomTests(TestCase):
             {
                 "version": None,
                 "state": base64.b64encode(b"state").decode(),
-                "uncommittedSince": None,
             },
         )
 
-    def test_a_save_keeps_its_text_in_the_row_and_leaves_the_file(self):
-        with patch("django.utils.timezone.now", return_value=datetime(2026, 11, 13, tzinfo=UTC)):
-            self.save(tree_of("- one\n"), None, b"first", commit=False)
-        self.save(tree_of("- one\n- two\n"), None, b"second", commit=False)
-
-        row = DocumentState.objects.get(workspace=self.workspace)
-        self.assertEqual((bytes(row.state), row.text), (b"second", "- one\n- two\n"))
-        self.assertEqual(row.uncommitted_since, datetime(2026, 11, 13, tzinfo=UTC))
-        self.assertIsNone(self.readme().blob_hash)
-        self.assertFalse(Revision.objects.filter(workspace=self.workspace).exists())
-        self.assertEqual(self.load()["uncommittedSince"], "2026-11-13T00:00:00+00:00")
-
-        self.save(EMPTY, None, commit=False)
-
-        self.assertIsNone(DocumentState.objects.get(workspace=self.workspace).uncommitted_since)
-
-    def test_a_commit_writes_the_trees_text_and_its_state_together(self):
-        self.save(tree_of("- one\n"), None, commit=False)
-
+    def test_a_save_writes_the_trees_text_and_its_state_together(self):
         response = self.save(tree_of("- one\n- two\n"), None, b"saved")
 
         file = self.readme()
@@ -127,8 +100,16 @@ class WorkspaceRoomTests(TestCase):
         self.assertEqual(response.json(), {"version": file.blob_hash})
         self.assertEqual(Revision.objects.get(workspace=self.workspace).author, self.owner)
         row = DocumentState.objects.get(workspace=self.workspace)
-        self.assertEqual((bytes(row.state), row.blob_id), (b"saved", file.blob_hash))
-        self.assertIsNone(row.uncommitted_since)
+        self.assertEqual((bytes(row.state), row.version), (b"saved", file.blob_hash))
+
+    def test_saves_while_typing_gather_in_the_open_head(self):
+        version = self.save(tree_of("- one\n"), None).json()["version"]
+
+        self.save(tree_of("- one\n- two\n"), version)
+
+        revision = Revision.objects.get(workspace=self.workspace)
+        self.assertFalse(revision.sealed)
+        self.assertEqual(store.files_at(revision), {"README.md": b"- one\n- two\n"})
 
     def test_a_save_that_changes_no_text_updates_only_the_state(self):
         version = self.save(tree_of("- one\n"), None).json()["version"]
@@ -214,27 +195,6 @@ class WorkspaceRoomTests(TestCase):
         )
         self.assertEqual(Revision.objects.filter(workspace=self.workspace).count(), 2)
         self.assertFalse(DocumentState.objects.exists())
-
-    def test_a_starting_hub_commits_rows_holding_text_their_file_lacks(self):
-        stale = Workspace.objects.create(name="Stale", owner=self.owner)
-        stale_content = f"/internal/collaboration/workspaces/{stale.pk}/content"
-        for content in (self.content, stale_content):
-            body = {"state": "", "tree": tree_of("- typed\n"), "version": None, "commit": False}
-            self.client.put(
-                content, json.dumps(body), content_type="application/json", **self.headers
-            )
-        store.commit(stale, self.owner, "agent", {"README.md": (None, b"- agent\n")})
-
-        response = self.client.post(
-            "/internal/collaboration/workspaces/commit-pending", **self.headers
-        )
-
-        self.assertEqual(response.json(), {"committed": 1})
-        self.assertEqual(self.readme().content, b"- typed\n")
-        self.assertEqual(Revision.objects.get(workspace=self.workspace).author, self.owner)
-        self.assertIsNone(DocumentState.objects.get(workspace=self.workspace).uncommitted_since)
-        self.assertEqual(store.read(stale, "README.md").content, b"- agent\n")
-        self.assertIsNotNone(DocumentState.objects.get(workspace=stale).uncommitted_since)
 
     def test_a_failed_state_write_leaves_no_revision(self):
         with (

@@ -5,9 +5,6 @@ import { COLLABORATION_SHUTDOWN_DEADLINE_MS } from '#platform/net/django-request
 import { startServerErrorReporting } from '#platform/server-error-reporting';
 import { createCollaborationServer } from './server';
 
-// About 20 s for Django to come up; a room left uncommitted still commits once it is opened.
-const PENDING_COMMIT_ATTEMPTS = 10;
-
 await startServerErrorReporting();
 const collaboration = createCollaborationServer({
   port: config.env.COLLAB_SERVER_PORT,
@@ -16,10 +13,6 @@ const collaboration = createCollaborationServer({
   appOrigin: config.env.APP_ORIGIN,
   documentSlots: config.env.MCP_DOCUMENT_SLOTS,
 });
-// Before rooms open, so a room's own commit can't race the one its previous run left pending.
-for (let attempt = 0; attempt < PENDING_COMMIT_ATTEMPTS && !await collaboration.commitPendingWorkspaces(); attempt += 1) {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-}
 await collaboration.server.listen();
 let stopping = false;
 async function stop() {

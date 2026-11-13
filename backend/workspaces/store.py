@@ -3,8 +3,10 @@
 import hashlib
 import unicodedata
 from dataclasses import dataclass
+from datetime import timedelta
 
 from django.db import transaction
+from django.utils import timezone
 
 from .models import (
     FILE_MAX_BYTES,
@@ -14,7 +16,11 @@ from .models import (
     RevisionChange,
     Workspace,
     WorkspaceFile,
+    delete_unreferenced_blobs,
 )
+
+CONTINUE_WITHIN = timedelta(minutes=2)
+OPEN_AT_MOST = timedelta(minutes=10)
 
 
 class StoreError(ValueError):
@@ -172,8 +178,9 @@ def list_paths(workspace, folder=""):
     return Listing(files, listing_version(files))
 
 
-def commit(workspace, author, message, changes, folders=None):
-    """Apply `changes` as one new revision on top of the head.
+def commit(workspace, author, message, changes, folders=None, continuing=False):
+    """Apply `changes` as one new revision on top of the head, or, for a continuing commit such
+    as a live document's save, add them to the open head (docs/specs/workspaces/store.md).
 
     `changes` maps each path to `(expected, content)`: `expected` is the blob hash the caller
     read, or None for a file it saw missing, and `content` is the new bytes, or None to delete
@@ -187,11 +194,11 @@ def commit(workspace, author, message, changes, folders=None):
             raise InvalidPath(f"Path {path!r} appears twice.")
         prepared[path] = (expected, None if content is None else blob_hash(content), content)
     folders = {normalize_folder(folder): version for folder, version in (folders or {}).items()}
-    return _apply(workspace, author, message, prepared, folders)
+    return _apply(workspace, author, message, prepared, folders, continuing)
 
 
 @transaction.atomic
-def _apply(workspace, author, message, prepared, folders):
+def _apply(workspace, author, message, prepared, folders, continuing):
     # Serializes commits per workspace: a row lock on PostgreSQL, and SQLite's IMMEDIATE
     # transactions already allow one writer at a time.
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
@@ -234,15 +241,40 @@ def _apply(workspace, author, message, prepared, folders):
         [Blob(hash=hash_, content=contents[hash_]) for hash_ in sorted(contents.keys() - stored)],
         ignore_conflicts=True,
     )
-    revision = Revision.objects.create(
-        workspace=locked, parent_id=locked.head_id, author=author, message=message
-    )
-    RevisionChange.objects.bulk_create(
-        [
-            RevisionChange(revision=revision, path=path, blob_id=writes.get(path))
-            for path in sorted(writes.keys() | deletes)
-        ]
-    )
+    now = timezone.now()
+    head = locked.head
+    if continuing and _takes_more(head, author, now):
+        revision = head
+        replaced = set(
+            head.changes.filter(path__in=writes.keys() | deletes)
+            .exclude(blob=None)
+            .values_list("blob_id", flat=True)
+        )
+        for path in sorted(writes.keys() | deletes):
+            RevisionChange.objects.update_or_create(
+                revision=head, path=path, defaults={"blob_id": writes.get(path)}
+            )
+        head.changed_at = now
+        head.save(update_fields=["changed_at"])
+    else:
+        if head is not None and not head.sealed:
+            head.sealed = True
+            head.save(update_fields=["sealed"])
+        revision = Revision.objects.create(
+            workspace=locked,
+            parent_id=locked.head_id,
+            author=author,
+            message=message,
+            changed_at=now,
+            sealed=not continuing,
+        )
+        RevisionChange.objects.bulk_create(
+            [
+                RevisionChange(revision=revision, path=path, blob_id=writes.get(path))
+                for path in sorted(writes.keys() | deletes)
+            ]
+        )
+        replaced = set()
     WorkspaceFile.objects.filter(workspace=locked, path__in=deletes).delete()
     WorkspaceFile.objects.bulk_create(
         [
@@ -256,7 +288,19 @@ def _apply(workspace, author, message, prepared, folders):
     locked.head = revision
     locked.save(update_fields=["head"])
     workspace.head = revision
+    delete_unreferenced_blobs(replaced)
     return revision
+
+
+def _takes_more(head, author, now):
+    """Whether an open head takes a continuing commit's changes instead of being sealed."""
+    return (
+        head is not None
+        and not head.sealed
+        and head.author_id == (author.pk if author else None)
+        and head.changed_at > now - CONTINUE_WITHIN
+        and head.created_at > now - OPEN_AT_MOST
+    )
 
 
 def folders_of(path):

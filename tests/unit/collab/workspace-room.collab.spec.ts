@@ -6,7 +6,7 @@ import { requestPersistence } from '#collaboration/persistence-barrier';
 import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '#collaboration/runtime';
 import type { components } from '#platform/http/api-schema';
 import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
-import type { Document, OutlineNote } from '../../../src/headless/outline-tree/tree';
+import type { Document, OutlineNote, TreeNote } from '../../../src/headless/outline-tree/tree';
 import { applyTree, readTree } from '../../../src/headless/outline-tree/yjs';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 import { installAuthenticatedApiFetch } from './_support/auth';
@@ -34,11 +34,12 @@ async function createWorkspace(content: string) {
   return String(created.results[0]!.ref);
 }
 
-const texts = (tree: Document) => tree.children.map((note) => ((note as OutlineNote).runs[0] as { text: string }).text);
+const textOf = (note: TreeNote) => ((note as OutlineNote).runs[0] as { text: string }).text;
+const texts = (tree: Document) => tree.children.map(textOf);
 
 function retext(tree: Document, from: string, to: string): Document {
   const copy = structuredClone(tree);
-  const note = copy.children.find((child) => ((child as OutlineNote).runs[0] as { text: string }).text === from) as OutlineNote;
+  const note = copy.children.find((child) => textOf(child) === from) as OutlineNote;
   note.runs = [{ kind: 'text', text: to, marks: [] }];
   return copy;
 }
@@ -69,7 +70,7 @@ describe('workspace rooms', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
   afterAll(() => restore());
 
-  it('load the document from its file and commit edits back as its text when the room closes', async () => {
+  it('load the document from its file and save edits back as its text', async () => {
     const workspace = await createWorkspace('- a\n- b\n');
     const room = await open(workspace);
     try {
@@ -77,12 +78,11 @@ describe('workspace rooms', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
       applyTree(room.doc, retext(readTree(room.doc), 'b', 'b typed'));
       await room.persisted();
-      expect((await readme(workspace)).content).toBe('- a\n- b\n');
+
+      expect((await readme(workspace)).content).toBe('- a\n- b typed\n');
     } finally {
       room.close();
     }
-
-    await expect.poll(async () => (await readme(workspace)).content).toBe('- a\n- b typed\n');
   });
 
   it('open an empty workspace without writing its file', async () => {
@@ -108,6 +108,25 @@ describe('workspace rooms', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
       expect(loaded.tree).toBeUndefined();
       expect(loaded.version).toBe((await readme(workspace)).version);
+    } finally {
+      room.close();
+    }
+  });
+
+  it('keep the cache IDs of notes an outside change to the file leaves alone', async () => {
+    const workspace = await createWorkspace('- a\n- b\n- c\n');
+    const room = await open(workspace);
+    try {
+      const before = (readTree(room.doc).children as OutlineNote[]).map((note) => note.cacheId);
+      const path = `${workspace}/README.md`;
+      await call([{ op: 'setContent', target: path, content: '- a\n- b by agent\n- c\n' }], { [path]: (await readme(workspace)).version ?? null });
+
+      await room.persisted();
+
+      await expect.poll(() => texts(readTree(room.doc))).toEqual(['a', 'b by agent', 'c']);
+      const after = (readTree(room.doc).children as OutlineNote[]).map((note) => note.cacheId);
+      expect([after[0], after[2]]).toEqual([before[0], before[2]]);
+      expect(after[1]).not.toBe(before[1]);
     } finally {
       room.close();
     }

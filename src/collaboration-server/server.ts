@@ -25,11 +25,6 @@ export const INTERNAL_SECRET_HEADER = 'X-Remdo-Collaboration-Secret';
 // Workspace rooms are named apart from editor documents, whose IDs share their alphabet.
 const WORKSPACE_ROOM_PREFIX = 'workspace:';
 
-// A workspace room commits its text once editing pauses, and at the latest this long after the
-// first edit its file lacks.
-const COMMIT_IDLE_MS = 2 * 60_000;
-const COMMIT_CAP_MS = 10 * 60_000;
-
 const workspaceOf = (room: string) => (room.startsWith(WORKSPACE_ROOM_PREFIX) ? room.slice(WORKSPACE_ROOM_PREFIX.length) : null);
 
 interface ServerOptions {
@@ -65,9 +60,6 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
   const handleEditor = createEditorHandler(appOrigin, documentSlots);
   const dirty = new Map<Document, number>();
   const deleted = new WeakSet<Document>();
-  const refused = new WeakSet<Document>();
-  // A workspace room holding text its file lacks, and the timers that commit it.
-  const uncommitted = new Map<Document, { since: number; idle?: ReturnType<typeof setTimeout>; cap: ReturnType<typeof setTimeout> }>();
   const retries = new Map<Document, ReturnType<typeof setTimeout>>();
   const retryDelays = new Map<Document, number>();
   const documentListSockets = new Map<string, Set<WebSocket>>();
@@ -88,10 +80,11 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     const expected = Buffer.from(secret);
     return received.length === expected.length && timingSafeEqual(received, expected);
   };
-  const endpoint = (id: string, operation: string) =>
-    new URL(`/internal/collaboration/documents/${encodeURIComponent(id)}/${operation}`, apiOrigin);
-  const workspaceEndpoint = (room: string, operation: string) =>
-    new URL(`/internal/collaboration/workspaces/${encodeURIComponent(workspaceOf(room)!)}/${operation}`, apiOrigin);
+  const endpoint = (room: string, operation: string) => {
+    const workspace = workspaceOf(room);
+    const path = workspace === null ? `documents/${encodeURIComponent(room)}` : `workspaces/${encodeURIComponent(workspace)}`;
+    return new URL(`/internal/collaboration/${path}/${operation}`, apiOrigin);
+  };
   const internalHeaders = { [INTERNAL_SECRET_HEADER]: secret, Host: new URL(appOrigin).host };
 
   // A WebSocket, unlike a long-lived HTTP response, holds none of the browser's
@@ -152,101 +145,63 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
   }
 
   /**
-   * Save a workspace room's tree as its file, with the state holding it. A file changed since the
-   * state's version is applied to the state, which then saves again. `record` learns each version
-   * the state comes to hold, at once, so a later failure can't make a save apply a file twice.
+   * Save a workspace room's tree as its file, with its state. A file changed
+   * since the state's version is applied to the state, which then saves again; each version the
+   * state comes to hold is recorded at once, so a later failure can't make a save apply it twice.
    */
-  async function saveWorkspaceRoom(
-    name: string, doc: Y.Doc, version: string | null, record: (version: string | null) => void, commit = false,
-  ) {
+  async function saveWorkspaceRoom(document: Document, doc: Y.Doc = document) {
     for (;;) {
       const { tree, state } = saveTree(doc);
-      const response = await requestDjango(workspaceEndpoint(name, 'content'), {
+      const version = workspaceVersions.get(document) ?? null;
+      const response = await requestDjango(endpoint(document.name, 'content'), {
         method: 'PUT',
         headers: { ...internalHeaders, 'Content-Type': 'application/json' },
-        body: Buffer.from(JSON.stringify({ state: Buffer.from(state).toString('base64'), tree, version, commit })),
+        body: Buffer.from(JSON.stringify({ state: Buffer.from(state).toString('base64'), tree, version })),
         signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
       });
       if (response.status !== 409) {
-        if (response.ok) record((JSON.parse(response.body.toString()) as { version: string | null }).version);
+        if (response.ok) workspaceVersions.set(document, (JSON.parse(response.body.toString()) as { version: string | null }).version);
         return response;
       }
       const current = JSON.parse(response.body.toString()) as { version: string | null; tree: OutlineDocument };
       applyTree(doc, current.tree);
-      version = current.version;
-      record(version);
+      workspaceVersions.set(document, current.version);
     }
   }
 
-  async function writeState(document: Document, state: Uint8Array, commit = false) {
+  async function writeState(document: Document) {
     if (deleted.has(document)) throw new DocumentDeleted();
     const savedRevision = dirty.get(document);
     try {
-      let response: Awaited<ReturnType<typeof requestDjango>>;
-      if (workspaceVersions.has(document)) {
-        response = await saveWorkspaceRoom(
-          document.name, document, workspaceVersions.get(document) ?? null, (version) => workspaceVersions.set(document, version), commit,
-        );
-      } else {
-        response = await requestDjango(endpoint(document.name, 'content'), {
+      const response = workspaceOf(document.name) === null
+        ? await requestDjango(endpoint(document.name, 'content'), {
           method: 'PUT',
           headers: { ...internalHeaders, 'Content-Type': 'application/octet-stream' },
-          body: Buffer.from(state),
+          body: Buffer.from(Y.encodeStateAsUpdate(document)),
           signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
-        });
-      }
+        })
+        : await saveWorkspaceRoom(document);
       if (response.status === 404) {
         deleted.add(document);
         dirty.delete(document);
-        clearTimeout(retries.get(document));
-        retries.delete(document);
-        retryDelays.delete(document);
+        forgetRetry(document);
         server.hocuspocus.closeConnections(document.name);
         throw new DocumentDeleted();
       }
+      // The refused edits stay with the room's clients; the next edit tries again.
       if (response.status === 422) {
-        refused.add(document);
+        if (dirty.get(document) === savedRevision) dirty.delete(document);
+        forgetRetry(document);
         throw new SaveRefused();
       }
       if (!response.ok) throw new Error('collaboration.store-failed');
-      refused.delete(document);
       if (dirty.get(document) === savedRevision) dirty.delete(document);
-      clearTimeout(retries.get(document));
-      retries.delete(document);
-      retryDelays.delete(document);
+      forgetRetry(document);
     } catch (error) {
-      if (error instanceof DocumentDeleted) throw error;
-      if (!(error instanceof SaveRefused)) scheduleRetry(document);
+      if (error instanceof DocumentDeleted || error instanceof SaveRefused) throw error;
+      scheduleRetry(document);
       // Hocuspocus logs hook failures: never attach the request, content, or original error.
       throw new Error('collaboration.store-failed');
-    }
-  }
-
-  function markUncommitted(document: Document, since = Date.now()) {
-    const pending = uncommitted.get(document)
-      ?? { since, cap: setTimeout(() => void commitRoom(document).catch(() => {}), Math.max(0, since + COMMIT_CAP_MS - Date.now())) };
-    clearTimeout(pending.idle);
-    pending.idle = setTimeout(() => void commitRoom(document).catch(() => {}), COMMIT_IDLE_MS);
-    uncommitted.set(document, pending);
-  }
-
-  function forgetUncommitted(document: Document) {
-    const pending = uncommitted.get(document);
-    clearTimeout(pending?.idle);
-    clearTimeout(pending?.cap);
-    uncommitted.delete(document);
-  }
-
-  /** Commit a workspace room's text; edits arriving meanwhile wait for the next commit. */
-  async function commitRoom(document: Document) {
-    const pending = uncommitted.get(document);
-    if (!pending) return;
-    forgetUncommitted(document);
-    try {
-      await document.saveMutex.runExclusive(() => writeState(document, Y.encodeStateAsUpdate(document), true));
-    } catch (error) {
-      if (!uncommitted.has(document) && !refused.has(document)) markUncommitted(document, pending.since);
-      throw error;
     }
   }
 
@@ -255,24 +210,17 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
    * and saved before any client syncs, so every load after one change gives the same state.
    */
   async function loadWorkspaceRoom(document: Document) {
-    const loaded = JSON.parse((await loadContent(workspaceEndpoint(document.name, 'content'))).toString()) as {
-      version: string | null; state: string | null; uncommittedSince: string | null; tree?: OutlineDocument;
+    const loaded = JSON.parse((await loadContent(endpoint(document.name, 'content'))).toString()) as {
+      version: string | null; state: string | null; tree?: OutlineDocument;
     };
+    workspaceVersions.set(document, loaded.version);
     const doc = new Y.Doc();
     if (loaded.state) Y.applyUpdate(doc, Buffer.from(loaded.state, 'base64'));
-    let version = loaded.version;
     if (loaded.tree) {
       applyTree(doc, loaded.tree);
-      let saved: Awaited<ReturnType<typeof saveWorkspaceRoom>>;
-      try {
-        saved = await saveWorkspaceRoom(document.name, doc, version, (applied) => { version = applied; });
-      } catch {
-        throw new CollaborationUnavailable('collaboration.load-failed');
-      }
-      if (!saved.ok) throw new CollaborationUnavailable('collaboration.load-failed');
+      const saved = await saveWorkspaceRoom(document, doc).catch(() => null);
+      if (!saved?.ok) throw new CollaborationUnavailable('collaboration.load-failed');
     }
-    workspaceVersions.set(document, version);
-    if (loaded.uncommittedSince && !loaded.tree) markUncommitted(document, Date.parse(loaded.uncommittedSince));
     const state = Y.encodeStateAsUpdate(doc);
     doc.destroy();
     return state;
@@ -290,6 +238,12 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     return response.body;
   }
 
+  function forgetRetry(document: Document) {
+    clearTimeout(retries.get(document));
+    retries.delete(document);
+    retryDelays.delete(document);
+  }
+
   function scheduleRetry(document: Document) {
     if (retries.has(document) || stopping || deleted.has(document)) return;
     const delay = Math.min((retryDelays.get(document) ?? 500) * 2, 30_000);
@@ -301,7 +255,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
   }
 
   function save(document: Document) {
-    return document.saveMutex.runExclusive(() => writeState(document, Y.encodeStateAsUpdate(document)));
+    return document.saveMutex.runExclusive(() => writeState(document));
   }
 
   // A save not yet started already covers every update received before it
@@ -311,7 +265,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     if (queued) return queued;
     const next = document.saveMutex.runExclusive(() => {
       queuedSaves.delete(document);
-      return writeState(document, Y.encodeStateAsUpdate(document));
+      return writeState(document);
     });
     queuedSaves.set(document, next);
     return next;
@@ -338,13 +292,13 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
         const bytes = new Uint8Array(await loadContent(endpoint(documentName, 'content')));
         return bytes.length ? bytes : null;
       },
-      store: async ({ document, state }) => {
+      store: async ({ document }) => {
         try {
-          await writeState(document, state);
+          await writeState(document);
         } catch (error) {
-          // A deleted registry row is terminal. Let Hocuspocus finish unloading;
-          // persistence requests still fail rather than acknowledge a SQL commit.
-          if (!(error instanceof DocumentDeleted)) throw error;
+          // A deleted registry row or a refused save is terminal. Let Hocuspocus finish
+          // unloading; persistence requests still fail rather than acknowledge a SQL commit.
+          if (!(error instanceof DocumentDeleted || error instanceof SaveRefused)) throw error;
         }
       },
     })],
@@ -379,8 +333,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       }
       let response: Awaited<ReturnType<typeof requestDjango>>;
       try {
-        const url = workspaceOf(documentName) === null ? endpoint(documentName, 'authorize') : workspaceEndpoint(documentName, 'authorize');
-        response = await requestDjango(url, {
+        response = await requestDjango(endpoint(documentName, 'authorize'), {
           headers, signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
         });
       } catch {
@@ -404,18 +357,9 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     async onChange({ document }) {
       if (deleted.has(document)) return;
       dirty.set(document, ++revision);
-      if (workspaceVersions.has(document)) markUncommitted(document);
     },
     async beforeUnloadDocument({ document }) {
-      // A refused room's edits stay with its clients, which sync them again on reconnecting.
-      if (refused.has(document)) {
-        forgetUncommitted(document);
-        return;
-      }
-      try {
-        if (dirty.has(document)) throw new Error('collaboration.store-pending');
-        await commitRoom(document);
-      } catch {
+      if (dirty.has(document)) {
         scheduleRetry(document);
         throw new Error('collaboration.store-pending');
       }
@@ -452,22 +396,10 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
         for (const listener of listeners) listener.terminate();
       }
       const results = await Promise.allSettled([...server.hocuspocus.documents.values()].map(flush));
-      for (const document of [...uncommitted.keys()]) forgetUncommitted(document);
       if (results.some(result => result.status === 'rejected')) {
         throw new Error('collaboration.shutdown-store-failed');
       }
       await server.destroy();
-    },
-    /** Commit the text of workspace rooms a previous run left uncommitted; true once Django has. */
-    async commitPendingWorkspaces() {
-      try {
-        const response = await requestDjango(new URL('/internal/collaboration/workspaces/commit-pending', apiOrigin), {
-          method: 'POST', headers: internalHeaders, signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
-        });
-        return response.ok;
-      } catch {
-        return false;
-      }
     },
   };
 }
