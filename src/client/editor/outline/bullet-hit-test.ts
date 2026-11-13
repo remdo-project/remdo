@@ -116,9 +116,7 @@ export const isBulletHit = (element: HTMLElement, event: PointerEvent) => {
   const liRect = element.getBoundingClientRect();
   const bulletWidth = resolveLengthPx(baseStyle.getPropertyValue('--bullet-width'), baseStyle, element);
   const bulletLeft = resolveLengthPx(baseStyle.getPropertyValue('--bullet-left'), baseStyle, element);
-  const listContainer = element.parentElement;
-  const isOrderedList =
-    listContainer instanceof HTMLElement && listContainer.matches('ol.list-ol');
+  const isNumbered = element.hasAttribute('data-number');
   if (!config.isTest) {
     try {
       pseudoStyle = globalThis.getComputedStyle(element, '::before');
@@ -126,7 +124,7 @@ export const isBulletHit = (element: HTMLElement, event: PointerEvent) => {
       pseudoStyle = null;
     }
   }
-  if (isOrderedList) {
+  if (isNumbered) {
     let width = bulletWidth;
     if (width === null && pseudoStyle) {
       const fallbackWidth = Number.parseFloat(pseudoStyle.width);

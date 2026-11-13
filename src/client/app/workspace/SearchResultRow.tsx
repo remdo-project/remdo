@@ -226,7 +226,7 @@ function ChildPreview({ preview }: { preview: SearchChildPreview }) {
               {...noteMarkerAttributes(marker)}
               data-note-checked={child.checked ? 'true' : undefined}
             >
-              {child.text.length > 0 ? formatNavigationLabel(child.text) : '(empty note)'}
+              <span>{child.text.length > 0 ? formatNavigationLabel(child.text) : '(empty note)'}</span>
             </li>
           );
         })}

@@ -122,12 +122,13 @@ class _Reader:
             return [re.sub(r"^\s*>\s?", "", line) for line in self.lines[first:stop]]
 
         def gap(lines):
-            while lines and not lines[0].strip():
-                lines = lines[1:]
-            while lines and not lines[-1].strip():
-                lines = lines[:-1]
-            if lines:
-                body(lines)
+            first, stop = 0, len(lines)
+            while first < stop and not lines[first].strip():
+                first += 1
+            while stop > first and not lines[stop - 1].strip():
+                stop -= 1
+            if first < stop:
+                body(lines[first:stop])
 
         def wrapper(index, close):
             first, stop = self.tokens[index].map
@@ -138,7 +139,7 @@ class _Reader:
                     continue
                 inner_first, inner_stop = inner.map
                 gap(unquoted(inner_last, inner_first))
-                body(unquoted(inner_first, inner_stop))
+                gap(unquoted(inner_first, inner_stop))
                 inner_last = inner_stop
             if inner_last == first:
                 body(unquoted(first, stop))
@@ -152,8 +153,7 @@ class _Reader:
                 index += 1
                 continue
             first, stop = token.map
-            if last is not None:
-                gap(_dedent(self.lines[last:first], indent))
+            gap(_dedent(self.lines[last:first], indent))
             last = stop
             close = _close_of(self.tokens, index) if token.nesting == 1 else index
             if token.type == "heading_open" and on_heading:
@@ -169,8 +169,7 @@ class _Reader:
                 body(_dedent(self.lines[first:stop], indent))
             index = close + 1
         tail = region[1] if region else len(self.lines)
-        if last is not None:
-            gap(_dedent(self.lines[last:tail], indent))
+        gap(_dedent(self.lines[last:tail], indent))
 
     def _holds_structure(self, open_index, close):
         level = self.tokens[open_index].level + 1

@@ -248,6 +248,7 @@ class ReadingTests(SimpleTestCase):
             "- a\n    > one\n    >\n    > two\n": [["one"], ["two"]],
             "intro\n\nmore\n\n> kept quote\n": [["intro"], ["more"], ["> kept quote"]],
             "# T\n\n> - x\n> - y\n": [["- x", "- y"]],
+            "# T\n\n> - x\n>\n> para\n": [["- x"], ["para"]],
         }
         for source, bodies in cases.items():
             with self.subTest(source=source):
