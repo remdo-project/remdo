@@ -109,42 +109,35 @@ class _Reader:
         self.blocks(0, len(self.tokens), owner, 0, heading)
 
     def blocks(self, start, end, owner, indent, on_heading=None, region=None):
-        """Read tokens[start, end) as an owner's blocks: a document's or heading's, or a list
-        item's lines `region`. Each top-level element is its own body. Lines no token covers,
-        such as content nested past the parser's limit, are kept as a body rather than dropped."""
+        """Read tokens[start, end) as an owner's children: a document's or heading's, or a list
+        item's lines `region`. Headings and list items divide them; everything else between, lines
+        no token covers included, is one body."""
         in_item = region is not None
         last = region[0] if region else self.first_line
+        segments = []
 
-        def body(lines):
-            owner().children.append(Note("body", lines))
+        def flush():
+            lines = []
+            for index, (first, stop, quoted) in enumerate(segments):
+                if index:
+                    lines.extend("" for _ in range(segments[index - 1][1], first))
+                raw = self.lines[first:stop]
+                lines.extend(
+                    [re.sub(r"^\s*>\s?", "", line) for line in raw]
+                    if quoted
+                    else _dedent(raw, indent)
+                )
+            if lines:
+                owner().children.append(Note("body", lines))
+            segments.clear()
 
-        def unquoted(first, stop):
-            return [re.sub(r"^\s*>\s?", "", line) for line in self.lines[first:stop]]
-
-        def gap(lines):
-            first, stop = 0, len(lines)
-            while first < stop and not lines[first].strip():
+        def add(first, stop, quoted=False):
+            while first < stop and not self.lines[first].strip():
                 first += 1
-            while stop > first and not lines[stop - 1].strip():
+            while stop > first and not self.lines[stop - 1].strip():
                 stop -= 1
             if first < stop:
-                body(lines[first:stop])
-
-        def wrapper(index, close):
-            first, stop = self.tokens[index].map
-            level = self.tokens[index].level + 1
-            inner_last = first
-            for inner in self.tokens[index + 1 : close]:
-                if inner.level != level or inner.nesting == -1 or inner.map is None:
-                    continue
-                inner_first, inner_stop = inner.map
-                gap(unquoted(inner_last, inner_first))
-                gap(unquoted(inner_first, inner_stop))
-                inner_last = inner_stop
-            if inner_last == first:
-                body(unquoted(first, stop))
-            else:
-                gap(unquoted(inner_last, stop))
+                segments.append((first, stop, quoted))
 
         index = start
         while index < end:
@@ -153,31 +146,21 @@ class _Reader:
                 index += 1
                 continue
             first, stop = token.map
-            gap(_dedent(self.lines[last:first], indent))
+            add(last, first)
             last = stop
             close = _close_of(self.tokens, index) if token.nesting == 1 else index
             if token.type == "heading_open" and on_heading:
+                flush()
                 on_heading(index)
             elif token.type in ("bullet_list_open", "ordered_list_open"):
+                flush()
                 self.list(index, close, owner())
-            elif token.type == "blockquote_open" and (
-                in_item or self._holds_structure(index, close)
-            ):
-                # Under a list item, or holding a list or heading, a quote only wraps its bodies.
-                wrapper(index, close)
             else:
-                body(_dedent(self.lines[first:stop], indent))
+                # Under a list item, a quote only wraps its body.
+                add(first, stop, in_item and token.type == "blockquote_open")
             index = close + 1
-        tail = region[1] if region else len(self.lines)
-        gap(_dedent(self.lines[last:tail], indent))
-
-    def _holds_structure(self, open_index, close):
-        level = self.tokens[open_index].level + 1
-        return any(
-            token.level == level
-            and token.type in ("bullet_list_open", "ordered_list_open", "heading_open")
-            for token in self.tokens[open_index + 1 : close]
-        )
+        add(last, region[1] if region else len(self.lines))
+        flush()
 
     def list(self, open_index, close, owner):
         ordered = self.tokens[open_index].type == "ordered_list_open"
@@ -496,7 +479,7 @@ def _section(children, out):
     for child in children:
         if child.kind == "body":
             _separate(out)
-            out.extend(child.source if _reads_as_body(child.source) else _quoted(child.source))
+            out.extend(child.source)
             in_list = False
         elif child.marker[0] == "heading":
             _separate(out)
@@ -569,12 +552,6 @@ def _item(note, indent, number, out, delimiter="."):
         _item(child, inner, numbered, out, delimiter)
         previous = child.marker[0]
         after_children = True
-
-
-def _reads_as_body(source):
-    """Whether a body's lines, written outside a list item, read back as that one body."""
-    children = read("\n".join(source)).children
-    return len(children) == 1 and children[0].kind == "body" and children[0].source == source
 
 
 def _quoted(source):

@@ -35,8 +35,9 @@ A document is a note whose children are bodies and outline notes, in
 file order; its name is held outside the text.
 A heading contains everything up to the next heading of its level or higher.
 
-A body is a note holding any Markdown other than a heading or list;
-headings and lists inside it are plain content.
+Headings and list items divide a note's children. Everything else between
+them is one body, a note holding that Markdown as written; headings and lists
+inside it are plain content.
 
 An outline note holds:
 
@@ -58,13 +59,9 @@ An outline note holds:
     > - Tools indent children under a list item by 4 spaces per level
     > - Tools write `1.` where another number could not interrupt a paragraph
     > - Tools write a blank line before an empty first child after parent text
-    > - Tools wrap a body under a list item in `>` lines
-    > - Each top-level element is its own body and one editor line
-    > - Under a heading, a block holding a list or heading keeps its `>` lines
-    > - That `>` is a wrapper, so each element inside is its own body
-    > - Any other quote keeps `>` as content and is one body
-    > - A soft-wrapped paragraph is one editor line holding breaks
-    > - Tools separate lines they move or write with a blank line or `>`
+    > - Tools wrap a body under a list item in `>` lines, which aren't content
+    > - Under a heading, a quote keeps its `>` lines as content
+    > - A body is one editor block holding its lines
 - ID:: optional and added lazily, such as when a note is first referenced
     > - An ID is the `id` [property](#properties), such as the one below
     > - A document's ID is a top-level note before its first heading

@@ -146,7 +146,7 @@ unchanged.
 - A body is any other block of Markdown among a note's children, and behaves
   as its own editing region. The editor creates at most one, first; a loaded
   note may hold several, and loading keeps each in place.
-- Body lines start as Markdown source, rendered per line when not being edited.
+- A body starts as Markdown source, rendered when not being edited.
   Rich paragraph lines can follow if users ask, with no text change.
 - The editor keeps a note's name in its text, with any escape that stops text
   from reading as a name, so `foo:: x` names and `foo\:: x` stays literal.
