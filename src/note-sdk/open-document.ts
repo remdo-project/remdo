@@ -29,10 +29,18 @@ export interface SearchResult {
   path: readonly EditorNoteSnapshot[];
 }
 
-/** The first few direct children plus the exact direct-child count. */
+/** How a note's marker shows: its kind, its number or heading level, and whether it has a checkbox. */
+export interface NoteMarkerView {
+  readonly kind: 'bullet' | 'number' | 'heading' | 'block';
+  readonly number: number | null;
+  readonly headingLevel: number | null;
+  readonly checkbox: boolean;
+}
+
+/** The first few direct children, each with its marker, plus the exact direct-child count. */
 export interface ChildPreview {
   notes: readonly EditorNoteSnapshot[];
-  listType: NoteListType;
+  markers: readonly NoteMarkerView[];
   totalCount: number;
 }
 

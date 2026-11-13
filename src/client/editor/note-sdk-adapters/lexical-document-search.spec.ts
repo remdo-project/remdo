@@ -34,17 +34,17 @@ describe('lexical document search', () => {
 
     expect(flatResults[0]!.childPreview).toMatchObject({
       notes: [{ id: 'note2', text: 'note2', checked: false }],
-      listType: 'bullet',
+      markers: [{ kind: 'bullet', number: null, headingLevel: null, checkbox: false }],
       totalCount: 2,
     });
     expect(flatResults[1]!.childPreview).toMatchObject({
       notes: [{ id: 'note3', text: 'note3', checked: false }],
       totalCount: 1,
     });
-    expect(flatResults[2]!.childPreview).toEqual({ notes: [], listType: 'bullet', totalCount: 0 });
+    expect(flatResults[2]!.childPreview).toEqual({ notes: [], markers: [], totalCount: 0 });
   });
 
-  it('keeps checked values, parent list types, and descendants of folded notes',
+  it('keeps checked values, child markers, and descendants of folded notes',
     meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
       await remdo.dispatchCommand(SET_NOTE_CHECKED_COMMAND, {
         state: 'checked', noteItemKey: getNoteKey(remdo, 'note4'),
@@ -62,19 +62,19 @@ describe('lexical document search', () => {
         .toEqual(['note1', 'note2', 'note3', 'note4', 'note5', 'note6']);
       expect(flatResults[0]!.childPreview).toMatchObject({
         notes: [{ id: 'note2', checked: false }],
-        listType: 'number',
+        markers: [{ kind: 'number', number: 1, headingLevel: null, checkbox: false }],
       });
       expect(flatResults[2]).toMatchObject({
         note: { id: 'note3', folded: true, checked: false },
         childPreview: {
           notes: [{ id: 'note4', text: 'note4', checked: true }],
-          listType: 'check',
+          markers: [{ kind: 'bullet', number: null, headingLevel: null, checkbox: true }],
         },
       });
       expect(flatResults[3]!.path.map(({ id }) => id)).toEqual(['note3', 'note4']);
       expect(flatResults[4]!.childPreview).toMatchObject({
         notes: [{ id: 'note6', checked: true }],
-        listType: 'bullet',
+        markers: [{ kind: 'bullet', number: null, headingLevel: null, checkbox: true }],
       });
     });
 

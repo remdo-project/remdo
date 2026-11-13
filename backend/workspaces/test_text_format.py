@@ -163,7 +163,6 @@ class ReadingTests(SimpleTestCase):
             "- a\n    - [ ] id:: boxed\n": "boxed",
             "- a\n    - id:: a\\_b\n": None,
             "- a\n    - id:: &#120;\n": "x",
-            "- a\n    - id:: a\n      b\n": None,
             "- a\n    - id:: a/b\n": None,
         }
         for source, expected in cases.items():
@@ -201,6 +200,42 @@ class ReadingTests(SimpleTestCase):
                 self.assertEqual(written, expected or source)
                 self.assertEqual(text_format.write(text_format.read(written)), written)
 
+    def test_a_numbered_list_after_numbered_notes_starts_again(self):
+        source = "1. a\n2. b\n\n1) c\n"
+        notes = text_format.read(source).children
+        self.assertEqual(
+            [note.marker for note in notes], [("number", None), ("number", None), ("number", 1)]
+        )
+        self.assertEqual(text_format.write(text_format.read(source)), "1. a\n2. b\n1) c\n")
+
+    def test_a_note_named_after_a_property_keeps_its_text_and_children(self):
+        note = text_format.Note(
+            "outline",
+            marker=("bullet",),
+            name="id",
+            runs=[text_format.Run("text", "x")],
+            children=[
+                text_format.Note("outline", marker=("bullet",), runs=[text_format.Run("text", "c")])
+            ],
+        )
+        written = text_format.write(text_format.Document(children=[note]))
+        self.assertEqual(written, "- id\\:: x\n    - c\n")
+        document = text_format.read(written)
+        self.assertEqual(document.id, None)
+        [read] = document.children
+        self.assertEqual(
+            (
+                read.name,
+                [run.text for run in read.runs],
+                [child.runs[0].text for child in read.children],
+            ),
+            (None, ["id:: x"], ["c"]),
+        )
+
+    def test_a_body_line_keeps_its_trailing_whitespace(self):
+        source = "- a\n    > broken  \n    > line\n"
+        self.assertEqual(text_format.write(text_format.read(source)), source)
+
     def test_a_numbered_list_keeps_a_first_number_other_than_one(self):
         source = "- parent\n\n    3. three\n    4. four\n"
         [note] = text_format.read(source).children
@@ -230,6 +265,51 @@ class ReadingTests(SimpleTestCase):
         [note] = text_format.read("3. id:: x\n4. four\n").children
         self.assertEqual(note.marker, ("number", 4))
 
-    def test_a_block_after_a_list_items_text_is_one_body(self):
-        [note] = text_format.read("- a\n\n    paragraph\n\n    > quote\n").children
-        self.assertEqual([child.kind for child in note.children], ["body"])
+    def test_everything_between_headings_and_list_items_is_one_body(self):
+        cases = {
+            "- a\n\n  paragraph\n\n  > quote\n": [["paragraph", "", "quote"]],
+            "- a\n    > one\n    >\n    > two\n": [["one", "", "two"]],
+            "- a\n    >\n    > one\n    >\n": [["one"]],
+            "- a\n    > one\n    two\n": [["one", "two"]],
+            "intro\n\nmore\n\n> kept quote\n": [["intro", "", "more", "", "> kept quote"]],
+            "# T\n\n> - x\n> - y\n": [["> - x", "> - y"]],
+            "# T\n\nbefore\n\n- id:: x\n\nafter\n": [["before", "", "after"]],
+            "before\n\n- id:: two words\n\nafter\n": [["before", "", "after"]],
+            "a\n\n\n\nb\n": [["a", "", "b"]],
+        }
+        for source, bodies in cases.items():
+            with self.subTest(source=source):
+                notes = text_format.read(source).children
+                owner = notes[0] if notes[0].kind == "outline" else None
+                children = owner.children if owner else notes
+                self.assertEqual([child.source for child in children], bodies)
+                written = text_format.write(text_format.read(source))
+                self.assertEqual(_tree(text_format.read(written)), _tree(text_format.read(source)))
+
+    def test_an_id_line_holding_more_than_its_property_is_a_note(self):
+        for source, kept in {
+            "before\n\n- id:: x\n\n  more\n\nafter\n": "more",
+            "before\n\n- id:: x\nafter\n": "id::xafter",
+            "- id:: x\n  - child\n": "child",
+        }.items():
+            with self.subTest(source=source):
+                document = text_format.read(source)
+                self.assertIsNone(document.id)
+                self.assertIn(kept, _rendered(text_format.write(document)))
+                self.assertEqual(_rendered(text_format.write(document)), _rendered(source))
+
+    def test_an_indented_top_level_body_stays_where_it_is(self):
+        source = "  - b\n  > q\n"
+        written = text_format.write(text_format.read(source))
+        self.assertEqual(written, "- b\n\n> q\n")
+        self.assertEqual(text_format.write(text_format.read(written)), written)
+
+    def test_an_id_is_written_before_a_body_that_ends_in_an_open_fence(self):
+        document = text_format.read("  - id:: y\n```\n")
+        written = text_format.write(document)
+        self.assertEqual(written, "- id:: y\n\n```\n")
+        self.assertEqual(text_format.read(written).id, "y")
+
+    def test_front_matter_stays_before_the_id(self):
+        source = "---\ntitle: Trip\n---\n\n- id:: doc\n\nIntro\n"
+        self.assertEqual(text_format.write(text_format.read(source)), source)

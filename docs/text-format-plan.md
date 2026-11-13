@@ -146,7 +146,7 @@ unchanged.
 - A body is any other block of Markdown among a note's children, and behaves
   as its own editing region. The editor creates at most one, first; a loaded
   note may hold several, and loading keeps each in place.
-- Body lines start as Markdown source, rendered per line when not being edited.
+- A body starts as Markdown source, rendered when not being edited.
   Rich paragraph lines can follow if users ask, with no text change.
 - The editor keeps a note's name in its text, with any escape that stops text
   from reading as a name, so `foo:: x` names and `foo\:: x` stays literal.
@@ -228,10 +228,6 @@ once stage 3 lands.
      mark open across a link whose label carries it, and joins a note's
      continuation lines; keeping a note's existing line breaks waits until
      users object to that churn.
-   - Write operation cases once, as text before, operations, and text after or
-     the refusal. Test them on Python's note operations, and check each other
-     surface, such as MCP or the editor, with only a few of the same cases. Add
-     this rule to the [testing policy](dev/testing.md) once it has worked.
    - Extend the editor schema with headings, `block` lines, per-note markers and
      independent checkboxes. Use `line` or `group` storage with no body wrapper,
      holding body lines as Markdown source.
@@ -247,6 +243,11 @@ once stage 3 lands.
      first change people see. It comes before outline note operations, which
      would otherwise give the editor an independent reference, so integration
      problems surface early.
+   - Write operation cases once, as text before, operations, and text after or
+     the refusal. Test them on Python's note operations as each lands, and
+     check each other surface, such as MCP or the editor, with only a few of the
+     same cases. Add
+     this rule to the [testing policy](dev/testing.md) once it has worked.
    - Add Python note operations for outline notes and bodies, and
      their MCP tools, starting with Set text and Ensure ID. A document with an
      ID then reads by its ID reference, once expected versions accept one;

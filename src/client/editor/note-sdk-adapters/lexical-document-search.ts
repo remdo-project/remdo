@@ -2,6 +2,7 @@ import type { ListItemNode } from '@lexical/list';
 import type { LexicalEditor } from 'lexical';
 import type { DocumentSearchOptions, DocumentSearchResults, EditorNoteSnapshot } from '#note-sdk';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
+import { $noteMarkerViews } from '#client/editor/features/list-types/note-marker';
 import { $isNoteFolded } from '#client/editor/outline/fold-state';
 import { getContentSiblings } from '#client/editor/outline/list-structure';
 import { getNoteOwnText } from '#client/editor/outline/selection/note-body';
@@ -113,11 +114,12 @@ export function collectLexicalDocumentSearchResults(
       const nested = getNestedList(note);
       const children = nested ? getContentSiblings(nested) : [];
       if (matches) {
+        const previewed = children.slice(0, childPreviewLimit);
         flatResults.push({
           note: record(note),
           childPreview: {
-            notes: children.slice(0, childPreviewLimit).map(record),
-            listType: nested?.getListType() ?? 'bullet',
+            notes: previewed.map(record),
+            markers: $noteMarkerViews(previewed),
             totalCount: children.length,
           },
           path: pathNotes.map(record),

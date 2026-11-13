@@ -1,13 +1,12 @@
-import { $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import { getSubtreeItems } from '#client/editor/outline/selection/tree';
 import { $setNoteCheckedRaw } from './checked-state';
+import { $isInCheckList } from './note-marker';
 import { $isNoteSubtreeChecked } from './checked-subtree';
 
 const $setNoteCheckedForSingleNode = (node: ListItemNode, checked: boolean) => {
   $setNoteCheckedRaw(node, checked);
-  const parent = node.getParent();
-  if ($isListNode(parent) && parent.getListType() === 'check') {
+  if ($isInCheckList(node)) {
     node.setChecked(checked);
   }
 };

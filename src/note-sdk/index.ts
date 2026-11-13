@@ -5,6 +5,7 @@ export type {
   DocumentSearchResults,
   OpenDocument,
   NoteListType,
+  NoteMarkerView,
   OpenDocumentNote,
   EditorNoteSnapshot,
   NewNote,

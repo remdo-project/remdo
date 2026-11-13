@@ -1,23 +1,57 @@
 # List types
 
-[Editor notes](./note-model.md#note-kinds) support the outliner's list types,
-list-type conversion, and checked state, including target resolution for
-checked-state changes. [Selection states](./selection.md#selection-states) and [note ranges](./selection.md#note-ranges) are defined by Selection.
+[Editor notes](./note-model.md#note-kinds) support the outliner's markers,
+checkboxes, their placement and conversion, and checked state, including target
+resolution for checked-state changes.
+[Selection states](./selection.md#selection-states) and [note ranges](./selection.md#note-ranges) are defined by Selection.
 
-## Supported types
+## Markers and checkboxes
 
-A list's type is a property of the list, not of an individual note. The
-supported types are bullet, number, and check.
+Each note has its own marker and checkbox, as the
+[text format](../../format.md) holds them.
+
+- **Bullet:** shows a bullet.
+- **Number:** shows its start when it has one, otherwise one more than the
+  sibling before it when that sibling is numbered, otherwise 1.
+- **Heading:** shows a bullet, with its text styled by its level.
+- **Checkbox:** none, open, or checked, shown after the marker whatever the
+  marker is.
+
+## Placement
+
+A note lands where it is created, by `Enter`, a split, an append or a paste,
+and where it moves under a new parent; reordering among the same siblings
+changes nothing. In this section, siblings are outline notes other than
+headings. A landing note other than a heading takes:
+
+- **Marker:** that of the sibling before it, otherwise after it, otherwise its
+  parent's, without a start; under a heading or at the top level it is a
+  bullet.
+- **Checkbox:** an open one when every other sibling has a checkbox, or, as a
+  first child, when every sibling of its parent has one; otherwise none. A
+  checked note keeps its checkbox.
+
+A heading or body keeps its own kind wherever it lands, within what the
+[text format](../../format.md) can hold.
 
 ## Type conversion
 
-Changing a list's type converts only that list; nested lists keep their own
-types unless changed separately.
+Converting acts on a note's children other than headings; deeper notes keep
+theirs.
+
+- **To bullet or number:** each takes that marker, keeping its checkbox.
+- **To check:** each without a checkbox takes an open one, keeping its marker.
+- **Removing checkboxes:** each open checkbox is removed; checked notes keep
+  theirs.
+
+The children are a check list when every one has a checkbox.
 
 ## Checked state
 
-A note's checked state is independent of its list type: the state remains
-visible in every list type and survives list-type changes, reload, and collaboration.
+A note is checked when its checkbox is checked. Checking a note without a
+checkbox gives it a checked one, and unchecking leaves an open one. Checked
+state survives conversion, reload, and collaboration. Bodies have no
+checked state.
 
 Setting a note's checked state is recursive: the note and all of its
 descendants take the same state.
@@ -38,10 +72,10 @@ unchecked when every one of them is already checked, otherwise checked.
 
 [A caret or inline text selection](./selection.md#selection-states) in an [outline selection region](./selection.md#selection-states) targets the editor
 note owning the region; [Body](./body.md#selection-and-structural-targeting) owns the mapping from a
-body selection region to its editor note. The marker of a note in a check-type
-list targets the clicked note while that note is outside any
+body selection region to its editor note. A note's checkbox targets the
+clicked note while that note is outside any
 [structural selection](./selection.md#selection-states). A structural selection
-— including a marker click on a note inside it — targets its
+— including a checkbox click on a note inside it — targets its
 [selected note range](./selection.md#note-ranges). Other surfaces — the [note
 menu](./menu.md), [desktop editing toolbar](./desktop-toolbar.md), and [mobile action toolbar](./mobile-toolbar.md) — supply
 their own targets, as their contracts define.

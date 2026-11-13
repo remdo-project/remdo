@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
-import type { ChildPreview as SearchChildPreview, EditorNoteSnapshot, NoteListType, SearchResult } from '#note-sdk';
+import type { ChildPreview as SearchChildPreview, EditorNoteSnapshot, SearchResult } from '#note-sdk';
+import { noteMarkerAttributes } from '#client/editor/view/workspace';
 import { bodySnippet } from '#client/search/body-snippet';
 import { queryMatchRanges } from '#client/search/query-match';
 import { UNTITLED_LABEL, formatNavigationLabel, normalizeNavigationLabel } from '#client/ui/navigation-label';
@@ -209,33 +210,27 @@ function BodySnippet({ body, query }: { body: string | null; query: string }) {
   );
 }
 
-// Mirrors the editor: check-type lists get the checkbox marker classes; the
-// checked prop itself drives data-note-checked (line-through) for any list type.
-function childItemClassName(listType: NoteListType, checked: boolean): string {
-  if (listType !== 'check') {
-    return 'list-item';
-  }
-  return `list-item ${checked ? 'list-item-checked' : 'list-item-unchecked'}`;
-}
-
+// Mirrors the editor: each child carries the marker attributes the outline stylesheet draws from.
 function ChildPreview({ preview }: { preview: SearchChildPreview }) {
-  const { notes, listType, totalCount } = preview;
+  const { notes, markers, totalCount } = preview;
   const remaining = totalCount - notes.length;
-  const ListTag = listType === 'number' ? 'ol' : 'ul';
-  const listClassName = listType === 'number' ? 'list-ol' : 'list-ul';
   return (
     <div className="document-search-result-children remdo-outline">
-      <ListTag className={listClassName}>
-        {notes.map((child) => (
-          <li
-            className={childItemClassName(listType, child.checked)}
-            data-note-checked={child.checked ? 'true' : undefined}
-            key={child.id}
-          >
-            {child.text.length > 0 ? formatNavigationLabel(child.text) : '(empty note)'}
-          </li>
-        ))}
-      </ListTag>
+      <ul className="list-ul">
+        {notes.map((child, index) => {
+          const marker = markers[index]!;
+          return (
+            <li
+              key={child.id}
+              className="list-item"
+              {...noteMarkerAttributes(marker)}
+              data-note-checked={child.checked ? 'true' : undefined}
+            >
+              <span>{child.text.length > 0 ? formatNavigationLabel(child.text) : '(empty note)'}</span>
+            </li>
+          );
+        })}
+      </ul>
       {remaining > 0 ? (
         <div className="document-search-result-children-more">+{remaining} more</div>
       ) : null}

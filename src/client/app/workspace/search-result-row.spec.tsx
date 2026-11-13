@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { EditorNoteSnapshot, NoteListType } from '#note-sdk';
+import type { EditorNoteSnapshot, NoteMarkerView } from '#note-sdk';
 import { SearchResultRow } from '#client/app/workspace/SearchResultRow';
 
 function note(id: string, text: string, checked = false, body: string | null = null): EditorNoteSnapshot {
@@ -22,12 +22,14 @@ const childPreview = [
   note('c2', 'sub two', true),
 ];
 
+const bullet: NoteMarkerView = { kind: 'bullet', number: null, headingLevel: null, checkbox: false };
+
 function renderRow({
   path = ancestorPath,
   checked = false,
   children = childPreview,
   childCount = 3,
-  listType = 'bullet',
+  markers = [bullet, { ...bullet, checkbox: true }],
   query = 'refine',
   text = 'TODO refine estimates',
   body = null,
@@ -36,7 +38,7 @@ function renderRow({
   checked?: boolean;
   children?: typeof childPreview;
   childCount?: number;
-  listType?: NoteListType;
+  markers?: readonly NoteMarkerView[];
   query?: string;
   text?: string;
   body?: string | null;
@@ -47,7 +49,7 @@ function renderRow({
       result={{
         note: note('match', text, checked, body),
         path,
-        childPreview: { notes: children, totalCount: childCount, listType },
+        childPreview: { notes: children, totalCount: childCount, markers },
       }}
       onSelectAncestor={onSelectAncestor}
       query={query}
@@ -97,19 +99,22 @@ describe('search result row', () => {
     separators.forEach((separator) => expect(separator).toHaveTextContent('/'));
   });
 
-  it.each(['bullet', 'number', 'check'] as const)('uses editor markup for a %s child list', (listType) => {
-    const { container } = renderRow({ listType });
-    const list = container.querySelector('.document-search-result-children.remdo-outline > ul, .document-search-result-children.remdo-outline > ol');
-    expect(list?.tagName).toBe(listType === 'number' ? 'OL' : 'UL');
-    expect(list).toHaveClass(listType === 'number' ? 'list-ol' : 'list-ul');
-    const children = list!.querySelectorAll('li');
+  it('marks each child with its own marker for the outline stylesheet', () => {
+    const { container } = renderRow({
+      markers: [
+        { kind: 'number', number: 3, headingLevel: null, checkbox: false },
+        { kind: 'heading', number: null, headingLevel: 2, checkbox: true },
+      ],
+    });
+    const children = container.querySelectorAll('.document-search-result-children.remdo-outline > ul > li');
     expect(children).toHaveLength(2);
     expect(children[0]).toHaveTextContent('sub one');
+    expect(children[0]).toHaveAttribute('data-marker', 'number');
+    expect(children[0]).toHaveAttribute('data-number', '3');
+    expect(children[0]).not.toHaveAttribute('data-checkbox');
+    expect(children[1]).toHaveAttribute('data-heading-level', '2');
+    expect(children[1]).toHaveAttribute('data-checkbox', 'true');
     expect(children[1]).toHaveAttribute('data-note-checked', 'true');
-    if (listType === 'check') {
-      expect(children[0]).toHaveClass('list-item-unchecked');
-      expect(children[1]).toHaveClass('list-item-checked');
-    }
   });
 
   it('highlights every matching label token in document order', () => {
@@ -160,7 +165,7 @@ describe('search result row', () => {
           result={{
             note: note('match', 'TODO refine estimates'),
             path: ancestorPath,
-            childPreview: { notes: [], totalCount: 0, listType: 'bullet' },
+            childPreview: { notes: [], totalCount: 0, markers: [] },
           }}
           onSelectAncestor={onSelectAncestor}
           query="refine"

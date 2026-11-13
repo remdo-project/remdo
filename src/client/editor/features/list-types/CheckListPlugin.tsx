@@ -5,6 +5,7 @@ import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelec
 import { useEffect } from 'react';
 
 import { $setNoteCheckedRecursively, $toggleNoteCheckedForTargets } from './checked-operations';
+import { $isInCheckList } from './note-marker';
 import type { NoteCheckedDisplay } from '#client/editor/features/list-types/checked-subtree';
 import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
 import { NoteCheckedDisplayCache } from '#client/editor/features/list-types/checked-subtree';
@@ -20,10 +21,7 @@ import { getParentContentItem, getWrapperForContent } from '#client/editor/outli
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { $resolveViewRoot } from '#client/editor/outline/view-root';
 
-// A body-wrapper renders as `.note-body-wrapper`, never a checklist `<li>`, so it
-// is naturally excluded here — no body-specific guard needed.
-const isChecklistItem = (element: HTMLElement): boolean =>
-  element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');
+const isChecklistItem = (element: HTMLElement): boolean => element.dataset.checkbox === 'true';
 
 // The mutation listener observes whatever tree a batch leaves behind, including
 // the transiently malformed shapes that normalization is still repairing (an
@@ -213,7 +211,14 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
         ? $resolveRootTargets(selectedItems)
         : [clicked];
 
-      listItem.focus();
+      // Lexical's checklist keys act only on a check list's focused item; elsewhere focus moves to
+      // the editor, keeping its caret, so typing never lands in a field focused before the click.
+      const root = editor.getRootElement();
+      if ($isInCheckList(clicked)) {
+        listItem.focus();
+      } else if (root && !root.contains(document.activeElement)) {
+        root.focus({ preventScroll: true });
+      }
       $toggleNoteCheckedForTargets(targets);
     });
   };

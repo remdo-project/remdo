@@ -166,7 +166,8 @@
 }
 
 .remdo-outline li.list-item {
-  --list-line-height: 1.75rem;
+  --row-line-height: 1.75rem;
+  --list-line-height: var(--row-line-height);
   --indicator-color: var(--mantine-color-dark-2);
   --checkbox-color: var(--mantine-color-dark-2);
   --bullet-left: 0rem;
@@ -229,8 +230,7 @@
   pointer-events: none;
 }
 
-.remdo-outline li.list-item.list-item-checked::after,
-.remdo-outline li.list-item.list-item-unchecked::after {
+.remdo-outline li.list-item[data-checkbox]::after {
   content: '';
   position: absolute;
   left: var(--checkbox-left);
@@ -257,16 +257,32 @@
   outline: none;
 }
 
-.remdo-outline ol.list-ol {
-  counter-reset: remdo-ordered;
+/* A heading's text and row grow by its scale, but not its padding, so its bullet and text keep
+   every note's column. */
+.remdo-outline li.list-item[data-heading-level] {
+  --list-line-height: calc(var(--heading-scale, 1) * var(--row-line-height));
+  font-weight: 600;
+  line-height: var(--list-line-height);
 }
 
-.remdo-outline ol.list-ol > li.list-item:not(.list-nested-item) {
-  counter-increment: remdo-ordered;
+.remdo-outline li.list-item[data-heading-level='1'] {
+  --heading-scale: 1.5;
 }
 
-.remdo-outline ol.list-ol > li.list-item:not(.list-nested-item)::before {
-  content: counter(remdo-ordered) '.';
+.remdo-outline li.list-item[data-heading-level='2'] {
+  --heading-scale: 1.3;
+}
+
+.remdo-outline li.list-item[data-heading-level='3'] {
+  --heading-scale: 1.15;
+}
+
+.remdo-outline li.list-item[data-heading-level] > * {
+  font-size: calc(var(--heading-scale, 1) * 1em);
+}
+
+.remdo-outline li.list-item[data-number]::before {
+  content: attr(data-number) '.';
   background-color: transparent;
   mask-image: none;
   -webkit-mask-image: none;
@@ -282,8 +298,7 @@
   top: var(--remdo-row-padding);
 }
 
-.remdo-outline li.list-item.list-item-checked,
-.remdo-outline li.list-item.list-item-unchecked {
+.remdo-outline li.list-item[data-checkbox] {
   --checkbox-left: calc(var(--bullet-left) + var(--bullet-width) + var(--checkbox-gap));
   --checkbox-mask-image: url('/icons/checkbox-unchecked.svg');
   --checkbox-mask-size: var(--checkbox-width) var(--checkbox-width);

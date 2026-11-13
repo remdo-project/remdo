@@ -453,6 +453,26 @@ Remaining:
 
 ### Outliner
 
+- **Per-note markers and checkboxes.** [List types](specs/outliner/list-types.md)
+  gives each note its own marker and checkbox. The editor stores and shows
+  them, but its gestures still change a list's type on the list, unchecking
+  removes a box outside a check list instead of leaving it open, and notes
+  don't take their marker and checkbox by
+  [placement](specs/outliner/list-types.md#placement). The editor schema step
+  of the [text format plan](text-format-plan.md) closes this with gestures,
+  including Insertion's appended notes and the menu's checkbox action. They
+  must not produce a note under a body line, a heading under a list item, or a
+  note right after a heading at that heading's level. Body lines and
+  notes kept as Markdown source are stored but shown as plain notes until the
+  editor opens a workspace's Document.
+
+- **Body text that reads as structure.** A body is written as stored, so body
+  text that would read as structure where it sits becomes structure on the next
+  read: a line `- x`, a `---` under a paragraph, or an indented first line
+  after a list item. Python's reader never produces such a body; the editor
+  and tools can. Decide before the editor opens a workspace's Document whether
+  the editor escapes such text or accepts it as Markdown it typed.
+
 - **Early editor operations.** After the [text format migration](text-format-plan.md),
   revisit the editor's structural operations against
   [note operations](specs/outliner/note-operations.md) and adjust those that
