@@ -6,6 +6,9 @@ import { NOTES_QUERY_KEY } from '#client/app/user-data/stored-user-data';
 import type { WorkspaceEntry } from './use-workspaces';
 import { WorkspaceDocumentView } from './WorkspaceDocumentView';
 
+// The outline joins a live room, which these tests of the Markdown view don't run.
+vi.mock('#client/editor/shell/WorkspaceOutline', () => ({ default: () => null }));
+
 const README = 'w1/README.md';
 
 afterEach(() => { vi.unstubAllGlobals(); });
@@ -76,6 +79,7 @@ async function open() {
       </TestMantineProvider>
     </QueryClientProvider>,
   );
+  fireEvent.click(await screen.findByText('Markdown', { exact: true }));
   return screen.findByRole<HTMLTextAreaElement>('textbox', { name: 'Trip Markdown' });
 }
 

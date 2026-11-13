@@ -26,3 +26,16 @@
   .note-body {
   text-decoration: line-through;
 }
+
+/* A workspace document's body is a block line holding its Markdown source: no marker, styled
+   like a body. */
+.remdo-outline li.list-item[data-marker='block'] {
+  color: var(--mantine-color-dimmed, #868e96);
+  font-size: 0.9em;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.remdo-outline li.list-item[data-marker='block']::before {
+  content: none;
+}

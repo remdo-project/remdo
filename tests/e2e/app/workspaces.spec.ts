@@ -1,5 +1,10 @@
+import type { Page } from '@playwright/test';
+import { config } from '#config';
 import { expect, test } from '#e2e/fixtures';
 import type { components } from '#platform/http/api-schema';
+import { resolveApiServerOrigin } from '#platform/net/origins';
+
+const showMarkdown = (page: Page) => page.getByText('Markdown', { exact: true }).click();
 
 test('a workspace opens from Home as its document, saves, renames and deletes', async ({ page }) => {
   await page.goto('/');
@@ -9,6 +14,7 @@ test('a workspace opens from Home as its document, saves, renames and deletes', 
   await create.getByRole('button', { name: 'Create workspace' }).click();
 
   await expect(page.getByRole('heading', { name: 'Lisbon trip', level: 1 })).toBeVisible();
+  await showMarkdown(page);
   const text = page.getByRole('textbox', { name: 'Lisbon trip Markdown' });
   await expect(text).toHaveValue('');
   await text.fill('- Flights\n');
@@ -19,6 +25,7 @@ test('a workspace opens from Home as its document, saves, renames and deletes', 
   await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('button', { name: 'Home' }).click();
   const currentServer = page.getByRole('group', { name: 'Current Server', exact: true });
   await currentServer.getByRole('button', { name: 'Lisbon trip', exact: true }).click();
+  await showMarkdown(page);
   await expect(text).toHaveValue('- Flights\n');
 
   await page.getByRole('button', { name: 'Actions for Lisbon trip' }).click();
@@ -55,6 +62,7 @@ test('Home and an open workspace follow changes made elsewhere', async ({ page }
 
   const created = await call([{ op: 'insert', parent: 'me', kind: 'workspace', text: 'From an agent', content: '- a\n' }]);
   await currentServer.getByRole('button', { name: 'From an agent', exact: true }).click();
+  await showMarkdown(page);
   const text = page.getByRole('textbox', { name: 'From an agent Markdown' });
   await expect(text).toHaveValue('- a\n');
 
@@ -62,4 +70,43 @@ test('Home and an open workspace follow changes made elsewhere', async ({ page }
   const version = created.changes.find((change) => change.ref === readme)!.version ?? null;
   await call([{ op: 'setContent', target: readme, content: '- a\n- b\n' }], { [readme]: version });
   await expect(text).toHaveValue('- a\n- b\n');
+});
+
+test('a workspace document opens as a read-only outline of its Markdown', async ({ page }) => {
+  const response = await page.request.post('/api/notes', {
+    data: {
+      operations: [{
+        op: 'insert', parent: 'me', kind: 'workspace', text: 'Outline',
+        content: '# Trip\n\nFour days.\n\n1. Alfama\n2. Belém\n- [x] Book flights\n',
+      }],
+      expected: {},
+      dryRun: false,
+    },
+  });
+  await expect(response).toBeOK();
+  await page.goto('/');
+  await page.getByRole('group', { name: 'Current Server', exact: true }).getByRole('button', { name: 'Outline', exact: true }).click();
+
+  const outline = page.getByRole('textbox', { name: 'Outline' });
+  await expect(outline).toHaveAttribute('contenteditable', 'false');
+  const note = (text: string) => outline.locator('li.list-item:not(.list-nested-item)').filter({ hasText: text }).first();
+  await expect(note('Trip')).toHaveAttribute('data-heading-level', '1');
+  await expect(note('Four days.')).toHaveAttribute('data-marker', 'block');
+  await expect(note('Alfama')).toHaveAttribute('data-number', '1');
+  await expect(note('Belém')).toHaveAttribute('data-number', '2');
+  await expect(note('Book flights')).toHaveAttribute('data-checkbox', 'true');
+  await expect(note('Book flights')).toHaveAttribute('data-note-checked', 'true');
+
+  // The outline only reads: the room's saved state stays as the hub seeded it.
+  const workspace = String(((await response.json()) as components['schemas']['CallResult']).results[0]!.ref);
+  const roomState = async () => {
+    const state = await page.request.get(`${resolveApiServerOrigin()}/internal/collaboration/workspaces/${workspace}/content`, {
+      headers: { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET },
+    });
+    return ((await state.json()) as { state: string | null }).state;
+  };
+  const seeded = await roomState();
+  expect(seeded).not.toBeNull();
+  await page.waitForTimeout(6000);
+  expect(await roomState()).toBe(seeded);
 });

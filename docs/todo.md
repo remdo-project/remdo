@@ -462,9 +462,13 @@ Remaining:
   of the [text format plan](text-format-plan.md) closes this with gestures,
   including Insertion's appended notes and the menu's checkbox action. They
   must not produce a note under a body line, a heading under a list item, or a
-  note right after a heading at that heading's level. Body lines and
-  notes kept as Markdown source are stored but shown as plain notes until the
-  editor opens a workspace's Document.
+  note right after a heading at that heading's level.
+
+- **Read-only workspace outline.** A workspace's Document opens as a read-only
+  outline beside its Markdown text box. The outline shows a file change made
+  while it's open only once a client saves or the room reloads, since a reader
+  never saves; editing the outline and agent edits through the room's tree
+  close this.
 
 - **Cache IDs through recovery.** [Workspace document state](architecture.md#workspace-document-state)
   recovers from a changed file by applying its tree, which holds no cache IDs,
