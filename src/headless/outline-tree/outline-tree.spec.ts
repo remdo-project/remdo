@@ -180,6 +180,26 @@ describe('the outline tree', () => {
     expect(created!.cacheId).not.toBe(a);
   });
 
+  it('keeps a written ID with its note when a file tree moves and edits that note', () => {
+    const doc = opened({ id: null, children: [note('p1', { children: [note('a', { id: 'k3x9' })] }), note('p2')] });
+
+    applyTree(doc, fromFile({ id: null, children: [note('p1'), note('p2', { children: [note('a edited', { id: 'k3x9' })] })] }));
+
+    const [, p2] = readTree(doc).children as OutlineNote[];
+    expect(p2!.children[0]).toMatchObject({ cacheId: 'k3x9', id: 'k3x9', runs: [text('a edited')] });
+  });
+
+  it('gives an ID two file notes write to the first, dropping the other\'s', () => {
+    const doc = opened({ id: null, children: [] });
+
+    applyTree(doc, fromFile({ id: null, children: [note('first', { id: 'k3x9' }), note('second', { id: 'k3x9' })] }));
+
+    const [first, second] = readTree(doc).children as OutlineNote[];
+    expect(first).toMatchObject({ cacheId: 'k3x9', id: 'k3x9' });
+    expect(second!.id).toBeNull();
+    expect(second!.cacheId).not.toBe('k3x9');
+  });
+
   it('returns the state it read from when saving', () => {
     const doc = opened({ id: null, children: [note('a')] });
     const { tree, state } = saveTree(doc);
@@ -235,6 +255,19 @@ describe('applying to an editor', () => {
     expect(editor.getEditorState().read($readTree)).toEqual({ id: null, children: [first] });
   });
 
+  it('keeps a shared cache ID on the first note holding it and renews the others', () => {
+    const editor = editorWith({ id: null, children: [note('first'), note('second')] });
+    const tree = editor.getEditorState().read($readTree);
+    const [first, second] = tree.children as OutlineNote[];
+    editor.update(() => $setState($item(second!.cacheId!), noteIdState, first!.cacheId!), { discrete: true });
+
+    editor.update(() => $applyTree({ id: null, children: [note('first'), note('second')] }), { discrete: true });
+
+    const ids = (editor.getEditorState().read($readTree).children as OutlineNote[]).map((child) => child.cacheId);
+    expect(ids[0]).toBe(first!.cacheId);
+    expect(ids[1]).not.toBe(first!.cacheId);
+  });
+
   it('gives a note created twice from one cache ID a fresh one the second time', () => {
     const editor = editorWith({ id: null, children: [note('a', { cacheId: 'same' }), note('b', { cacheId: 'same' })] });
     const [a, b] = editor.getEditorState().read($readTree).children as OutlineNote[];
@@ -254,6 +287,19 @@ describe('applying to an editor', () => {
     expect(withoutCacheIds(editor.getEditorState().read($readTree))).toEqual(withoutCacheIds({
       id: null, children: [{ kind: 'body', source: ['text'], cacheId: null }, note('under')],
     }));
+  });
+
+  it('gives a written ID to the note writing it, renewing the note that held it only as its cache ID', () => {
+    const editor = editorWith({ id: null, children: [note('cached', { cacheId: 'abc' })] });
+    editor.update(() => $setNoteFolded($item('abc'), true), { discrete: true });
+    const fromFile = { id: null, children: [note('cached'), note('claims', { id: 'abc' })] };
+
+    editor.update(() => $applyTree(fromFile), { discrete: true });
+
+    const [cached, claims] = editor.getEditorState().read($readTree).children as OutlineNote[];
+    expect(claims).toMatchObject({ cacheId: 'abc', id: 'abc' });
+    expect(cached!.cacheId).not.toBe('abc');
+    expect(editor.getEditorState().read(() => [$isNoteFolded($item(cached!.cacheId!)), $isNoteFolded($item('abc'))])).toEqual([true, false]);
   });
 
   it('keeps the fold state of a note it moves and changes', () => {

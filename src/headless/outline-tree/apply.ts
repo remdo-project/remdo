@@ -3,7 +3,7 @@ import { $createLinkNode, $isLinkNode } from '@lexical/link';
 import type { LinkNode } from '@lexical/link';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListNode } from '@lexical/list';
-import type { LexicalNode, TextNode } from 'lexical';
+import type { LexicalNode, NodeKey, TextNode } from 'lexical';
 import { $createLineBreakNode, $createTextNode, $getRoot, $getState, $isLineBreakNode, $isTextNode, $setState, TEXT_TYPE_TO_FORMAT } from 'lexical';
 import { $createDateNode, $isDateNode } from '#client/editor/features/date/date-node';
 import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
@@ -16,7 +16,7 @@ import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '#client/edit
 import { $requireRootContentList } from '#client/editor/outline/schema';
 import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
-import { $getDocumentTextId, $setDocumentTextId, $setHasTextId } from '#client/editor/runtime/note-ids/text-id-state';
+import { $getDocumentTextId, $hasTextId, $setDocumentTextId, $setHasTextId } from '#client/editor/runtime/note-ids/text-id-state';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { $readNote, FORMAT_MARKS, isNumbered } from './read';
 import { isPlainText, isSpace, joinName } from './runs';
@@ -37,34 +37,70 @@ export function $applyTree(document: Document): void {
   forEachContentItemInOutline(list, (item) => {
     items.push(item);
     const cacheId = $getNoteId(item);
-    if (cacheId !== null && !live.has(cacheId)) live.set(cacheId, item);
+    // Of notes sharing a cache ID, the first in document order keeps it.
+    if (cacheId !== null && live.has(cacheId)) $renewCacheId(item, live);
+    else if (cacheId !== null) live.set(cacheId, item);
   });
-  const kept = new Set<ListItemNode>();
+  // Node keys, since a node written during the update is a different object afterwards.
+  const kept = new Set<NodeKey>();
   const wanted = new Set<string>();
+  const written = new Set<string>();
   const collect = (notes: readonly TreeNote[]) => notes.forEach((note) => {
     if (note.cacheId !== null) wanted.add(note.cacheId);
-    if (note.kind === 'outline') collect(note.children);
+    if (note.kind !== 'outline') return;
+    if (note.id !== null && note.id !== note.cacheId) {
+      const holder = live.get(note.id);
+      // A written ID claims its value from a note holding it only as its cache ID.
+      if (holder && !$hasTextId(holder)) $renewCacheId(holder, live);
+      else if (holder) written.add(note.id);
+    }
+    collect(note.children);
   });
   collect(document.children);
-  $applyChildren(list, document.children, { live, kept, wanted });
+  for (const id of written) wanted.add(id);
+  $applyChildren(list, document.children, { live, kept, wanted, written });
   for (const item of items) {
-    if (!kept.has(item) && item.isAttached()) removeNoteSubtree(item);
+    if (!kept.has(item.getKey()) && item.isAttached()) removeNoteSubtree(item);
   }
 }
 
 interface Matching {
   live: Map<string, ListItemNode>;
-  kept: Set<ListItemNode>;
+  kept: Set<NodeKey>;
   /** Cache IDs the tree names, whose holders content matching leaves for them. */
   wanted: Set<string>;
+  /** Tree IDs a note already holds as its written ID, which match that note like a cache ID. */
+  written: Set<string>;
+}
+
+function $renewCacheId(item: ListItemNode, live: Map<string, ListItemNode>) {
+  const previous = $getNoteId(item);
+  if (previous !== null && live.get(previous)?.is(item)) live.delete(previous);
+  const cacheId = createUniqueNoteId();
+  $setState(item, noteIdState, cacheId);
+  live.set(cacheId, item);
+}
+
+/** Give a note the ID its tree note writes, unless another note took it first. */
+function $claimWrittenId(item: ListItemNode, id: string | null, live: Map<string, ListItemNode>) {
+  const holder = id === null ? undefined : live.get(id);
+  const claims = id !== null && (holder === undefined || holder.is(item));
+  if (claims && $getNoteId(item) !== id) {
+    live.delete($getNoteId(item)!);
+    $setState(item, noteIdState, id);
+    live.set(id, item);
+  }
+  if ($hasTextId(item) !== claims) $setHasTextId(item, claims);
 }
 
 function $applyChildren(list: ListNode, notes: readonly TreeNote[], matching: Matching) {
-  const { live, kept } = matching;
+  const { live, kept, written } = matching;
   const targets = notes.map((note) => {
-    const item = note.cacheId === null ? undefined : live.get(note.cacheId);
-    if (!item || kept.has(item)) return null;
-    kept.add(item);
+    const byId = note.kind === 'outline' && note.id !== null && written.has(note.id) ? note.id : null;
+    const key = note.cacheId ?? byId;
+    const item = key === null ? undefined : live.get(key);
+    if (!item || kept.has(item.getKey())) return null;
+    kept.add(item.getKey());
     return item;
   });
   $matchByContent(list, notes, targets, matching);
@@ -80,14 +116,15 @@ function $applyChildren(list: ListNode, notes: readonly TreeNote[], matching: Ma
       $setState(item, noteIdState, cacheId);
       live.set(cacheId, item);
       $setState(item, markerState, markerOf(note));
-      kept.add(item);
+      kept.add(item.getKey());
       $place(list, previous, [item]);
-    } else if (!stay.has(item)) {
+    } else if (!stay.has(item.getKey())) {
       const from = item.getParent();
       $place(list, previous, getNodesForNote(item));
       if ($isListNode(from)) maybeRemoveEmptyWrapper(from);
     }
     $updateNote(item, note, list.getListType(), isNumbered(notes[index - 1]));
+    if (note.kind === 'outline') $claimWrittenId(item, note.id, live);
     if (note.kind === 'outline' && note.children.length > 0) {
       $applyChildren($getOrCreateChildList(item), note.children, matching);
     }
@@ -105,11 +142,11 @@ const contentKey = (note: TreeNote) =>
  */
 function $matchByContent(list: ListNode, notes: readonly TreeNote[], targets: (ListItemNode | null)[], { kept, wanted }: Matching) {
   const current = getContentSiblings(list);
-  const position = new Map(current.map((item, index) => [item, index]));
+  const position = new Map(current.map((item, index) => [item.getKey(), index]));
   const unclaimed = new Map<string, ListItemNode[]>();
   for (const item of current) {
     const cacheId = $getNoteId(item);
-    if (kept.has(item) || (cacheId !== null && wanted.has(cacheId))) continue;
+    if (kept.has(item.getKey()) || (cacheId !== null && wanted.has(cacheId))) continue;
     const key = contentKey($readNote(item, list.getListType(), { children: false }));
     unclaimed.set(key, [...unclaimed.get(key) ?? [], item]);
   }
@@ -117,17 +154,17 @@ function $matchByContent(list: ListNode, notes: readonly TreeNote[], targets: (L
   notes.forEach((note, index) => {
     const target = targets[index];
     if (target) {
-      after = Math.max(after, position.get(target) ?? after);
+      after = Math.max(after, position.get(target.getKey()) ?? after);
       return;
     }
     if (note.cacheId !== null) return;
     const candidates = unclaimed.get(contentKey(note));
     if (!candidates?.length) return;
-    const next = candidates.findIndex((item) => position.get(item)! > after);
+    const next = candidates.findIndex((item) => position.get(item.getKey())! > after);
     const [match] = candidates.splice(next === -1 ? 0 : next, 1);
     targets[index] = match!;
-    kept.add(match!);
-    after = position.get(match!)!;
+    kept.add(match!.getKey());
+    after = position.get(match!.getKey())!;
   });
 }
 
@@ -135,25 +172,25 @@ function $matchByContent(list: ListNode, notes: readonly TreeNote[], targets: (L
  * The targets already in order among a list's items, which needn't move: the longest increasing run
  * of their current positions, since each item is targeted at most once.
  */
-function inPlace(current: readonly ListItemNode[], targets: readonly (ListItemNode | null)[]): Set<ListItemNode> {
-  const position = new Map(current.map((item, index) => [item, index]));
-  const present = targets.filter((item): item is ListItemNode => item !== null && position.has(item));
+function inPlace(current: readonly ListItemNode[], targets: readonly (ListItemNode | null)[]): Set<NodeKey> {
+  const position = new Map(current.map((item, index) => [item.getKey(), index]));
+  const present = targets.filter((item): item is ListItemNode => item !== null && position.has(item.getKey()));
   const tails: number[] = [];
   const previous: number[] = [];
   present.forEach((item, index) => {
-    const at = position.get(item)!;
+    const at = position.get(item.getKey())!;
     let low = 0;
     let high = tails.length;
     while (low < high) {
       const middle = (low + high) >> 1;
-      if (position.get(present[tails[middle]!]!)! < at) low = middle + 1;
+      if (position.get(present[tails[middle]!]!.getKey())! < at) low = middle + 1;
       else high = middle;
     }
     previous[index] = low > 0 ? tails[low - 1]! : -1;
     tails[low] = index;
   });
-  const stay = new Set<ListItemNode>();
-  for (let index = tails.at(-1) ?? -1; index !== -1; index = previous[index]!) stay.add(present[index]!);
+  const stay = new Set<NodeKey>();
+  for (let index = tails.at(-1) ?? -1; index !== -1; index = previous[index]!) stay.add(present[index]!.getKey());
   return stay;
 }
 
@@ -177,10 +214,6 @@ function $updateNote(item: ListItemNode, note: TreeNote, listType: string, after
   if (($getNoteChecked(item) === true) !== checked) $setNoteCheckedRaw(item, checked);
   const verbatim = note.kind === 'outline' && note.runs[0]?.kind === 'verbatim';
   if (($getState(item, verbatimState) === true) !== verbatim) $setState(item, verbatimState, verbatim ? true : undefined);
-  if (note.kind === 'outline') {
-    if (note.id !== null && $getNoteId(item) !== note.id) $setState(item, noteIdState, note.id);
-    if ((current.kind === 'outline' && current.id !== null) !== (note.id !== null)) $setHasTextId(item, note.id !== null);
-  }
   $spliceContent(item, atomsOf(note), note.kind === 'outline');
 }
 
