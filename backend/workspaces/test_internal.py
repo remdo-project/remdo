@@ -41,8 +41,13 @@ class WorkspaceRoomTests(TestCase):
         self.assertEqual(response.status_code, 200)
         return response.json()
 
-    def save(self, tree, version, state=b"state"):
-        body = {"state": base64.b64encode(state).decode(), "tree": tree, "version": version}
+    def save(self, tree, version, state=b"state", load=False):
+        body = {
+            "state": base64.b64encode(state).decode(),
+            "tree": tree,
+            "version": version,
+            "load": load,
+        }
         return self.client.put(
             self.content,
             json.dumps(body),
@@ -110,7 +115,16 @@ class WorkspaceRoomTests(TestCase):
         revision = Revision.objects.get(workspace=self.workspace)
         self.assertFalse(revision.sealed)
         self.assertEqual(store.files_at(revision), {"README.md": b"- one\n- two\n"})
-        notify.assert_called_once_with([self.owner.pk])
+        self.assertEqual(notify.call_count, 2)
+
+    def test_a_loading_rooms_save_writes_no_file_even_when_its_tree_reads_differently(self):
+        changed = store.commit(self.workspace, self.owner, "agent", {"README.md": (None, b"- a\n")})
+
+        response = self.save(tree_of("- a, normalized\n"), changed.changes.get().blob_id, load=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.readme().content, b"- a\n")
+        self.assertEqual(Workspace.objects.get(pk=self.workspace.pk).head, changed)
 
     def test_a_save_that_changes_no_text_updates_only_the_state(self):
         version = self.save(tree_of("- one\n"), None).json()["version"]

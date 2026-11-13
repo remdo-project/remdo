@@ -105,11 +105,11 @@ def _save(request, workspace):
         return _refuse("MALFORMED")
     if len(content) > FILE_MAX_BYTES:
         return _refuse("TOO_LARGE")
-    return _write(workspace, base, state, content)
+    return _write(workspace, base, state, content, loading=data.get("load") is True)
 
 
 @transaction.atomic
-def _write(workspace, base, state, content):
+def _write(workspace, base, state, content, loading):
     reading = tree_of(content)
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
     version = store.version(locked, README)
@@ -118,15 +118,14 @@ def _write(workspace, base, state, content):
     # landed even if its reply was lost.
     if version != base and not (row and row.version == version):
         return JsonResponse({"version": version, "tree": _reading(version)}, status=409)
-    # The file's own spelling stays until a save changes what it reads as.
-    if reading != _reading(version):
-        head = locked.head_id
-        revision = store.commit(
+    # The file's own spelling stays until a save changes what it reads as, and opening a room
+    # writes no file even when applying the file doesn't read back the same.
+    if not loading and reading != _reading(version):
+        store.commit(
             locked, locked.owner, SAVE_MESSAGE, {README: (version, content)}, continuing=True
         )
-        # Other views of the workspace reread on a new revision, not on every save joining one.
-        if revision.pk != head:
-            notify_document_list_changed([locked.owner_id])
+        notify_document_list_changed([locked.owner_id])
+        _readings.pop(version, None)
         version = store.blob_hash(content)
         _remember(version, reading)
     DocumentState.objects.update_or_create(

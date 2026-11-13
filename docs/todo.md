@@ -475,6 +475,11 @@ Remaining:
   [refused](architecture.md#workspace-document-state) tells none of its
   clients, and a refused load leaves the client reconnecting, reported again
   each time. The editor shows both once it opens a workspace's Document.
+- **Changes an open head undoes.** A live document's saves that return a file
+  to what the open head's parent holds leave the head with a change that
+  changes nothing, which the [store](specs/workspaces/store.md#commits) would
+  otherwise refuse. Dropping it can leave an empty revision, which the store
+  can't delete on its own.
 - **Typing lost to a stale save.** When a workspace's file changes while its
   room is open, the room's next save applies the file, discarding what was
   typed since its last save. Stage 4 of the

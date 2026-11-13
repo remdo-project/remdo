@@ -280,6 +280,22 @@ describe('applying to an editor', () => {
     expect(ids[1]).not.toBe(first!.cacheId);
   });
 
+  it('keeps both notes that shared a cache ID, the ID going to the one writing it', () => {
+    const editor = editorWith({ id: null, children: [note('first'), note('second', { id: 'k3x9' })] });
+    const [first] = editor.getEditorState().read($readTree).children as OutlineNote[];
+    editor.update(() => {
+      $setNoteFolded($item('k3x9'), true);
+      $setState($item(first!.cacheId!), noteIdState, 'k3x9');
+    }, { discrete: true });
+
+    editor.update(() => $applyTree({ id: null, children: [note('first', { cacheId: 'k3x9' }), note('second', { cacheId: 'k3x9', id: 'k3x9' })] }), { discrete: true });
+
+    const [afterFirst, afterSecond] = editor.getEditorState().read($readTree).children as OutlineNote[];
+    expect(afterSecond).toMatchObject({ cacheId: 'k3x9', id: 'k3x9' });
+    expect(afterFirst!.cacheId).not.toBe('k3x9');
+    expect(editor.getEditorState().read(() => $isNoteFolded($item('k3x9')))).toBe(true);
+  });
+
   it('gives a note created twice from one cache ID a fresh one the second time', () => {
     const editor = editorWith({ id: null, children: [note('a', { cacheId: 'same' }), note('b', { cacheId: 'same' })] });
     const [a, b] = editor.getEditorState().read($readTree).children as OutlineNote[];

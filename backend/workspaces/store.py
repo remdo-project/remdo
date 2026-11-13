@@ -144,7 +144,7 @@ def read(workspace, path):
 
 
 def contents(hashes):
-    """The content of each blob hash. Blobs never change, so these can't be stale."""
+    """The content of each blob hash that is still kept; content no file or revision holds goes."""
     return {
         hash_: bytes(content)
         for hash_, content in Blob.objects.filter(hash__in=set(hashes)).values_list(
@@ -244,17 +244,20 @@ def _apply(workspace, author, message, prepared, folders, continuing):
     if added:
         _check_namespace(locked, added, deletes)
 
-    stored = set(Blob.objects.filter(hash__in=contents).values_list("hash", flat=True))
+    # Locked, so a continuing commit elsewhere can't drop content this commit reuses.
+    stored = set(
+        Blob.objects.select_for_update().filter(hash__in=contents).values_list("hash", flat=True)
+    )
     # Sorted, so commits sharing new blobs insert them in the same order and can't deadlock.
     Blob.objects.bulk_create(
         [Blob(hash=hash_, content=contents[hash_]) for hash_ in sorted(contents.keys() - stored)],
         ignore_conflicts=True,
     )
     now = timezone.now()
-    head = locked.head
     paths = sorted(writes.keys() | deletes)
     replaced = set()
-    if continuing and _takes_more(head, author, now):
+    head = locked.head if continuing else None
+    if _takes_more(head, author, now):
         revision = head
         replaced = set(
             head.changes.filter(path__in=paths).exclude(blob=None).values_list("blob_id", flat=True)
@@ -262,9 +265,7 @@ def _apply(workspace, author, message, prepared, folders, continuing):
         head.changed_at = now
         head.save(update_fields=["changed_at"])
     else:
-        if head is not None and not head.sealed:
-            head.sealed = True
-            head.save(update_fields=["sealed"])
+        Revision.objects.filter(pk=locked.head_id, sealed=False).update(sealed=True)
         revision = Revision.objects.create(
             workspace=locked,
             parent_id=locked.head_id,

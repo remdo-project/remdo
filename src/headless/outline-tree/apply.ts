@@ -58,25 +58,29 @@ interface Matching {
   owners: Map<string, TreeNote>;
 }
 
-/** Match tree notes by cache ID, then by a live note's written ID, all in document order. */
+/**
+ * Match tree notes to the live notes holding their written IDs, then to those holding their cache
+ * IDs, each in document order, so a written ID keeps its note and the first tree note giving it
+ * takes it.
+ */
 function $matchByIds(notes: readonly TreeNote[], live: Map<string, ListItemNode>): Matching {
   const matching: Matching = { live, kept: new Set(), targets: new Map(), owners: new Map() };
-  const visit = (siblings: readonly TreeNote[]) => siblings.forEach((note) => {
-    const id = note.kind === 'outline' ? note.id : null;
-    if (id !== null && !matching.owners.has(id)) matching.owners.set(id, note);
-    const holder = id === null ? undefined : live.get(id);
-    const candidates = [
-      note.cacheId === null ? undefined : live.get(note.cacheId),
-      holder && $hasTextId(holder) && matching.owners.get(id!) === note ? holder : undefined,
-    ];
-    const item = candidates.find((candidate) => candidate && !matching.kept.has(candidate.getKey()));
-    if (item) {
-      matching.kept.add(item.getKey());
-      matching.targets.set(note, item);
-    }
-    if (note.kind === 'outline') visit(note.children);
+  const claim = (note: TreeNote, item: ListItemNode | undefined) => {
+    if (!item || matching.kept.has(item.getKey()) || matching.targets.has(note)) return;
+    matching.kept.add(item.getKey());
+    matching.targets.set(note, item);
+  };
+  const visit = (siblings: readonly TreeNote[], match: (note: TreeNote) => void) => siblings.forEach((note) => {
+    match(note);
+    if (note.kind === 'outline') visit(note.children, match);
   });
-  visit(notes);
+  visit(notes, (note) => {
+    if (note.kind !== 'outline' || note.id === null || matching.owners.has(note.id)) return;
+    matching.owners.set(note.id, note);
+    const holder = live.get(note.id);
+    if (holder && $hasTextId(holder)) claim(note, holder);
+  });
+  visit(notes, (note) => claim(note, note.cacheId === null ? undefined : live.get(note.cacheId)));
   return matching;
 }
 
@@ -131,7 +135,18 @@ function $applyChildren(list: ListNode, notes: readonly TreeNote[], matching: Ma
 
 /** What a note says: its kind, name and text, not its marker, checkbox or ID. */
 const contentKey = (note: TreeNote) =>
-  JSON.stringify(note.kind === 'body' ? ['body', note.source] : ['outline', note.name, note.runs]);
+  JSON.stringify(note.kind === 'body' ? ['body', note.source] : ['outline', note.name, note.runs.map(runKey)]);
+
+// Fields in a fixed order, so trees built by Python and TypeScript compare alike.
+function runKey(run: Run): unknown[] {
+  switch (run.kind) {
+    case 'text': return ['text', run.text, [...run.marks].sort()];
+    case 'link': return ['link', run.href, run.runs.map(runKey)];
+    case 'date': return ['date', run.date];
+    case 'verbatim': return ['verbatim', run.text];
+    default: return [];
+  }
+}
 
 /**
  * Give notes without a cache ID, as a tree read from a file has, an unclaimed sibling with the same
@@ -145,7 +160,7 @@ function $matchByContent(
   matched: (ListItemNode | null)[],
   kept: Set<NodeKey>,
 ) {
-  if (!notes.some((note, index) => note.cacheId === null && !matched[index])) return;
+  if (matched.every(Boolean)) return;
   const unclaimed = new Map<string, ListItemNode[]>();
   for (const item of current) {
     if (kept.has(item.getKey())) continue;
@@ -161,14 +176,13 @@ function $matchByContent(
       after = Math.max(after, position.get(target.getKey()) ?? after);
       return;
     }
-    if (note.cacheId !== null) return;
     const candidates = unclaimed.get(contentKey(note));
     if (!candidates?.length) return;
     const next = candidates.findIndex((item) => position.get(item.getKey())! > after);
     const [match] = candidates.splice(next === -1 ? 0 : next, 1);
     matched[index] = match!;
     kept.add(match!.getKey());
-    after = position.get(match!.getKey())!;
+    after = Math.max(after, position.get(match!.getKey())!);
   });
 }
 
