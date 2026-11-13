@@ -89,3 +89,16 @@ it('keeps a checked note its checkbox semantics while its text is edited', meta(
     'true',
   ]);
 });
+
+it('copies checkbox semantics into HTML only from a check list', meta({ fixture: 'tree-list-types' }), async ({ remdo }) => {
+  await setRawNoteCheckedState(remdo, 'note6', true);
+
+  const exported = (text: string) =>
+    remdo.validate(() => {
+      const { element } = $getNoteByText(text).exportDOM(remdo.editor);
+      return element instanceof HTMLElement ? [element.getAttribute('role'), element.getAttribute('aria-checked')] : null;
+    });
+
+  expect(exported('note6')).toEqual([null, null]);
+  expect(exported('note4')).toEqual(['checkbox', 'false']);
+});

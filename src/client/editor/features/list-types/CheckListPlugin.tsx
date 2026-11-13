@@ -210,7 +210,11 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
         ? $resolveRootTargets(selectedItems)
         : [clicked];
 
-      listItem.focus();
+      // Lexical's checklist keys act only on a check list's focused item; elsewhere the caret stays.
+      const list = clicked.getParent();
+      if ($isListNode(list) && list.getListType() === 'check') {
+        listItem.focus();
+      }
       $toggleNoteCheckedForTargets(targets);
     });
   };

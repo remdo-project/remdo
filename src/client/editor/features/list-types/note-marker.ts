@@ -38,6 +38,18 @@ export function ensureNoteMarkerStateConfig(): void {
 // in check lists, so a note's own marker attributes are written in that same step. Its number
 // depends on its siblings and is written by NoteMarkerPlugin.
 function patchListItemMarkerDOM(): void {
+  // Copied HTML keeps checkbox semantics only in check lists: importers read any list holding a
+  // checkbox item as a check list.
+  const originalExportDOM = ListItemNode.prototype.exportDOM;
+  ListItemNode.prototype.exportDOM = function $exportDOM(this: ListItemNode, ...args: Parameters<ListItemNode['exportDOM']>) {
+    const output = originalExportDOM.apply(this, args);
+    const list = this.getParent();
+    if (output.element instanceof HTMLElement && !($isListNode(list) && list.getListType() === 'check')) {
+      setAttributes(output.element, { role: undefined, tabIndex: undefined, 'aria-checked': undefined });
+    }
+    return output;
+  };
+
   const original = ListItemNode.prototype.updateListItemDOM;
   ListItemNode.prototype.updateListItemDOM = function $updateListItemDOM(
     this: ListItemNode,

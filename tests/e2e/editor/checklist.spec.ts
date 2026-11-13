@@ -1,3 +1,4 @@
+import type { SerializedLexicalNode } from 'lexical';
 import type { Locator } from '#editor/fixtures';
 import { expect, test } from '#editor/fixtures';
 import { editorLocator, noteRow, setCaretAtText } from '#editor/locators';
@@ -127,5 +128,34 @@ test.describe('Checklist markers', () => {
 
     await expect(note4).toHaveAttribute('aria-checked', 'true');
     await expect(note1).not.toHaveAttribute('data-note-checked', 'true');
+  });
+
+  test('checkbox click outside a check list leaves keyboard focus in the editor', async ({ page, editor }) => {
+    await editor.load('tree-list-types');
+    await page.evaluate(async () => {
+      const api = globalThis.__remdoTestBridges!.list()[0]!;
+      const state = api.getEditorState();
+      const visit = (node: SerializedLexicalNode & { noteId?: string; checkbox?: boolean; children?: SerializedLexicalNode[] }) => {
+        if (node.noteId === 'note6') {
+          node.checkbox = true;
+        }
+        node.children?.forEach(visit);
+      };
+      visit(state.root);
+      await api._bridge.applySerializedState(JSON.stringify(state));
+    });
+
+    const note6 = noteRow(page, 'note6');
+    await expect(note6).toHaveAttribute('role', 'checkbox');
+    const input = editorLocator(page).locator('.editor-input');
+    await input.evaluate((element) => {
+      document.getSelection()?.removeAllRanges();
+      (element as HTMLElement).focus();
+    });
+
+    await clickMarker(note6, '::after');
+
+    await expect(note6).toHaveAttribute('aria-checked', 'true');
+    await expect(input).toBeFocused();
   });
 });
