@@ -124,6 +124,15 @@ def blob_hash(content):
     return hashlib.sha256(content).hexdigest()
 
 
+def version(workspace, path):
+    """The blob hash a file reads as, without its content; None when it doesn't exist."""
+    return (
+        WorkspaceFile.objects.filter(workspace=workspace, path=normalize_path(path))
+        .values_list("blob_id", flat=True)
+        .first()
+    )
+
+
 def read(workspace, path):
     path = normalize_path(path)
     row = (
@@ -243,17 +252,13 @@ def _apply(workspace, author, message, prepared, folders, continuing):
     )
     now = timezone.now()
     head = locked.head
+    paths = sorted(writes.keys() | deletes)
+    replaced = set()
     if continuing and _takes_more(head, author, now):
         revision = head
         replaced = set(
-            head.changes.filter(path__in=writes.keys() | deletes)
-            .exclude(blob=None)
-            .values_list("blob_id", flat=True)
+            head.changes.filter(path__in=paths).exclude(blob=None).values_list("blob_id", flat=True)
         )
-        for path in sorted(writes.keys() | deletes):
-            RevisionChange.objects.update_or_create(
-                revision=head, path=path, defaults={"blob_id": writes.get(path)}
-            )
         head.changed_at = now
         head.save(update_fields=["changed_at"])
     else:
@@ -268,13 +273,12 @@ def _apply(workspace, author, message, prepared, folders, continuing):
             changed_at=now,
             sealed=not continuing,
         )
-        RevisionChange.objects.bulk_create(
-            [
-                RevisionChange(revision=revision, path=path, blob_id=writes.get(path))
-                for path in sorted(writes.keys() | deletes)
-            ]
-        )
-        replaced = set()
+    RevisionChange.objects.bulk_create(
+        [RevisionChange(revision=revision, path=path, blob_id=writes.get(path)) for path in paths],
+        update_conflicts=True,
+        unique_fields=["revision", "path"],
+        update_fields=["blob"],
+    )
     WorkspaceFile.objects.filter(workspace=locked, path__in=deletes).delete()
     WorkspaceFile.objects.bulk_create(
         [

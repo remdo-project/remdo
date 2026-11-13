@@ -103,13 +103,14 @@ class WorkspaceRoomTests(TestCase):
         self.assertEqual((bytes(row.state), row.version), (b"saved", file.blob_hash))
 
     def test_saves_while_typing_gather_in_the_open_head(self):
-        version = self.save(tree_of("- one\n"), None).json()["version"]
-
-        self.save(tree_of("- one\n- two\n"), version)
+        with patch("workspaces.internal.notify_document_list_changed") as notify:
+            version = self.save(tree_of("- one\n"), None).json()["version"]
+            self.save(tree_of("- one\n- two\n"), version)
 
         revision = Revision.objects.get(workspace=self.workspace)
         self.assertFalse(revision.sealed)
         self.assertEqual(store.files_at(revision), {"README.md": b"- one\n- two\n"})
+        notify.assert_called_once_with([self.owner.pk])
 
     def test_a_save_that_changes_no_text_updates_only_the_state(self):
         version = self.save(tree_of("- one\n"), None).json()["version"]

@@ -1,7 +1,6 @@
 """The collaboration hub's loads and saves of a workspace's document (docs/architecture.md)."""
 
 import base64
-import functools
 import json
 
 from django.conf import settings
@@ -49,11 +48,22 @@ def tree_of(content):
     return text_format.to_json(text_format.read(content.decode()))
 
 
-# Saves compare against the file's reading on every keystroke burst; a file version never changes,
-# so its reading is parsed once.
-@functools.lru_cache(maxsize=8)
+# Saves compare against the file's reading every few seconds, and a file version never changes,
+# so each version's reading is parsed once: a save records the reading of what it writes.
+READINGS_KEPT = 16
+_readings = {}
+
+
 def _reading(blob_hash):
-    return tree_of(store.contents([blob_hash])[blob_hash] if blob_hash else b"")
+    if blob_hash not in _readings:
+        _remember(blob_hash, tree_of(store.contents([blob_hash])[blob_hash] if blob_hash else b""))
+    return _readings[blob_hash]
+
+
+def _remember(blob_hash, reading):
+    _readings[blob_hash] = reading
+    while len(_readings) > READINGS_KEPT:
+        del _readings[next(iter(_readings))]
 
 
 def _refuse(reason):
@@ -73,7 +83,7 @@ def _refuse(reason):
 def _load(workspace):
     """The room's state, with the file's tree when the state doesn't hold the current file."""
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
-    version = store.read(locked, README).blob_hash
+    version = store.version(locked, README)
     row = DocumentState.objects.filter(workspace=locked).first()
     body = {
         "version": version,
@@ -102,19 +112,23 @@ def _save(request, workspace):
 def _write(workspace, base, state, content):
     reading = tree_of(content)
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
-    version = store.read(locked, README).blob_hash
-    row = DocumentState.objects.filter(workspace=locked).first()
+    version = store.version(locked, README)
+    row = DocumentState.objects.filter(workspace=locked).only("version").first()
     # Only the room writes its row, so a row on the current file means the room's last write
     # landed even if its reply was lost.
     if version != base and not (row and row.version == version):
         return JsonResponse({"version": version, "tree": _reading(version)}, status=409)
     # The file's own spelling stays until a save changes what it reads as.
     if reading != _reading(version):
-        store.commit(
+        head = locked.head_id
+        revision = store.commit(
             locked, locked.owner, SAVE_MESSAGE, {README: (version, content)}, continuing=True
         )
-        notify_document_list_changed([locked.owner_id])
+        # Other views of the workspace reread on a new revision, not on every save joining one.
+        if revision.pk != head:
+            notify_document_list_changed([locked.owner_id])
         version = store.blob_hash(content)
+        _remember(version, reading)
     DocumentState.objects.update_or_create(
         workspace=locked, defaults={"state": state, "version": version}
     )

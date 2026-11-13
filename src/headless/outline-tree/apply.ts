@@ -20,7 +20,7 @@ import { $getDocumentTextId, $hasTextId, $setDocumentTextId, $setHasTextId } fro
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { $readNote, FORMAT_MARKS, isNumbered } from './read';
 import { isPlainText, isSpace, joinName } from './runs';
-import type { Document, Run, TreeNote } from './tree';
+import type { Document, OutlineNote, Run, TreeNote } from './tree';
 
 /**
  * Change the editor to hold `document`, matching notes by cache ID, then notes without one by
@@ -37,84 +37,81 @@ export function $applyTree(document: Document): void {
   forEachContentItemInOutline(list, (item) => {
     items.push(item);
     const cacheId = $getNoteId(item);
-    // Of notes sharing a cache ID, the first in document order keeps it.
-    if (cacheId !== null && live.has(cacheId)) $renewCacheId(item, live);
-    else if (cacheId !== null) live.set(cacheId, item);
+    if (cacheId === null) return;
+    if (live.has(cacheId)) $setCacheId(item, createUniqueNoteId(), live);
+    else live.set(cacheId, item);
   });
-  // Node keys, since a node written during the update is a different object afterwards.
-  const kept = new Set<NodeKey>();
-  const wanted = new Set<string>();
-  const written = new Set<string>();
-  const collect = (notes: readonly TreeNote[]) => notes.forEach((note) => {
-    if (note.cacheId !== null) wanted.add(note.cacheId);
-    if (note.kind !== 'outline') return;
-    if (note.id !== null && note.id !== note.cacheId) {
-      const holder = live.get(note.id);
-      // A written ID claims its value from a note holding it only as its cache ID.
-      if (holder && !$hasTextId(holder)) $renewCacheId(holder, live);
-      else if (holder) written.add(note.id);
-    }
-    collect(note.children);
-  });
-  collect(document.children);
-  for (const id of written) wanted.add(id);
-  $applyChildren(list, document.children, { live, kept, wanted, written });
+  const matching = $matchByIds(document.children, live);
+  $applyChildren(list, document.children, matching);
   for (const item of items) {
-    if (!kept.has(item.getKey()) && item.isAttached()) removeNoteSubtree(item);
+    if (!matching.kept.has(item.getKey()) && item.isAttached()) removeNoteSubtree(item);
   }
 }
 
 interface Matching {
   live: Map<string, ListItemNode>;
+  // Node keys, since a node written during the update is a different object afterwards.
   kept: Set<NodeKey>;
-  /** Cache IDs the tree names, whose holders content matching leaves for them. */
-  wanted: Set<string>;
-  /** Tree IDs a note already holds as its written ID, which match that note like a cache ID. */
-  written: Set<string>;
+  /** The live note each tree note updates, found by its cache ID or written ID. */
+  targets: Map<TreeNote, ListItemNode>;
+  /** The tree note each written ID belongs to: the first, in document order, to give it. */
+  owners: Map<string, TreeNote>;
 }
 
-function $renewCacheId(item: ListItemNode, live: Map<string, ListItemNode>) {
+/** Match tree notes by cache ID, then by a live note's written ID, all in document order. */
+function $matchByIds(notes: readonly TreeNote[], live: Map<string, ListItemNode>): Matching {
+  const matching: Matching = { live, kept: new Set(), targets: new Map(), owners: new Map() };
+  const visit = (siblings: readonly TreeNote[]) => siblings.forEach((note) => {
+    const id = note.kind === 'outline' ? note.id : null;
+    if (id !== null && !matching.owners.has(id)) matching.owners.set(id, note);
+    const holder = id === null ? undefined : live.get(id);
+    const candidates = [
+      note.cacheId === null ? undefined : live.get(note.cacheId),
+      holder && $hasTextId(holder) && matching.owners.get(id!) === note ? holder : undefined,
+    ];
+    const item = candidates.find((candidate) => candidate && !matching.kept.has(candidate.getKey()));
+    if (item) {
+      matching.kept.add(item.getKey());
+      matching.targets.set(note, item);
+    }
+    if (note.kind === 'outline') visit(note.children);
+  });
+  visit(notes);
+  return matching;
+}
+
+function $setCacheId(item: ListItemNode, cacheId: string, live: Map<string, ListItemNode>) {
   const previous = $getNoteId(item);
   if (previous !== null && live.get(previous)?.is(item)) live.delete(previous);
-  const cacheId = createUniqueNoteId();
   $setState(item, noteIdState, cacheId);
   live.set(cacheId, item);
 }
 
-/** Give a note the ID its tree note writes, unless another note took it first. */
-function $claimWrittenId(item: ListItemNode, id: string | null, live: Map<string, ListItemNode>) {
-  const holder = id === null ? undefined : live.get(id);
-  const claims = id !== null && (holder === undefined || holder.is(item));
-  if (claims && $getNoteId(item) !== id) {
-    live.delete($getNoteId(item)!);
-    $setState(item, noteIdState, id);
-    live.set(id, item);
+/** A written ID claims its value, even from a note holding it only as its cache ID. */
+function $claimWrittenId(item: ListItemNode, note: OutlineNote, { live, owners }: Matching) {
+  const claims = note.id !== null && owners.get(note.id) === note;
+  if (claims && $getNoteId(item) !== note.id) {
+    const holder = live.get(note.id!);
+    if (holder && !holder.is(item)) $setCacheId(holder, createUniqueNoteId(), live);
+    $setCacheId(item, note.id!, live);
   }
   if ($hasTextId(item) !== claims) $setHasTextId(item, claims);
 }
 
 function $applyChildren(list: ListNode, notes: readonly TreeNote[], matching: Matching) {
-  const { live, kept, written } = matching;
-  const targets = notes.map((note) => {
-    const byId = note.kind === 'outline' && note.id !== null && written.has(note.id) ? note.id : null;
-    const key = note.cacheId ?? byId;
-    const item = key === null ? undefined : live.get(key);
-    if (!item || kept.has(item.getKey())) return null;
-    kept.add(item.getKey());
-    return item;
-  });
-  $matchByContent(list, notes, targets, matching);
-  const stay = inPlace(getContentSiblings(list), targets);
+  const { live, kept, targets } = matching;
+  const current = getContentSiblings(list);
+  const position = new Map(current.map((item, index) => [item.getKey(), index]));
+  const matched = notes.map((note) => targets.get(note) ?? null);
+  $matchByContent(current, position, list.getListType(), notes, matched, kept);
+  const stay = inPlace(position, matched);
   let previous: ListItemNode | null = null;
   notes.forEach((note, index) => {
-    let item = targets[index];
+    let item = matched[index];
     if (!item) {
       item = $createListItemNode();
       // A cache ID another note holds would duplicate it, so the created note gets a fresh one.
-      const claimed = (note.kind === 'outline' ? note.id : null) ?? note.cacheId;
-      const cacheId = claimed !== null && !live.has(claimed) ? claimed : createUniqueNoteId();
-      $setState(item, noteIdState, cacheId);
-      live.set(cacheId, item);
+      $setCacheId(item, note.cacheId !== null && !live.has(note.cacheId) ? note.cacheId : createUniqueNoteId(), live);
       $setState(item, markerState, markerOf(note));
       kept.add(item.getKey());
       $place(list, previous, [item]);
@@ -124,9 +121,9 @@ function $applyChildren(list: ListNode, notes: readonly TreeNote[], matching: Ma
       if ($isListNode(from)) maybeRemoveEmptyWrapper(from);
     }
     $updateNote(item, note, list.getListType(), isNumbered(notes[index - 1]));
-    if (note.kind === 'outline') $claimWrittenId(item, note.id, live);
-    if (note.kind === 'outline' && note.children.length > 0) {
-      $applyChildren($getOrCreateChildList(item), note.children, matching);
+    if (note.kind === 'outline') {
+      $claimWrittenId(item, note, matching);
+      if (note.children.length > 0) $applyChildren($getOrCreateChildList(item), note.children, matching);
     }
     previous = item;
   });
@@ -140,19 +137,25 @@ const contentKey = (note: TreeNote) =>
  * Give notes without a cache ID, as a tree read from a file has, an unclaimed sibling with the same
  * content, in order. Never by position alone: a note replaced in place must not inherit an ID.
  */
-function $matchByContent(list: ListNode, notes: readonly TreeNote[], targets: (ListItemNode | null)[], { kept, wanted }: Matching) {
-  const current = getContentSiblings(list);
-  const position = new Map(current.map((item, index) => [item.getKey(), index]));
+function $matchByContent(
+  current: readonly ListItemNode[],
+  position: ReadonlyMap<NodeKey, number>,
+  listType: string,
+  notes: readonly TreeNote[],
+  matched: (ListItemNode | null)[],
+  kept: Set<NodeKey>,
+) {
   const unclaimed = new Map<string, ListItemNode[]>();
   for (const item of current) {
-    const cacheId = $getNoteId(item);
-    if (kept.has(item.getKey()) || (cacheId !== null && wanted.has(cacheId))) continue;
-    const key = contentKey($readNote(item, list.getListType(), { children: false }));
-    unclaimed.set(key, [...unclaimed.get(key) ?? [], item]);
+    if (kept.has(item.getKey())) continue;
+    const key = contentKey($readNote(item, listType, { children: false }));
+    const same = unclaimed.get(key);
+    if (same) same.push(item);
+    else unclaimed.set(key, [item]);
   }
   let after = -1;
   notes.forEach((note, index) => {
-    const target = targets[index];
+    const target = matched[index];
     if (target) {
       after = Math.max(after, position.get(target.getKey()) ?? after);
       return;
@@ -162,7 +165,7 @@ function $matchByContent(list: ListNode, notes: readonly TreeNote[], targets: (L
     if (!candidates?.length) return;
     const next = candidates.findIndex((item) => position.get(item.getKey())! > after);
     const [match] = candidates.splice(next === -1 ? 0 : next, 1);
-    targets[index] = match!;
+    matched[index] = match!;
     kept.add(match!.getKey());
     after = position.get(match!.getKey())!;
   });
@@ -172,8 +175,7 @@ function $matchByContent(list: ListNode, notes: readonly TreeNote[], targets: (L
  * The targets already in order among a list's items, which needn't move: the longest increasing run
  * of their current positions, since each item is targeted at most once.
  */
-function inPlace(current: readonly ListItemNode[], targets: readonly (ListItemNode | null)[]): Set<NodeKey> {
-  const position = new Map(current.map((item, index) => [item.getKey(), index]));
+function inPlace(position: ReadonlyMap<NodeKey, number>, targets: readonly (ListItemNode | null)[]): Set<NodeKey> {
   const present = targets.filter((item): item is ListItemNode => item !== null && position.has(item.getKey()));
   const tails: number[] = [];
   const previous: number[] = [];
@@ -201,7 +203,8 @@ function $place(list: ListNode, previous: ListItemNode | null, nodes: LexicalNod
   else list.append(...nodes);
 }
 
-const own = (note: TreeNote) => (note.kind === 'outline' ? { ...note, cacheId: null, children: [] } : { ...note, cacheId: null });
+// A note's IDs are claimed apart from its content.
+const own = (note: TreeNote) => (note.kind === 'outline' ? { ...note, cacheId: null, id: null, children: [] } : { ...note, cacheId: null });
 
 function $updateNote(item: ListItemNode, note: TreeNote, listType: string, afterNumber: boolean) {
   const current = $readNote(item, listType, { children: false, afterNumber });

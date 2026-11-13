@@ -36,6 +36,7 @@ async function createWorkspace(content: string) {
 
 const textOf = (note: TreeNote) => ((note as OutlineNote).runs[0] as { text: string }).text;
 const texts = (tree: Document) => tree.children.map(textOf);
+const cacheIds = (tree: Document) => (tree.children as OutlineNote[]).map((note) => note.cacheId);
 
 function retext(tree: Document, from: string, to: string): Document {
   const copy = structuredClone(tree);
@@ -117,14 +118,14 @@ describe('workspace rooms', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const workspace = await createWorkspace('- a\n- b\n- c\n');
     const room = await open(workspace);
     try {
-      const before = (readTree(room.doc).children as OutlineNote[]).map((note) => note.cacheId);
+      const before = cacheIds(readTree(room.doc));
       const path = `${workspace}/README.md`;
       await call([{ op: 'setContent', target: path, content: '- a\n- b by agent\n- c\n' }], { [path]: (await readme(workspace)).version ?? null });
 
       await room.persisted();
 
       await expect.poll(() => texts(readTree(room.doc))).toEqual(['a', 'b by agent', 'c']);
-      const after = (readTree(room.doc).children as OutlineNote[]).map((note) => note.cacheId);
+      const after = cacheIds(readTree(room.doc));
       expect([after[0], after[2]]).toEqual([before[0], before[2]]);
       expect(after[1]).not.toBe(before[1]);
     } finally {
