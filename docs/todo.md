@@ -466,6 +466,13 @@ Remaining:
   notes kept as Markdown source are stored but shown as plain notes until the
   editor opens a workspace's Document.
 
+- **Body text that reads as structure.** A body is written as stored, so body
+  text that would read as structure where it sits becomes structure on the next
+  read: a line `- x`, a `---` under a paragraph, or an indented first line
+  after a list item. Python's reader never produces such a body; the editor
+  and tools can. Decide before the editor opens a workspace's Document whether
+  the editor escapes such text or accepts it as Markdown it typed.
+
 - **Early editor operations.** After the [text format migration](text-format-plan.md),
   revisit the editor's structural operations against
   [note operations](specs/outliner/note-operations.md) and adjust those that
