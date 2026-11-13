@@ -249,9 +249,8 @@ the same database.
 A workspace's document is the hub room `workspace:<id>`, named apart from
 editor documents, and open to its owner's browser sessions; integrations change
 it through [note operations](specs/outliner/note-operations.md). Its cache row
-holds the document's Yjs state and text, the file version that state builds
-on, and since when it holds text the file doesn't; it is deleted with its
-workspace.
+holds the document's Yjs state and the file version that state builds on; it is
+deleted with its workspace.
 
 - **Load:** when the row's version is the document's current file version, the
   room loads the row's state. Otherwise, with no row or after the file changed
@@ -259,22 +258,16 @@ workspace.
   row's state, or to an empty one, and saves the result before any client
   syncs, so every load after one change gives the same state. A missing file
   reads as an empty document, and loading writes no file. **Deterministic.**
-- **Save:** a [save](#collab-hub) writes the room's state and its
-  [tree](#outline-tree)'s text to the row only, leaving the file and history
-  unchanged. **Deterministic.**
-- **Commit:** a commit writes the tree's text as the document's file, with the
-  state it was read from and that file's version, in one transaction: both
-  land or neither does. Its revision's author is the workspace's owner. A
-  commit whose text reads as the file does updates only the row, adding no
-  revision, so the file keeps its own spelling. **Deterministic.**
-  - The room commits after 2 minutes without edits, 10 minutes after the
-    first edit its file lacks, and before it unloads.
-  - A starting hub commits every row holding text its file lacks, from the
-    row's text.
-- **Stale save:** when the file changed since the row's version, a save or
-  commit writes nothing, and the room applies the current file's tree, as on
-  load, before trying again. A row whose file changed is not committed at hub
-  start; its next load applies the file. **Deterministic.**
+- **Save:** a [save](#collab-hub) writes the [tree](#outline-tree)'s text as
+  the document's file, as a
+  [continuing commit](specs/workspaces/store.md#commits) by the workspace's
+  owner, and the state it was read from with that file's version, in one
+  transaction: both land or neither does. A save whose text reads as the file
+  does updates only the row, so the file keeps its own spelling.
+  **Deterministic.**
+- **Stale save:** when the file changed since the row's version, a save writes
+  nothing, and the room applies the current file's tree, as on load, before
+  trying again. **Deterministic.**
 - **Refusal:** a save whose text is over the file limit or whose tree is
   malformed, or a load or save of a file that isn't UTF-8 text, writes nothing
   and is [reported](specs/runtime/configuration.md#error-reporting). The room
