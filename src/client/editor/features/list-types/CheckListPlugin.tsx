@@ -20,10 +20,7 @@ import { getParentContentItem, getWrapperForContent } from '#client/editor/outli
 import { installOutlineSelectionHelpers } from '#client/editor/outline/selection/store';
 import { $resolveViewRoot } from '#client/editor/outline/view-root';
 
-// A body-wrapper renders as `.note-body-wrapper`, never a checklist `<li>`, so it
-// is naturally excluded here — no body-specific guard needed.
-const isChecklistItem = (element: HTMLElement): boolean =>
-  element.classList.contains('list-item-checked') || element.classList.contains('list-item-unchecked');
+const isChecklistItem = (element: HTMLElement): boolean => element.dataset.checkbox === 'true';
 
 // The mutation listener observes whatever tree a batch leaves behind, including
 // the transiently malformed shapes that normalization is still repairing (an
@@ -213,7 +210,11 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
         ? $resolveRootTargets(selectedItems)
         : [clicked];
 
-      listItem.focus();
+      // Lexical's checklist keys act only on a check list's focused item; elsewhere the caret stays.
+      const list = clicked.getParent();
+      if ($isListNode(list) && list.getListType() === 'check') {
+        listItem.focus();
+      }
       $toggleNoteCheckedForTargets(targets);
     });
   };

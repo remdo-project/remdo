@@ -12,6 +12,7 @@ import type {
   DocumentNote,
   NoteId,
   EditorNoteSnapshot,
+  NoteMarkerView,
   SearchResult,
 } from '#note-sdk';
 import { createDocumentNote } from '../../../src/note-sdk/create-document-note';
@@ -40,21 +41,23 @@ export function createSearchResult(
   return {
     note,
     path: [note],
-    childPreview: { notes: [], listType: 'bullet', totalCount: 0 },
+    childPreview: { notes: [], markers: [], totalCount: 0 },
     ...fields,
   };
 }
+
+const BULLET: NoteMarkerView = { kind: 'bullet', number: null, headingLevel: null, checkbox: false };
 
 function defaultResults(): SearchResult[] {
   const second = createSearchResult('note2', 'note2');
   const fourth = createSearchResult('note4', 'note4');
   return [
     createSearchResult('note1', 'note1', {
-      childPreview: { notes: [second.note], listType: 'bullet', totalCount: 1 },
+      childPreview: { notes: [second.note], markers: [BULLET], totalCount: 1 },
     }),
     second,
     createSearchResult('note3', 'note3', {
-      childPreview: { notes: [fourth.note], listType: 'bullet', totalCount: 1 },
+      childPreview: { notes: [fourth.note], markers: [BULLET], totalCount: 1 },
     }),
     fourth,
     createSearchResult('note5', 'note5'),

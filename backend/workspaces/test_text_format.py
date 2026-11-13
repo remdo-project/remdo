@@ -210,6 +210,30 @@ class ReadingTests(SimpleTestCase):
         )
         self.assertEqual(text_format.write(text_format.read(source)), "1. a\n2. b\n1) c\n")
 
+    def test_a_note_named_after_a_property_keeps_its_text_and_children(self):
+        note = text_format.Note(
+            "outline",
+            marker=("bullet",),
+            name="id",
+            runs=[text_format.Run("text", "x")],
+            children=[
+                text_format.Note("outline", marker=("bullet",), runs=[text_format.Run("text", "c")])
+            ],
+        )
+        written = text_format.write(text_format.Document(children=[note]))
+        self.assertEqual(written, "- id\\:: x\n    - c\n")
+        document = text_format.read(written)
+        self.assertEqual(document.id, None)
+        [read] = document.children
+        self.assertEqual(
+            (
+                read.name,
+                [run.text for run in read.runs],
+                [child.runs[0].text for child in read.children],
+            ),
+            (None, ["id:: x"], ["c"]),
+        )
+
     def test_a_body_line_keeps_its_trailing_whitespace(self):
         source = "- a\n    > broken  \n    > line\n"
         self.assertEqual(text_format.write(text_format.read(source)), source)
@@ -243,12 +267,13 @@ class ReadingTests(SimpleTestCase):
         [note] = text_format.read("3. id:: x\n4. four\n").children
         self.assertEqual(note.marker, ("number", 4))
 
-    def test_each_top_level_element_is_its_own_body(self):
+    def test_everything_between_headings_and_list_items_is_one_body(self):
         cases = {
-            "- a\n\n  paragraph\n\n  > quote\n": [["paragraph"], ["quote"]],
-            "- a\n    > one\n    >\n    > two\n": [["one"], ["two"]],
-            "intro\n\nmore\n\n> kept quote\n": [["intro"], ["more"], ["> kept quote"]],
-            "# T\n\n> - x\n> - y\n": [["- x", "- y"]],
+            "- a\n\n  paragraph\n\n  > quote\n": [["paragraph", "", "quote"]],
+            "- a\n    > one\n    >\n    > two\n": [["one", "", "two"]],
+            "intro\n\nmore\n\n> kept quote\n": [["intro", "", "more", "", "> kept quote"]],
+            "# T\n\n> - x\n> - y\n": [["> - x", "> - y"]],
+            "# T\n\nbefore\n\n- id:: x\n\nafter\n": [["before"], ["after"]],
         }
         for source, bodies in cases.items():
             with self.subTest(source=source):
