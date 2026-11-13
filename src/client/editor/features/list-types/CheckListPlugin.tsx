@@ -5,6 +5,7 @@ import { $getNearestNodeFromDOMNode, $getNodeByKey, $getSelection, $isRangeSelec
 import { useEffect } from 'react';
 
 import { $setNoteCheckedRecursively, $toggleNoteCheckedForTargets } from './checked-operations';
+import { $isInCheckList } from './note-marker';
 import type { NoteCheckedDisplay } from '#client/editor/features/list-types/checked-subtree';
 import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
 import { NoteCheckedDisplayCache } from '#client/editor/features/list-types/checked-subtree';
@@ -211,8 +212,7 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
         : [clicked];
 
       // Lexical's checklist keys act only on a check list's focused item; elsewhere the caret stays.
-      const list = clicked.getParent();
-      if ($isListNode(list) && list.getListType() === 'check') {
+      if ($isInCheckList(clicked)) {
         listItem.focus();
       }
       $toggleNoteCheckedForTargets(targets);

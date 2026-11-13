@@ -16,6 +16,7 @@ from markdown_it import MarkdownIt
 MAX_NESTING = 400
 NAME = re.compile(r"^(.*?[^\\\s])::(?: |$)")
 PROPERTY = re.compile(r"^id::(?: |$)")
+QUOTE = re.compile(r"^\s*>\s?")
 CHECKBOX = re.compile(r"^\[([ xX])\](?:[ \t]+|$)")
 MARKS = {"strong": "bold", "em": "italic", "s": "strike"}
 MARK_ORDER = ("bold", "italic", "strike", "underline")
@@ -112,32 +113,29 @@ class _Reader:
         """Read tokens[start, end) as an owner's children: a document's or heading's, or a list
         item's lines `region`. Headings and list items divide them; everything else between, lines
         no token covers included, is one body."""
-        in_item = region is not None
-        last = region[0] if region else self.first_line
-        segments = []
+        last, tail = region or (self.first_line, len(self.lines))
+        body = []
+        body_stop = None
 
         def flush():
-            lines = []
-            for index, (first, stop, quoted) in enumerate(segments):
-                if index:
-                    lines.extend("" for _ in range(segments[index - 1][1], first))
-                raw = self.lines[first:stop]
-                lines.extend(
-                    [re.sub(r"^\s*>\s?", "", line) for line in raw]
-                    if quoted
-                    else _dedent(raw, indent)
-                )
-            if lines:
-                owner().children.append(Note("body", lines))
-            segments.clear()
+            nonlocal body
+            if body:
+                owner().children.append(Note("body", body))
+                body = []
 
         def add(first, stop, quoted=False):
+            nonlocal body_stop
             while first < stop and not self.lines[first].strip():
                 first += 1
             while stop > first and not self.lines[stop - 1].strip():
                 stop -= 1
-            if first < stop:
-                segments.append((first, stop, quoted))
+            if first == stop:
+                return
+            if body:
+                body.extend([""] * (first - body_stop))
+            raw = self.lines[first:stop]
+            body.extend([QUOTE.sub("", line) for line in raw] if quoted else _dedent(raw, indent))
+            body_stop = stop
 
         index = start
         while index < end:
@@ -157,9 +155,9 @@ class _Reader:
                 self.list(index, close, owner())
             else:
                 # Under a list item, a quote only wraps its body.
-                add(first, stop, in_item and token.type == "blockquote_open")
+                add(first, stop, region is not None and token.type == "blockquote_open")
             index = close + 1
-        add(last, region[1] if region else len(self.lines))
+        add(last, tail)
         flush()
 
     def list(self, open_index, close, owner):

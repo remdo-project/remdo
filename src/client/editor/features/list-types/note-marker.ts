@@ -43,8 +43,7 @@ function patchListItemMarkerDOM(): void {
   const originalExportDOM = ListItemNode.prototype.exportDOM;
   ListItemNode.prototype.exportDOM = function $exportDOM(this: ListItemNode, ...args: Parameters<ListItemNode['exportDOM']>) {
     const output = originalExportDOM.apply(this, args);
-    const list = this.getParent();
-    if (output.element instanceof HTMLElement && !($isListNode(list) && list.getListType() === 'check')) {
+    if (output.element instanceof HTMLElement && !$isInCheckList(this)) {
       setAttributes(output.element, { role: undefined, tabIndex: undefined, 'aria-checked': undefined });
     }
     return output;
@@ -63,8 +62,7 @@ function patchListItemMarkerDOM(): void {
     const { 'data-number': _number, ...attributes } = noteMarkerAttributes(view!);
     const dom = args[1];
     setAttributes(dom, attributes);
-    const list = this.getParent();
-    if (view!.checkbox && !($isListNode(list) && list.getListType() === 'check')) {
+    if (view!.checkbox && !$isInCheckList(this)) {
       setAttributes(dom, {
         role: 'checkbox',
         tabIndex: '-1',
@@ -99,6 +97,10 @@ export function $hasNoteCheckbox(note: ListItemNode): boolean {
   if ($getState(note, checkboxState) === true || $getNoteChecked(note) === true) {
     return true;
   }
+  return $isInCheckList(note);
+}
+
+export function $isInCheckList(note: ListItemNode): boolean {
   const list = note.getParent();
   return $isListNode(list) && list.getListType() === 'check';
 }
