@@ -475,12 +475,10 @@ Remaining:
   [refused](architecture.md#workspace-document-state) tells none of its
   clients, and a refused load leaves the client reconnecting, reported again
   each time. The editor shows both once it opens a workspace's Document.
-- **Typing lost to a stale save.** The [store](specs/workspaces/store.md#commits)
-  adds a live document's saves to an open head, but workspace rooms still keep
-  their text in the cache row and commit the file on idle, so a file change
-  while a room is open discards up to 10 minutes of typing. Building the open
-  head shrinks that to typing since the room's last save, and stage 4 of the
-  [text format plan](text-format-plan.md) closes the rest with the stale-client
+- **Typing lost to a stale save.** When a workspace's file changes while its
+  room is open, the room's next save applies the file, discarding what was
+  typed since its last save. Stage 4 of the
+  [text format plan](text-format-plan.md) closes this with the stale-client
   merge.
 - **Body text that reads as structure.** A body is written as stored, so body
   text that would read as structure where it sits becomes structure on the next

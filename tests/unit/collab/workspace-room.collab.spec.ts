@@ -70,7 +70,7 @@ describe('workspace rooms', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
   });
   afterAll(() => restore());
 
-  it('load the document from its file and commit edits back as its text when the room closes', async () => {
+  it('load the document from its file and save edits back as its text', async () => {
     const workspace = await createWorkspace('- a\n- b\n');
     const room = await open(workspace);
     try {
@@ -78,12 +78,11 @@ describe('workspace rooms', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
 
       applyTree(room.doc, retext(readTree(room.doc), 'b', 'b typed'));
       await room.persisted();
-      expect((await readme(workspace)).content).toBe('- a\n- b\n');
+
+      expect((await readme(workspace)).content).toBe('- a\n- b typed\n');
     } finally {
       room.close();
     }
-
-    await expect.poll(async () => (await readme(workspace)).content).toBe('- a\n- b typed\n');
   });
 
   it('open an empty workspace without writing its file', async () => {

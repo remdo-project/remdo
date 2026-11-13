@@ -38,10 +38,7 @@ let stores: Uint8Array[];
 let persisted: Uint8Array;
 let holdStore: Promise<void> | undefined;
 let releaseStore: (() => void) | undefined;
-let workspaceSaves: Array<{ version: string | null; commit: boolean }>;
-let workspaceUncommittedSince: string | null;
-let holdWorkspaceCommit: Promise<void> | undefined;
-let pendingCommitRequests: number;
+let workspaceSaves: Array<{ version: string | null }>;
 let workspaceReplies: Array<{ status: number; body: unknown } | 'dropped'>;
 let origin: string;
 const clients: HocuspocusProvider[] = [];
@@ -103,20 +100,14 @@ async function answerWorkspace(request: IncomingMessage, response: ServerRespons
     response.writeHead(200).end('{}');
     return;
   }
-  if (request.url!.endsWith('/commit-pending')) {
-    pendingCommitRequests++;
-    response.writeHead(200).end(JSON.stringify({ committed: 0 }));
-    return;
-  }
   if (request.method === 'GET') {
-    response.writeHead(200).end(JSON.stringify({ version: 'v1', state: null, uncommittedSince: workspaceUncommittedSince }));
+    response.writeHead(200).end(JSON.stringify({ version: 'v1', state: null }));
     return;
   }
   const chunks: Buffer[] = [];
   for await (const chunk of request) chunks.push(Buffer.from(chunk));
-  const { version, commit } = JSON.parse(Buffer.concat(chunks).toString()) as { version: string | null; commit: boolean };
-  workspaceSaves.push({ version, commit });
-  if (commit) await holdWorkspaceCommit;
+  const { version } = JSON.parse(Buffer.concat(chunks).toString()) as { version: string | null };
+  workspaceSaves.push({ version });
   const reply = workspaceReplies.shift() ?? { status: 200, body: { version } };
   if (reply === 'dropped') request.socket.destroy();
   else response.writeHead(reply.status).end(JSON.stringify(reply.body));
@@ -143,9 +134,6 @@ beforeEach(async () => {
   releaseStore = undefined;
   workspaceSaves = [];
   workspaceReplies = [];
-  workspaceUncommittedSince = null;
-  holdWorkspaceCommit = undefined;
-  pendingCommitRequests = 0;
   backend.listen(0, '127.0.0.1');
   await once(backend, 'listening');
   runtime = createCollaborationServer({
@@ -194,8 +182,6 @@ function connect(name = 'document', headers: Record<string, string> = { [INTERNA
   clients.push(provider);
   return provider;
 }
-
-const commits = () => workspaceSaves.filter(({ commit }) => commit);
 
 function persist(provider: HocuspocusProvider) {
   return requestPersistence(provider).then(() => 'persisted', () => 'failed');
@@ -684,73 +670,6 @@ it('backs off repeated store failures and resets the delay after recovery', asyn
   }
 });
 
-it('commits a workspace room once its edits pause', async () => {
-  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
-  const provider = connect('workspace:ws');
-  await vi.waitFor(() => expect(provider.synced).toBe(true));
-  provider.document.getText('text').insert(0, 'typed');
-  expect(await persist(provider)).toBe('persisted');
-  expect(workspaceSaves.map(({ commit }) => commit)).toEqual([false]);
-
-  await vi.advanceTimersByTimeAsync(119_000);
-  expect(workspaceSaves.some(({ commit }) => commit)).toBe(false);
-  await vi.advanceTimersByTimeAsync(2_000);
-  expect(commits()).toHaveLength(1);
-});
-
-it('leaves edits made during a workspace room\'s commit for its next commit', async () => {
-  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
-  const provider = connect('workspace:ws');
-  await vi.waitFor(() => expect(provider.synced).toBe(true));
-  provider.document.getText('text').insert(0, 'typed');
-  expect(await persist(provider)).toBe('persisted');
-  const held = createDeferred();
-  holdWorkspaceCommit = held.promise;
-  await vi.advanceTimersByTimeAsync(121_000);
-  expect(workspaceSaves.at(-1)?.commit).toBe(true);
-
-  provider.document.getText('text').insert(0, 'during ');
-  await vi.waitFor(() => expect(provider.unsyncedChanges).toBe(0));
-  holdWorkspaceCommit = undefined;
-  held.resolve();
-  await vi.advanceTimersByTimeAsync(121_000);
-
-  expect(commits()).toHaveLength(2);
-});
-
-it('commits a workspace room ten minutes after its first uncommitted edit, even while editing goes on', async () => {
-  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
-  const provider = connect('workspace:ws');
-  await vi.waitFor(() => expect(provider.synced).toBe(true));
-  for (let minute = 0; minute < 10; minute += 1) {
-    provider.document.getText('text').insert(0, 'x');
-    await vi.advanceTimersByTimeAsync(60_000);
-  }
-  expect(commits()).toHaveLength(1);
-});
-
-it('commits a loaded workspace room its previous run left uncommitted once that commit is due', async () => {
-  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
-  workspaceUncommittedSince = new Date(Date.now() - 11 * 60_000).toISOString();
-  const provider = connect('workspace:ws');
-  await vi.waitFor(() => expect(provider.synced).toBe(true));
-  await vi.advanceTimersByTimeAsync(1);
-  expect(commits()).toHaveLength(1);
-});
-
-it('tries a failed overdue workspace commit again only after an idle period', async () => {
-  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
-  workspaceUncommittedSince = new Date(Date.now() - 11 * 60_000).toISOString();
-  workspaceReplies = [{ status: 503, body: {} }];
-  const provider = connect('workspace:ws');
-  await vi.waitFor(() => expect(provider.synced).toBe(true));
-  await vi.advanceTimersByTimeAsync(119_000);
-  expect(commits()).toHaveLength(1);
-
-  await vi.advanceTimersByTimeAsync(2_000);
-  expect(commits()).toHaveLength(2);
-});
-
 it('unloads a workspace room whose save is refused once its clients leave', async () => {
   const provider = connect('workspace:ws');
   await expect.poll(() => provider.synced).toBe(true);
@@ -760,35 +679,6 @@ it('unloads a workspace room whose save is refused once its clients leave', asyn
   provider.destroy();
 
   await expect.poll(() => runtime.server.hocuspocus.documents.size).toBe(0);
-});
-
-it('unloads a workspace room whose workspace is deleted before its unload commit', async () => {
-  const provider = connect('workspace:ws');
-  await expect.poll(() => provider.synced).toBe(true);
-  provider.document.getText('text').insert(0, 'typed');
-  await expect.poll(() => provider.unsyncedChanges).toBe(0);
-  await expect.poll(() => workspaceSaves.length).toBeGreaterThan(0);
-  workspaceReplies = [{ status: 404, body: {} }];
-  provider.destroy();
-
-  await expect.poll(() => runtime.server.hocuspocus.documents.size).toBe(0);
-  expect(workspaceSaves.at(-1)?.commit).toBe(true);
-});
-
-it('commits a workspace room before unloading it', async () => {
-  const provider = connect('workspace:ws');
-  await expect.poll(() => provider.synced).toBe(true);
-  provider.document.getText('text').insert(0, 'typed');
-  await expect.poll(() => provider.unsyncedChanges).toBe(0);
-  provider.destroy();
-
-  await expect.poll(() => runtime.server.hocuspocus.documents.size).toBe(0);
-  expect(workspaceSaves.at(-1)?.commit).toBe(true);
-});
-
-it('asks Django to commit what a previous run left uncommitted', async () => {
-  expect(await runtime.commitPendingWorkspaces()).toBe(true);
-  expect(pendingCommitRequests).toBe(1);
 });
 
 it('tries a refused workspace save again only after another edit', async () => {

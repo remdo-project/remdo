@@ -8,8 +8,7 @@ from django.conf import settings
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
-from django.views.decorators.http import require_GET, require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods
 from documents.notices import notify_document_list_changed
 from notes.service import can_use_workspaces
 
@@ -79,17 +78,14 @@ def _load(workspace):
     body = {
         "version": version,
         "state": base64.b64encode(bytes(row.state)).decode() if row else None,
-        "uncommittedSince": row.uncommitted_since.isoformat()
-        if row and row.uncommitted_since
-        else None,
     }
-    if row is None or row.blob_id != version:
+    if row is None or row.version != version:
         body["tree"] = _reading(version)
     return JsonResponse(body)
 
 
 def _save(request, workspace):
-    """Keep the room's state and text in its row, writing the file too when committing."""
+    """Write the room's text as its file and its state to its row, together."""
     try:
         data = json.loads(request.read())
         state = base64.b64decode(data["state"])
@@ -99,48 +95,27 @@ def _save(request, workspace):
         return _refuse("MALFORMED")
     if len(content) > FILE_MAX_BYTES:
         return _refuse("TOO_LARGE")
-    return _write(workspace, base, state, content, commit=data.get("commit") is True)
+    return _write(workspace, base, state, content)
 
 
 @transaction.atomic
-def _write(workspace, base, state, content, commit):
+def _write(workspace, base, state, content):
     reading = tree_of(content)
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
     version = store.read(locked, README).blob_hash
     row = DocumentState.objects.filter(workspace=locked).first()
-    # Only the room and, before rooms open, the startup sweep write its row, so a row on the
-    # current file means the room's last write landed even if its reply was lost.
-    if version != base and not (row and row.blob_id == version):
+    # Only the room writes its row, so a row on the current file means the room's last write
+    # landed even if its reply was lost.
+    if version != base and not (row and row.version == version):
         return JsonResponse({"version": version, "tree": _reading(version)}, status=409)
-    uncommitted_since = None
-    # The file's own spelling stays until a commit changes what it reads as.
+    # The file's own spelling stays until a save changes what it reads as.
     if reading != _reading(version):
-        if commit:
-            store.commit(locked, locked.owner, SAVE_MESSAGE, {README: (version, content)})
-            notify_document_list_changed([locked.owner_id])
-            version = store.blob_hash(content)
-        else:
-            uncommitted_since = (row and row.uncommitted_since) or timezone.now()
+        store.commit(
+            locked, locked.owner, SAVE_MESSAGE, {README: (version, content)}, continuing=True
+        )
+        notify_document_list_changed([locked.owner_id])
+        version = store.blob_hash(content)
     DocumentState.objects.update_or_create(
-        workspace=locked,
-        defaults={
-            "state": state,
-            "text": content.decode(),
-            "blob_id": version,
-            "uncommitted_since": uncommitted_since,
-        },
+        workspace=locked, defaults={"state": state, "version": version}
     )
     return JsonResponse({"version": version})
-
-
-@require_POST
-def commit_pending(request):
-    """Commit every row's text its file lacks, as a starting hub does for rooms it didn't commit.
-
-    A row whose file changed since is left for the room's next load to apply the file.
-    """
-    for row in DocumentState.objects.filter(uncommitted_since__isnull=False).select_related(
-        "workspace"
-    ):
-        _write(row.workspace, row.blob_id, row.state, row.text.encode(), commit=True)
-    return HttpResponse(status=204)
