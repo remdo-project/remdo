@@ -274,7 +274,9 @@ class ReadingTests(SimpleTestCase):
             "- a\n    > one\n    two\n": [["one", "two"]],
             "intro\n\nmore\n\n> kept quote\n": [["intro", "", "more", "", "> kept quote"]],
             "# T\n\n> - x\n> - y\n": [["> - x", "> - y"]],
-            "# T\n\nbefore\n\n- id:: x\n\nafter\n": [["before"], ["after"]],
+            "# T\n\nbefore\n\n- id:: x\n\nafter\n": [["before", "", "after"]],
+            "before\n\n- id:: two words\n\nafter\n": [["before", "", "after"]],
+            "a\n\n\n\nb\n": [["a", "", "b"]],
         }
         for source, bodies in cases.items():
             with self.subTest(source=source):

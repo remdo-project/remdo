@@ -133,7 +133,7 @@ class _Reader:
             if lead == len(lines):
                 return
             if body:
-                body.extend([""] * (first + lead - body_stop))
+                body.extend([""] * min(first + lead - body_stop, 1))
             body.extend(lines[lead : len(lines) - trail])
             body_stop = stop - trail
 
@@ -151,7 +151,9 @@ class _Reader:
                 flush()
                 on_heading(index)
             elif token.type in ("bullet_list_open", "ordered_list_open"):
-                flush()
+                # Property lines aren't children, so a list of only them doesn't end a body.
+                if not self._holds_only_properties(index, close):
+                    flush()
                 self.list(index, close, owner())
             else:
                 # Under a list item, a quote only wraps its body.
@@ -186,15 +188,33 @@ class _Reader:
                 index = item_close
             index += 1
 
+    def _holds_only_properties(self, open_index, close):
+        level = self.tokens[open_index].level + 1
+        return all(
+            self._is_property(index)
+            for index in range(open_index + 1, close)
+            if self.tokens[index].type == "list_item_open" and self.tokens[index].level == level
+        )
+
+    def _inline_of(self, open_index):
+        """The inline token of the paragraph on a list item's marker line, if any."""
+        line = self.tokens[open_index].map[0]
+        after = self.tokens[open_index + 1]
+        if after.type == "paragraph_open" and after.map[0] == line:
+            return self.tokens[open_index + 2]
+        return None
+
+    def _is_property(self, open_index):
+        inline = self._inline_of(open_index)
+        content = inline.content if inline else ""
+        return bool(PROPERTY.match(CHECKBOX.sub("", content, count=1).split("\n")[0]))
+
     def item(self, open_index, close, owner, marker):
         line = self.tokens[open_index].map[0]
         after = self.tokens[open_index + 1] if open_index + 1 < close else None
-        inline = None
-        if after is not None and after.type == "paragraph_open" and after.map[0] == line:
-            inline = self.tokens[open_index + 2]
+        inline = self._inline_of(open_index) if after is not None else None
         content = inline.content if inline else ""
-        unboxed = CHECKBOX.sub("", content, count=1)
-        if PROPERTY.match(unboxed.split("\n")[0]):
+        if self._is_property(open_index):
             # A property's first line takes effect even when its value has none; later ones are ignored.
             if id(owner) not in self.identified:
                 self.identified.add(id(owner))
