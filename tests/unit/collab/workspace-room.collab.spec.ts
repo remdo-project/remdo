@@ -6,7 +6,7 @@ import { requestPersistence } from '#collaboration/persistence-barrier';
 import { asCollaborationProviderEvents, createProviderFactory, waitForSync } from '#collaboration/runtime';
 import type { components } from '#platform/http/api-schema';
 import { resolveApiServerOrigin, resolveCollabServerOrigin } from '#platform/net/origins';
-import type { Document, OutlineNote } from '../../../src/headless/outline-tree/tree';
+import type { Document, OutlineNote, TreeNote } from '../../../src/headless/outline-tree/tree';
 import { applyTree, readTree } from '../../../src/headless/outline-tree/yjs';
 import { createTestAuthAccount } from '#tests-common/auth-account';
 import { installAuthenticatedApiFetch } from './_support/auth';
@@ -34,11 +34,12 @@ async function createWorkspace(content: string) {
   return String(created.results[0]!.ref);
 }
 
-const texts = (tree: Document) => tree.children.map((note) => ((note as OutlineNote).runs[0] as { text: string }).text);
+const textOf = (note: TreeNote) => ((note as OutlineNote).runs[0] as { text: string }).text;
+const texts = (tree: Document) => tree.children.map(textOf);
 
 function retext(tree: Document, from: string, to: string): Document {
   const copy = structuredClone(tree);
-  const note = copy.children.find((child) => ((child as OutlineNote).runs[0] as { text: string }).text === from) as OutlineNote;
+  const note = copy.children.find((child) => textOf(child) === from) as OutlineNote;
   note.runs = [{ kind: 'text', text: to, marks: [] }];
   return copy;
 }

@@ -1,4 +1,5 @@
 import process from 'node:process';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { config } from '#config';
 import { resolveApiServerOrigin } from '#platform/net/origins';
 import { COLLABORATION_SHUTDOWN_DEADLINE_MS } from '#platform/net/django-request';
@@ -17,8 +18,8 @@ const collaboration = createCollaborationServer({
   documentSlots: config.env.MCP_DOCUMENT_SLOTS,
 });
 // Before rooms open, so a room's own commit can't race the one its previous run left pending.
-for (let attempt = 0; attempt < PENDING_COMMIT_ATTEMPTS && !await collaboration.commitPendingWorkspaces(); attempt += 1) {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+for (let attempt = 1; !await collaboration.commitPendingWorkspaces() && attempt < PENDING_COMMIT_ATTEMPTS; attempt += 1) {
+  await sleep(2000);
 }
 await collaboration.server.listen();
 let stopping = false;

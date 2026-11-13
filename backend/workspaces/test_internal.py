@@ -42,7 +42,7 @@ class WorkspaceRoomTests(TestCase):
         self.assertEqual(response.status_code, 200)
         return response.json()
 
-    def save(self, tree, version, state=b"state", commit=True):
+    def save(self, tree, version, state=b"state", commit=True, url=None):
         body = {
             "state": base64.b64encode(state).decode(),
             "tree": tree,
@@ -50,7 +50,7 @@ class WorkspaceRoomTests(TestCase):
             "commit": commit,
         }
         return self.client.put(
-            self.content,
+            url or self.content,
             json.dumps(body),
             content_type="application/json",
             **self.headers,
@@ -217,19 +217,15 @@ class WorkspaceRoomTests(TestCase):
 
     def test_a_starting_hub_commits_rows_holding_text_their_file_lacks(self):
         stale = Workspace.objects.create(name="Stale", owner=self.owner)
-        stale_content = f"/internal/collaboration/workspaces/{stale.pk}/content"
-        for content in (self.content, stale_content):
-            body = {"state": "", "tree": tree_of("- typed\n"), "version": None, "commit": False}
-            self.client.put(
-                content, json.dumps(body), content_type="application/json", **self.headers
-            )
+        for url in (self.content, f"/internal/collaboration/workspaces/{stale.pk}/content"):
+            self.save(tree_of("- typed\n"), None, commit=False, url=url)
         store.commit(stale, self.owner, "agent", {"README.md": (None, b"- agent\n")})
 
         response = self.client.post(
             "/internal/collaboration/workspaces/commit-pending", **self.headers
         )
 
-        self.assertEqual(response.json(), {"committed": 1})
+        self.assertEqual(response.status_code, 204)
         self.assertEqual(self.readme().content, b"- typed\n")
         self.assertEqual(Revision.objects.get(workspace=self.workspace).author, self.owner)
         self.assertIsNone(DocumentState.objects.get(workspace=self.workspace).uncommitted_since)

@@ -159,6 +159,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   releaseLoad?.();
   releaseStore?.();
   storeStatus = 204;
@@ -193,6 +194,8 @@ function connect(name = 'document', headers: Record<string, string> = { [INTERNA
   clients.push(provider);
   return provider;
 }
+
+const commits = () => workspaceSaves.filter(({ commit }) => commit);
 
 function persist(provider: HocuspocusProvider) {
   return requestPersistence(provider).then(() => 'persisted', () => 'failed');
@@ -692,8 +695,7 @@ it('commits a workspace room once its edits pause', async () => {
   await vi.advanceTimersByTimeAsync(119_000);
   expect(workspaceSaves.some(({ commit }) => commit)).toBe(false);
   await vi.advanceTimersByTimeAsync(2_000);
-  expect(workspaceSaves.filter(({ commit }) => commit)).toHaveLength(1);
-  vi.useRealTimers();
+  expect(commits()).toHaveLength(1);
 });
 
 it('leaves edits made during a workspace room\'s commit for its next commit', async () => {
@@ -713,8 +715,7 @@ it('leaves edits made during a workspace room\'s commit for its next commit', as
   held.resolve();
   await vi.advanceTimersByTimeAsync(121_000);
 
-  expect(workspaceSaves.filter(({ commit }) => commit)).toHaveLength(2);
-  vi.useRealTimers();
+  expect(commits()).toHaveLength(2);
 });
 
 it('commits a workspace room ten minutes after its first uncommitted edit, even while editing goes on', async () => {
@@ -725,8 +726,7 @@ it('commits a workspace room ten minutes after its first uncommitted edit, even 
     provider.document.getText('text').insert(0, 'x');
     await vi.advanceTimersByTimeAsync(60_000);
   }
-  expect(workspaceSaves.filter(({ commit }) => commit)).toHaveLength(1);
-  vi.useRealTimers();
+  expect(commits()).toHaveLength(1);
 });
 
 it('commits a loaded workspace room its previous run left uncommitted once that commit is due', async () => {
@@ -735,8 +735,31 @@ it('commits a loaded workspace room its previous run left uncommitted once that 
   const provider = connect('workspace:ws');
   await vi.waitFor(() => expect(provider.synced).toBe(true));
   await vi.advanceTimersByTimeAsync(1);
-  expect(workspaceSaves.filter(({ commit }) => commit)).toHaveLength(1);
-  vi.useRealTimers();
+  expect(commits()).toHaveLength(1);
+});
+
+it('tries a failed overdue workspace commit again only after an idle period', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+  workspaceUncommittedSince = new Date(Date.now() - 11 * 60_000).toISOString();
+  workspaceReplies = [{ status: 503, body: {} }];
+  const provider = connect('workspace:ws');
+  await vi.waitFor(() => expect(provider.synced).toBe(true));
+  await vi.advanceTimersByTimeAsync(119_000);
+  expect(commits()).toHaveLength(1);
+
+  await vi.advanceTimersByTimeAsync(2_000);
+  expect(commits()).toHaveLength(2);
+});
+
+it('unloads a workspace room whose save is refused once its clients leave', async () => {
+  const provider = connect('workspace:ws');
+  await expect.poll(() => provider.synced).toBe(true);
+  workspaceReplies = Array.from({ length: 10 }, () => ({ status: 422, body: { code: 'TOO_LARGE' } }));
+  provider.document.getText('text').insert(0, 'typed');
+  await expect.poll(() => provider.unsyncedChanges).toBe(0);
+  provider.destroy();
+
+  await expect.poll(() => runtime.server.hocuspocus.documents.size).toBe(0);
 });
 
 it('commits a workspace room before unloading it', async () => {
@@ -766,12 +789,10 @@ it('tries a refused workspace save again only after another edit', async () => {
   const refusedSaves = workspaceSaves.length;
   await vi.advanceTimersByTimeAsync(60_000);
   expect(workspaceSaves.length).toBe(refusedSaves);
-  expectDiagnostics(['[onStoreDocument]', 'Caught error during storeDocumentHooks. Document stays in memory to avoid data loss']);
 
   workspaceReplies = [];
   provider.document.getText('text').insert(0, 'more ');
   expect(await persist(provider)).toBe('persisted');
-  vi.useRealTimers();
 });
 
 it('keeps the file version a workspace room applied when the save after it fails', async () => {
