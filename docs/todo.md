@@ -478,7 +478,7 @@ Remaining:
   each time. The editor shows both once it opens a workspace's Document.
 - **Typing lost to a stale save.** When a workspace's file changes while its
   room is open, the room's next save applies the file, discarding what was
-  typed since its last save. Stage 4 of the
+  typed since its last commit, up to 10 minutes of editing. Stage 4 of the
   [text format plan](text-format-plan.md) closes this with the stale-client
   merge.
 - **Body text that reads as structure.** A body is written as stored, so body

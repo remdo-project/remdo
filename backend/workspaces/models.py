@@ -93,8 +93,11 @@ class DocumentState(models.Model):
         Workspace, primary_key=True, on_delete=models.CASCADE, related_name="+"
     )
     state = models.BinaryField()
-    # The README version the state holds; null when it was saved with the file missing.
+    text = models.TextField(blank=True)
+    # The README version the state builds on; null when it builds on a missing file.
     blob = models.ForeignKey(Blob, null=True, on_delete=models.PROTECT, related_name="+")
+    # When the row first held text its file lacks; null once committed.
+    uncommitted_since = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         default_permissions = ()

@@ -85,6 +85,10 @@ urlpatterns = [
     path("internal/collaboration/documents/<str:document_id>/authorize", internal.authorize),
     path("internal/collaboration/documents/<str:document_id>/content", internal.content),
     path(
+        "internal/collaboration/workspaces/commit-pending",
+        internal.internal_only(workspace_rooms.commit_pending),
+    ),
+    path(
         "internal/collaboration/workspaces/<str:workspace_id>/authorize",
         internal.internal_only(workspace_rooms.authorize),
     ),
