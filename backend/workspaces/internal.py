@@ -41,9 +41,12 @@ def content(request, workspace_id):
     return _save(request, workspace)
 
 
+def tree_of(content):
+    return text_format.to_json(text_format.read(content.decode()))
+
+
 def _tree(file):
-    text = file.content.decode() if file.content is not None else ""
-    return text_format.to_json(text_format.read(text))
+    return tree_of(file.content or b"")
 
 
 def _load(workspace):
@@ -70,7 +73,8 @@ def _save(request, workspace):
         if file.blob_hash != data["version"]:
             return JsonResponse({"version": file.blob_hash, "tree": _tree(file)}, status=409)
         version = file.blob_hash
-        if content != (file.content or b""):
+        # The file's own spelling stays until a save changes what it reads as.
+        if tree_of(content) != _tree(file):
             store.commit(locked, locked.owner, SAVE_MESSAGE, {README: (file.blob_hash, content)})
             version = store.blob_hash(content)
             notify_document_list_changed([locked.owner_id])

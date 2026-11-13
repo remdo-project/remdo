@@ -261,8 +261,9 @@ deleted with its workspace.
 - **Save:** a [save](#collab-hub) writes the [tree](#outline-tree)'s text as the
   document's file, with the state it was read from and that file's version, in
   one transaction: both land or neither does. Its revision's author is the
-  workspace's owner. A save whose text matches the file updates only the
-  state, adding no revision. **Deterministic.**
+  workspace's owner. A save whose text reads as the file does updates only
+  the state, adding no revision, so the file keeps its own spelling.
+  **Deterministic.**
 - **Stale save:** when the file changed since the state's version, the save
   writes nothing, and the room applies the current file's tree, as on load,
   before saving again. **Deterministic.**

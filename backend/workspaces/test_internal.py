@@ -110,6 +110,15 @@ class WorkspaceRoomTests(TestCase):
             bytes(DocumentState.objects.get(workspace=self.workspace).state), b"folded"
         )
 
+    def test_a_save_keeps_the_files_spelling_while_it_reads_the_same(self):
+        changed = store.commit(self.workspace, self.owner, "agent", {"README.md": (None, b"* a\n")})
+        loaded = self.load()
+
+        self.save(loaded["tree"], loaded["version"])
+
+        self.assertEqual(self.readme().content, b"* a\n")
+        self.assertEqual(Workspace.objects.get(pk=self.workspace.pk).head, changed)
+
     def test_a_stale_save_writes_nothing_and_returns_the_current_file(self):
         version = self.save(tree_of("- one\n"), None, b"first").json()["version"]
         changed = store.commit(
