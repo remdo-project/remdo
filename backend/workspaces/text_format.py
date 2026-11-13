@@ -526,6 +526,9 @@ def _item(note, indent, number, out, delimiter="."):
     marker = f"{number}{delimiter}" if note.marker[0] == "number" else "-"
     box = "" if note.checkbox is None else "[x] " if note.checkbox == "checked" else "[ ] "
     text = _note_text(note)
+    if PROPERTY.match(text):
+        # A list item named after a property would read as that property, losing the note.
+        text = text.replace("::", "\\::", 1)
     inner = indent + " " * max(4, len(marker) + 1)
     first, *more = text.split("\n")
     out.append(f"{indent}{marker} {box}{first}".rstrip())

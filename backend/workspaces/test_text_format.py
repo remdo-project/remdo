@@ -209,6 +209,30 @@ class ReadingTests(SimpleTestCase):
         )
         self.assertEqual(text_format.write(text_format.read(source)), "1. a\n2. b\n1) c\n")
 
+    def test_a_note_named_after_a_property_keeps_its_text_and_children(self):
+        note = text_format.Note(
+            "outline",
+            marker=("bullet",),
+            name="id",
+            runs=[text_format.Run("text", "x")],
+            children=[
+                text_format.Note("outline", marker=("bullet",), runs=[text_format.Run("text", "c")])
+            ],
+        )
+        written = text_format.write(text_format.Document(children=[note]))
+        self.assertEqual(written, "- id\\:: x\n    - c\n")
+        document = text_format.read(written)
+        self.assertEqual(document.id, None)
+        [read] = document.children
+        self.assertEqual(
+            (
+                read.name,
+                [run.text for run in read.runs],
+                [child.runs[0].text for child in read.children],
+            ),
+            (None, ["id:: x"], ["c"]),
+        )
+
     def test_a_body_line_keeps_its_trailing_whitespace(self):
         source = "- a\n    > broken  \n    > line\n"
         self.assertEqual(text_format.write(text_format.read(source)), source)
