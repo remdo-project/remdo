@@ -1,7 +1,7 @@
+- id:: Doc1
+
 Intro paragraph
 soft-wrapped across lines.
-
-- id:: Doc1
 
 A second body.
 

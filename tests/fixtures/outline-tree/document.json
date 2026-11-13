@@ -5,13 +5,8 @@
       "kind": "body",
       "source": [
         "Intro paragraph",
-        "soft-wrapped across lines."
-      ],
-      "cacheId": null
-    },
-    {
-      "kind": "body",
-      "source": [
+        "soft-wrapped across lines.",
+        "",
         "A second body."
       ],
       "cacheId": null
