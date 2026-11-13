@@ -39,23 +39,21 @@ function opened(tree: Document): Y.Doc {
   return doc;
 }
 
-function findNote(notes: readonly TreeNote[], wanted: string): OutlineNote {
+function findNoteOrNull(notes: readonly TreeNote[], wanted: string): OutlineNote | null {
   for (const candidate of notes) {
     if (candidate.kind !== 'outline') continue;
     const first = candidate.runs[0];
     if (first?.kind === 'text' && first.text === wanted) return candidate;
-    const nested = candidate.children.length > 0 ? findNoteOrNull(candidate.children, wanted) : null;
+    const nested = findNoteOrNull(candidate.children, wanted);
     if (nested) return nested;
   }
-  throw new Error(`No note reads ${wanted}`);
+  return null;
 }
 
-function findNoteOrNull(notes: readonly TreeNote[], wanted: string): OutlineNote | null {
-  try {
-    return findNote(notes, wanted);
-  } catch {
-    return null;
-  }
+function findNote(notes: readonly TreeNote[], wanted: string): OutlineNote {
+  const found = findNoteOrNull(notes, wanted);
+  if (!found) throw new Error(`No note reads ${wanted}`);
+  return found;
 }
 
 function updatesDuring(doc: Y.Doc, run: () => void): number {
@@ -102,7 +100,7 @@ describe('the outline tree', () => {
     const typed = structuredClone(tree);
     (typed.children[0] as OutlineNote).runs = [text('abc ')];
     applyTree(doc, typed);
-    const plain = (Y.encodeStateAsUpdate(doc));
+    const plain = Y.encodeStateAsUpdate(doc);
 
     expect(updatesDuring(doc, () => applyTree(doc, tree))).toBe(0);
     expect(Y.encodeStateAsUpdate(doc)).toEqual(plain);

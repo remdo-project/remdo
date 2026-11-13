@@ -264,16 +264,14 @@ class OutlineTreeTests(SimpleTestCase):
     """The tree Node converts to and from Yjs, checked against the fixture its tests also use."""
 
     fixture = REPO / "tests/fixtures/outline-tree/document"
+    source = fixture.with_suffix(".md").read_text(encoding="utf8")
+    tree = json.loads(fixture.with_suffix(".json").read_text(encoding="utf8"))
 
     def test_a_document_reads_as_the_shared_tree(self):
-        source = self.fixture.with_suffix(".md").read_text(encoding="utf8")
-        tree = json.loads(self.fixture.with_suffix(".json").read_text(encoding="utf8"))
-        self.assertEqual(text_format.to_json(text_format.read(source)), tree)
+        self.assertEqual(text_format.to_json(text_format.read(self.source)), self.tree)
 
     def test_the_shared_tree_writes_as_its_document(self):
-        source = self.fixture.with_suffix(".md").read_text(encoding="utf8")
-        tree = json.loads(self.fixture.with_suffix(".json").read_text(encoding="utf8"))
-        self.assertEqual(text_format.write(text_format.from_json(tree)), source)
+        self.assertEqual(text_format.write(text_format.from_json(self.tree)), self.source)
 
     def test_runs_normalize_as_the_shared_cases_say(self):
         cases = json.loads((REPO / "tests/fixtures/outline-tree/runs.json").read_text("utf8"))

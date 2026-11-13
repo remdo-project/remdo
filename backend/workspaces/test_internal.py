@@ -32,18 +32,19 @@ class WorkspaceRoomTests(TestCase):
     def setUp(self):
         self.workspace = Workspace.objects.create(name="Notes", owner=self.owner)
         self.client = Client(enforce_csrf_checks=True)
-        self.base = f"/internal/collaboration/documents/{self.workspace.pk}"
+        self.authorize_url = f"/internal/collaboration/documents/{self.workspace.pk}/authorize"
+        self.content = f"/internal/collaboration/workspaces/{self.workspace.pk}/content"
         self.headers = {"HTTP_X_REMDO_COLLABORATION_SECRET": settings.COLLAB_INTERNAL_SECRET}
 
     def load(self):
-        response = self.client.get(self.base + "/content", **self.headers)
+        response = self.client.get(self.content, **self.headers)
         self.assertEqual(response.status_code, 200)
         return response.json()
 
     def save(self, tree, version, state=b"state"):
         body = {"state": base64.b64encode(state).decode(), "tree": tree, "version": version}
         return self.client.put(
-            self.base + "/content",
+            self.content,
             json.dumps(body),
             content_type="application/json",
             **self.headers,
@@ -56,7 +57,7 @@ class WorkspaceRoomTests(TestCase):
         def authorize(user):
             self.client.force_login(user)
             return self.client.get(
-                self.base + "/authorize", HTTP_ORIGIN="https://app.example", **self.headers
+                self.authorize_url, HTTP_ORIGIN="https://app.example", **self.headers
             )
 
         self.assertEqual(
@@ -67,13 +68,16 @@ class WorkspaceRoomTests(TestCase):
         self.owner = User.objects.get(pk=self.owner.pk)
         self.assertEqual(authorize(self.owner).status_code, 403)
 
-    def test_integrations_cannot_open_the_room(self):
+    def test_integrations_and_operators_cannot_open_the_room(self):
         with patch("documents.internal.delegated_user", return_value=self.owner):
-            response = self.client.get(
-                self.base + "/authorize", HTTP_AUTHORIZATION="Bearer token", **self.headers
+            bearer = self.client.get(
+                self.authorize_url, HTTP_AUTHORIZATION="Bearer token", **self.headers
             )
+        operator = self.client.get(
+            self.authorize_url, HTTP_X_REMDO_COLLABORATION_OPERATOR="1", **self.headers
+        )
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual([bearer.status_code, operator.status_code], [403, 403])
 
     def test_an_empty_workspace_loads_and_saves_without_writing_a_file(self):
         self.assertEqual(self.load(), {"version": None, "state": None, "tree": EMPTY})

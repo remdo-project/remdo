@@ -1,16 +1,16 @@
 import { $isLinkNode } from '@lexical/link';
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $isListNode } from '@lexical/list';
 import type { LexicalNode, TextFormatType } from 'lexical';
 import { $getRoot, $getState, $isLineBreakNode, $isTextNode } from 'lexical';
 import { $isDateNode } from '#client/editor/features/date/date-node';
 import { $getNoteChecked } from '#client/editor/features/list-types/checked-state';
 import { checkboxState, markerState, verbatimState } from '#client/editor/features/list-types/note-marker';
 import { getContentSiblings } from '#client/editor/outline/list-structure';
+import { $resolveRootContentList } from '#client/editor/outline/schema';
 import { getNestedList } from '#client/editor/outline/selection/tree';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { $getDocumentTextId, $hasTextId } from '#client/editor/runtime/note-ids/text-id-state';
-import { normalizeRuns, splitName, trimRuns, trimVerbatim } from './runs';
+import { isPlainText, normalizeRuns, splitName, trimRuns, trimVerbatim } from './runs';
 import type { Document, Mark, Marker, OutlineNote, Run, TreeNote } from './tree';
 
 export const FORMAT_MARKS: ReadonlyArray<[TextFormatType, Mark]> = [
@@ -32,11 +32,8 @@ export function markerFromEditor(marker: string | undefined, listType: string, a
 
 /** The document the editor holds, as the outline tree. Call inside an editor read or update. */
 export function $readTree(): Document {
-  const list = $getRoot().getFirstChild();
-  return {
-    id: $getDocumentTextId($getRoot()),
-    children: $isListNode(list) ? $readNotes(list) : [],
-  };
+  const list = $resolveRootContentList();
+  return { id: $getDocumentTextId($getRoot()), children: list ? $readNotes(list) : [] };
 }
 
 function $readNotes(list: ListNode): TreeNote[] {
@@ -55,7 +52,7 @@ function $readNotes(list: ListNode): TreeNote[] {
 export function $readNote(item: ListItemNode, listType: string, { children = true, afterNumber = false } = {}): TreeNote {
   const cacheId = $getNoteId(item);
   const marker = $getState(item, markerState);
-  if (marker === 'block') return { kind: 'body', source: $plainText(item).split('\n'), cacheId };
+  if (marker === 'block') return { kind: 'body', source: item.getTextContent().split('\n'), cacheId };
   const boxed = $getState(item, checkboxState) === true || (marker === undefined && listType === 'check');
   const note: OutlineNote = {
     kind: 'outline',
@@ -68,7 +65,7 @@ export function $readNote(item: ListItemNode, listType: string, { children = tru
     children: [],
   };
   if ($getState(item, verbatimState) === true) {
-    const { name, rest } = splitName($plainText(item));
+    const { name, rest } = splitName(item.getTextContent());
     note.name = name;
     const source = trimVerbatim(rest);
     note.runs = source ? [{ kind: 'verbatim', text: source }] : [];
@@ -82,16 +79,12 @@ export function $readNote(item: ListItemNode, listType: string, { children = tru
   return note;
 }
 
-function $plainText(item: ListItemNode): string {
-  return item.getChildren().map((node) => ($isLineBreakNode(node) ? '\n' : node.getTextContent())).join('');
-}
-
 /** Only plain text before any formatting or link can hold a name, as in the text format. */
 function $nameAndRuns(nodes: readonly LexicalNode[]): { name: string | null; runs: Run[] } {
   const runs = $runsOf(nodes);
   let plain = 0;
-  while (plain < runs.length && runs[plain]!.kind === 'text' && (runs[plain] as { marks: Mark[] }).marks.length === 0) plain += 1;
-  const lead = runs.slice(0, plain).map((run) => (run as { text: string }).text).join('');
+  while (isPlainText(runs[plain])) plain += 1;
+  const lead = runs.slice(0, plain).map((run) => (run as Extract<Run, { kind: 'text' }>).text).join('');
   const { name, rest } = splitName(lead);
   if (name === null && rest === lead) return { name: null, runs };
   const tail = runs.slice(plain);

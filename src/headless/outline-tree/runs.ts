@@ -39,8 +39,10 @@ export function joinName(name: string | null, text: string): string {
   return looksNamed === null ? text : `${looksNamed}\\${text.slice(looksNamed.length)}`;
 }
 
-const sortMarks = (marks: Iterable<Mark>): Mark[] => [...new Set(marks)].sort();
-const isSpace = (char: string) => /^\s$/u.test(char);
+export const isSpace = (char: string) => /^\s$/u.test(char);
+
+export const isPlainText = (run: Run | undefined): run is Extract<Run, { kind: 'text' }> =>
+  run?.kind === 'text' && run.marks.length === 0;
 
 function sharedMarks(link: Extract<Run, { kind: 'link' }>): Set<Mark> {
   const texts = link.runs.filter((run) => run.kind === 'text');
@@ -69,15 +71,12 @@ export function normalizeRuns(runs: readonly Run[]): Run[] {
         }
         let end = index;
         while (end < segment.length && segment[end]!.marks.has(mark)) end += 1;
-        for (let i = index; i < end; i += 1) {
-          const piece = segment[i]!;
-          if (!('char' in piece) || !isSpace(piece.char)) break;
-          piece.marks.delete(mark);
-        }
-        for (let i = end - 1; i >= index; i -= 1) {
-          const piece = segment[i]!;
-          if (!('char' in piece) || !isSpace(piece.char)) break;
-          piece.marks.delete(mark);
+        for (const [from, step] of [[index, 1], [end - 1, -1]] as const) {
+          for (let i = from; i >= index && i < end; i += step) {
+            const piece = segment[i]!;
+            if (!('char' in piece) || !isSpace(piece.char)) break;
+            piece.marks.delete(mark);
+          }
         }
         index = end;
       }
@@ -87,7 +86,7 @@ export function normalizeRuns(runs: readonly Run[]): Run[] {
         out.push(piece.link);
         continue;
       }
-      const marks = sortMarks(piece.marks);
+      const marks = [...piece.marks].sort();
       const previous = out.at(-1);
       if (previous?.kind === 'text' && previous.marks.join() === marks.join()) previous.text += piece.char;
       else out.push({ kind: 'text', text: piece.char, marks });

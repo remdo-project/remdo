@@ -62,7 +62,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
   }, DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS);
   const queuedSaves = new Map<Document, Promise<void>>();
   // A loaded workspace room's file version, which its Yjs state holds.
-  const workspaceVersions = new Map<string, string | null>();
+  const workspaceVersions = new WeakMap<Document, string | null>();
   let revision = 0;
   let stopping = false;
   let server: Server;
@@ -73,6 +73,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
   };
   const endpoint = (id: string, operation: string) =>
     new URL(`/internal/collaboration/documents/${encodeURIComponent(id)}/${operation}`, apiOrigin);
+  const workspaceContent = (id: string) =>
+    new URL(`/internal/collaboration/workspaces/${encodeURIComponent(id)}/content`, apiOrigin);
   const internalHeaders = { [INTERNAL_SECRET_HEADER]: secret, Host: new URL(appOrigin).host };
 
   // A WebSocket, unlike a long-lived HTTP response, holds none of the browser's
@@ -139,17 +141,19 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
   async function saveWorkspaceRoom(name: string, doc: Y.Doc, version: string | null) {
     for (;;) {
       const { tree, state } = saveTree(doc);
-      const response = await requestDjango(endpoint(name, 'content'), {
+      const response = await requestDjango(workspaceContent(name), {
         method: 'PUT',
         headers: { ...internalHeaders, 'Content-Type': 'application/json' },
         body: Buffer.from(JSON.stringify({ state: Buffer.from(state).toString('base64'), tree, version })),
         signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
       });
-      if (response.status !== 409) return response;
+      if (response.status !== 409) {
+        if (response.ok) ({ version } = JSON.parse(response.body.toString()) as { version: string | null });
+        return { response, version };
+      }
       const current = JSON.parse(response.body.toString()) as { version: string | null; tree: OutlineDocument };
       applyTree(doc, current.tree);
       version = current.version;
-      workspaceVersions.set(name, version);
     }
   }
 
@@ -157,14 +161,19 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     if (deleted.has(document)) throw new DocumentDeleted();
     const savedRevision = dirty.get(document);
     try {
-      const response = workspaceVersions.has(document.name)
-        ? await saveWorkspaceRoom(document.name, document, workspaceVersions.get(document.name)!)
-        : await requestDjango(endpoint(document.name, 'content'), {
+      let response: Awaited<ReturnType<typeof requestDjango>>;
+      if (workspaceVersions.has(document)) {
+        const saved = await saveWorkspaceRoom(document.name, document, workspaceVersions.get(document) ?? null);
+        workspaceVersions.set(document, saved.version);
+        response = saved.response;
+      } else {
+        response = await requestDjango(endpoint(document.name, 'content'), {
           method: 'PUT',
           headers: { ...internalHeaders, 'Content-Type': 'application/octet-stream' },
           body: Buffer.from(state),
           signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
         });
+      }
       if (response.status === 404) {
         deleted.add(document);
         dirty.delete(document);
@@ -175,9 +184,6 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
         throw new DocumentDeleted();
       }
       if (!response.ok) throw new Error('collaboration.store-failed');
-      if (workspaceVersions.has(document.name)) {
-        workspaceVersions.set(document.name, (JSON.parse(response.body.toString()) as { version: string | null }).version);
-      }
       if (dirty.get(document) === savedRevision) dirty.delete(document);
       clearTimeout(retries.get(document));
       retries.delete(document);
@@ -194,19 +200,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
    * A workspace room's state. When it doesn't hold the current file, the file's tree is applied
    * and saved before any client syncs, so every load after one change gives the same state.
    */
-  async function loadWorkspaceRoom(name: string) {
-    let response: Awaited<ReturnType<typeof requestDjango>>;
-    try {
-      response = await requestDjango(endpoint(name, 'content'), {
-        headers: internalHeaders,
-        signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
-      });
-    } catch {
-      throw new CollaborationUnavailable('collaboration.load-failed');
-    }
-    if (response.status === 404) throw new DocumentDeleted();
-    if (!response.ok) throw new CollaborationUnavailable('collaboration.load-failed');
-    const loaded = JSON.parse(response.body.toString()) as {
+  async function loadWorkspaceRoom(document: Document) {
+    const loaded = JSON.parse((await loadContent(workspaceContent(document.name))).toString()) as {
       version: string | null; state: string | null; tree?: OutlineDocument;
     };
     const doc = new Y.Doc();
@@ -214,19 +209,31 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     let version = loaded.version;
     if (loaded.tree) {
       applyTree(doc, loaded.tree);
-      let saved: Awaited<ReturnType<typeof requestDjango>>;
+      let saved: Awaited<ReturnType<typeof saveWorkspaceRoom>>;
       try {
-        saved = await saveWorkspaceRoom(name, doc, version);
+        saved = await saveWorkspaceRoom(document.name, doc, version);
       } catch {
         throw new CollaborationUnavailable('collaboration.load-failed');
       }
-      if (!saved.ok) throw new CollaborationUnavailable('collaboration.load-failed');
-      version = (JSON.parse(saved.body.toString()) as { version: string | null }).version;
+      if (!saved.response.ok) throw new CollaborationUnavailable('collaboration.load-failed');
+      ({ version } = saved);
     }
-    workspaceVersions.set(name, version);
+    workspaceVersions.set(document, version);
     const state = Y.encodeStateAsUpdate(doc);
     doc.destroy();
     return state;
+  }
+
+  async function loadContent(url: URL) {
+    let response: Awaited<ReturnType<typeof requestDjango>>;
+    try {
+      response = await requestDjango(url, { headers: internalHeaders, signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS) });
+    } catch {
+      throw new CollaborationUnavailable('collaboration.load-failed');
+    }
+    if (response.status === 404) throw new DocumentDeleted();
+    if (!response.ok) throw new CollaborationUnavailable('collaboration.load-failed');
+    return response.body;
   }
 
   function scheduleRetry(document: Document) {
@@ -272,20 +279,9 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     debounce: 1000,
     maxDebounce: 5000,
     extensions: [new Database({
-      fetch: async ({ documentName, context }: { documentName: string; context: { workspace?: boolean } }) => {
-        if (context.workspace) return loadWorkspaceRoom(documentName);
-        let response: Awaited<ReturnType<typeof requestDjango>>;
-        try {
-          response = await requestDjango(endpoint(documentName, 'content'), {
-            headers: internalHeaders,
-            signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
-          });
-        } catch {
-          throw new CollaborationUnavailable('collaboration.load-failed');
-        }
-        if (response.status === 404) throw new DocumentDeleted();
-        if (!response.ok) throw new CollaborationUnavailable('collaboration.load-failed');
-        const bytes = new Uint8Array(response.body);
+      fetch: async ({ document, documentName, context }: { document: Document; documentName: string; context: { workspace?: boolean } }) => {
+        if (context.workspace) return loadWorkspaceRoom(document);
+        const bytes = new Uint8Array(await loadContent(endpoint(documentName, 'content')));
         return bytes.length ? bytes : null;
       },
       store: async ({ document, state }) => {
@@ -340,9 +336,6 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       if (!response.ok) throw new CollaborationUnavailable();
       const { workspace } = JSON.parse(response.body.toString()) as { workspace?: boolean };
       return { operator, workspace: workspace === true };
-    },
-    async afterUnloadDocument({ documentName }) {
-      workspaceVersions.delete(documentName);
     },
     async onStateless({ connection, document, payload }) {
       const message = decodePersistenceMessage(payload);

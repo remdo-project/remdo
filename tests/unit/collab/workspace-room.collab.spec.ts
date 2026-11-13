@@ -38,7 +38,7 @@ const texts = (tree: Document) => tree.children.map((note) => ((note as OutlineN
 
 function retext(tree: Document, from: string, to: string): Document {
   const copy = structuredClone(tree);
-  const note = copy.children.find((child) => texts({ id: null, children: [child] })[0] === from) as OutlineNote;
+  const note = copy.children.find((child) => ((child as OutlineNote).runs[0] as { text: string }).text === from) as OutlineNote;
   note.runs = [{ kind: 'text', text: to, marks: [] }];
   return copy;
 }
@@ -100,7 +100,7 @@ describe('workspace rooms', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     const workspace = await createWorkspace('- a\n');
     const room = await open(workspace);
     try {
-      const response = await fetch(`${resolveApiServerOrigin()}/internal/collaboration/documents/${workspace}/content`, {
+      const response = await fetch(`${resolveApiServerOrigin()}/internal/collaboration/workspaces/${workspace}/content`, {
         headers: { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET },
       });
       const loaded = await response.json() as { version: string | null; tree?: unknown };

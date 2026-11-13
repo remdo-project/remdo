@@ -1,22 +1,26 @@
+import { isDeepStrictEqual } from 'node:util';
 import { $createLinkNode, $isLinkNode } from '@lexical/link';
+import type { LinkNode } from '@lexical/link';
 import type { ListItemNode, ListNode } from '@lexical/list';
 import { $createListItemNode, $isListNode } from '@lexical/list';
-import type { ElementNode, LexicalNode, TextNode } from 'lexical';
+import type { LexicalNode, TextNode } from 'lexical';
 import { $createLineBreakNode, $createTextNode, $getRoot, $getState, $isLineBreakNode, $isTextNode, $setState, TEXT_TYPE_TO_FORMAT } from 'lexical';
 import { $createDateNode, $isDateNode } from '#client/editor/features/date/date-node';
 import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
 import { checkboxState, markerState, verbatimState } from '#client/editor/features/list-types/note-marker';
 import {
-  $getOrCreateChildList, getContentSiblings, getNodesForNote, maybeRemoveEmptyWrapper,
+  $getOrCreateChildList, getContentSiblings, getNodesForNote, insertAfter, insertBefore, maybeRemoveEmptyWrapper,
 } from '#client/editor/outline/list-structure';
+import { forEachContentItemInOutline } from '#client/editor/outline/list-traversal';
 import { $normalizeOutlineRoot, $shouldNormalizeOutlineRoot } from '#client/editor/outline/normalization';
-import { getNestedList, removeNoteSubtree } from '#client/editor/outline/selection/tree';
+import { $requireRootContentList } from '#client/editor/outline/schema';
+import { removeNoteSubtree } from '#client/editor/outline/selection/tree';
 import { $getNoteId, noteIdState } from '#client/editor/runtime/note-ids/note-id-state';
 import { $getDocumentTextId, $setDocumentTextId, $setHasTextId } from '#client/editor/runtime/note-ids/text-id-state';
 import { createUniqueNoteId } from '#domain/notes/ids';
 import { $readNote, FORMAT_MARKS, isNumbered } from './read';
-import { joinName, nameOf } from './runs';
-import type { Document, Marker, Run, TreeNote } from './tree';
+import { isPlainText, isSpace, joinName } from './runs';
+import type { Document, Run, TreeNote } from './tree';
 
 /**
  * Change the editor to hold `document`, matching notes by cache ID. Notes already as the tree
@@ -26,20 +30,14 @@ export function $applyTree(document: Document): void {
   const root = $getRoot();
   if ($getDocumentTextId(root) !== document.id) $setDocumentTextId(root, document.id);
   if ($shouldNormalizeOutlineRoot(root)) $normalizeOutlineRoot(root);
-  const list = root.getFirstChild();
-  if (!$isListNode(list)) throw new Error('A normalized outline root holds one list.');
+  const list = $requireRootContentList();
   const live = new Map<string, ListItemNode>();
   const items: ListItemNode[] = [];
-  const collect = (from: ListNode) => {
-    for (const item of getContentSiblings(from)) {
-      items.push(item);
-      const cacheId = $getNoteId(item);
-      if (cacheId !== null && !live.has(cacheId)) live.set(cacheId, item);
-      const nested = getNestedList(item);
-      if (nested) collect(nested);
-    }
-  };
-  collect(list);
+  forEachContentItemInOutline(list, (item) => {
+    items.push(item);
+    const cacheId = $getNoteId(item);
+    if (cacheId !== null && !live.has(cacheId)) live.set(cacheId, item);
+  });
   const kept = new Set<ListItemNode>();
   $applyChildren(list, document.children, live, kept);
   for (const item of items) {
@@ -65,7 +63,7 @@ function $applyChildren(list: ListNode, notes: readonly TreeNote[], live: Map<st
       const cacheId = claimed !== null && !live.has(claimed) ? claimed : createUniqueNoteId();
       $setState(item, noteIdState, cacheId);
       live.set(cacheId, item);
-      $setState(item, markerState, note.kind === 'body' ? 'block' : markerToEditor(note.marker));
+      $setState(item, markerState, markerOf(note));
       kept.add(item);
       $place(list, previous, [item]);
     } else if (!stay.has(item)) {
@@ -81,51 +79,45 @@ function $applyChildren(list: ListNode, notes: readonly TreeNote[], live: Map<st
   });
 }
 
-/** The targets already in order among a list's items, the longest such run, which needn't move. */
+/**
+ * The targets already in order among a list's items, which needn't move: the longest increasing run
+ * of their current positions, since each item is targeted at most once.
+ */
 function inPlace(current: readonly ListItemNode[], targets: readonly (ListItemNode | null)[]): Set<ListItemNode> {
-  const wanted = targets.filter((item): item is ListItemNode => item !== null);
-  const lengths = Array.from({ length: current.length + 1 }, () => Array.from<number>({ length: wanted.length + 1 }).fill(0));
-  for (let i = current.length - 1; i >= 0; i -= 1) {
-    for (let j = wanted.length - 1; j >= 0; j -= 1) {
-      lengths[i]![j] = current[i] === wanted[j]
-        ? lengths[i + 1]![j + 1]! + 1
-        : Math.max(lengths[i + 1]![j]!, lengths[i]![j + 1]!);
+  const position = new Map(current.map((item, index) => [item, index]));
+  const present = targets.filter((item): item is ListItemNode => item !== null && position.has(item));
+  const tails: number[] = [];
+  const previous: number[] = [];
+  present.forEach((item, index) => {
+    const at = position.get(item)!;
+    let low = 0;
+    let high = tails.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (position.get(present[tails[middle]!]!)! < at) low = middle + 1;
+      else high = middle;
     }
-  }
+    previous[index] = low > 0 ? tails[low - 1]! : -1;
+    tails[low] = index;
+  });
   const stay = new Set<ListItemNode>();
-  for (let i = 0, j = 0; i < current.length && j < wanted.length;) {
-    if (current[i] === wanted[j]) {
-      stay.add(current[i]!);
-      i += 1;
-      j += 1;
-    } else if (lengths[i + 1]![j]! >= lengths[i]![j + 1]!) i += 1;
-    else j += 1;
-  }
+  for (let index = tails.at(-1) ?? -1; index !== -1; index = previous[index]!) stay.add(present[index]!);
   return stay;
 }
 
 function $place(list: ListNode, previous: ListItemNode | null, nodes: LexicalNode[]) {
-  let reference: LexicalNode | null = previous ? getNodesForNote(previous).at(-1)! : null;
-  for (const node of nodes) {
-    if (reference) reference.insertAfter(node);
-    else if (list.getFirstChild()) list.getFirstChild()!.insertBefore(node);
-    else list.append(node);
-    reference = node;
-  }
+  const first = list.getFirstChild();
+  if (previous) insertAfter(getNodesForNote(previous).at(-1)!, nodes);
+  else if (first) insertBefore(first, nodes);
+  else list.append(...nodes);
 }
-
-const canonical = (value: unknown): string => JSON.stringify(value, (_key, entry: unknown) => (
-  entry && typeof entry === 'object' && !Array.isArray(entry)
-    ? Object.fromEntries(Object.entries(entry).sort(([a], [b]) => a.localeCompare(b)))
-    : entry
-));
 
 const own = (note: TreeNote) => (note.kind === 'outline' ? { ...note, cacheId: null, children: [] } : { ...note, cacheId: null });
 
 function $updateNote(item: ListItemNode, note: TreeNote, listType: string, afterNumber: boolean) {
   const current = $readNote(item, listType, { children: false, afterNumber });
-  if (current.kind === note.kind && canonical(own(current)) === canonical(own(note))) return;
-  const marker: string = note.kind === 'body' ? 'block' : markerToEditor(note.marker);
+  if (isDeepStrictEqual(own(current), own(note))) return;
+  const marker = markerOf(note);
   if ($getState(item, markerState) !== marker) $setState(item, markerState, marker);
   const checkbox = note.kind === 'outline' && note.checkbox !== null;
   if (($getState(item, checkboxState) === true) !== checkbox) $setState(item, checkboxState, checkbox ? true : undefined);
@@ -140,17 +132,20 @@ function $updateNote(item: ListItemNode, note: TreeNote, listType: string, after
   $spliceContent(item, atomsOf(note), note.kind === 'outline');
 }
 
-function markerToEditor(marker: Marker): string {
+function markerOf(note: TreeNote): string {
+  if (note.kind === 'body') return 'block';
+  const { marker } = note;
   if (marker.kind === 'heading') return `heading:${marker.level}`;
   if (marker.kind === 'number') return marker.start === null ? 'number' : `number:${marker.start}`;
   return 'bullet';
 }
 
-type Atom =
-  | { kind: 'char'; char: string; format: number; link: string | null; node?: TextNode; offset?: number }
-  | { kind: 'break' }
-  | { kind: 'date'; date: string }
-  | { kind: 'other' };
+interface Char { kind: 'char'; char: string; format: number; link: string | null }
+/** A character of live content, with where it sits. */
+interface LiveChar extends Char { node: TextNode; offset: number }
+type Atom = Char | LiveChar | { kind: 'break' } | { kind: 'date'; date: string } | { kind: 'other' };
+
+const isLive = (atom: Atom | undefined): atom is LiveChar => atom?.kind === 'char' && 'node' in atom;
 
 const FORMAT_BITS = new Map(FORMAT_MARKS.map(([format, mark]) => [mark, TEXT_TYPE_TO_FORMAT[format]]));
 
@@ -164,11 +159,11 @@ function atomsOf(note: TreeNote): Atom[] {
   const [first] = note.runs;
   if (first?.kind === 'verbatim') return textAtoms(joinName(note.name, first.text));
   const runs = [...note.runs];
-  const lead = first?.kind === 'text' && first.marks.length === 0 ? first.text : null;
+  const lead = isPlainText(first) ? first.text : null;
   if (note.name !== null) {
     if (lead !== null) runs[0] = { kind: 'text', text: `${note.name}:: ${lead}`, marks: [] };
     else runs.unshift({ kind: 'text', text: runs.length > 0 ? `${note.name}:: ` : `${note.name}::`, marks: [] });
-  } else if (lead !== null && nameOf(lead) !== null) {
+  } else if (lead !== null) {
     runs[0] = { kind: 'text', text: joinName(null, lead), marks: [] };
   }
   return runAtoms(runs, null);
@@ -223,7 +218,7 @@ function sameAtom(a: Atom, b: Atom): boolean {
 }
 
 const isEdgeSpace = (atom: Atom | undefined) =>
-  atom?.kind === 'char' && /^\s$/u.test(atom.char) && (atom.format & FORMAT_BITS.get('code')!) === 0;
+  atom?.kind === 'char' && isSpace(atom.char) && (atom.format & FORMAT_BITS.get('code')!) === 0;
 
 /**
  * Replace only the atoms that differ. Whitespace at an outline note's edges isn't its text, so the
@@ -272,46 +267,45 @@ function $spliceContent(item: ListItemNode, wanted: Atom[], keepEdges: boolean) 
 
 /** Edit one text node in place when the change sits inside it and keeps its format and link. */
 function $spliceOneText(atoms: Atom[], start: number, removed: Atom[], inserted: Atom[]): boolean {
-  const host = removed[0] ?? (atoms[start - 1]?.kind === 'char' ? atoms[start - 1] : atoms[start]);
-  if (host?.kind !== 'char') return false;
-  const fits = (atom: Atom) => atom.kind === 'char' && atom.format === host.format && atom.link === host.link;
-  if (!removed.every((atom) => fits(atom) && atom.kind === 'char' && atom.node === host.node)) return false;
+  const before = atoms[start - 1];
+  const host = removed[0] ?? (before?.kind === 'char' ? before : atoms[start]);
+  if (!isLive(host)) return false;
+  const fits = (atom: Atom): atom is Char => atom.kind === 'char' && atom.format === host.format && atom.link === host.link;
+  if (!removed.every((atom) => isLive(atom) && fits(atom) && atom.node === host.node)) return false;
   if (!inserted.every(fits)) return false;
-  const text = inserted.map((atom) => (atom as { char: string }).char).join('');
-  const offset = removed[0] === undefined && host === atoms[start - 1]
-    ? host.offset! + host.char.length
-    : host.offset!;
-  const length = removed.reduce((sum, atom) => sum + (atom as { char: string }).char.length, 0);
-  host.node!.spliceText(offset, length, text, false);
+  const offset = removed.length === 0 && host === before ? host.offset + host.char.length : host.offset;
+  const length = (removed as Char[]).reduce((sum, atom) => sum + atom.char.length, 0);
+  host.node.spliceText(offset, length, inserted.map((atom) => atom.char).join(''), false);
   return true;
 }
 
 function $nodesOf(atoms: readonly Atom[]): LexicalNode[] {
   const nodes: LexicalNode[] = [];
-  let link: ElementNode | null = null;
-  let linkHref: string | null = null;
-  for (const atom of atoms) {
-    if (atom.kind !== 'char' || atom.link !== linkHref) {
+  let link: LinkNode | null = null;
+  for (let index = 0; index < atoms.length;) {
+    const atom = atoms[index]!;
+    index += 1;
+    if (atom.kind !== 'char') {
       link = null;
-      linkHref = null;
+      if (atom.kind === 'break') nodes.push($createLineBreakNode());
+      else if (atom.kind === 'date') nodes.push($createDateNode(atom.date));
+      continue;
     }
-    if (atom.kind === 'break') nodes.push($createLineBreakNode());
-    else if (atom.kind === 'date') nodes.push($createDateNode(atom.date));
-    else if (atom.kind === 'char') {
-      if (atom.link !== null && link === null) {
-        link = $createLinkNode(atom.link);
-        linkHref = atom.link;
-        nodes.push(link);
-      }
-      const into: LexicalNode[] = link ? link.getChildren() : nodes;
-      const previous = into.at(-1);
-      if ($isTextNode(previous) && previous.getFormat() === atom.format) previous.setTextContent(previous.getTextContent() + atom.char);
-      else {
-        const text = $createTextNode(atom.char).setFormat(atom.format);
-        if (link) link.append(text);
-        else nodes.push(text);
-      }
+    let text = atom.char;
+    while (index < atoms.length) {
+      const next = atoms[index]!;
+      if (next.kind !== 'char' || next.format !== atom.format || next.link !== atom.link) break;
+      text += next.char;
+      index += 1;
     }
+    if (atom.link !== (link?.getURL() ?? null)) link = null;
+    if (atom.link !== null && link === null) {
+      link = $createLinkNode(atom.link);
+      nodes.push(link);
+    }
+    const node = $createTextNode(text).setFormat(atom.format);
+    if (link) link.append(node);
+    else nodes.push(node);
   }
   return nodes;
 }

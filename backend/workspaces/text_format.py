@@ -459,6 +459,9 @@ def _looks_named(text):
     return match if match and not re.search(r"[*_`\[\]<&\\]", match.group(1)) else None
 
 
+MARKER_FIELDS = {"number": "start", "heading": "level"}
+
+
 def to_json(document):
     """The outline tree Node converts Yjs state to and from (src/headless/outline-tree/tree.ts)."""
     return {"id": document.id, "children": [_note_json(note) for note in document.children]}
@@ -469,10 +472,8 @@ def _note_json(note):
         return {"kind": "body", "source": list(note.source), "cacheId": note.cache_id}
     kind, *value = note.marker
     marker = {"kind": kind}
-    if kind == "number":
-        marker["start"] = value[0]
-    elif kind == "heading":
-        marker["level"] = value[0]
+    if kind in MARKER_FIELDS:
+        marker[MARKER_FIELDS[kind]] = value[0]
     return {
         "kind": "outline",
         "marker": marker,
@@ -504,10 +505,10 @@ def _note_from_json(data):
     if data["kind"] == "body":
         return Note("body", list(data["source"]), cache_id=data["cacheId"])
     marker = data["marker"]
-    value = {"number": ("start",), "heading": ("level",)}.get(marker["kind"], ())
+    kind = marker["kind"]
     return Note(
         "outline",
-        marker=(marker["kind"], *(marker[key] for key in value)),
+        marker=(kind, marker[MARKER_FIELDS[kind]]) if kind in MARKER_FIELDS else (kind,),
         checkbox=data["checkbox"],
         name=data["name"],
         runs=[_run_from_json(run) for run in data["runs"]],

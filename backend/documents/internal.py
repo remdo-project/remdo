@@ -28,8 +28,16 @@ def internal_only(view):
     return csrf_exempt(never_cache(authenticated))
 
 
-def _caller(request):
-    """The user a connection authenticates as, or the response refusing it."""
+@internal_only
+@require_GET
+def authorize(request, document_id):
+    # Workspace and editor document IDs share one alphabet, so a room's ID is looked up as either.
+    workspace = Workspace.objects.filter(pk=document_id).first()
+    if workspace is not None:
+        return workspace_rooms.authorize(request, workspace)
+    if request.headers.get("X-Remdo-Collaboration-Operator") == "1":
+        get_object_or_404(Document, pk=document_id)
+        return JsonResponse({"operator": True})
     if bearer_token(authorization := request.headers.get("Authorization", "")):
         user = delegated_user(authorization)
         if user is None:
@@ -40,29 +48,6 @@ def _caller(request):
         user = None
     if user is None or not user.is_authenticated:
         return HttpResponse(status=403)
-    return user
-
-
-@internal_only
-@require_GET
-def authorize(request, document_id):
-    # Workspace and editor document IDs share one alphabet, so a room's ID is looked up as either.
-    workspace = Workspace.objects.filter(pk=document_id).first()
-    if request.headers.get("X-Remdo-Collaboration-Operator") == "1":
-        if workspace is None:
-            get_object_or_404(Document, pk=document_id)
-            return JsonResponse({"operator": True})
-        return JsonResponse({"operator": True, "workspace": True})
-    if workspace is not None and bearer_token(request.headers.get("Authorization", "")):
-        # Integrations change a workspace through note operations; its room is the browser's.
-        return HttpResponse(status=403)
-    user = _caller(request)
-    if isinstance(user, HttpResponse):
-        return user
-    if workspace is not None:
-        if not workspace_rooms.may_open(user, workspace):
-            return HttpResponse(status=403)
-        return JsonResponse({"userId": str(user.pk), "workspace": True})
     document = get_object_or_404(Document, pk=document_id)
     if not Document.objects.accessible_to(user).filter(pk=document.pk).exists():
         return HttpResponse(status=403)
@@ -83,13 +68,6 @@ def session_user(request):
 @internal_only
 @require_http_methods(["GET", "PUT"])
 def content(request, document_id):
-    workspace = Workspace.objects.filter(pk=document_id).first()
-    if workspace is not None:
-        if request.method == "GET":
-            return workspace_rooms.load(workspace)
-        if request.content_type != "application/json":
-            return HttpResponse(status=415)
-        return workspace_rooms.save(request, workspace)
     document = get_object_or_404(Document, pk=document_id)
     if request.method == "GET":
         state = (

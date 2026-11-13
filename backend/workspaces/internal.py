@@ -3,8 +3,11 @@
 import base64
 import json
 
+from django.conf import settings
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_http_methods
 from documents.notices import notify_document_list_changed
 from notes.service import can_use_workspaces
 
@@ -15,8 +18,27 @@ from .source import README
 SAVE_MESSAGE = "Edit in the editor"
 
 
-def may_open(user, workspace):
-    return user.pk == workspace.owner_id and can_use_workspaces(user)
+def authorize(request, workspace):
+    """Only the owner's browser sessions open the room; integrations use note operations."""
+    user = request.user
+    if (
+        request.headers.get("Origin") not in settings.CSRF_TRUSTED_ORIGINS
+        or not user.is_authenticated
+        or user.pk != workspace.owner_id
+        or not can_use_workspaces(user)
+    ):
+        return HttpResponse(status=403)
+    return JsonResponse({"userId": str(user.pk), "workspace": True})
+
+
+@require_http_methods(["GET", "PUT"])
+def content(request, workspace_id):
+    workspace = get_object_or_404(Workspace, pk=workspace_id)
+    if request.method == "GET":
+        return _load(workspace)
+    if request.content_type != "application/json":
+        return HttpResponse(status=415)
+    return _save(request, workspace)
 
 
 def _tree(file):
@@ -24,7 +46,7 @@ def _tree(file):
     return text_format.to_json(text_format.read(text))
 
 
-def load(workspace):
+def _load(workspace):
     """The room's state, with the file's tree when the state doesn't hold the current file."""
     file = store.read(workspace, README)
     row = DocumentState.objects.filter(workspace=workspace).first()
@@ -37,7 +59,7 @@ def load(workspace):
     return JsonResponse(body)
 
 
-def save(request, workspace):
+def _save(request, workspace):
     """Write the tree's text and the state holding it together, or refuse a stale state."""
     data = json.loads(request.read())
     state = base64.b64decode(data["state"])
