@@ -468,7 +468,15 @@ Remaining:
   outline, with its Markdown text box as a second view. The outline shows a file
   change made while it's open only once a client saves or the room reloads,
   since a reader never saves; editing the outline and agent edits through the
-  room's tree close this.
+  room's tree close this. A reader still writes once: when a peer empties the
+  document, Lexical's Yjs binding adds an empty root paragraph to the room.
+  Reading the tree skips it, so the file is unaffected, but the room then holds
+  a node no file line gives.
+
+- **Links in workspace documents.** The editor's external-link handling unwraps
+  every link whose target isn't http(s), so an editable workspace outline that
+  mounts it would strip `file:`, relative and `note:` links from the file.
+  Workspace documents need link handling that keeps targets as written.
 
 - **Cache IDs through recovery.** [Workspace document state](architecture.md#workspace-document-state)
   recovers from a changed file by applying its tree, which holds no cache IDs.

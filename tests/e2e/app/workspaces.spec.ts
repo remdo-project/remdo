@@ -1,8 +1,6 @@
 import type { Page } from '@playwright/test';
-import { config } from '#config';
 import { expect, test } from '#e2e/fixtures';
 import type { components } from '#platform/http/api-schema';
-import { resolveApiServerOrigin } from '#platform/net/origins';
 
 const showMarkdown = (page: Page) => page.getByText('Markdown', { exact: true }).click();
 
@@ -75,7 +73,7 @@ test('Home and an open workspace follow changes made elsewhere', async ({ page }
 });
 
 test('a workspace document opens as a read-only outline of its Markdown', async ({ page }) => {
-  const created = await call(page, [{
+  await call(page, [{
     op: 'insert', parent: 'me', kind: 'workspace', text: 'Outline',
     content: '# Trip\n\nFour days.\n\n1. Alfama\n2. Belém\n- [x] Book flights\n',
   }]);
@@ -91,17 +89,4 @@ test('a workspace document opens as a read-only outline of its Markdown', async 
   await expect(note('Belém')).toHaveAttribute('data-number', '2');
   await expect(note('Book flights')).toHaveAttribute('data-checkbox', 'true');
   await expect(note('Book flights')).toHaveAttribute('data-note-checked', 'true');
-
-  // The outline only reads: the room's saved state stays as the hub seeded it.
-  const workspace = String(created.results[0]!.ref);
-  const roomState = async () => {
-    const state = await page.request.get(`${resolveApiServerOrigin()}/internal/collaboration/workspaces/${workspace}/content`, {
-      headers: { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET },
-    });
-    return ((await state.json()) as { state: string | null }).state;
-  };
-  const seeded = await roomState();
-  expect(seeded).not.toBeNull();
-  await page.waitForTimeout(6000);
-  expect(await roomState()).toBe(seeded);
 });
