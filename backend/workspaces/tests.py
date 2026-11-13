@@ -1,6 +1,10 @@
+from datetime import timedelta
+from unittest.mock import patch
+
 from accounts.models import User
 from django.db.models import RestrictedError
 from django.test import TestCase
+from django.utils import timezone
 
 from . import store
 from .models import FILE_MAX_BYTES, Blob, Revision, Workspace
@@ -238,3 +242,74 @@ class WorkspaceStoreTests(TestCase):
             self.commit({"missing.md": None})
         with self.assertRaises(store.InvalidContent):
             self.commit({"b.md": "text, not bytes\n"})
+
+
+class OpenHeadTests(TestCase):
+    """A live document's saves gather in an open head until it is sealed."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = User.objects.create_user("owner@example.test", "Owner-password-123")
+        cls.agent = User.objects.create_user("agent@example.test", "Agent-password-123")
+
+    def setUp(self):
+        self.workspace = Workspace.objects.create(name="Personal", owner=self.owner)
+        self.now = timezone.now()
+
+    def save(self, content, author=None, after=timedelta(0), continuing=True):
+        self.now += after
+        expected = store.read(self.workspace, "a.md").blob_hash
+        with patch("django.utils.timezone.now", return_value=self.now):
+            return store.commit(
+                self.workspace,
+                author or self.owner,
+                "save",
+                {"a.md": (expected, content)},
+                continuing=continuing,
+            )
+
+    def test_saves_by_one_author_in_quick_succession_gather_in_one_revision(self):
+        first = self.save(b"1\n")
+        second = self.save(b"2\n", after=timedelta(seconds=90))
+
+        self.assertEqual(second, first)
+        self.assertEqual(Revision.objects.filter(workspace=self.workspace).count(), 1)
+        self.assertEqual(store.files_at(second), {"a.md": b"2\n"})
+        self.assertFalse(Blob.objects.filter(hash=store.blob_hash(b"1\n")).exists())
+
+    def test_a_pause_or_another_author_seals_the_head(self):
+        for later in ({"after": timedelta(minutes=3)}, {"author": self.agent}):
+            with self.subTest(**{key: str(value) for key, value in later.items()}):
+                self.workspace = Workspace.objects.create(name=str(later), owner=self.owner)
+                opened = self.save(b"open\n")
+                sealed_by = self.save(b"next\n", **later)
+
+                opened.refresh_from_db()
+                self.assertNotEqual(sealed_by, opened)
+                self.assertTrue(opened.sealed)
+                self.assertEqual(store.files_at(opened), {"a.md": b"open\n"})
+
+    def test_a_head_open_ten_minutes_seals_even_while_saves_continue(self):
+        opened = self.save(b"0\n")
+        for minute in range(1, 11):
+            head = self.save(f"{minute}\n".encode(), after=timedelta(minutes=1))
+
+        self.assertNotEqual(head, opened)
+        self.assertEqual(Revision.objects.filter(workspace=self.workspace).count(), 2)
+
+    def test_a_commit_that_isnt_continuing_adds_a_sealed_revision(self):
+        revision = self.save(b"agent\n", continuing=False)
+        after = self.save(b"typed\n")
+
+        revision.refresh_from_db()
+        self.assertTrue(revision.sealed)
+        self.assertNotEqual(after, revision)
+
+    def test_content_another_revision_holds_is_kept_when_the_head_replaces_it(self):
+        other = Workspace.objects.create(name="Other", owner=self.owner)
+        store.commit(other, self.owner, "", {"a.md": (None, b"shared\n")})
+        self.save(b"shared\n")
+
+        self.save(b"mine\n", after=timedelta(seconds=10))
+
+        self.assertTrue(Blob.objects.filter(hash=store.blob_hash(b"shared\n")).exists())

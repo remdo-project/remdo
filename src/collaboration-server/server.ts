@@ -9,6 +9,8 @@ import * as Y from 'yjs';
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import { createEditorHandler } from '../headless/editor-handler';
+import { applyTree, saveTree } from '../headless/outline-tree/yjs';
+import type { Document as OutlineDocument } from '../headless/outline-tree/tree';
 import { DJANGO_REQUEST_TIMEOUT_MS, isBearer, requestDjango } from '#platform/net/django-request';
 import { decodePersistenceMessage, encodePersistenceMessage } from '#platform/net/persistence-barrier';
 import { COLLABORATION_AUTHORIZATION_REJECTED } from '#platform/net/authorization-error';
@@ -20,6 +22,10 @@ import {
 } from '#platform/net/document-list-socket';
 
 export const INTERNAL_SECRET_HEADER = 'X-Remdo-Collaboration-Secret';
+// Workspace rooms are named apart from editor documents, whose IDs share their alphabet.
+const WORKSPACE_ROOM_PREFIX = 'workspace:';
+
+const workspaceOf = (room: string) => (room.startsWith(WORKSPACE_ROOM_PREFIX) ? room.slice(WORKSPACE_ROOM_PREFIX.length) : null);
 
 interface ServerOptions {
   port: number;
@@ -43,6 +49,11 @@ class DocumentDeleted extends Error {
   constructor() { super('collaboration.document-deleted'); }
 }
 
+// Django refused a workspace room's save for good; another try succeeds only after an edit.
+class SaveRefused extends Error {
+  constructor() { super('collaboration.save-refused'); }
+}
+
 export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, documentSlots = 1 }: ServerOptions) {
   if (!secret) throw new Error('COLLAB_INTERNAL_SECRET is required.');
   const editorRequests = new Set<Promise<void>>();
@@ -59,6 +70,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     }
   }, DOCUMENT_LIST_KEEPALIVE_INTERVAL_MS);
   const queuedSaves = new Map<Document, Promise<void>>();
+  // A loaded workspace room's file version, which its Yjs state holds.
+  const workspaceVersions = new WeakMap<Document, string | null>();
   let revision = 0;
   let stopping = false;
   let server: Server;
@@ -67,8 +80,11 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     const expected = Buffer.from(secret);
     return received.length === expected.length && timingSafeEqual(received, expected);
   };
-  const endpoint = (id: string, operation: string) =>
-    new URL(`/internal/collaboration/documents/${encodeURIComponent(id)}/${operation}`, apiOrigin);
+  const endpoint = (room: string, operation: string) => {
+    const workspace = workspaceOf(room);
+    const path = workspace === null ? `documents/${encodeURIComponent(room)}` : `workspaces/${encodeURIComponent(workspace)}`;
+    return new URL(`/internal/collaboration/${path}/${operation}`, apiOrigin);
+  };
   const internalHeaders = { [INTERNAL_SECRET_HEADER]: secret, Host: new URL(appOrigin).host };
 
   // A WebSocket, unlike a long-lived HTTP response, holds none of the browser's
@@ -128,36 +144,104 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     response.writeHead(204).end();
   }
 
-  async function writeState(document: Document, state: Uint8Array) {
+  /**
+   * Save a workspace room's tree as its file, with its state. A file changed
+   * since the state's version is applied to the state, which then saves again; each version the
+   * state comes to hold is recorded at once, so a later failure can't make a save apply it twice.
+   */
+  async function saveWorkspaceRoom(document: Document, doc: Y.Doc = document, load = false) {
+    for (;;) {
+      const { tree, state } = saveTree(doc);
+      const version = workspaceVersions.get(document) ?? null;
+      const response = await requestDjango(endpoint(document.name, 'content'), {
+        method: 'PUT',
+        headers: { ...internalHeaders, 'Content-Type': 'application/json' },
+        body: Buffer.from(JSON.stringify({ state: Buffer.from(state).toString('base64'), tree, version, load })),
+        signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
+      });
+      if (response.status !== 409) {
+        if (response.ok) workspaceVersions.set(document, (JSON.parse(response.body.toString()) as { version: string | null }).version);
+        return response;
+      }
+      const current = JSON.parse(response.body.toString()) as { version: string | null; tree: OutlineDocument };
+      applyTree(doc, current.tree);
+      workspaceVersions.set(document, current.version);
+    }
+  }
+
+  async function writeState(document: Document) {
     if (deleted.has(document)) throw new DocumentDeleted();
     const savedRevision = dirty.get(document);
     try {
-      const response = await requestDjango(endpoint(document.name, 'content'), {
-        method: 'PUT',
-        headers: { ...internalHeaders, 'Content-Type': 'application/octet-stream' },
-        body: Buffer.from(state),
-        signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
-      });
+      const response = workspaceOf(document.name) === null
+        ? await requestDjango(endpoint(document.name, 'content'), {
+          method: 'PUT',
+          headers: { ...internalHeaders, 'Content-Type': 'application/octet-stream' },
+          body: Buffer.from(Y.encodeStateAsUpdate(document)),
+          signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
+        })
+        : await saveWorkspaceRoom(document);
       if (response.status === 404) {
         deleted.add(document);
         dirty.delete(document);
-        clearTimeout(retries.get(document));
-        retries.delete(document);
-        retryDelays.delete(document);
+        forgetRetry(document);
         server.hocuspocus.closeConnections(document.name);
         throw new DocumentDeleted();
       }
+      // The refused edits stay with the room's clients; the next edit tries again.
+      if (response.status === 422) {
+        if (dirty.get(document) === savedRevision) dirty.delete(document);
+        forgetRetry(document);
+        throw new SaveRefused();
+      }
       if (!response.ok) throw new Error('collaboration.store-failed');
       if (dirty.get(document) === savedRevision) dirty.delete(document);
-      clearTimeout(retries.get(document));
-      retries.delete(document);
-      retryDelays.delete(document);
+      forgetRetry(document);
     } catch (error) {
-      if (error instanceof DocumentDeleted) throw error;
+      if (error instanceof DocumentDeleted || error instanceof SaveRefused) throw error;
       scheduleRetry(document);
       // Hocuspocus logs hook failures: never attach the request, content, or original error.
       throw new Error('collaboration.store-failed');
     }
+  }
+
+  /**
+   * A workspace room's state. When it doesn't hold the current file, the file's tree is applied
+   * and saved before any client syncs, so every load after one change gives the same state.
+   */
+  async function loadWorkspaceRoom(document: Document) {
+    const loaded = JSON.parse((await loadContent(endpoint(document.name, 'content'))).toString()) as {
+      version: string | null; state: string | null; tree?: OutlineDocument;
+    };
+    workspaceVersions.set(document, loaded.version);
+    const doc = new Y.Doc();
+    if (loaded.state) Y.applyUpdate(doc, Buffer.from(loaded.state, 'base64'));
+    if (loaded.tree) {
+      applyTree(doc, loaded.tree);
+      const saved = await saveWorkspaceRoom(document, doc, true).catch(() => null);
+      if (!saved?.ok) throw new CollaborationUnavailable('collaboration.load-failed');
+    }
+    const state = Y.encodeStateAsUpdate(doc);
+    doc.destroy();
+    return state;
+  }
+
+  async function loadContent(url: URL) {
+    let response: Awaited<ReturnType<typeof requestDjango>>;
+    try {
+      response = await requestDjango(url, { headers: internalHeaders, signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS) });
+    } catch {
+      throw new CollaborationUnavailable('collaboration.load-failed');
+    }
+    if (response.status === 404) throw new DocumentDeleted();
+    if (!response.ok) throw new CollaborationUnavailable('collaboration.load-failed');
+    return response.body;
+  }
+
+  function forgetRetry(document: Document) {
+    clearTimeout(retries.get(document));
+    retries.delete(document);
+    retryDelays.delete(document);
   }
 
   function scheduleRetry(document: Document) {
@@ -171,7 +255,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
   }
 
   function save(document: Document) {
-    return document.saveMutex.runExclusive(() => writeState(document, Y.encodeStateAsUpdate(document)));
+    return document.saveMutex.runExclusive(() => writeState(document));
   }
 
   // A save not yet started already covers every update received before it
@@ -181,7 +265,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     if (queued) return queued;
     const next = document.saveMutex.runExclusive(() => {
       queuedSaves.delete(document);
-      return writeState(document, Y.encodeStateAsUpdate(document));
+      return writeState(document);
     });
     queuedSaves.set(document, next);
     return next;
@@ -203,28 +287,18 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     debounce: 1000,
     maxDebounce: 5000,
     extensions: [new Database({
-      fetch: async ({ documentName }) => {
-        let response: Awaited<ReturnType<typeof requestDjango>>;
-        try {
-          response = await requestDjango(endpoint(documentName, 'content'), {
-            headers: internalHeaders,
-            signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
-          });
-        } catch {
-          throw new CollaborationUnavailable('collaboration.load-failed');
-        }
-        if (response.status === 404) throw new DocumentDeleted();
-        if (!response.ok) throw new CollaborationUnavailable('collaboration.load-failed');
-        const bytes = new Uint8Array(response.body);
+      fetch: async ({ document, documentName }) => {
+        if (workspaceOf(documentName) !== null) return loadWorkspaceRoom(document);
+        const bytes = new Uint8Array(await loadContent(endpoint(documentName, 'content')));
         return bytes.length ? bytes : null;
       },
-      store: async ({ document, state }) => {
+      store: async ({ document }) => {
         try {
-          await writeState(document, state);
+          await writeState(document);
         } catch (error) {
-          // A deleted registry row is terminal. Let Hocuspocus finish unloading;
-          // persistence requests still fail rather than acknowledge a SQL commit.
-          if (!(error instanceof DocumentDeleted)) throw error;
+          // A deleted registry row or a refused save is terminal. Let Hocuspocus finish
+          // unloading; persistence requests still fail rather than acknowledge a SQL commit.
+          if (!(error instanceof DocumentDeleted || error instanceof SaveRefused)) throw error;
         }
       },
     })],
@@ -281,7 +355,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       }
     },
     async onChange({ document }) {
-      if (!deleted.has(document)) dirty.set(document, ++revision);
+      if (deleted.has(document)) return;
+      dirty.set(document, ++revision);
     },
     async beforeUnloadDocument({ document }) {
       if (dirty.has(document)) {

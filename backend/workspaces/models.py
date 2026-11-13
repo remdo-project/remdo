@@ -6,6 +6,7 @@ from django.db import models
 from django.db.models import Exists, OuterRef
 from django.db.models.signals import post_delete, pre_delete
 from django.dispatch import receiver
+from django.utils import timezone
 
 WORKSPACE_NAME_MAX_LENGTH = 200
 PATH_MAX_LENGTH = 200
@@ -51,6 +52,9 @@ class Revision(models.Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    changed_at = models.DateTimeField(default=timezone.now)
+    # Only the head can be open, taking a live document's further saves until it is sealed.
+    sealed = models.BooleanField(default=True)
     message = models.TextField(blank=True)
 
     class Meta:
@@ -86,6 +90,21 @@ class WorkspaceFile(models.Model):
         ]
 
 
+class DocumentState(models.Model):
+    """A workspace document's Yjs state, cached beside the file it was saved as."""
+
+    workspace = models.OneToOneField(
+        Workspace, primary_key=True, on_delete=models.CASCADE, related_name="+"
+    )
+    state = models.BinaryField()
+    # The blob hash of the README version the state builds on; null when it builds on a missing
+    # file. Not a reference, so replaced content can be dropped while the row still names it.
+    version = models.CharField(max_length=64, null=True, blank=True)
+
+    class Meta:
+        default_permissions = ()
+
+
 @receiver(pre_delete, sender=Workspace)
 def _remember_workspace_blobs(sender, instance, **kwargs):
     instance._blob_hashes = set(
@@ -102,6 +121,10 @@ def _delete_orphaned_blobs(sender, instance, **kwargs):
     Blobs are shared across workspaces, so deleting a workspace's rows alone leaves its
     content behind. Its revisions and files are already gone when this runs.
     """
-    Blob.objects.filter(hash__in=getattr(instance, "_blob_hashes", ())).exclude(
+    delete_unreferenced_blobs(getattr(instance, "_blob_hashes", ()))
+
+
+def delete_unreferenced_blobs(hashes):
+    Blob.objects.filter(hash__in=hashes).only("hash").exclude(
         Exists(RevisionChange.objects.filter(blob=OuterRef("pk")))
     ).exclude(Exists(WorkspaceFile.objects.filter(blob=OuterRef("pk")))).delete()

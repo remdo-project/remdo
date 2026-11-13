@@ -30,6 +30,7 @@ from django.views.decorators.http import require_safe
 from documents import internal, views
 from drf_spectacular.views import SpectacularAPIView
 from notes import views as notes
+from workspaces import internal as workspace_rooms
 
 from .app_page import app_page, home_page, keep_me_posted
 from .blog import blog_index, blog_post
@@ -83,6 +84,14 @@ urlpatterns = [
     path("internal/collaboration/session", internal.session_user),
     path("internal/collaboration/documents/<str:document_id>/authorize", internal.authorize),
     path("internal/collaboration/documents/<str:document_id>/content", internal.content),
+    path(
+        "internal/collaboration/workspaces/<str:workspace_id>/authorize",
+        internal.internal_only(workspace_rooms.authorize),
+    ),
+    path(
+        "internal/collaboration/workspaces/<str:workspace_id>/content",
+        internal.internal_only(workspace_rooms.content),
+    ),
     path("api/schema", SpectacularAPIView.as_view()),
     path("blog/", blog_index, name="blog_index"),
     re_path(rf"^blog/(?P<slug>{SLUG_PATTERN})/$", blog_post, name="blog_post"),

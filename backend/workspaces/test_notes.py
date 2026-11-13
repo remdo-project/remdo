@@ -566,6 +566,31 @@ class SingleFileWorkspaceTests(TestCase):
         self.assertEqual(refusal.exception.code, "NOT_FOUND")
         self.assertFalse(Workspace.objects.exists())
 
+    def test_a_call_reading_content_a_live_save_dropped_meanwhile_is_refused(self):
+        store.commit(
+            self.workspace, self.owner, "", {"README.md": (None, b"- a\n")}, continuing=True
+        )
+        listed = store.read(self.workspace, "README.md").blob_hash
+        call = source.open_call(self.owner, self.workspace.pk, {self.readme: listed})
+        store.commit(
+            self.workspace, self.owner, "", {"README.md": (listed, b"- b\n")}, continuing=True
+        )
+
+        with self.assertRaises(notes.Refusal) as refusal:
+            call.run(
+                [
+                    {
+                        "op": "setContent",
+                        "target": self.readme,
+                        "replacements": [{"old": "a", "new": "c"}],
+                    }
+                ],
+                False,
+            )
+
+        self.assertEqual(refusal.exception.code, "FAILED_PRECONDITION")
+        self.assertEqual(store.read(self.workspace, "README.md").content, b"- b\n")
+
     def test_read_lists_a_documents_outline_notes_and_bodies(self):
         content = "- id:: doc\n\n# Trip\n\nIntro\n\n- [x] pack:: bags\n    > a body\n    - id:: k3x9\n    - socks\n"
         store.commit(self.workspace, self.owner, "", {"README.md": (None, content.encode())})

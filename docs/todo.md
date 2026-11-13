@@ -466,6 +466,25 @@ Remaining:
   notes kept as Markdown source are stored but shown as plain notes until the
   editor opens a workspace's Document.
 
+- **Cache IDs through recovery.** [Workspace document state](architecture.md#workspace-document-state)
+  recovers from a changed file by applying its tree, which holds no cache IDs.
+  [Apply](architecture.md#outline-tree) keeps a note whose text is unchanged
+  among its siblings, but a note the file edits or moves to another parent is
+  recreated, losing its fold state and, without an `id::`, its zoom URL.
+- **Refused workspace saves out of sight.** A workspace room whose save is
+  [refused](architecture.md#workspace-document-state) tells none of its
+  clients, and a refused load leaves the client reconnecting, reported again
+  each time. The editor shows both once it opens a workspace's Document.
+- **Changes an open head undoes.** A live document's saves that return a file
+  to what the open head's parent holds leave the head with a change that
+  changes nothing, which the [store](specs/workspaces/store.md#commits) would
+  otherwise refuse. Dropping it can leave an empty revision, which the store
+  can't delete on its own.
+- **Typing lost to a stale save.** When a workspace's file changes while its
+  room is open, the room's next save applies the file, discarding what was
+  typed since its last save. Stage 4 of the
+  [text format plan](text-format-plan.md) closes this with the stale-client
+  merge.
 - **Body text that reads as structure.** A body is written as stored, so body
   text that would read as structure where it sits becomes structure on the next
   read: a line `- x`, a `---` under a paragraph, or an indented first line

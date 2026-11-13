@@ -57,6 +57,7 @@ class Note:
     runs: list = field(default_factory=list)
     id: str | None = None
     children: list = field(default_factory=list)
+    cache_id: str | None = None  # the note's ID in its document's Yjs state, which the text omits
 
     @property
     def text(self):
@@ -322,8 +323,7 @@ def _runs(tokens, content):
             found = _date(href)
             if found:
                 # A date's label is presentation: it reads as its date, labelled as tools write it.
-                label = f"{found.day} {MONTHS[found.month - 1]} {found.year}"
-                top.append(Run("date", label, href=href[5:]))
+                top.append(Run("date", _date_label(found), href=href[5:]))
                 in_date = True
             else:
                 link = Run("link", href=href)
@@ -409,6 +409,10 @@ def _date(href):
         return None
 
 
+def _date_label(date):
+    return f"{date.day} {MONTHS[date.month - 1]} {date.year}"
+
+
 def _plain(tokens):
     return "".join(
         " " if token.type == "softbreak" else token.content
@@ -454,6 +458,76 @@ def _looks_named(text):
     """Text that reads as `name:: text`: a plain name, free of Markdown, before an unescaped `::`."""
     match = NAME.match(text)
     return match if match and not re.search(r"[*_`\[\]<&\\]", match.group(1)) else None
+
+
+MARKER_FIELDS = {"number": "start", "heading": "level"}
+
+
+def to_json(document):
+    """The outline tree Node converts Yjs state to and from (src/headless/outline-tree/tree.ts)."""
+    return {"id": document.id, "children": [_note_json(note) for note in document.children]}
+
+
+def _note_json(note):
+    if note.kind == "body":
+        return {"kind": "body", "source": list(note.source), "cacheId": note.cache_id}
+    kind, *value = note.marker
+    marker = {"kind": kind}
+    if kind in MARKER_FIELDS:
+        marker[MARKER_FIELDS[kind]] = value[0]
+    return {
+        "kind": "outline",
+        "marker": marker,
+        "checkbox": note.checkbox,
+        "name": note.name,
+        "runs": [_run_json(run) for run in note.runs],
+        "id": note.id,
+        "cacheId": note.cache_id,
+        "children": [_note_json(child) for child in note.children],
+    }
+
+
+def _run_json(run):
+    if run.kind == "text":
+        return {"kind": "text", "text": run.text, "marks": sorted(run.marks)}
+    if run.kind == "link":
+        return {"kind": "link", "href": run.href, "runs": [_run_json(inner) for inner in run.runs]}
+    if run.kind == "date":
+        return {"kind": "date", "date": run.href}
+    return {"kind": "verbatim", "text": run.text}
+
+
+def from_json(data):
+    """The document an outline tree from Node holds."""
+    return Document(data["id"], [_note_from_json(note) for note in data["children"]])
+
+
+def _note_from_json(data):
+    if data["kind"] == "body":
+        return Note("body", list(data["source"]), cache_id=data["cacheId"])
+    marker = data["marker"]
+    kind = marker["kind"]
+    return Note(
+        "outline",
+        marker=(kind, marker[MARKER_FIELDS[kind]]) if kind in MARKER_FIELDS else (kind,),
+        checkbox=data["checkbox"],
+        name=data["name"],
+        runs=[_run_from_json(run) for run in data["runs"]],
+        id=data["id"],
+        children=[_note_from_json(child) for child in data["children"]],
+        cache_id=data["cacheId"],
+    )
+
+
+def _run_from_json(data):
+    kind = data["kind"]
+    if kind == "text":
+        return Run("text", data["text"], tuple(sorted(data["marks"])))
+    if kind == "link":
+        return Run("link", href=data["href"], runs=[_run_from_json(run) for run in data["runs"]])
+    if kind == "date":
+        return Run("date", _date_label(_date(f"date:{data['date']}")), href=data["date"])
+    return Run("verbatim", data["text"])
 
 
 def write(document):

@@ -207,6 +207,10 @@ Responses from external services and failures generated before a request reaches
 Django remain outside this reporting.
 **Deterministic.**
 
+Django also reports a [workspace room's refused load or save](../../architecture.md#workspace-document-state)
+as a warning grouped by its reason, without the workspace or its content.
+**Deterministic.**
+
 Beyond the [diagnostics principle](../../principles.md#data-and-trust), reports
 and their delivery exclude user identity, client addresses, cookies, request
 headers other than the user agent, query strings and fragments of reported

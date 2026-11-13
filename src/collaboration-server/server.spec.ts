@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { createServer, request as httpRequest } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { connect as connectSocket } from 'node:net';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
@@ -37,6 +38,8 @@ let stores: Uint8Array[];
 let persisted: Uint8Array;
 let holdStore: Promise<void> | undefined;
 let releaseStore: (() => void) | undefined;
+let workspaceSaves: Array<string | null>;
+let workspaceReplies: Array<{ status: number; body: unknown } | 'dropped'>;
 let origin: string;
 const clients: HocuspocusProvider[] = [];
 let runtime: ReturnType<typeof createCollaborationServer>;
@@ -66,6 +69,10 @@ const backend = createServer((request, response) => {
       response.writeHead(404).end();
       return;
     }
+    if (request.url!.startsWith('/internal/collaboration/workspaces/')) {
+      await answerWorkspace(request, response);
+      return;
+    }
     if (request.url?.endsWith('/authorize')) {
       authorizations++;
       authorizeHeaders.push(request.headers);
@@ -88,6 +95,24 @@ const backend = createServer((request, response) => {
   })();
 });
 
+async function answerWorkspace(request: IncomingMessage, response: ServerResponse) {
+  if (request.url!.endsWith('/authorize')) {
+    response.writeHead(200).end('{}');
+    return;
+  }
+  if (request.method === 'GET') {
+    response.writeHead(200).end(JSON.stringify({ version: 'v1', state: null }));
+    return;
+  }
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) chunks.push(Buffer.from(chunk));
+  const { version } = JSON.parse(Buffer.concat(chunks).toString()) as { version: string | null };
+  workspaceSaves.push(version);
+  const reply = workspaceReplies.shift() ?? { status: 200, body: { version } };
+  if (reply === 'dropped') request.socket.destroy();
+  else response.writeHead(reply.status).end(JSON.stringify(reply.body));
+}
+
 beforeEach(async () => {
   authorizeStatus = 200;
   sessionStatus = 200;
@@ -107,6 +132,8 @@ beforeEach(async () => {
   persisted = new Uint8Array();
   holdStore = undefined;
   releaseStore = undefined;
+  workspaceSaves = [];
+  workspaceReplies = [];
   backend.listen(0, '127.0.0.1');
   await once(backend, 'listening');
   runtime = createCollaborationServer({
@@ -120,6 +147,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   releaseLoad?.();
   releaseStore?.();
   storeStatus = 204;
@@ -640,6 +668,46 @@ it('backs off repeated store failures and resets the delay after recovery', asyn
   } finally {
     vi.useRealTimers();
   }
+});
+
+it('unloads a workspace room whose save is refused once its clients leave', async () => {
+  const provider = connect('workspace:ws');
+  await expect.poll(() => provider.synced).toBe(true);
+  workspaceReplies = Array.from({ length: 10 }, () => ({ status: 422, body: { code: 'TOO_LARGE' } }));
+  provider.document.getText('text').insert(0, 'typed');
+  await expect.poll(() => provider.unsyncedChanges).toBe(0);
+  provider.destroy();
+
+  await expect.poll(() => runtime.server.hocuspocus.documents.size).toBe(0);
+});
+
+it('tries a refused workspace save again only after another edit', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout'] });
+  const provider = connect('workspace:ws');
+  await vi.waitFor(() => expect(provider.synced).toBe(true));
+  workspaceReplies = Array.from({ length: 10 }, () => ({ status: 422, body: { code: 'TOO_LARGE' } }));
+  provider.document.getText('text').insert(0, 'typed');
+  expect(await persist(provider)).toBe('failed');
+  await vi.advanceTimersByTimeAsync(10_000);
+  const refusedSaves = workspaceSaves.length;
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(workspaceSaves.length).toBe(refusedSaves);
+
+  workspaceReplies = [];
+  provider.document.getText('text').insert(0, 'more ');
+  expect(await persist(provider)).toBe('persisted');
+});
+
+it('keeps the file version a workspace room applied when the save after it fails', async () => {
+  const provider = connect('workspace:ws');
+  await expect.poll(() => provider.synced).toBe(true);
+  provider.document.getText('text').insert(0, 'typed');
+  await expect.poll(() => provider.unsyncedChanges).toBe(0);
+  workspaceReplies = [{ status: 409, body: { version: 'v2', tree: { id: null, children: [] } } }, 'dropped'];
+  expect(await persist(provider)).toBe('failed');
+
+  expect(await persist(provider)).toBe('persisted');
+  expect(workspaceSaves.slice(0, 3)).toEqual(['v1', 'v2', 'v2']);
 });
 
 function openDocumentListSocket(headers: Record<string, string>) {

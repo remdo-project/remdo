@@ -156,6 +156,40 @@ write automatically. A timeout does not imply cancellation or rollback. Reads
 retain the existing Markdown outline, and failures retain their code, message,
 and reconnection requirement.
 
+### Outline tree
+
+Node converts a workspace [document](specs/outliner/note-model.md#note-kinds)'s
+Yjs state to and from its outline tree: the [text format](format.md)'s note
+model as JSON, which Python reads from text and writes as text. The tree holds
+the document's ID and children, each outline note's marker, checkbox, name,
+text, ID, cache ID and children, and each body's lines as written. Fold state
+stays out of it.
+
+- **Read** returns the tree of a document's current Yjs state, with notes
+  nested under a body as the notes after it. For structure the text format can
+  hold, writing that tree as text and reading the text back gives the same
+  tree, cache IDs aside. **Deterministic.**
+- **Save** returns the tree together with the Yjs state it was read from.
+- **Apply** changes a document's Yjs state to hold a given tree. A tree note
+  holding a cache ID updates the note holding it. A tree note no ID matches, as
+  in a tree read from a file, updates an unclaimed sibling with the same kind,
+  name and text, in order, and is otherwise created with a fresh cache ID; a
+  note is never matched by its position alone, so a note replaced in place
+  never inherits another's ID. A note no tree note holds is deleted. Updated
+  notes keep their fold state. **Deterministic.**
+  - A tree note with an ID updates the note whose written ID it is, wherever
+    the tree moves it. A note holding that value only as its cache ID gets a
+    fresh one, since a written ID claims its value; of two tree notes giving
+    one ID, the first in document order takes it and the other's is dropped.
+    **Deterministic.**
+  - When two notes hold one cache ID, the first in document order keeps it
+    and the others get fresh ones. **Deterministic.**
+  - A note whose content and place already match is left unwritten. Text
+    differing only in whitespace at its edges matches, so a space someone just
+    typed survives. **Deterministic.**
+  - Changed text is replaced only where it differs, so concurrent typing
+    elsewhere in the note survives. **Deterministic.**
+
 ### Document identity
 
 `docId` is RemDo's canonical document identity. It is intended to be globally
@@ -219,6 +253,36 @@ deleted with its registry entry. An existing editor document without saved conte
 starts empty; missing registry entries and database failures do not become empty
 documents. [Workspace](specs/workspaces/store.md) files and their history live in
 the same database.
+
+### Workspace document state
+
+A workspace's document is the hub room `workspace:<id>`, named apart from
+editor documents, and open to its owner's browser sessions; integrations change
+it through [note operations](specs/outliner/note-operations.md). Its cache row
+holds the document's Yjs state and the file version that state builds on; it is
+deleted with its workspace.
+
+- **Load:** when the row's version is the document's current file version, the
+  room loads the row's state. Otherwise, with no row or after the file changed
+  outside the room, the hub [applies](#outline-tree) the file's tree to the
+  row's state, or to an empty one, and saves the result before any client
+  syncs, so every load after one change gives the same state. A missing file
+  reads as an empty document, and loading writes no file. **Deterministic.**
+- **Save:** a [save](#collab-hub) writes the [tree](#outline-tree)'s text as
+  the document's file, as a
+  [continuing commit](specs/workspaces/store.md#commits) by the workspace's
+  owner, and the state it was read from with that file's version, in one
+  transaction: both land or neither does. A save whose text reads as the file
+  does updates only the row, so the file keeps its own spelling.
+  **Deterministic.**
+- **Stale save:** when the file changed since the row's version, a save writes
+  nothing, and the room applies the current file's tree, as on load, before
+  trying again. **Deterministic.**
+- **Refusal:** a save whose text is over the file limit or whose tree is
+  malformed, or a load or save of a file that isn't UTF-8 text, writes nothing
+  and is [reported](specs/runtime/configuration.md#error-reporting). The room
+  tries again only after its next edit, and may unload with the edits left to
+  its clients. **Deterministic.**
 
 One active instance owns collaboration writes. Its SQLite database when
 selected uses its persistent storage root; its
