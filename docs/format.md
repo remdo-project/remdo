@@ -35,9 +35,9 @@ A document is a note whose children are bodies and outline notes, in
 file order; its name is held outside the text.
 A heading contains everything up to the next heading of its level or higher.
 
-Headings and list items divide a note's children. Everything else between
-them is one body, a note holding that Markdown as written; headings and lists
-inside it are plain content.
+Headings and list items other than [property](#properties) lines divide a
+note's children. Everything else between them is one body, a note holding that
+Markdown as written; headings and lists inside it are plain content.
 
 An outline note holds:
 
@@ -62,6 +62,7 @@ An outline note holds:
     > - Tools wrap a body under a list item in `>` lines, which aren't content
     > - Under a heading, a quote keeps its `>` lines as content
     > - A body is one editor block holding its lines
+    > - Tools write one blank line between a body's blocks
 - ID:: optional and added lazily, such as when a note is first referenced
     > - An ID is the `id` [property](#properties), such as the one below
     > - A document's ID is a top-level note before its first heading
@@ -71,18 +72,18 @@ An outline note holds:
 
 ## Properties
 
-A property is a name the format gives a meaning, written as a named note under
-the note it applies to.
+A property is a name the format gives a meaning, written as a list item under
+the note it applies to that holds only `name:: value` on one line; a list item
+holding more is a note.
 
 - A note's first line with a property's name takes effect, wherever it sits
-  directly under the note; later ones, and anything nested under a property
-  line, are ignored
+  directly under the note; later ones are ignored
 - Property lines aren't among the note's children, so they don't decide which
   block comes first
 - A value the property doesn't define has no effect
 - Property names match exactly
-- Tools write a note's first body, then its properties, then its other
-  children, and may fix, report or keep other property lines
+- Tools write a note's properties before its children, after only a
+  document's front matter, and may fix, report or keep other property lines
 
 ## Canonical spelling
 

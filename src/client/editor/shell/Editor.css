@@ -166,7 +166,8 @@
 }
 
 .remdo-outline li.list-item {
-  --list-line-height: 1.75rem;
+  --row-line-height: 1.75rem;
+  --list-line-height: var(--row-line-height);
   --indicator-color: var(--mantine-color-dark-2);
   --checkbox-color: var(--mantine-color-dark-2);
   --bullet-left: 0rem;
@@ -256,10 +257,10 @@
   outline: none;
 }
 
-/* A heading's text and row grow in proportion to its font, but not its padding, so its bullet
-   and text keep every note's column on any surface's font size. */
+/* A heading's text and row grow by its scale, but not its padding, so its bullet and text keep
+   every note's column. */
 .remdo-outline li.list-item[data-heading-level] {
-  --list-line-height: calc(var(--heading-scale) * 1.4em);
+  --list-line-height: calc(var(--heading-scale, 1) * var(--row-line-height));
   font-weight: 600;
   line-height: var(--list-line-height);
 }
@@ -276,14 +277,8 @@
   --heading-scale: 1.15;
 }
 
-.remdo-outline li.list-item[data-heading-level='4'],
-.remdo-outline li.list-item[data-heading-level='5'],
-.remdo-outline li.list-item[data-heading-level='6'] {
-  --heading-scale: 1;
-}
-
 .remdo-outline li.list-item[data-heading-level] > * {
-  font-size: calc(var(--heading-scale) * 1em);
+  font-size: calc(var(--heading-scale, 1) * 1em);
 }
 
 .remdo-outline li.list-item[data-number]::before {

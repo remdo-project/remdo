@@ -164,7 +164,6 @@ class ReadingTests(SimpleTestCase):
             "- a\n    - [ ] id:: boxed\n": "boxed",
             "- a\n    - id:: a\\_b\n": None,
             "- a\n    - id:: &#120;\n": "x",
-            "- a\n    - id:: a\n      b\n": None,
             "- a\n    - id:: a/b\n": None,
         }
         for source, expected in cases.items():
@@ -271,9 +270,13 @@ class ReadingTests(SimpleTestCase):
         cases = {
             "- a\n\n  paragraph\n\n  > quote\n": [["paragraph", "", "quote"]],
             "- a\n    > one\n    >\n    > two\n": [["one", "", "two"]],
+            "- a\n    >\n    > one\n    >\n": [["one"]],
+            "- a\n    > one\n    two\n": [["one", "two"]],
             "intro\n\nmore\n\n> kept quote\n": [["intro", "", "more", "", "> kept quote"]],
             "# T\n\n> - x\n> - y\n": [["> - x", "> - y"]],
-            "# T\n\nbefore\n\n- id:: x\n\nafter\n": [["before"], ["after"]],
+            "# T\n\nbefore\n\n- id:: x\n\nafter\n": [["before", "", "after"]],
+            "before\n\n- id:: two words\n\nafter\n": [["before", "", "after"]],
+            "a\n\n\n\nb\n": [["a", "", "b"]],
         }
         for source, bodies in cases.items():
             with self.subTest(source=source):
@@ -283,6 +286,34 @@ class ReadingTests(SimpleTestCase):
                 self.assertEqual([child.source for child in children], bodies)
                 written = text_format.write(text_format.read(source))
                 self.assertEqual(_tree(text_format.read(written)), _tree(text_format.read(source)))
+
+    def test_an_id_line_holding_more_than_its_property_is_a_note(self):
+        for source, kept in {
+            "before\n\n- id:: x\n\n  more\n\nafter\n": "more",
+            "before\n\n- id:: x\nafter\n": "id::xafter",
+            "- id:: x\n  - child\n": "child",
+        }.items():
+            with self.subTest(source=source):
+                document = text_format.read(source)
+                self.assertIsNone(document.id)
+                self.assertIn(kept, _rendered(text_format.write(document)))
+                self.assertEqual(_rendered(text_format.write(document)), _rendered(source))
+
+    def test_an_indented_top_level_body_stays_where_it_is(self):
+        source = "  - b\n  > q\n"
+        written = text_format.write(text_format.read(source))
+        self.assertEqual(written, "- b\n\n> q\n")
+        self.assertEqual(text_format.write(text_format.read(written)), written)
+
+    def test_an_id_is_written_before_a_body_that_ends_in_an_open_fence(self):
+        document = text_format.read("  - id:: y\n```\n")
+        written = text_format.write(document)
+        self.assertEqual(written, "- id:: y\n\n```\n")
+        self.assertEqual(text_format.read(written).id, "y")
+
+    def test_front_matter_stays_before_the_id(self):
+        source = "---\ntitle: Trip\n---\n\n- id:: doc\n\nIntro\n"
+        self.assertEqual(text_format.write(text_format.read(source)), source)
 
 
 class OutlineTreeTests(SimpleTestCase):

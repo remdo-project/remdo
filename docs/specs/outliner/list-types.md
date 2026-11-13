@@ -1,8 +1,8 @@
 # List types
 
 [Editor notes](./note-model.md#note-kinds) support the outliner's markers,
-checkboxes, list types, list-type conversion, and checked state, including
-target resolution for checked-state changes.
+checkboxes, their placement and conversion, and checked state, including target
+resolution for checked-state changes.
 [Selection states](./selection.md#selection-states) and [note ranges](./selection.md#note-ranges) are defined by Selection.
 
 ## Markers and checkboxes
@@ -17,31 +17,40 @@ Each note has its own marker and checkbox, as the
 - **Checkbox:** none, open, or checked, shown after the marker whatever the
   marker is.
 
-A note keeps its marker and checkbox wherever it moves. A note the editor
-creates from another, as by `Enter` or a split, takes that note's marker
-without its start, and an open checkbox when that note has one.
+## Placement
 
-## Supported types
+A note lands where it is created, by `Enter`, a split, an append or a paste,
+and where it moves under a new parent; reordering among the same siblings
+changes nothing. In this section, siblings are outline notes other than
+headings. A landing note other than a heading takes:
 
-A list's items are its outline notes other than headings. Its type is check
-when every item has a checkbox, otherwise number when every item is numbered,
-otherwise bullet, including when it has no items.
+- **Marker:** that of the sibling before it, otherwise after it, otherwise its
+  parent's, without a start; under a heading or at the top level it is a
+  bullet.
+- **Checkbox:** an open one when every other sibling has a checkbox, or, as a
+  first child, when every sibling of its parent has one; otherwise none. A
+  checked note keeps its checkbox.
+
+A heading or body keeps its own kind wherever it lands, within what the
+[text format](../../format.md) can hold.
 
 ## Type conversion
 
-Converting a list acts on that list's items only; nested lists keep theirs.
+Converting acts on a note's children other than headings; deeper notes keep
+theirs.
 
-- **To bullet or number:** each item takes that marker, keeping its checkbox.
-- **To check:** each item without a checkbox takes an open one, keeping its
-  marker.
+- **To bullet or number:** each takes that marker, keeping its checkbox.
+- **To check:** each without a checkbox takes an open one, keeping its marker.
 - **Removing checkboxes:** each open checkbox is removed; checked notes keep
   theirs.
+
+The children are a check list when every one has a checkbox.
 
 ## Checked state
 
 A note is checked when its checkbox is checked. Checking a note without a
 checkbox gives it a checked one, and unchecking leaves an open one. Checked
-state survives list-type changes, reload, and collaboration. Bodies have no
+state survives conversion, reload, and collaboration. Bodies have no
 checked state.
 
 Setting a note's checked state is recursive: the note and all of its

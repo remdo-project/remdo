@@ -21,7 +21,7 @@ The [OpenAI plugin](openai-plugin.md) distributes the hosted MCP connection for 
 
 The server exposes tools that list, create, and rename the user's documents,
 read a document or one note's subtree, append notes, and set a note's child
-[list type](../outliner/list-types.md#supported-types). A tool delegating to an
+[list type](../outliner/list-types.md#type-conversion). A tool delegating to an
 [open document](../outliner/open-document.md) or
 [user data](../outliner/user-data.md) operation is named after it, and that
 operation's owner defines its behavior.

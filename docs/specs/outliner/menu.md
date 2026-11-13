@@ -54,7 +54,8 @@ contract.
 4. Children actions:
    - Child list type actions per [List types](./list-types.md#type-conversion), hidden for
      leaf notes: to bullet and to number, each hidden when it would change no
-     marker, and removing checkboxes for a check list, otherwise to check.
+     marker, and removing checkboxes when the children are a check list,
+     otherwise to check.
 5. View actions:
    - Zoom out per [Zoom](./zoom.md#zooming-out), shortcut `O` when the menu is
      open.
