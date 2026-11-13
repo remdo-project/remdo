@@ -72,18 +72,18 @@ An outline note holds:
 
 ## Properties
 
-A property is a name the format gives a meaning, written as a named note under
-the note it applies to.
+A property is a name the format gives a meaning, written as a list item under
+the note it applies to that holds only `name:: value` on one line; a list item
+holding more is a note.
 
 - A note's first line with a property's name takes effect, wherever it sits
-  directly under the note; later ones, and anything nested under a property
-  line, are ignored
+  directly under the note; later ones are ignored
 - Property lines aren't among the note's children, so they don't decide which
   block comes first
 - A value the property doesn't define has no effect
 - Property names match exactly
-- Tools write a note's first body, then its properties, then its other
-  children, and may fix, report or keep other property lines
+- Tools write a note's properties before its children, after only a
+  document's front matter, and may fix, report or keep other property lines
 
 ## Canonical spelling
 

@@ -48,7 +48,9 @@ class Run:
 @dataclass
 class Note:
     kind: str  # outline or body
-    source: list = field(default_factory=list)  # the note's own lines as written
+    source: list = field(
+        default_factory=list
+    )  # its lines; a body's lose list-item quoting and indent
     marker: tuple = ("bullet",)  # ("bullet",), ("number", start or None) or ("heading", level)
     checkbox: str | None = None  # open or checked
     name: str | None = None
@@ -124,10 +126,15 @@ class _Reader:
                 owner().children.append(Note("body", body))
                 body = []
 
-        def add(first, stop, quoted=False):
+        def add(first, stop, quoted=False, code=False):
             nonlocal body_stop
             raw = self.lines[first:stop]
-            lines = [QUOTE.sub("", line) for line in raw] if quoted else _dedent(raw, indent)
+            if quoted:
+                lines = [QUOTE.sub("", line) for line in raw]
+            else:
+                # Outside a list item, indent short of code means nothing, and kept it would join
+                # the body to a list item written before it.
+                lines = _dedent(raw, indent if region or code else 3)
             lead = next((i for i, line in enumerate(lines) if line.strip()), len(lines))
             trail = next((i for i, line in enumerate(reversed(lines)) if line.strip()), 0)
             if lead == len(lines):
@@ -151,50 +158,43 @@ class _Reader:
                 flush()
                 on_heading(index)
             elif token.type in ("bullet_list_open", "ordered_list_open"):
-                # Property lines aren't children, so a list of only them doesn't end a body.
-                if not self._holds_only_properties(index, close):
-                    flush()
-                self.list(index, close, owner())
+                self.list(index, close, owner(), flush)
             else:
                 # Under a list item, a quote only wraps its body.
-                add(first, stop, region is not None and token.type == "blockquote_open")
+                quoted = region is not None and token.type == "blockquote_open"
+                add(first, stop, quoted, token.type == "code_block")
             index = close + 1
         add(last, tail)
         flush()
 
-    def list(self, open_index, close, owner):
+    def list(self, open_index, close, owner, before_note):
+        """Read a list's items into `owner`. Property lines aren't children, so the body being
+        gathered ends only at the first note, `before_note` closing it."""
         ordered = self.tokens[open_index].type == "ordered_list_open"
         start = self.tokens[open_index].attrGet("start")
         number = 1 if start is None else int(start)
-        # A list right after numbered notes starts again, even at 1, as Markdown numbers it.
-        previous = owner.children[-1] if owner.children else None
-        restarts = (
-            previous is not None and previous.kind == "outline" and previous.marker[0] == "number"
-        )
         first = True
         index = open_index + 1
         while index < close:
             if self.tokens[index].type == "list_item_open":
                 item_close = _close_of(self.tokens, index)
-                marker = (
-                    ("number", number if first and (number != 1 or restarts) else None)
-                    if ordered
-                    else ("bullet",)
-                )
-                # A property line isn't a child, so the first note after it keeps its number.
-                if self.item(index, item_close, owner, marker):
+                inline = self._property_inline(index, item_close)
+                if inline is not None:
+                    self._property(inline, owner)
+                else:
+                    before_note()
+                    marker = ("bullet",)
+                    if ordered:
+                        # A list right after numbered notes starts again, even at 1, as Markdown
+                        # numbers it.
+                        previous = owner.children[-1] if owner.children else None
+                        restarts = previous is not None and previous.marker[0] == "number"
+                        marker = ("number", number if first and (number != 1 or restarts) else None)
+                    self.item(index, item_close, owner, marker)
                     first = False
                 number += 1
                 index = item_close
             index += 1
-
-    def _holds_only_properties(self, open_index, close):
-        level = self.tokens[open_index].level + 1
-        return all(
-            self._is_property(index)
-            for index in range(open_index + 1, close)
-            if self.tokens[index].type == "list_item_open" and self.tokens[index].level == level
-        )
 
     def _inline_of(self, open_index):
         """The inline token of the paragraph on a list item's marker line, if any."""
@@ -204,25 +204,27 @@ class _Reader:
             return self.tokens[open_index + 2]
         return None
 
-    def _is_property(self, open_index):
+    def _property_inline(self, open_index, close):
+        """The inline token of a property line: a list item holding only `id:: value` on one line."""
         inline = self._inline_of(open_index)
-        content = inline.content if inline else ""
-        return bool(PROPERTY.match(CHECKBOX.sub("", content, count=1).split("\n")[0]))
+        if inline is None or "\n" in inline.content or close != open_index + 4:
+            return None
+        return inline if PROPERTY.match(CHECKBOX.sub("", inline.content, count=1)) else None
+
+    def _property(self, inline, owner):
+        # A property's first line takes effect even when its value has none; later ones are ignored.
+        if id(owner) not in self.identified:
+            self.identified.add(id(owner))
+            text = _plain(_strip_prefix(inline.children or [], CHECKBOX))
+            value = text.partition("::")[2].strip()
+            if NOTE_ID.fullmatch(value):
+                owner.id = value
 
     def item(self, open_index, close, owner, marker):
         line = self.tokens[open_index].map[0]
-        after = self.tokens[open_index + 1] if open_index + 1 < close else None
-        inline = self._inline_of(open_index) if after is not None else None
+        after = self.tokens[open_index + 1]
+        inline = self._inline_of(open_index)
         content = inline.content if inline else ""
-        if self._is_property(open_index):
-            # A property's first line takes effect even when its value has none; later ones are ignored.
-            if id(owner) not in self.identified:
-                self.identified.add(id(owner))
-                text = _plain(_strip_prefix(inline.children or [], CHECKBOX))
-                value = text.partition("::")[2].strip()
-                if NOTE_ID.fullmatch(value):
-                    owner.id = value
-            return False
         indent = _item_indent(self.lines[line])
         if inline:
             text_end = _close_of(self.tokens, open_index + 1) + 1
@@ -234,7 +236,7 @@ class _Reader:
             text_end = open_index + 1
             stop = line + 1
             source = [self.lines[line][:indent].strip()]
-            if after is not None and after.map and after.map[0] == line:
+            if after.map and after.map[0] == line:
                 # A block starting on the marker's line is a child; it reads without the marker.
                 stop = line
                 self.lines[line] = " " * indent + self.lines[line][indent:]
@@ -247,7 +249,6 @@ class _Reader:
         owner.children.append(note)
         region = (stop, self.tokens[open_index].map[1])
         self.blocks(text_end, close, lambda: note, indent, region=region)
-        return True
 
     def fill(self, note, content, inline, checkbox=False):
         if inline is None:
@@ -456,21 +457,31 @@ def _looks_named(text):
 
 
 def write(document):
-    """The canonical text of a document: what tools write, which reads back as the same tree."""
+    """The canonical text of a document: what tools write, which reads back as the same tree,
+    adjacent bodies joined into one."""
     out = []
-    _owner_children(document.children, document.id, out)
+    _owner_children(document.children, document.id, out, at_start=True)
     return "\n".join(out) + "\n" if out else ""
 
 
-def _owner_children(children, note_id, out):
-    """A document's or heading's children: its first body, then its ID, then the rest."""
-    if children and children[0].kind == "body":
+def _owner_children(children, note_id, out, at_start=False):
+    """A document's or heading's children after its ID, which follows only front matter."""
+    if (
+        at_start
+        and children
+        and children[0].kind == "body"
+        and _is_front_matter(children[0].source)
+    ):
         _section(children[:1], out)
         children = children[1:]
     if note_id is not None:
         _separate(out)
         out.append(f"- id:: {note_id}")
     _section(children, out)
+
+
+def _is_front_matter(source):
+    return len(source) > 1 and source[0] == source[-1] == "---"
 
 
 def _first_number(note):
