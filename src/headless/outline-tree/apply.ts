@@ -145,6 +145,7 @@ function $matchByContent(
   matched: (ListItemNode | null)[],
   kept: Set<NodeKey>,
 ) {
+  if (!notes.some((note, index) => note.cacheId === null && !matched[index])) return;
   const unclaimed = new Map<string, ListItemNode[]>();
   for (const item of current) {
     if (kept.has(item.getKey())) continue;
