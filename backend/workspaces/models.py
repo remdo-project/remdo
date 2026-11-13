@@ -125,6 +125,6 @@ def _delete_orphaned_blobs(sender, instance, **kwargs):
 
 
 def delete_unreferenced_blobs(hashes):
-    Blob.objects.filter(hash__in=hashes).exclude(
+    Blob.objects.filter(hash__in=hashes).only("hash").exclude(
         Exists(RevisionChange.objects.filter(blob=OuterRef("pk")))
     ).exclude(Exists(WorkspaceFile.objects.filter(blob=OuterRef("pk")))).delete()

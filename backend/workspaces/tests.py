@@ -277,20 +277,17 @@ class OpenHeadTests(TestCase):
         self.assertEqual(store.files_at(second), {"a.md": b"2\n"})
         self.assertFalse(Blob.objects.filter(hash=store.blob_hash(b"1\n")).exists())
 
-    def test_a_pause_another_author_or_an_old_head_seals_it(self):
-        for later in (
-            {"after": timedelta(minutes=3)},
-            {"author": self.agent},
-            {"continuing": False},
-        ):
+    def test_a_pause_or_another_author_seals_the_head(self):
+        for later in ({"after": timedelta(minutes=3)}, {"author": self.agent}):
             with self.subTest(**{key: str(value) for key, value in later.items()}):
-                opened = self.save(b"open\n" + str(later).encode())
-                sealed_by = self.save(b"next\n" + str(later).encode(), **later)
+                self.workspace = Workspace.objects.create(name=str(later), owner=self.owner)
+                opened = self.save(b"open\n")
+                sealed_by = self.save(b"next\n", **later)
 
                 opened.refresh_from_db()
                 self.assertNotEqual(sealed_by, opened)
                 self.assertTrue(opened.sealed)
-                self.assertEqual(store.files_at(opened)["a.md"][:5], b"open\n")
+                self.assertEqual(store.files_at(opened), {"a.md": b"open\n"})
 
     def test_a_head_open_ten_minutes_seals_even_while_saves_continue(self):
         opened = self.save(b"0\n")

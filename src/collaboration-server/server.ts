@@ -149,14 +149,14 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
    * since the state's version is applied to the state, which then saves again; each version the
    * state comes to hold is recorded at once, so a later failure can't make a save apply it twice.
    */
-  async function saveWorkspaceRoom(document: Document, doc: Y.Doc = document) {
+  async function saveWorkspaceRoom(document: Document, doc: Y.Doc = document, load = false) {
     for (;;) {
       const { tree, state } = saveTree(doc);
       const version = workspaceVersions.get(document) ?? null;
       const response = await requestDjango(endpoint(document.name, 'content'), {
         method: 'PUT',
         headers: { ...internalHeaders, 'Content-Type': 'application/json' },
-        body: Buffer.from(JSON.stringify({ state: Buffer.from(state).toString('base64'), tree, version })),
+        body: Buffer.from(JSON.stringify({ state: Buffer.from(state).toString('base64'), tree, version, load })),
         signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
       });
       if (response.status !== 409) {
@@ -218,7 +218,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     if (loaded.state) Y.applyUpdate(doc, Buffer.from(loaded.state, 'base64'));
     if (loaded.tree) {
       applyTree(doc, loaded.tree);
-      const saved = await saveWorkspaceRoom(document, doc).catch(() => null);
+      const saved = await saveWorkspaceRoom(document, doc, true).catch(() => null);
       if (!saved?.ok) throw new CollaborationUnavailable('collaboration.load-failed');
     }
     const state = Y.encodeStateAsUpdate(doc);

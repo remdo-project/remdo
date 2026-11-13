@@ -38,7 +38,7 @@ let stores: Uint8Array[];
 let persisted: Uint8Array;
 let holdStore: Promise<void> | undefined;
 let releaseStore: (() => void) | undefined;
-let workspaceSaves: Array<{ version: string | null }>;
+let workspaceSaves: Array<string | null>;
 let workspaceReplies: Array<{ status: number; body: unknown } | 'dropped'>;
 let origin: string;
 const clients: HocuspocusProvider[] = [];
@@ -107,7 +107,7 @@ async function answerWorkspace(request: IncomingMessage, response: ServerRespons
   const chunks: Buffer[] = [];
   for await (const chunk of request) chunks.push(Buffer.from(chunk));
   const { version } = JSON.parse(Buffer.concat(chunks).toString()) as { version: string | null };
-  workspaceSaves.push({ version });
+  workspaceSaves.push(version);
   const reply = workspaceReplies.shift() ?? { status: 200, body: { version } };
   if (reply === 'dropped') request.socket.destroy();
   else response.writeHead(reply.status).end(JSON.stringify(reply.body));
@@ -707,7 +707,7 @@ it('keeps the file version a workspace room applied when the save after it fails
   expect(await persist(provider)).toBe('failed');
 
   expect(await persist(provider)).toBe('persisted');
-  expect(workspaceSaves.slice(0, 3).map(({ version }) => version)).toEqual(['v1', 'v2', 'v2']);
+  expect(workspaceSaves.slice(0, 3)).toEqual(['v1', 'v2', 'v2']);
 });
 
 function openDocumentListSocket(headers: Record<string, string>) {

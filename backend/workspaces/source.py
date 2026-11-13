@@ -96,6 +96,12 @@ class Tree:
         missing = set(hashes) - self.contents.keys()
         if missing:
             self.contents.update(store.contents(missing))
+        # A live document's save drops the content it replaces, so a version listed before
+        # it can be gone by the time its content is read.
+        if missing - self.contents.keys():
+            raise Refusal(
+                "FAILED_PRECONDITION", "A file changed while it was being read; read it again."
+            )
 
     def content(self, path):
         return self.blob(self.files[path])
