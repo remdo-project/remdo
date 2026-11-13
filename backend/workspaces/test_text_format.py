@@ -270,6 +270,8 @@ class ReadingTests(SimpleTestCase):
         cases = {
             "- a\n\n  paragraph\n\n  > quote\n": [["paragraph", "", "quote"]],
             "- a\n    > one\n    >\n    > two\n": [["one", "", "two"]],
+            "- a\n    >\n    > one\n    >\n": [["one"]],
+            "- a\n    > one\n    two\n": [["one", "two"]],
             "intro\n\nmore\n\n> kept quote\n": [["intro", "", "more", "", "> kept quote"]],
             "# T\n\n> - x\n> - y\n": [["> - x", "> - y"]],
             "# T\n\nbefore\n\n- id:: x\n\nafter\n": [["before"], ["after"]],

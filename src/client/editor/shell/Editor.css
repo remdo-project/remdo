@@ -166,7 +166,8 @@
 }
 
 .remdo-outline li.list-item {
-  --list-line-height: 1.75rem;
+  --row-line-height: 1.75rem;
+  --list-line-height: var(--row-line-height);
   --indicator-color: var(--mantine-color-dark-2);
   --checkbox-color: var(--mantine-color-dark-2);
   --bullet-left: 0rem;
@@ -259,7 +260,7 @@
 /* A heading's text and row grow by its scale, but not its padding, so its bullet and text keep
    every note's column. */
 .remdo-outline li.list-item[data-heading-level] {
-  --list-line-height: calc(var(--heading-scale, 1) * 1.75rem);
+  --list-line-height: calc(var(--heading-scale, 1) * var(--row-line-height));
   font-weight: 600;
   line-height: var(--list-line-height);
 }

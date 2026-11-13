@@ -16,7 +16,8 @@ from markdown_it import MarkdownIt
 MAX_NESTING = 400
 NAME = re.compile(r"^(.*?[^\\\s])::(?: |$)")
 PROPERTY = re.compile(r"^id::(?: |$)")
-QUOTE = re.compile(r"^\s*>\s?")
+# A quote line without `>` continues a paragraph lazily, so its indent is not content.
+QUOTE = re.compile(r"^\s*(?:>\s?)?")
 CHECKBOX = re.compile(r"^\[([ xX])\](?:[ \t]+|$)")
 MARKS = {"strong": "bold", "em": "italic", "s": "strike"}
 MARK_ORDER = ("bold", "italic", "strike", "underline")
@@ -125,17 +126,16 @@ class _Reader:
 
         def add(first, stop, quoted=False):
             nonlocal body_stop
-            while first < stop and not self.lines[first].strip():
-                first += 1
-            while stop > first and not self.lines[stop - 1].strip():
-                stop -= 1
-            if first == stop:
+            raw = self.lines[first:stop]
+            lines = [QUOTE.sub("", line) for line in raw] if quoted else _dedent(raw, indent)
+            lead = next((i for i, line in enumerate(lines) if line.strip()), len(lines))
+            trail = next((i for i, line in enumerate(reversed(lines)) if line.strip()), 0)
+            if lead == len(lines):
                 return
             if body:
-                body.extend([""] * (first - body_stop))
-            raw = self.lines[first:stop]
-            body.extend([QUOTE.sub("", line) for line in raw] if quoted else _dedent(raw, indent))
-            body_stop = stop
+                body.extend([""] * (first + lead - body_stop))
+            body.extend(lines[lead : len(lines) - trail])
+            body_stop = stop - trail
 
         index = start
         while index < end:

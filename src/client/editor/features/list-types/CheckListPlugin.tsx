@@ -211,9 +211,13 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
         ? $resolveRootTargets(selectedItems)
         : [clicked];
 
-      // Lexical's checklist keys act only on a check list's focused item; elsewhere the caret stays.
+      // Lexical's checklist keys act only on a check list's focused item; elsewhere focus moves to
+      // the editor, keeping its caret, so typing never lands in a field focused before the click.
+      const root = editor.getRootElement();
       if ($isInCheckList(clicked)) {
         listItem.focus();
+      } else if (root && !root.contains(document.activeElement)) {
+        root.focus({ preventScroll: true });
       }
       $toggleNoteCheckedForTargets(targets);
     });
