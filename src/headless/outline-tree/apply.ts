@@ -217,8 +217,9 @@ function sameAtom(a: Atom, b: Atom): boolean {
   return a.kind === 'break';
 }
 
+// A link's own spaces are its text, as reading keeps them.
 const isEdgeSpace = (atom: Atom | undefined) =>
-  atom?.kind === 'char' && isSpace(atom.char) && (atom.format & FORMAT_BITS.get('code')!) === 0;
+  atom?.kind === 'char' && atom.link === null && isSpace(atom.char) && (atom.format & FORMAT_BITS.get('code')!) === 0;
 
 /**
  * Replace only the atoms that differ. Whitespace at an outline note's edges isn't its text, so the

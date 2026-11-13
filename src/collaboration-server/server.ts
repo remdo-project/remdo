@@ -192,9 +192,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
         deleted.add(document);
         dirty.delete(document);
         forgetUncommitted(document);
-        clearTimeout(retries.get(document));
-        retries.delete(document);
-        retryDelays.delete(document);
+        forgetRetry(document);
         server.hocuspocus.closeConnections(document.name);
         throw new DocumentDeleted();
       }
@@ -202,13 +200,12 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       if (response.status === 422) {
         if (dirty.get(document) === savedRevision) dirty.delete(document);
         forgetUncommitted(document);
+        forgetRetry(document);
         throw new SaveRefused();
       }
       if (!response.ok) throw new Error('collaboration.store-failed');
       if (dirty.get(document) === savedRevision) dirty.delete(document);
-      clearTimeout(retries.get(document));
-      retries.delete(document);
-      retryDelays.delete(document);
+      forgetRetry(document);
     } catch (error) {
       if (error instanceof DocumentDeleted || error instanceof SaveRefused) throw error;
       scheduleRetry(document);
@@ -281,6 +278,12 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     if (response.status === 404) throw new DocumentDeleted();
     if (!response.ok) throw new CollaborationUnavailable('collaboration.load-failed');
     return response.body;
+  }
+
+  function forgetRetry(document: Document) {
+    clearTimeout(retries.get(document));
+    retries.delete(document);
+    retryDelays.delete(document);
   }
 
   function scheduleRetry(document: Document) {
@@ -399,7 +402,10 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       if (workspaceOf(document.name) !== null) markUncommitted(document);
     },
     async beforeUnloadDocument({ document }) {
-      const stored = !dirty.has(document) && await commitRoom(document).then(() => true, (error) => error instanceof SaveRefused);
+      // A commit that applies a changed file dirties the room again, which must be saved first.
+      const stored = !dirty.has(document)
+        && await commitRoom(document).then(() => true, (error) => error instanceof SaveRefused || error instanceof DocumentDeleted)
+        && !dirty.has(document);
       if (!stored) {
         scheduleRetry(document);
         throw new Error('collaboration.store-pending');
@@ -437,11 +443,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
         for (const listener of listeners) listener.terminate();
       }
       const results = await Promise.allSettled([...server.hocuspocus.documents.values()].map(flush));
-      for (const { idle, cap } of uncommitted.values()) {
-        clearTimeout(idle);
-        clearTimeout(cap);
-      }
-      uncommitted.clear();
+      for (const document of uncommitted.keys()) forgetUncommitted(document);
       if (results.some(result => result.status === 'rejected')) {
         throw new Error('collaboration.shutdown-store-failed');
       }

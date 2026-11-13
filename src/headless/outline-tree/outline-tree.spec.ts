@@ -234,6 +234,16 @@ describe('applying to an editor', () => {
     expect(editor.getEditorState().read(() => $item(cacheId).getTextContent())).toBe('xbc ');
   });
 
+  it('keeps a link\'s leading space as its text while applying a change elsewhere in the note', () => {
+    const linked = (value: string): OutlineNote => note([{ kind: 'link', href: 'https://example.test', runs: [text(' foo')] }, text(value)]);
+    const editor = editorWith({ id: null, children: [linked(' bar')] });
+    const cacheId = (editor.getEditorState().read($readTree).children[0] as OutlineNote).cacheId!;
+
+    editor.update(() => $applyTree({ id: null, children: [{ ...linked(' baz'), cacheId }] }), { discrete: true });
+
+    expect(editor.getEditorState().read(() => $item(cacheId).getTextContent())).toBe(' foo baz');
+  });
+
   it('replaces content that holds no text, such as an empty link', () => {
     const editor = editorWith({ id: null, children: [note('a')] });
     const tree = editor.getEditorState().read($readTree);

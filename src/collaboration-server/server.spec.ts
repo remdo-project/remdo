@@ -762,6 +762,19 @@ it('unloads a workspace room whose save is refused once its clients leave', asyn
   await expect.poll(() => runtime.server.hocuspocus.documents.size).toBe(0);
 });
 
+it('unloads a workspace room whose workspace is deleted before its unload commit', async () => {
+  const provider = connect('workspace:ws');
+  await expect.poll(() => provider.synced).toBe(true);
+  provider.document.getText('text').insert(0, 'typed');
+  await expect.poll(() => provider.unsyncedChanges).toBe(0);
+  await expect.poll(() => workspaceSaves.length).toBeGreaterThan(0);
+  workspaceReplies = [{ status: 404, body: {} }];
+  provider.destroy();
+
+  await expect.poll(() => runtime.server.hocuspocus.documents.size).toBe(0);
+  expect(workspaceSaves.at(-1)?.commit).toBe(true);
+});
+
 it('commits a workspace room before unloading it', async () => {
   const provider = connect('workspace:ws');
   await expect.poll(() => provider.synced).toBe(true);

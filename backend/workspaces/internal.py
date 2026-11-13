@@ -139,6 +139,8 @@ def commit_pending(request):
 
     A row whose file changed since is left for the room's next load to apply the file.
     """
-    for row in DocumentState.objects.filter(uncommitted_since__isnull=False):
+    for row in DocumentState.objects.filter(uncommitted_since__isnull=False).select_related(
+        "workspace"
+    ):
         _write(row.workspace, row.blob_id, row.state, row.text.encode(), commit=True)
     return HttpResponse(status=204)
