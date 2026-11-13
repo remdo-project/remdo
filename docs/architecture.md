@@ -246,11 +246,11 @@ the same database.
 
 ### Workspace document state
 
-A workspace's document is a hub room named by the workspace's ID, open to its
-owner's browser sessions; integrations change it through
-[note operations](specs/outliner/note-operations.md). Its cache row holds the
-document's Yjs state and the file version that state was saved as, and is
-deleted with its workspace.
+A workspace's document is the hub room `workspace:<id>`, named apart from
+editor documents, and open to its owner's browser sessions; integrations change
+it through [note operations](specs/outliner/note-operations.md). Its cache row
+holds the document's Yjs state and the file version that state was saved as,
+and is deleted with its workspace.
 
 - **Load:** when the row's version is the document's current file version, the
   room loads the row's state. Otherwise, with no row or after the file changed

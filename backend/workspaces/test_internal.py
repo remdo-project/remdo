@@ -32,7 +32,7 @@ class WorkspaceRoomTests(TestCase):
     def setUp(self):
         self.workspace = Workspace.objects.create(name="Notes", owner=self.owner)
         self.client = Client(enforce_csrf_checks=True)
-        self.authorize_url = f"/internal/collaboration/documents/{self.workspace.pk}/authorize"
+        self.authorize_url = f"/internal/collaboration/workspaces/{self.workspace.pk}/authorize"
         self.content = f"/internal/collaboration/workspaces/{self.workspace.pk}/content"
         self.headers = {"HTTP_X_REMDO_COLLABORATION_SECRET": settings.COLLAB_INTERNAL_SECRET}
 
@@ -60,16 +60,14 @@ class WorkspaceRoomTests(TestCase):
                 self.authorize_url, HTTP_ORIGIN="https://app.example", **self.headers
             )
 
-        self.assertEqual(
-            authorize(self.owner).json(), {"userId": str(self.owner.pk), "workspace": True}
-        )
+        self.assertEqual(authorize(self.owner).json(), {"userId": str(self.owner.pk)})
         self.assertEqual(authorize(self.other).status_code, 403)
         self.owner.user_permissions.clear()
         self.owner = User.objects.get(pk=self.owner.pk)
         self.assertEqual(authorize(self.owner).status_code, 403)
 
     def test_integrations_and_operators_cannot_open_the_room(self):
-        with patch("documents.internal.delegated_user", return_value=self.owner):
+        with patch("accounts.delegated.delegated_user", return_value=self.owner):
             bearer = self.client.get(
                 self.authorize_url, HTTP_AUTHORIZATION="Bearer token", **self.headers
             )

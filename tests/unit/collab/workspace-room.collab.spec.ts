@@ -44,7 +44,7 @@ function retext(tree: Document, from: string, to: string): Document {
 }
 
 async function open(workspace: string) {
-  const { provider, doc } = createProviderFactory({ visibleOrigin: resolveCollabServerOrigin() })(workspace, new Map());
+  const { provider, doc } = createProviderFactory({ visibleOrigin: resolveCollabServerOrigin() })(`workspace:${workspace}`, new Map());
   assert(provider instanceof HocuspocusProvider);
   await provider.connect();
   await waitForSync(asCollaborationProviderEvents(provider));

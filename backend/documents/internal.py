@@ -10,8 +10,6 @@ from django.utils.crypto import constant_time_compare
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
-from workspaces import internal as workspace_rooms
-from workspaces.models import Workspace
 
 from .models import Document, DocumentContent
 
@@ -31,10 +29,6 @@ def internal_only(view):
 @internal_only
 @require_GET
 def authorize(request, document_id):
-    # Workspace and editor document IDs share one alphabet, so a room's ID is looked up as either.
-    workspace = Workspace.objects.filter(pk=document_id).first()
-    if workspace is not None:
-        return workspace_rooms.authorize(request, workspace)
     if request.headers.get("X-Remdo-Collaboration-Operator") == "1":
         get_object_or_404(Document, pk=document_id)
         return JsonResponse({"operator": True})

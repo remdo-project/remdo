@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET, require_http_methods
 from documents.notices import notify_document_list_changed
 from notes.service import can_use_workspaces
 
@@ -18,8 +18,10 @@ from .source import README
 SAVE_MESSAGE = "Edit in the editor"
 
 
-def authorize(request, workspace):
+@require_GET
+def authorize(request, workspace_id):
     """Only the owner's browser sessions open the room; integrations use note operations."""
+    workspace = get_object_or_404(Workspace, pk=workspace_id)
     user = request.user
     if (
         request.headers.get("Origin") not in settings.CSRF_TRUSTED_ORIGINS
@@ -28,7 +30,7 @@ def authorize(request, workspace):
         or not can_use_workspaces(user)
     ):
         return HttpResponse(status=403)
-    return JsonResponse({"userId": str(user.pk), "workspace": True})
+    return JsonResponse({"userId": str(user.pk)})
 
 
 @require_http_methods(["GET", "PUT"])

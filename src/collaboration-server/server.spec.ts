@@ -69,7 +69,7 @@ const backend = createServer((request, response) => {
       response.writeHead(404).end();
       return;
     }
-    if (name === 'workspace') {
+    if (request.url!.startsWith('/internal/collaboration/workspaces/')) {
       await answerWorkspace(request, response);
       return;
     }
@@ -97,7 +97,7 @@ const backend = createServer((request, response) => {
 
 async function answerWorkspace(request: IncomingMessage, response: ServerResponse) {
   if (request.url!.endsWith('/authorize')) {
-    response.writeHead(200).end(JSON.stringify({ workspace: true }));
+    response.writeHead(200).end('{}');
     return;
   }
   if (request.method === 'GET') {
@@ -670,7 +670,7 @@ it('backs off repeated store failures and resets the delay after recovery', asyn
 });
 
 it('keeps the file version a workspace room applied when the save after it fails', async () => {
-  const provider = connect('workspace');
+  const provider = connect('workspace:ws');
   await expect.poll(() => provider.synced).toBe(true);
   provider.document.getText('text').insert(0, 'typed');
   await expect.poll(() => provider.unsyncedChanges).toBe(0);

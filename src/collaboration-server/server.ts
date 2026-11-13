@@ -22,6 +22,10 @@ import {
 } from '#platform/net/document-list-socket';
 
 export const INTERNAL_SECRET_HEADER = 'X-Remdo-Collaboration-Secret';
+// Workspace rooms are named apart from editor documents, whose IDs share their alphabet.
+const WORKSPACE_ROOM_PREFIX = 'workspace:';
+
+const workspaceOf = (room: string) => (room.startsWith(WORKSPACE_ROOM_PREFIX) ? room.slice(WORKSPACE_ROOM_PREFIX.length) : null);
 
 interface ServerOptions {
   port: number;
@@ -73,8 +77,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
   };
   const endpoint = (id: string, operation: string) =>
     new URL(`/internal/collaboration/documents/${encodeURIComponent(id)}/${operation}`, apiOrigin);
-  const workspaceContent = (id: string) =>
-    new URL(`/internal/collaboration/workspaces/${encodeURIComponent(id)}/content`, apiOrigin);
+  const workspaceEndpoint = (room: string, operation: string) =>
+    new URL(`/internal/collaboration/workspaces/${encodeURIComponent(workspaceOf(room)!)}/${operation}`, apiOrigin);
   const internalHeaders = { [INTERNAL_SECRET_HEADER]: secret, Host: new URL(appOrigin).host };
 
   // A WebSocket, unlike a long-lived HTTP response, holds none of the browser's
@@ -142,7 +146,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
   async function saveWorkspaceRoom(name: string, doc: Y.Doc, version: string | null, record: (version: string | null) => void) {
     for (;;) {
       const { tree, state } = saveTree(doc);
-      const response = await requestDjango(workspaceContent(name), {
+      const response = await requestDjango(workspaceEndpoint(name, 'content'), {
         method: 'PUT',
         headers: { ...internalHeaders, 'Content-Type': 'application/json' },
         body: Buffer.from(JSON.stringify({ state: Buffer.from(state).toString('base64'), tree, version })),
@@ -203,7 +207,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
    * and saved before any client syncs, so every load after one change gives the same state.
    */
   async function loadWorkspaceRoom(document: Document) {
-    const loaded = JSON.parse((await loadContent(workspaceContent(document.name))).toString()) as {
+    const loaded = JSON.parse((await loadContent(workspaceEndpoint(document.name, 'content'))).toString()) as {
       version: string | null; state: string | null; tree?: OutlineDocument;
     };
     const doc = new Y.Doc();
@@ -280,8 +284,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     debounce: 1000,
     maxDebounce: 5000,
     extensions: [new Database({
-      fetch: async ({ document, documentName, context }: { document: Document; documentName: string; context: { workspace?: boolean } }) => {
-        if (context.workspace) return loadWorkspaceRoom(document);
+      fetch: async ({ document, documentName }) => {
+        if (workspaceOf(documentName) !== null) return loadWorkspaceRoom(document);
         const bytes = new Uint8Array(await loadContent(endpoint(documentName, 'content')));
         return bytes.length ? bytes : null;
       },
@@ -326,7 +330,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       }
       let response: Awaited<ReturnType<typeof requestDjango>>;
       try {
-        response = await requestDjango(endpoint(documentName, 'authorize'), {
+        const url = workspaceOf(documentName) === null ? endpoint(documentName, 'authorize') : workspaceEndpoint(documentName, 'authorize');
+        response = await requestDjango(url, {
           headers, signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
         });
       } catch {
@@ -335,8 +340,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       if (response.status === 401) throw new AuthorizationRejected();
       if ([403, 404].includes(response.status)) throw new Error('collaboration.access-denied');
       if (!response.ok) throw new CollaborationUnavailable();
-      const { workspace } = JSON.parse(response.body.toString()) as { workspace?: boolean };
-      return { operator, workspace: workspace === true };
+      return { operator };
     },
     async onStateless({ connection, document, payload }) {
       const message = decodePersistenceMessage(payload);
