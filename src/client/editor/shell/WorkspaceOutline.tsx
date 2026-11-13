@@ -8,7 +8,7 @@ import { defineExtension } from 'lexical';
 import { useEffect, useMemo } from 'react';
 import { createProviderFactory } from '#collaboration/runtime';
 import { editorConfig } from '#client/editor/runtime/config';
-import { NoteCheckedDisplayPlugin } from '#client/editor/features/list-types/CheckListPlugin';
+import { NoteCheckedDisplayPlugin } from '#client/editor/features/list-types/NoteCheckedDisplayPlugin';
 import { NoteMarkerPlugin } from '#client/editor/features/list-types/NoteMarkerPlugin';
 import './Editor.css';
 
@@ -40,14 +40,10 @@ function WorkspaceRoom({ room }: { room: string }) {
   const { yjsDocMap } = useCollaborationContext();
   const { provider, doc } = useMemo(() => createProviderFactory()(room, yjsDocMap), [room, yjsDocMap]);
 
-  useEffect(() => {
-    void provider.connect();
-    return () => {
-      provider.destroy();
-      yjsDocMap.delete(room);
-      doc.destroy();
-    };
-  }, [provider, doc, room, yjsDocMap]);
+  useEffect(() => () => {
+    provider.destroy();
+    doc.destroy();
+  }, [provider, doc]);
 
   return <CollaborationPluginV2__EXPERIMENTAL id={room} provider={provider} doc={doc} />;
 }

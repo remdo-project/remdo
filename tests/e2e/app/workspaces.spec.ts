@@ -6,6 +6,16 @@ import { resolveApiServerOrigin } from '#platform/net/origins';
 
 const showMarkdown = (page: Page) => page.getByText('Markdown', { exact: true }).click();
 
+async function call(
+  page: Page,
+  operations: Array<components['schemas']['OperationRequest']>,
+  expected: Record<string, string | null> = {},
+) {
+  const response = await page.request.post('/api/notes', { data: { operations, expected, dryRun: false } });
+  await expect(response).toBeOK();
+  return await response.json() as components['schemas']['CallResult'];
+}
+
 test('a workspace opens from Home as its document, saves, renames and deletes', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'New workspace', exact: true }).click();
@@ -48,19 +58,11 @@ test('a workspace opens from Home as its document, saves, renames and deletes', 
 });
 
 test('Home and an open workspace follow changes made elsewhere', async ({ page }) => {
-  const call = async (
-    operations: Array<components['schemas']['OperationRequest']>,
-    expected: Record<string, string | null> = {},
-  ) => {
-    const response = await page.request.post('/api/notes', { data: { operations, expected, dryRun: false } });
-    await expect(response).toBeOK();
-    return await response.json() as components['schemas']['CallResult'];
-  };
   await page.goto('/');
   const currentServer = page.getByRole('group', { name: 'Current Server', exact: true });
   await expect(page.getByRole('button', { name: 'New workspace', exact: true })).toBeVisible();
 
-  const created = await call([{ op: 'insert', parent: 'me', kind: 'workspace', text: 'From an agent', content: '- a\n' }]);
+  const created = await call(page, [{ op: 'insert', parent: 'me', kind: 'workspace', text: 'From an agent', content: '- a\n' }]);
   await currentServer.getByRole('button', { name: 'From an agent', exact: true }).click();
   await showMarkdown(page);
   const text = page.getByRole('textbox', { name: 'From an agent Markdown' });
@@ -68,22 +70,15 @@ test('Home and an open workspace follow changes made elsewhere', async ({ page }
 
   const readme = `${String(created.results[0]!.ref)}/README.md`;
   const version = created.changes.find((change) => change.ref === readme)!.version ?? null;
-  await call([{ op: 'setContent', target: readme, content: '- a\n- b\n' }], { [readme]: version });
+  await call(page, [{ op: 'setContent', target: readme, content: '- a\n- b\n' }], { [readme]: version });
   await expect(text).toHaveValue('- a\n- b\n');
 });
 
 test('a workspace document opens as a read-only outline of its Markdown', async ({ page }) => {
-  const response = await page.request.post('/api/notes', {
-    data: {
-      operations: [{
-        op: 'insert', parent: 'me', kind: 'workspace', text: 'Outline',
-        content: '# Trip\n\nFour days.\n\n1. Alfama\n2. Belém\n- [x] Book flights\n',
-      }],
-      expected: {},
-      dryRun: false,
-    },
-  });
-  await expect(response).toBeOK();
+  const created = await call(page, [{
+    op: 'insert', parent: 'me', kind: 'workspace', text: 'Outline',
+    content: '# Trip\n\nFour days.\n\n1. Alfama\n2. Belém\n- [x] Book flights\n',
+  }]);
   await page.goto('/');
   await page.getByRole('group', { name: 'Current Server', exact: true }).getByRole('button', { name: 'Outline', exact: true }).click();
 
@@ -98,7 +93,7 @@ test('a workspace document opens as a read-only outline of its Markdown', async 
   await expect(note('Book flights')).toHaveAttribute('data-note-checked', 'true');
 
   // The outline only reads: the room's saved state stays as the hub seeded it.
-  const workspace = String(((await response.json()) as components['schemas']['CallResult']).results[0]!.ref);
+  const workspace = String(created.results[0]!.ref);
   const roomState = async () => {
     const state = await page.request.get(`${resolveApiServerOrigin()}/internal/collaboration/workspaces/${workspace}/content`, {
       headers: { 'X-Remdo-Collaboration-Secret': config.env.COLLAB_INTERNAL_SECRET },

@@ -195,24 +195,31 @@ function LoadedDocument({
         size="xs"
         value={view}
       />
-      <p className="workspace-document-note">
-        {view === 'outline' ? 'Read-only for now; switch to Markdown to edit.' : 'Markdown as written.'}
-      </p>
-      {view === 'outline' ? <WorkspaceOutline workspaceId={ref.split('/')[0]!} /> : <Textarea
-        aria-label={`${workspace.getText()} Markdown`}
-        className="workspace-document-text"
-        onChange={(event) => setDraft(event.currentTarget.value)}
-        onKeyDown={(event) => {
-          if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
-            event.preventDefault();
-            if (saveEnabled) void save(base.version);
-          }
-        }}
-        resize="vertical"
-        rows={18}
-        spellCheck={false}
-        value={draft}
-      />}
+      {view === 'outline' ? (
+        <>
+          <p className="workspace-document-note">Read-only for now; switch to Markdown to edit.</p>
+          <WorkspaceOutline workspaceId={workspace.getId()} />
+        </>
+      ) : (
+        <>
+          <p className="workspace-document-note">Markdown as written.</p>
+          <Textarea
+            aria-label={`${workspace.getText()} Markdown`}
+            className="workspace-document-text"
+            onChange={(event) => setDraft(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+                event.preventDefault();
+                if (saveEnabled) void save(base.version);
+              }
+            }}
+            resize="vertical"
+            rows={18}
+            spellCheck={false}
+            value={draft}
+          />
+        </>
+      )}
     </DocumentShell>
   );
 }

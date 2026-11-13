@@ -7,7 +7,6 @@ import { useEffect } from 'react';
 import { $setNoteCheckedRecursively, $toggleNoteCheckedForTargets } from './checked-operations';
 import { $isInCheckList } from './note-marker';
 import { $getNoteChecked, $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
-import { registerNoteCheckedDisplay } from './checked-display';
 import { SET_NOTE_CHECKED_COMMAND, ZOOM_TO_NOTE_COMMAND } from '#client/editor/foundation/commands';
 import type { SetNoteCheckedPayload } from '#client/editor/foundation/commands';
 import { isBulletHit, isCheckboxHit } from '#client/editor/outline/bullet-hit-test';
@@ -172,12 +171,6 @@ const registerChecklistBulletZoomGuard = (editor: LexicalEditor) => {
   });
 };
 
-export function NoteCheckedDisplayPlugin() {
-  const [editor] = useLexicalComposerContext();
-  useEffect(() => registerNoteCheckedDisplay(editor), [editor]);
-  return null;
-}
-
 export function CheckListPlugin() {
   const [editor] = useLexicalComposerContext();
 
@@ -249,7 +242,6 @@ export function CheckListPlugin() {
           $setNoteCheckedRaw(node, current);
         }
       }),
-      registerNoteCheckedDisplay(editor),
     );
   }, [editor]);
 

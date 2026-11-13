@@ -12,7 +12,8 @@
   padding-left: var(--remdo-checklist-allowance);
 }
 
-.note-body {
+.note-body,
+.remdo-outline li.list-item[data-marker='block'] {
   margin: 0.1rem 0 0.2rem;
   color: var(--mantine-color-dimmed, #868e96);
   font-size: 0.9em;
@@ -27,12 +28,8 @@
   text-decoration: line-through;
 }
 
-/* A workspace document's body is a block line holding its Markdown source: no marker, styled
-   like a body. */
+/* A block line holds Markdown source, whose line breaks are content. */
 .remdo-outline li.list-item[data-marker='block'] {
-  color: var(--mantine-color-dimmed, #868e96);
-  font-size: 0.9em;
-  line-height: 1.45;
   white-space: pre-wrap;
 }
 

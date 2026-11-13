@@ -70,45 +70,42 @@ const $syncNoteCheckedDataset = (
 
 /** Shows each note's checked state, and its subtree's, in the DOM; it writes nothing to the editor. */
 export function registerNoteCheckedDisplay(editor: LexicalEditor): () => void {
-  return editor.registerMutationListener(
-        ListItemNode,
-        (mutations) => {
-          editor.getEditorState().read(() => {
-            // A mutated note changes its ancestors' subtree state, and Lexical
-            // does not report an ancestor as mutated when only a descendant
-            // changed, so each mutated note's ancestor chain resyncs too.
-            // Descendants need no walk: dimming hangs off the children-wrapper,
-            // and a recursive write marks every note it touches as mutated.
-            const mutated: ListItemNode[] = [];
-            for (const [key, mutation] of mutations) {
-              if (mutation === 'destroyed') {
-                // A destroyed note has no ancestors to walk. Its former parent
-                // still resyncs, because removing a note dirties its siblings
-                // and its wrapper's owner.
-                continue;
-              }
-              // Wrappers are ListItemNodes too, and a body wrapper's next
-              // sibling is the owning note's children wrapper — syncing one as
-              // if it were a note would clear that wrapper's open-work flag.
-              const node = $getNodeByKey(key);
-              if (isContentItem(node)) {
-                mutated.push(node);
-              }
-            }
-
-            const pending = new Map<string, ListItemNode>();
-            for (const node of mutated) {
-              for (let item: ListItemNode | null = node; item; item = $findParentContentItem(item)) {
-                pending.set(item.getKey(), item);
-              }
-            }
-
-            const displays = new NoteCheckedDisplayCache();
-            for (const node of pending.values()) {
-              $syncNoteCheckedDataset(editor, node, displays.get(node));
-            }
-          });
+  return editor.registerMutationListener(ListItemNode, (mutations) => {
+    editor.getEditorState().read(() => {
+      // A mutated note changes its ancestors' subtree state, and Lexical
+      // does not report an ancestor as mutated when only a descendant
+      // changed, so each mutated note's ancestor chain resyncs too.
+      // Descendants need no walk: dimming hangs off the children-wrapper,
+      // and a recursive write marks every note it touches as mutated.
+      const mutated: ListItemNode[] = [];
+      for (const [key, mutation] of mutations) {
+        if (mutation === 'destroyed') {
+          // A destroyed note has no ancestors to walk. Its former parent
+          // still resyncs, because removing a note dirties its siblings
+          // and its wrapper's owner.
+          continue;
         }
-      );
-}
+        // Wrappers are ListItemNodes too, and a body wrapper's next
+        // sibling is the owning note's children wrapper — syncing one as
+        // if it were a note would clear that wrapper's open-work flag.
+        const node = $getNodeByKey(key);
+        if (isContentItem(node)) {
+          mutated.push(node);
+        }
+      }
 
+      // A note already pending had its whole ancestor chain added with it.
+      const pending = new Map<string, ListItemNode>();
+      for (const node of mutated) {
+        for (let item: ListItemNode | null = node; item && !pending.has(item.getKey()); item = $findParentContentItem(item)) {
+          pending.set(item.getKey(), item);
+        }
+      }
+
+      const displays = new NoteCheckedDisplayCache();
+      for (const node of pending.values()) {
+        $syncNoteCheckedDataset(editor, node, displays.get(node));
+      }
+    });
+  });
+}
