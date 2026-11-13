@@ -47,7 +47,6 @@ callers.
    restoring a revision, seals the head first, so no commit can change what it
    reads. Reading history doesn't seal; an open head reads as in progress, and
    a diff against its parent compares with a sealed revision.
-   **Deterministic.**
 4. A commit states the expected content of every file it changes. If any of
    those files differs, the commit is refused and writes nothing; changes to
    other files never cause a refusal. **Deterministic.**
@@ -70,6 +69,8 @@ callers.
    committed to it. **Deterministic.**
 3. Listing a folder returns the paths of the files under it and a version that
    changes when any of them is added, removed or changed. **Deterministic.**
+4. A read of content a later commit dropped is refused, and the caller reads
+   again. **Deterministic.**
 
 ## Future
 
