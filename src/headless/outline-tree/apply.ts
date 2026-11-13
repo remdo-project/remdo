@@ -244,11 +244,12 @@ function $spliceContent(item: ListItemNode, wanted: Atom[], keepEdges: boolean) 
   if (removed.length === 0 && inserted.length === 0) return;
   if ($spliceOneText(atoms, start, removed, inserted)) return;
 
-  const children = item.getChildren();
-  if (children.length === 0) {
-    item.append(...$nodesOf(target));
+  // Children holding no atoms, such as an empty link, own no range to replace.
+  if (atoms.length === 0) {
+    item.clear().append(...$nodesOf(target));
     return;
   }
+  const children = item.getChildren();
   let low = start;
   let high = atoms.length - end;
   if (low === high) {

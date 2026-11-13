@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { $createLinkNode } from '@lexical/link';
 import { $isListItemNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import { $getRoot, $isElementNode, $isTextNode, $setState, createEditor } from 'lexical';
@@ -231,6 +232,17 @@ describe('applying to an editor', () => {
     editor.update(() => $applyTree(retext(tree, 'abc', 'xbc')), { discrete: true });
 
     expect(editor.getEditorState().read(() => $item(cacheId).getTextContent())).toBe('xbc ');
+  });
+
+  it('replaces content that holds no text, such as an empty link', () => {
+    const editor = editorWith({ id: null, children: [note('a')] });
+    const tree = editor.getEditorState().read($readTree);
+    const cacheId = (tree.children[0] as OutlineNote).cacheId!;
+    editor.update(() => $item(cacheId).clear().append($createLinkNode('https://example.test')), { discrete: true });
+
+    editor.update(() => $applyTree(tree), { discrete: true });
+
+    expect(withoutCacheIds(editor.getEditorState().read($readTree))).toEqual(withoutCacheIds({ id: null, children: [note('a')] }));
   });
 });
 

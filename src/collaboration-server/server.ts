@@ -138,7 +138,7 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
    * Save a workspace room's tree as its file, with the state holding it. A file changed since the
    * state's version is applied to the state, which then saves again.
    */
-  async function saveWorkspaceRoom(name: string, doc: Y.Doc, version: string | null) {
+  async function saveWorkspaceRoom(name: string, doc: Y.Doc, version: string | null, onApplied: (version: string | null) => void = () => {}) {
     for (;;) {
       const { tree, state } = saveTree(doc);
       const response = await requestDjango(workspaceContent(name), {
@@ -154,6 +154,8 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       const current = JSON.parse(response.body.toString()) as { version: string | null; tree: OutlineDocument };
       applyTree(doc, current.tree);
       version = current.version;
+      // The state now holds this version even if the next save throws; an older one would apply the file again.
+      onApplied(version);
     }
   }
 
@@ -163,7 +165,9 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     try {
       let response: Awaited<ReturnType<typeof requestDjango>>;
       if (workspaceVersions.has(document)) {
-        const saved = await saveWorkspaceRoom(document.name, document, workspaceVersions.get(document) ?? null);
+        const saved = await saveWorkspaceRoom(
+          document.name, document, workspaceVersions.get(document) ?? null, (version) => workspaceVersions.set(document, version),
+        );
         workspaceVersions.set(document, saved.version);
         response = saved.response;
       } else {
