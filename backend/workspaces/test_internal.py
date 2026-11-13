@@ -9,7 +9,7 @@ from django.db import DatabaseError
 from django.test import Client, TestCase, override_settings
 
 from . import store, text_format
-from .models import DocumentState, Revision, Workspace
+from .models import Blob, DocumentState, Revision, Workspace
 
 EMPTY = {"id": None, "children": []}
 
@@ -144,6 +144,14 @@ class WorkspaceRoomTests(TestCase):
 
         self.assertEqual(loaded["tree"], tree_of("- agent\n"))
         self.assertEqual(loaded["version"], self.readme().blob_hash)
+
+    def test_the_state_goes_with_its_workspace(self):
+        version = self.save(tree_of("- one\n"), None).json()["version"]
+
+        self.workspace.delete()
+
+        self.assertFalse(DocumentState.objects.exists())
+        self.assertFalse(Blob.objects.filter(hash=version).exists())
 
     def test_a_failed_state_write_leaves_no_revision(self):
         with (

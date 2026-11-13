@@ -136,9 +136,10 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
 
   /**
    * Save a workspace room's tree as its file, with the state holding it. A file changed since the
-   * state's version is applied to the state, which then saves again.
+   * state's version is applied to the state, which then saves again. `record` learns each version
+   * the state comes to hold, at once, so a later failure can't make a save apply a file twice.
    */
-  async function saveWorkspaceRoom(name: string, doc: Y.Doc, version: string | null, onApplied: (version: string | null) => void = () => {}) {
+  async function saveWorkspaceRoom(name: string, doc: Y.Doc, version: string | null, record: (version: string | null) => void) {
     for (;;) {
       const { tree, state } = saveTree(doc);
       const response = await requestDjango(workspaceContent(name), {
@@ -148,14 +149,13 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
         signal: AbortSignal.timeout(DJANGO_REQUEST_TIMEOUT_MS),
       });
       if (response.status !== 409) {
-        if (response.ok) ({ version } = JSON.parse(response.body.toString()) as { version: string | null });
-        return { response, version };
+        if (response.ok) record((JSON.parse(response.body.toString()) as { version: string | null }).version);
+        return response;
       }
       const current = JSON.parse(response.body.toString()) as { version: string | null; tree: OutlineDocument };
       applyTree(doc, current.tree);
       version = current.version;
-      // The state now holds this version even if the next save throws; an older one would apply the file again.
-      onApplied(version);
+      record(version);
     }
   }
 
@@ -165,11 +165,9 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
     try {
       let response: Awaited<ReturnType<typeof requestDjango>>;
       if (workspaceVersions.has(document)) {
-        const saved = await saveWorkspaceRoom(
+        response = await saveWorkspaceRoom(
           document.name, document, workspaceVersions.get(document) ?? null, (version) => workspaceVersions.set(document, version),
         );
-        workspaceVersions.set(document, saved.version);
-        response = saved.response;
       } else {
         response = await requestDjango(endpoint(document.name, 'content'), {
           method: 'PUT',
@@ -215,12 +213,11 @@ export function createCollaborationServer({ port, apiOrigin, secret, appOrigin, 
       applyTree(doc, loaded.tree);
       let saved: Awaited<ReturnType<typeof saveWorkspaceRoom>>;
       try {
-        saved = await saveWorkspaceRoom(document.name, doc, version);
+        saved = await saveWorkspaceRoom(document.name, doc, version, (applied) => { version = applied; });
       } catch {
         throw new CollaborationUnavailable('collaboration.load-failed');
       }
-      if (!saved.response.ok) throw new CollaborationUnavailable('collaboration.load-failed');
-      ({ version } = saved);
+      if (!saved.ok) throw new CollaborationUnavailable('collaboration.load-failed');
     }
     workspaceVersions.set(document, version);
     const state = Y.encodeStateAsUpdate(doc);

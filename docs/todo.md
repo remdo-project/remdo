@@ -468,7 +468,13 @@ Remaining:
   recovers from a changed file by applying its tree, which holds no cache IDs,
   so every note is recreated: fold state, and zoom URLs to notes without an
   `id::`, are lost. The cache ID step of the [text format plan](text-format-plan.md)
-  closes this by giving a recreated identical note its old cache ID.
+  closes this for notes whose text is unchanged, by giving a recreated
+  identical note its old cache ID.
+- **Typing lost to a stale save.** When a workspace's file changes while its
+  room is open, the room's next save applies the file, discarding what was
+  typed since its last save. Stage 4 of the
+  [text format plan](text-format-plan.md) closes this with the stale-client
+  merge.
 
 - **Early editor operations.** After the [text format migration](text-format-plan.md),
   revisit the editor's structural operations against
