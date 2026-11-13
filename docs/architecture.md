@@ -180,7 +180,8 @@ stays out of it.
   - A tree note with an ID updates the note whose written ID it is, wherever
     the tree moves it. A note holding that value only as its cache ID gets a
     fresh one, since a written ID claims its value; of two tree notes giving
-    one ID, the first takes it and the other's is dropped. **Deterministic.**
+    one ID, the first in document order takes it and the other's is dropped.
+    **Deterministic.**
   - When two notes hold one cache ID, the first in document order keeps it
     and the others get fresh ones. **Deterministic.**
   - A note whose content and place already match is left unwritten. Text
