@@ -1,0 +1,92 @@
+.assistant-selectors {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.assistant-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 96px;
+  height: 98px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--landing-light-text);
+  font-family: var(--landing-font-sans);
+  font-size: 14px;
+  line-height: 22px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.assistant-logo-box {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--landing-secondary-text);
+  border-radius: var(--landing-radius);
+}
+.assistant-provider-logo {
+  display: block;
+  width: 32px;
+  height: 32px;
+  background: currentColor;
+  mask: var(--assistant-logo) center / contain no-repeat;
+}
+.assistant-provider-logo--chatgpt {
+  --assistant-logo: url('/site-assets/assistants/chatgpt.svg');
+}
+.assistant-provider-logo--claude {
+  --assistant-logo: url('/site-assets/assistants/claude.svg');
+}
+.assistant-provider-logo--perplexity {
+  --assistant-logo: url('/site-assets/assistants/perplexity.svg');
+}
+.assistant-provider-logo--gemini {
+  --assistant-logo: url('/site-assets/assistants/gemini.svg');
+}
+.assistant-provider-logo--grok {
+  --assistant-logo: url('/site-assets/assistants/grok.svg');
+}
+.assistant-selector:is([aria-selected='true'], [aria-current='true']) .assistant-logo-box {
+  border-color: var(--landing-light-text);
+  background: var(--landing-light-text);
+  color: var(--landing-primary-text);
+}
+.assistant-selector:hover .assistant-logo-box {
+  border-color: var(--landing-light-text);
+}
+.assistant-selector:focus-visible {
+  outline: 2px solid var(--landing-light-text);
+  outline-offset: 4px;
+}
+@media (max-width: 800px) {
+  .assistant-selectors {
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .assistant-selector {
+    width: 20%;
+    height: auto;
+    min-height: 82px;
+    font-size: 12px;
+    line-height: 18px;
+  }
+  .assistant-logo-box {
+    width: 48px;
+    height: 48px;
+  }
+  .assistant-provider-logo {
+    width: 26px;
+    height: 26px;
+  }
+}
+@media (max-width: 390px) {
+  .assistant-logo-box {
+    width: 44px;
+    height: 44px;
+  }
+}

@@ -1,6 +1,6 @@
 ---
 title: Connect an AI assistant
-description: Let ChatGPT, Claude, and other AI assistants work with your RemDo documents.
+description: Let ChatGPT, Claude, Perplexity, Gemini and Grok work with your RemDo documents.
 ---
 
 <!-- markdownlint-disable relative-links -->
@@ -10,87 +10,132 @@ conversation as notes. Pick your assistant:
 
 <div class="assistant-tabs" markdown="1">
 
+<section class="assistant-guide" data-assistant="chatgpt" markdown="1">
+
 ## ChatGPT
 
-RemDo is listed in ChatGPT’s plugin directory.
+1. In ChatGPT, open **Plugins**, click **+**, then choose **Add custom MCP server**.
+2. Name it **RemDo** and enter this server URL under **Connection**:
 
-<a class="landing-button" href="https://chatgpt.com/plugins/plugin_asdk_app_6ac660fbb52c81918e101590babd0473"
-target="_blank" rel="noreferrer">Open RemDo in ChatGPT</a>
+        https://remdo.com/mcp
 
-1. Install the plugin. When prompted, sign in to RemDo and allow access.
-2. Start a new chat, type **@**, and select **RemDo**.
-
-Then ask ChatGPT to, for example, “save this conversation to RemDo” or
-“list my RemDo documents”.
-
-<details markdown="1">
-<summary>Plugin not available in your workspace? Add RemDo as a custom server</summary>
-
-1. In ChatGPT, open **Plugins**, click **+**, and choose **Add custom MCP
-   server**.
-2. Enter **RemDo** as the name and `https://remdo.com/mcp` as the server URL.
-3. Review the warning, choose **Create as a plugin**, and install the plugin.
-   When prompted, sign in to RemDo and allow access.
+3. Choose **OAuth**, review the warning, then select **Create as a plugin**.
+   Install it, sign in to RemDo and allow access.
 4. Start a new chat, type **@**, and select **RemDo**.
 
-For workspace requirements, see OpenAI’s
-[MCP connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt).
+<div class="assistant-terminal" markdown="1">
 
-</details>
+### Use Codex instead
+
+<div class="assistant-terminal-command" markdown="1">
+
+In a terminal with Codex installed, run:
+
+    codex mcp add remdo --url https://remdo.com/mcp
+
+</div>
+</div>
+
+For account and workspace requirements, see OpenAI’s [MCP connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt).
+
+</section>
+
+<section class="assistant-guide" data-assistant="claude" markdown="1">
 
 ## Claude
 
-<a class="landing-button"
-href="https://claude.ai/customize/connectors?modal=add-custom-connector&amp;connectorName=RemDo&amp;connectorUrl=https%3A%2F%2Fremdo.com%2Fmcp"
-target="_blank" rel="noreferrer">Add RemDo to Claude</a>
-
-1. Claude opens **Add custom connector** with RemDo filled in. Click **Add**,
-   then **Connect**, sign in to RemDo, and allow access.
-2. In a chat, click **+**, open **Connectors**, and turn on RemDo.
-
-Then ask Claude to, for example, “save this conversation to RemDo”.
-
-<details markdown="1">
-<summary>Button didn’t work, or on a Team or Enterprise plan? Add RemDo manually</summary>
-
-1. In Claude, open **Customize → Connectors**, click **+**, and choose
+1. In Claude, open **Customize → Connectors**, choose **+ Add**, then
    **Add custom connector**.
-2. Enter `https://remdo.com/mcp` and click **Add**. Leave **Advanced settings**
-   empty.
-3. Click **Connect**, sign in to RemDo, and allow access.
-4. In a chat, click **+**, open **Connectors**, and turn on RemDo.
+2. Name it **RemDo**, enter this server URL, then choose **Continue**:
 
-On Team and Enterprise plans, an Owner adds RemDo for the organization first:
+        https://remdo.com/mcp
+
+3. Review the authentication settings and continue. Choose **Sign in now** and
+   **Use Claude’s published identity (Recommended)**, then **Add**. Sign in to
+   RemDo and allow access.
+4. In a chat, open **+ → Connectors** and turn on **RemDo**.
+
+<div class="assistant-terminal" markdown="1">
+
+### Use Claude Code instead
+
+<div class="assistant-terminal-command" markdown="1">
+
+In a terminal with Claude Code installed, run:
+
+    claude mcp add --transport http remdo https://remdo.com/mcp
+
+</div>
+</div>
+
+On Team and Enterprise plans, an Owner or Enterprise member with
+connector-management permission adds RemDo first:
 [add RemDo as an Owner](https://claude.ai/admin-settings/connectors?modal=add-custom-connector&connectorName=RemDo&connectorUrl=https%3A%2F%2Fremdo.com%2Fmcp),
 or see Anthropic’s
 [custom connector guide](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp).
 
-</details>
+</section>
 
-## Other agents
+<section class="assistant-guide" data-assistant="perplexity" markdown="1">
 
-Most assistants that support MCP can walk you through their own setup. Ask
-yours:
+## Perplexity
 
-> How do I connect this chat to remdo.com, and what can I do with it?
+1. In Perplexity, open **Plugins → Add custom → Add MCP connector**, then choose
+   **Remote**.
+2. Enter **RemDo** as the name and paste this **MCP server URL**:
 
-<details markdown="1">
-<summary>Know MCP? Server address and commands</summary>
+        https://remdo.com/mcp
 
-Add a remote MCP server with this address, then sign in to RemDo when asked; no
-API key is needed:
+3. Under **Advanced**, select **OAuth** and **Streamable HTTP**. Keep network
+   access **Public**, review the acknowledgement, then select **Add**.
+4. Open the **RemDo** connector card and follow the sign-in prompts. Once
+   connected, ask Perplexity to use RemDo in a new conversation.
 
-    https://remdo.com/mcp
+Requires Pro, Max or Enterprise. On Enterprise, an administrator must allow
+custom connectors or add RemDo for the organization. See Perplexity’s
+[remote connector guide](https://www.perplexity.ai/help-center/en/articles/13915507-adding-custom-remote-connectors).
 
-Claude Code, then sign in from `/mcp`:
+</section>
 
-    claude mcp add --transport http remdo https://remdo.com/mcp
+<section class="assistant-guide" data-assistant="gemini" markdown="1">
 
-Codex, then sign in with `codex mcp login remdo` if not prompted:
+## Gemini
 
-    codex mcp add remdo --url https://remdo.com/mcp
+1. In Gemini on the web, open **Settings → Connected Apps**. If needed, open
+   **Personal Intelligence → Connected Apps**.
+2. Under **Custom apps**, paste this URL into
+   **Add a custom app link to get started**. If you already have an app, choose
+   **Add a custom app** first:
 
-</details>
+        https://remdo.com/mcp
+
+3. Select **Next** and follow the connection prompts.
+4. Once connected, start a chat, type **@**, and select **RemDo**.
+
+Custom apps require a personal Google Account, age 18+, US availability, English
+and **Keep Activity** turned on. See Google’s
+[custom app guide](https://support.google.com/gemini/answer/17209137).
+
+</section>
+
+<section class="assistant-guide" data-assistant="grok" markdown="1">
+
+## Grok
+
+1. In Grok, open **Connectors**, click **New Connector**, then select **Custom**.
+2. Paste this MCP server URL:
+
+        https://remdo.com/mcp
+
+3. Follow the authentication prompts, sign in to RemDo and allow access.
+4. Start a new conversation and ask Grok to use your RemDo notes.
+
+On Business and Enterprise plans, a team admin adds RemDo in the cloud console
+before members connect their accounts. See the
+[team connector guide](https://docs.x.ai/grok/connector-management) or Grok’s
+[connector guide](https://docs.x.ai/grok/connectors).
+
+</section>
 
 </div>
 
@@ -98,5 +143,4 @@ Codex, then sign in with `codex mcp login remdo` if not prompted:
 
 ## Disconnect
 
-Review and revoke assistant access on your
-[Connected apps](/accounts/connected-apps/) page.
+Review and revoke assistant access on your [Connected apps](/accounts/connected-apps/) page.

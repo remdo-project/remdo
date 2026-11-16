@@ -1,90 +1,148 @@
-.assistant-tablist {
-  display: flex;
-  gap: 4px;
-  margin: 40px 0 28px;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--landing-dark-outline);
-  scrollbar-width: none;
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('/site-assets/fonts/jetbrains-mono-variable.ttf') format('truetype');
 }
-.assistant-tablist [role='tab'] {
-  flex: none;
-  margin-bottom: -1px;
+.landing-legal-column:has(.assistant-tabs) {
+  min-height: 1408px;
+}
+.assistant-tabs {
+  margin-top: 48px;
+}
+.assistant-tabs .assistant-picker {
+  margin-bottom: 48px;
+}
+.assistant-tabs .assistant-selectors {
+  width: 512px;
+  max-width: 100%;
+  margin-bottom: 0;
+}
+.assistant-tabs .assistant-selector {
+  font-weight: 500;
+}
+.assistant-tabs .assistant-logo-box {
+  border-color: var(--landing-dark-outline);
+}
+.assistant-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+.assistant-guide:focus-visible {
+  outline: 2px solid var(--landing-light-text);
+  outline-offset: 8px;
+}
+.assistant-guide[hidden] {
+  display: none;
+}
+.assistant-tabs:not(:has(.assistant-picker)) .assistant-guide + .assistant-guide {
+  margin-top: 48px;
+}
+.assistant-guide > h2, .assistant-guide > p, .assistant-guide > ol {
+  margin: 0;
+}
+.assistant-guide li + li {
+  margin-top: 16px;
+}
+.assistant-terminal {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.assistant-terminal h3 {
+  margin: 0;
+  color: var(--landing-light-text);
+  font-family: var(--landing-font-serif);
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 42px;
+  letter-spacing: -0.4px;
+}
+.assistant-terminal-command {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.assistant-terminal-command p {
+  margin: 0;
+}
+.assistant-guide li p {
+  margin: 0;
+}
+.assistant-guide pre {
+  min-width: 0;
+  min-height: 52px;
+  margin: 0;
   padding: 12px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--landing-dark-outline);
+  border-radius: var(--landing-radius);
+  color: var(--landing-light-text);
+  font-family: var(--remdo-font-family-monospace);
+  font-size: 16px;
+  line-height: 24px;
+  scrollbar-width: thin;
+}
+.assistant-guide pre code {
+  font: inherit;
+}
+.assistant-copy {
+  display: flex;
+  min-width: 0;
+  min-height: 52px;
+  border: 1px solid var(--landing-dark-outline);
+  border-radius: var(--landing-radius);
+}
+.assistant-copy > pre {
+  flex: 1;
+  min-height: 50px;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: 0;
+}
+.assistant-guide li > pre, .assistant-guide li > .assistant-copy {
+  width: calc(100% + 27px);
+  margin: 16px 0 0 -27px;
+}
+.assistant-copy > button {
+  flex: 0 0 96px;
+  padding: 8px 12px;
+  border: 0;
+  border-left: 1px solid var(--landing-dark-outline);
   background: none;
-  color: var(--landing-muted-light-text);
+  color: var(--landing-light-text);
   font-size: 16px;
   font-weight: 500;
   line-height: 24px;
   cursor: pointer;
 }
-.assistant-tablist [role='tab']:hover, .assistant-tablist [aria-selected='true'] {
-  color: var(--landing-light-text);
-}
-.assistant-tablist [aria-selected='true'] {
-  border-bottom-color: var(--landing-light-text);
-}
-.assistant-tablist [role='tab']:focus-visible {
-  outline-offset: -2px;
-}
-.assistant-tabs .landing-button {
-  margin-block: 8px;
-}
-.assistant-tabs :is(blockquote, pre) {
-  margin: 8px 0 20px;
-  padding: 14px 16px;
-  overflow-x: auto;
-  border: 1px solid var(--landing-dark-outline);
-  border-radius: var(--landing-radius);
-  color: var(--landing-light-text);
-}
-.assistant-tabs blockquote {
-  font-family: var(--landing-font-serif);
-  font-size: 20px;
-}
-.assistant-tabs blockquote p {
-  margin: 0;
-}
-.assistant-tabs pre {
-  font-size: 15px;
-  line-height: 22px;
-}
-.assistant-copy {
-  display: flex;
-  margin: 8px 0 20px;
-}
-.assistant-copy > :is(blockquote, pre) {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  border-radius: var(--landing-radius) 0 0 var(--landing-radius);
-}
-.assistant-copy > button {
-  min-width: 96px;
-  padding: 0 18px;
-  border: 1px solid var(--landing-dark-outline);
-  border-left: 0;
-  border-radius: 0 var(--landing-radius) var(--landing-radius) 0;
-  background: none;
-  color: var(--landing-light-text);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-}
 .assistant-copy > button:hover {
   background: var(--chrome-hover);
 }
-.assistant-tabs details {
-  margin-top: 24px;
-  border-top: 1px solid var(--landing-dark-outline);
-}
-.assistant-tabs summary {
-  padding-block: 14px;
-  color: var(--landing-muted-light-text);
-  font-size: 16px;
-  cursor: pointer;
-}
-.assistant-tabs summary:hover, .assistant-tabs details[open] > summary {
-  color: var(--landing-light-text);
+@media (max-width: 47.99em) {
+  .landing-legal-column:has(.assistant-tabs) {
+    min-height: 0;
+  }
+  .assistant-tabs {
+    margin-top: 36px;
+  }
+  .assistant-tabs .assistant-picker {
+    margin-bottom: 36px;
+  }
+  .assistant-guide {
+    gap: 36px;
+  }
+  .assistant-terminal h3 {
+    font-size: 28px;
+    line-height: 34px;
+  }
+  .assistant-guide pre {
+    padding-inline: 12px;
+    font-size: 14px;
+  }
+  .assistant-copy > button {
+    flex-basis: 76px;
+    font-size: 14px;
+  }
 }

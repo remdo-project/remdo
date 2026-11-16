@@ -1,10 +1,57 @@
-<figure class="landing-assistant" role="img" aria-label="A chat in which a pasted RemDo link gives an assistant a note’s context, and the assistant reads it and adds next steps back to the outline.">
-  <div aria-hidden="true">
-    <p class="landing-assistant-title">Claude · connected to RemDo</p>
-    <p class="landing-assistant-user">Summarize this and suggest next steps: remdo.com/n/atlas-launch</p>
-    <p class="landing-assistant-tool">RemDo · read_document</p>
-    <p class="landing-assistant-reply">Two tasks are open. Next: confirm the date with Maya, then finish the homepage draft.</p>
-    <p class="landing-assistant-tool">RemDo · append_children</p>
-    <p class="landing-assistant-reply">I added the next steps to your Atlas outline.</p>
+<div class="landing-assistant landing-assistant-demo-wrapper">
+  <div class="landing-assistant-demo-window" data-stage="conversation" role="img" aria-label="A ChatGPT conversation about a travel app is saved to RemDo as an outline.">
+    <div class="landing-assistant-chat-card" aria-hidden="true">
+      <div class="landing-assistant-chat-header">
+        <span>ChatGPT</span>
+        <svg class="landing-assistant-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg class="landing-assistant-new-chat" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M16 3l5 5M10 14l2-6 7-7 5 5-7 7-6 2Z" transform="translate(-1 1) scale(.9)" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="landing-assistant-chat-viewport">
+        <div class="landing-assistant-conversation-track">
+          <p class="landing-assistant-user-message landing-assistant-ongoing-message">Let’s start with friends planning a trip together. What belongs in the first version?</p>
+          <div class="landing-assistant-assistant-message landing-assistant-ongoing-reply">
+            <p>Keep the first version focused on three things:</p>
+            <p>A shared list of places, a simple vote, and a day-by-day plan.</p>
+            <p>Test that flow with five travellers before building more.</p>
+          </div>
+          <p class="landing-assistant-user-message landing-assistant-save-message">Save this to <span class="landing-assistant-mention">@RemDo</span></p>
+          <p class="landing-assistant-assistant-message landing-assistant-saved-message"><span class="landing-assistant-saved-text"></span></p>
+        </div>
+      </div>
+      <div class="landing-assistant-composer">
+        <svg class="landing-assistant-composer-plus" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span class="landing-assistant-composer-content"><span class="landing-assistant-placeholder">Ask anything</span><span class="landing-assistant-draft"></span><span class="landing-assistant-typing-caret"></span></span>
+        <span class="landing-assistant-send-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 18V6m-5 5 5-5 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+    </div>
+    <div class="landing-assistant-remdo-card" aria-hidden="true">
+      <div class="landing-assistant-remdo-wordmark-header"><span class="landing-assistant-remdo-wordmark">RemDo</span></div>
+      <div class="landing-assistant-document-breadcrumb"><span>Home</span><span class="landing-assistant-separator">/</span><span class="landing-assistant-document-name">Building a travel app</span></div>
+      <div class="landing-assistant-editor-root">
+        <p class="landing-assistant-document-title">Building a travel app</p>
+        <ul class="landing-assistant-outline-list landing-assistant-document-date">
+          <li class="landing-assistant-list-item"><span class="landing-assistant-date-node">Nov 18, 2026</span></li>
+        </ul>
+        <ul class="landing-assistant-outline-list">
+          <li class="landing-assistant-list-item"><strong>First version</strong></li>
+          <li class="landing-assistant-list-nested-item">
+            <ul class="landing-assistant-outline-list">
+              <li class="landing-assistant-list-item">Save places, links and short notes</li>
+              <li class="landing-assistant-list-item">Vote on where to go together</li>
+              <li class="landing-assistant-list-item">Arrange stops into a day-by-day plan</li>
+              <li class="landing-assistant-list-item">Invite friends with a shared trip link</li>
+            </ul>
+          </li>
+          <li class="landing-assistant-list-item landing-assistant-group-spacer"><strong>Validate the idea</strong></li>
+          <li class="landing-assistant-list-nested-item">
+            <ul class="landing-assistant-outline-list">
+              <li class="landing-assistant-list-item landing-assistant-task-item">Test the prototype with five travellers</li>
+              <li class="landing-assistant-list-item landing-assistant-task-item">Measure time to agree on a plan</li>
+              <li class="landing-assistant-list-item landing-assistant-task-item">Improve the flow from their feedback</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
-</figure>
+</div>
