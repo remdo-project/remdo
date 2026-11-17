@@ -92,12 +92,6 @@
   height: 1px;
   background: var(--landing-dark-outline);
 }
-@media (min-width: 64em) {
-  .landing-signin .site-wordmark {
-    position: absolute;
-    left: var(--signin-story-inset);
-  }
-}
 @media (max-width: 63.99em) {
   .landing-signin {
     grid-template-columns: minmax(0, 1fr);

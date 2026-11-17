@@ -128,9 +128,9 @@ test('sign-in shows its story beside the form on wide screens and removes it on 
   }
 });
 
-test('keeps the sign-in wordmark in the shared header when the story is hidden', async ({ page }) => {
+test('places the wordmark at the same spot on every public page', async ({ page }) => {
   const wordmark = page.getByRole('link', { name: 'RemDo home', exact: true });
-  for (const width of [1023, 768, 390]) {
+  for (const width of [1920, 1440, 1024, 1023, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     const boxes = [];
     for (const path of ['/', '/privacy/', '/accounts/login/']) {
@@ -144,15 +144,14 @@ test('keeps the sign-in wordmark in the shared header when the story is hidden',
   }
 });
 
-test('keeps the sign-in wordmark and story 64px from the left edge while resizing desktop', async ({ page }) => {
+test('keeps the sign-in story 64px from the left edge while resizing desktop', async ({ page }) => {
   await page.goto('/accounts/login/');
-  const wordmark = page.getByRole('link', { name: 'RemDo home', exact: true });
   const story = page.getByText('A place for your next thought.', { exact: true });
   const summary = page.getByText('Organize notes and tasks, connect related ideas, and work together in one outline.', { exact: true });
 
   for (const width of [3440, 1920, 1440, 1024]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const element of [wordmark, story, summary]) {
+    for (const element of [story, summary]) {
       await expect(element).toBeVisible();
       expect((await element.boundingBox())!.x).toBeCloseTo(64, 0);
     }
