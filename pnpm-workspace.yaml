@@ -24,6 +24,10 @@ overrides:
   fast-uri: '>=4.1.2'
   js-yaml: 4.3.2
   markdown-it: '>=14.2.0'
+  # TODO(deps): drop once micromark-extension-math accepts katex 0.18; katex 0.16 has no GHSA-238p-pmpm-9mq7 fix,
+  # and markdownlint and @eslint/markdown use only its math syntax, which imports but never calls katex.
+  # Probe: remove it, run pnpm install, and confirm every katex resolves to 0.18.2 or later.
+  micromark-extension-math>katex: '>=0.18.2 <0.19'
   # TODO(deps): minimatch 10 has no GHSA-g3hv-75wg-m249 fix (11.0.1 is the first); eslint, @eslint/config-array,
   # and typescript-eslint still declare ^10. Probe: pnpm audit no longer reports it.
   minimatch@10>brace-expansion: 5.0.12
