@@ -462,9 +462,21 @@ Remaining:
   of the [text format plan](text-format-plan.md) closes this with gestures,
   including Insertion's appended notes and the menu's checkbox action. They
   must not produce a note under a body line, a heading under a list item, or a
-  note right after a heading at that heading's level. Body lines and
-  notes kept as Markdown source are stored but shown as plain notes until the
-  editor opens a workspace's Document.
+  note right after a heading at that heading's level.
+
+- **Read-only workspace outline.** A workspace's Document opens as a read-only
+  outline, with its Markdown text box as a second view. The outline shows a file
+  change made while it's open only once a client saves or the room reloads,
+  since a reader never saves; editing the outline and agent edits through the
+  room's tree close this. A reader still writes once: when a peer empties the
+  document, Lexical's Yjs binding adds an empty root paragraph to the room.
+  Reading the tree skips it, so the file is unaffected, but the room then holds
+  a node no file line gives.
+
+- **Links in workspace documents.** The editor's external-link handling unwraps
+  every link whose target isn't http(s), so an editable workspace outline that
+  mounts it would strip `file:`, relative and `note:` links from the file.
+  Workspace documents need link handling that keeps targets as written.
 
 - **Cache IDs through recovery.** [Workspace document state](architecture.md#workspace-document-state)
   recovers from a changed file by applying its tree, which holds no cache IDs.
@@ -474,7 +486,8 @@ Remaining:
 - **Refused workspace saves out of sight.** A workspace room whose save is
   [refused](architecture.md#workspace-document-state) tells none of its
   clients, and a refused load leaves the client reconnecting, reported again
-  each time. The editor shows both once it opens a workspace's Document.
+  each time. The read-only outline shows neither; the editable outline shows
+  both.
 - **Changes an open head undoes.** A live document's saves that return a file
   to what the open head's parent holds leave the head with a change that
   changes nothing, which the [store](specs/workspaces/store.md#commits) would

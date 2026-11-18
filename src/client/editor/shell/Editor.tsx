@@ -9,6 +9,7 @@ import type { DocumentNote } from '#note-sdk';
 import { editorExtension } from '#client/editor/runtime/config';
 import { CollaborationPlugin, useOfflineDocumentUnavailable } from '#client/editor/runtime/collaboration';
 import { CheckListPlugin } from '#client/editor/features/list-types/CheckListPlugin';
+import { NoteCheckedDisplayPlugin } from '#client/editor/features/list-types/NoteCheckedDisplayPlugin';
 import { NoteMarkerPlugin } from '#client/editor/features/list-types/NoteMarkerPlugin';
 import { IndentationPlugin } from '#client/editor/editing/indentation/IndentationPlugin';
 import { DevEditorSeam } from './DevEditorSeam';
@@ -151,6 +152,7 @@ function EditorRuntime({
               <ZoomPlugin onSelectHome={onSelectHome} />
               <ZoomVisibilityPlugin />
               <CheckListPlugin />
+              <NoteCheckedDisplayPlugin />
               <NoteMarkerPlugin />
               <ListPlugin hasStrictIndent />
               {onPendingDocumentImportError ? (

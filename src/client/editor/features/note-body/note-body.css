@@ -12,7 +12,8 @@
   padding-left: var(--remdo-checklist-allowance);
 }
 
-.note-body {
+.note-body,
+.remdo-outline li.list-item[data-marker='block'] {
   margin: 0.1rem 0 0.2rem;
   color: var(--mantine-color-dimmed, #868e96);
   font-size: 0.9em;
@@ -25,4 +26,8 @@
   + li.note-body-wrapper
   .note-body {
   text-decoration: line-through;
+}
+
+.remdo-outline li.list-item[data-marker='block']::before {
+  content: none;
 }

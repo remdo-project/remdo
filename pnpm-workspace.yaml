@@ -24,8 +24,12 @@ overrides:
   fast-uri: '>=4.1.2'
   js-yaml: 4.3.2
   markdown-it: '>=14.2.0'
+  # TODO(deps): drop once micromark-extension-math accepts katex 0.18; katex 0.16 has no GHSA-238p-pmpm-9mq7 fix,
+  # and markdownlint and @eslint/markdown use only its math syntax, which imports but never calls katex.
+  # Probe: remove it, run pnpm install, and confirm every katex resolves to 0.18.2 or later.
+  micromark-extension-math>katex: '>=0.18.2 <0.19'
   # TODO(deps): minimatch 10 has no GHSA-g3hv-75wg-m249 fix (11.0.1 is the first); eslint, @eslint/config-array,
-  # typescript-eslint, and workbox-build's glob 11 still declare ^10. Probe: pnpm audit no longer reports it.
+  # and typescript-eslint still declare ^10. Probe: pnpm audit no longer reports it.
   minimatch@10>brace-expansion: 5.0.12
   minimatch@5>brace-expansion: 2.1.7
   nanoid@3: '>=3.3.17 <4'
@@ -36,6 +40,10 @@ overrides:
   re2js: '>=2.8.7 <3'
   serialize-javascript: 7.1.4
   undici: '>=7.29.0'
+  # TODO(deps): drop once workbox-build accepts glob 14 (its update is held in renovate.json5); glob 11 has no
+  # GHSA-3g3m-2fjr-6pw4 fix, and its one globSync call yields the same precache list on 14.
+  # Probe: remove it, run pnpm install, and confirm every glob resolves to 14.0.2 or later.
+  workbox-build>glob: '>=14.0.2 <15'
 
 packageExtensions:
   eslint-plugin-compat:

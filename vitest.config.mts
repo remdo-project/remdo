@@ -66,6 +66,7 @@ const nodeTests = [
 // These tests need a DOM but not the shared RemDo editor fixture.
 const domTests = [
   'tests/unit/collab/note-sdk-showcase.collab.spec.ts',
+  'tests/unit/collab/workspace-outline.collab.spec.tsx',
   'src/client/editor/outline/selection/selection-tree.spec.ts',
   'src/client/editor/outline/selection/selection-rungs.spec.ts',
   'src/client/editor/dev/vanilla-lexical-editor.spec.tsx',
