@@ -127,7 +127,8 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
    a `note:` link holding a `<workspaceId>_<id>` reference resolves in that
    workspace on the same server. A
    note keeps its ID through every [note operation](./note-operations.md)
-   except Delete, including a move to another document. **Deterministic.**
+   except Delete and an Ensure ID that rule 5 renews, including a move to
+   another document in the same workspace. **Deterministic.**
 3. Inserted or copied notes start without an ID; a fragment carrying one is
    refused. **Deterministic.**
 4. A note's `id` [property](../../format.md#properties) belongs to the note,
@@ -136,7 +137,7 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
    lacked. **Deterministic.**
 5. When text written outside RemDo gives two notes one ID, reads report both,
    each by its temporary reference, and a reference to that ID resolves to
-   neither.
+   neither. Ensure ID on one of them writes it a new ID. **Deterministic.**
 6. A [reference](./note-model.md#note-kinds) is `me` for the caller's account
    root, `<workspaceId>` for a workspace, `<workspaceId>_<id>` for a note with
    an ID, and `<workspaceId>/<path>` for a folder or file. Any other note of a
