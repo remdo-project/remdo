@@ -17,8 +17,9 @@
     "src/collaboration-server/main.ts!",
     // Django renders the app page that loads this Vite entry.
     "src/client/app/shell/main.tsx!",
-    // vite.config.mts loads this helper, which only the production build runs.
-    "config/vite/source-map-upload.ts!",
+    // vite.config.mts loads these helpers, and the production image runs it with
+    // production dependencies only.
+    "config/vite/{shared,source-map-upload}.ts!",
     "playwright.docker.config.ts",
     // Browser tests import this fixture through Vite URLs inside page.evaluate.
     "tests/e2e/_support/local-persistence-browser.ts",
