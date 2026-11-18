@@ -78,6 +78,11 @@ def _outline(parsed, blank=None, renewed=(None, None)):
     return note_id(parsed, ()), notes(parsed.children, ())
 
 
+def _skeleton(parsed):
+    """Each note's kind and children, the positions temporary references count."""
+    return [(note.kind, _skeleton(note)) for note in parsed.children]
+
+
 def _child_indent(note, lines):
     """Where a property line of `note` starts in `lines`: level with its first child, or where
     the writer puts children when the lines after it don't start with one."""
@@ -148,9 +153,10 @@ class Tree:
         self.load_blobs([hash_])
         return self.contents[hash_]
 
-    def reading(self, path):
-        """The text format's reading of a document, missing ones reading empty."""
-        hash_ = self.files.get(path)
+    def reading(self, path, initial=False):
+        """The text format's reading of a document, now or as the call found it; missing ones
+        read empty."""
+        hash_ = (self.initial if initial else self.files).get(path)
         if hash_ is None:
             return text_format.Document()
         if hash_ not in self.readings:
@@ -284,6 +290,7 @@ class Note:
     kind = None
     operations = ("read",)
     listing = False
+    temporary = False  # named by a temporary reference
 
     def __init__(self, call, path):
         self.call = call
@@ -576,11 +583,13 @@ class Document(File):
         return {"ref": self.call.ref(self.path), "id": note_id}
 
     def lines(self):
-        self.check_text(self.call, self.content)
-        text = self.content.decode()
+        try:
+            text = self.content.decode()
+        except UnicodeDecodeError:
+            self.call.refuse("INVALID_ARGUMENT", "target: its document isn't UTF-8 text.")
         return text_format.lines_of(text) if text else []
 
-    def reading(self, lines):
+    def written(self, lines):
         content = "\n".join(lines) + "\n" if lines else ""
         return content.encode(), text_format.read(content)
 
@@ -593,7 +602,6 @@ class Document(File):
     def write_id(self, owner, position, lines, at, prefix):
         """Give `owner`, the document or its note at `position`, a new ID: in place of its first
         `id::` line, or as a line starting with `prefix` at line `at` of `lines`."""
-        self.call.check(self)
         note_id = self.call.new_id()
         if owner.id_line is not None:
             line = lines[owner.id_line]
@@ -608,7 +616,7 @@ class Document(File):
                 if at > 0 and lines[at - 1].strip():
                     added.insert(0, "")
             lines[at:at] = added
-        content, written = self.reading(lines)
+        content, written = self.written(lines)
         if _outline(written) != _outline(self.parsed, renewed=(position, note_id)):
             self.call.refuse("FAILED_PRECONDITION", "target: its text has no place for an ID.")
         self.call.put(self.path, content, written)
@@ -634,7 +642,6 @@ class TextNote(Note):
     """
 
     kinds = ("outlineNote", "body")
-    temporary = False  # named by its temporary reference, valid only in the document as read
 
     def __init__(self, document, position, note):
         super().__init__(document.call, document.path)
@@ -688,7 +695,9 @@ class TextNote(Note):
         lines[first:stop] = [
             prefix + line if line else prefix.rstrip() for line in text_format.lines_of(text)
         ]
-        content, written = self.document.reading(lines)
+        content, written = self.document.written(lines)
+        if content == self.document.content:
+            self.call.refuse("INVALID_ARGUMENT", "The text is unchanged.")
         if _outline(written, self.position) != _outline(self.document.parsed, self.position):
             self.call.refuse(
                 "INVALID_ARGUMENT",
@@ -699,10 +708,9 @@ class TextNote(Note):
         return {"ref": ref}
 
     def ensure_id(self, operation):
-        if self.temporary:
-            self.call.check(self)
         note_id = self.document.own_id(self.note)
         if note_id is None:
+            self.call.check(self)
             if self.note.span is None:
                 self.call.refuse("INVALID_ARGUMENT", SHARED_LINE)
             lines = self.document.lines()
@@ -713,7 +721,7 @@ class TextNote(Note):
         return {"ref": self.call.id_ref(note_id), "id": note_id}
 
 
-SHARED_LINE = "target: its first child starts on its line, so its text can't change on its own."
+SHARED_LINE = "target: it shares its first line with another note, so it can't change on its own."
 
 KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file": File}
 NOTE_KINDS = [*KINDS, *TextNote.kinds]
@@ -780,6 +788,23 @@ class WorkspaceCall(Call):
         return paths
 
     def note(self, ref, field="target"):
+        """The note an operation names. A temporary reference counts positions in the document as
+        the caller read it, so it holds only while earlier operations leave those positions."""
+        note = self.find(ref, field)
+        if note.temporary:
+            self.check(note)
+            if _skeleton(self.tree.reading(note.path)) != _skeleton(
+                self.tree.reading(note.path, initial=True)
+            ):
+                self.refuse(
+                    "INVALID_ARGUMENT",
+                    f"{field}: an earlier operation moved the notes this temporary reference "
+                    "counts; name the note by its ID, or change it in a call of its own.",
+                )
+        return note
+
+    def find(self, ref, field):
+        """The note a reference names, as Read resolves it."""
         _, path, note_id = self.parsed(ref, field)
         if note_id:
             return self.note_with_id(note_id, field)

@@ -35,6 +35,26 @@
   after: |
     - buy bread
 
+- name: notes named by temporary references change together
+  before: |
+    - a
+    - b
+  operations:
+    - {op: setText, target: "- a", text: "- a2"}
+    - {op: setText, target: "- b", text: "- b2"}
+  after: |
+    - a2
+    - b2
+
+- name: a temporary reference after an earlier operation moved notes is refused
+  before: |
+    - a
+    - b
+  operations:
+    - {op: setContent, target: README.md, content: "- x\n- a\n- b\n"}
+    - {op: setText, target: "- b", text: "- b2"}
+  refused: INVALID_ARGUMENT
+
 - name: a bullet becomes a number
   before: |
     - a
@@ -152,6 +172,20 @@
     one
   operations:
     - {op: setText, target: one, text: ""}
+  refused: INVALID_ARGUMENT
+
+- name: text that differs only by a final line break is refused
+  before: |
+    - a
+  operations:
+    - {op: setText, target: "- a", text: "- a\n"}
+  refused: INVALID_ARGUMENT
+
+- name: a note on its parent's marker line is refused
+  before: |
+    - - b
+  operations:
+    - {op: setText, target: "- b", text: "- c"}
   refused: INVALID_ARGUMENT
 
 - name: unchanged text is refused

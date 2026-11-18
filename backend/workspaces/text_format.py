@@ -110,6 +110,7 @@ class _Reader:
         self.tokens = tokens
         self.first_line = first_line
         self.identified = set()
+        self.shared_lines = set()  # marker lines a note shares with its first child
 
     def section(self, document):
         sections = [(0, document)]
@@ -143,7 +144,7 @@ class _Reader:
         def flush():
             nonlocal body
             if body:
-                span = (body_first, body_stop)
+                span = None if body_first in self.shared_lines else (body_first, body_stop)
                 owner().children.append(Note("body", body, span=span, prefix=body_prefix))
                 body = []
 
@@ -266,7 +267,8 @@ class _Reader:
                 # A block starting on the marker's line is a child; it reads without the marker.
                 stop = line
                 self.lines[line] = " " * indent + self.lines[line][indent:]
-        span = (line, stop) if stop > line else None
+                self.shared_lines.add(line)
+        span = (line, stop) if stop > line and line not in self.shared_lines else None
         prefix = self.lines[line][:lead]
         note = Note("outline", source, marker, span=span, prefix=prefix, inner=" " * indent)
         checkbox = CHECKBOX.match(content)

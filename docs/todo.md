@@ -491,9 +491,9 @@ Remaining:
   change notice could make the hub save loaded workspace rooms at once, so
   the stale-save path applies the file before more typing piles up.
 - **Note operations on unusual text.** Set text and Ensure ID change only
-  their note's own lines, and refuse what that can't express: a note whose
-  first child starts on its marker's line, such as `- > quote`, and a body
-  whose lines hold a property line. Ensure ID also refuses a note whose text
+  their note's own lines, and refuse what that can't express: notes sharing a
+  marker's line, as in `- > quote` or `- - b`, and a body whose lines hold a
+  property line. Ensure ID also refuses a note whose text
   wouldn't read back with its new ID line where it puts it.
 - **Ensure ID and cache IDs.** Ensure ID writes a new ID, where the
   [text format plan](text-format-plan.md) promotes the note's cache ID, so a
