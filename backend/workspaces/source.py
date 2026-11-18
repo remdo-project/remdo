@@ -576,6 +576,9 @@ class Document(File):
     def write_id(self, position):
         """The ID of the document, or of its note at `position`, written new when it has none of
         its own."""
+        # A temporary reference names a note only in the document as read.
+        if position is not None:
+            self.call.check(self)
         owner = self.parsed if position is None else _at(self.parsed, position)
         if owner.id is not None and len(self.call.holders(owner.id)) == 1:
             return owner.id

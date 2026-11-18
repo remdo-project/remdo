@@ -485,6 +485,21 @@ Remaining:
   typed since its last save. Stage 4 of the
   [text format plan](text-format-plan.md) closes this with the stale-client
   merge.
+- **Agent edits behind an open room.** A [note operation](specs/outliner/note-operations.md)
+  on an open workspace document reaches its room only at the room's next
+  save, which then discards what was typed since the last save. Django's
+  change notice could make the hub save loaded workspace rooms at once, so
+  the stale-save path applies the file before more typing piles up.
+- **Note operations on unusual text.** Set text and Ensure ID change only
+  their note's own lines, and refuse what that can't express: a note whose
+  first child starts on its marker's line, such as `- > quote`, and a body
+  whose lines hold a property line. Ensure ID also refuses a note whose text
+  wouldn't read back with its new ID line where it puts it.
+- **Ensure ID and cache IDs.** Ensure ID writes a new ID, where the
+  [text format plan](text-format-plan.md) promotes the note's cache ID, so a
+  note of an open document changes its editor ID once its room applies the
+  file. Promote the cache ID once note operations on open documents go through
+  the room's tree, before workspace notes get URLs.
 - **Body text that reads as structure.** A body is written as stored, so body
   text that would read as structure where it sits becomes structure on the next
   read: a line `- x`, a `---` under a paragraph, or an indented first line

@@ -107,6 +107,15 @@
 
     # B
 
+- name: text that changes a body into an outline note is refused
+  before: |
+    # A
+
+    one
+  operations:
+    - {op: setText, target: one, text: "- one"}
+  refused: INVALID_ARGUMENT
+
 - name: text that adds a note is refused
   before: |
     - a

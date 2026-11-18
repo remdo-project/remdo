@@ -78,3 +78,19 @@ class OperationCaseTests(TestCase):
 
         text = store.read(workspace, "README.md").content.decode()
         self.assertTrue(text.startswith("- a, edited\n    - id:: k3x9\n- b\n"))
+
+    def test_ensure_id_by_a_stale_reference_is_refused_even_when_nothing_would_change(self):
+        workspace = Workspace.objects.create(name="Cases", owner=self.owner)
+        store.commit(workspace, self.owner, "", {"README.md": (None, b"- a\n- b\n")})
+        refs, version = self.refs(workspace)
+        changed = b"- x\n    - id:: k3x9\n- a\n- b\n"
+        store.commit(workspace, self.owner, "", {"README.md": (version, changed)})
+
+        with self.assertRaises(notes.Refusal) as refusal:
+            notes.call(
+                self.owner,
+                [{"op": "ensureId", "target": refs["- a"][0]}],
+                {f"{workspace.pk}/README.md": version},
+            )
+
+        self.assertEqual(refusal.exception.code, "FAILED_PRECONDITION")
