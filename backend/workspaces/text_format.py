@@ -58,9 +58,8 @@ class Note:
     id: str | None = None
     children: list = field(default_factory=list)
     cache_id: str | None = None  # the note's ID in its document's Yjs state, which the text omits
-    # Where a read note sits in its file, for operations that change only its lines: its own
-    # lines [first, stop), or None when a child starts on its marker's line; what each of those
-    # lines starts with; what its property lines start with; and its first `id::` line.
+    # Where a read note sits in `lines_of` its file; `span` is None when a child starts on its
+    # marker's line.
     span: tuple | None = field(default=None, compare=False, repr=False)
     prefix: str = field(default="", compare=False, repr=False)
     inner: str = field(default="", compare=False, repr=False)
@@ -75,13 +74,22 @@ class Note:
 class Document:
     id: str | None = None
     children: list = field(default_factory=list)
-    start: int = field(default=0, compare=False, repr=False)  # its first line after front matter
+    start: int = field(default=0, compare=False, repr=False)
     id_line: int | None = field(default=None, compare=False, repr=False)
+
+
+def lines_of(source):
+    """A text's lines, as the reader numbers them."""
+    return source.replace("\r\n", "\n").replace("\r", "\n").removesuffix("\n").split("\n")
+
+
+def id_line(note_id):
+    return f"- id:: {note_id}"
 
 
 def read(source):
     """The document a Markdown text reads as; any text reads as one."""
-    lines = source.replace("\r\n", "\n").replace("\r", "\n").removesuffix("\n").split("\n")
+    lines = lines_of(source)
     document = Document()
     parsed = lines
     first_line = 0
@@ -567,7 +575,7 @@ def _owner_children(children, note_id, out, at_start=False):
         children = children[1:]
     if note_id is not None:
         _separate(out)
-        out.append(f"- id:: {note_id}")
+        out.append(id_line(note_id))
     _section(children, out)
 
 
@@ -643,7 +651,7 @@ def _item(note, indent, number, out, delimiter="."):
         rest = rest[1:]
         under_text = True
     if note.id is not None:
-        out.append(f"{inner}- id:: {note.id}")
+        out.append(inner + id_line(note.id))
         under_text = True
     numbered = 0
     previous = None

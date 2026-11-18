@@ -30,10 +30,14 @@ class OperationCaseTests(TestCase):
             pending.extend(note["children"])
         return refs, document["version"]
 
-    def run_case(self, case):
+    def seeded(self, text):
+        """A workspace whose document holds `text`, its notes' references by text, and its version."""
         workspace = Workspace.objects.create(name="Cases", owner=self.owner)
-        store.commit(workspace, self.owner, "", {"README.md": (None, case["before"].encode())})
-        refs, version = self.refs(workspace)
+        store.commit(workspace, self.owner, "", {"README.md": (None, text.encode())})
+        return workspace, *self.refs(workspace)
+
+    def run_case(self, case):
+        workspace, refs, version = self.seeded(case["before"])
         operations = []
         for operation in case["operations"]:
             [ref] = refs[operation["target"]]
@@ -62,10 +66,7 @@ class OperationCaseTests(TestCase):
                     self.run_case(case)
 
     def test_a_later_operation_resolves_ids_in_the_text_an_earlier_one_wrote(self):
-        workspace = Workspace.objects.create(name="Cases", owner=self.owner)
-        shared = b"- a\n    - id:: k3x9\n- b\n    - id:: k3x9\n"
-        store.commit(workspace, self.owner, "", {"README.md": (None, shared)})
-        refs, version = self.refs(workspace)
+        workspace, refs, version = self.seeded("- a\n    - id:: k3x9\n- b\n    - id:: k3x9\n")
 
         notes.call(
             self.owner,
@@ -80,9 +81,7 @@ class OperationCaseTests(TestCase):
         self.assertTrue(text.startswith("- a, edited\n    - id:: k3x9\n- b\n"))
 
     def test_ensure_id_by_a_stale_reference_is_refused_even_when_nothing_would_change(self):
-        workspace = Workspace.objects.create(name="Cases", owner=self.owner)
-        store.commit(workspace, self.owner, "", {"README.md": (None, b"- a\n- b\n")})
-        refs, version = self.refs(workspace)
+        workspace, refs, version = self.seeded("- a\n- b\n")
         changed = b"- x\n    - id:: k3x9\n- a\n- b\n"
         store.commit(workspace, self.owner, "", {"README.md": (version, changed)})
 
