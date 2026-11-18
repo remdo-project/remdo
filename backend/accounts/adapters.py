@@ -30,7 +30,7 @@ COMPLETED_STATES_SESSION_KEY = "google_completed_states"
 
 
 def password_authenticated(request, user):
-    records = get_authentication_records(request)
+    records = get_authentication_records(request, user)
     if not records or records[-1]["method"] != "password":
         return False
     addresses = {user.email, *user.emailaddress_set.values_list("email", flat=True)}

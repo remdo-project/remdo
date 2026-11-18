@@ -77,10 +77,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: never;
-                header?: {
-                    /** @description Session token. Only needed when `client` is equal to `app`. */
-                    "X-Session-Token"?: components["parameters"]["SessionToken"];
-                };
+                header?: never;
                 path?: never;
                 cookie?: never;
             };
@@ -100,10 +97,7 @@ export interface paths {
         delete: {
             parameters: {
                 query?: never;
-                header?: {
-                    /** @description Session token. Only needed when `client` is equal to `app`. */
-                    "X-Session-Token"?: components["parameters"]["SessionToken"];
-                };
+                header?: never;
                 path?: never;
                 cookie?: never;
             };
@@ -221,12 +215,14 @@ export interface components {
         };
         Flow: {
             /** @enum {string} */
-            id: "login" | "login_by_code" | "mfa_authenticate" | "mfa_reauthenticate" | "provider_redirect" | "provider_signup" | "provider_token" | "reauthenticate" | "signup" | "verify_email" | "verify_phone";
+            id: "login" | "login_by_code" | "mfa_authenticate" | "mfa_reauthenticate" | "provider_redirect" | "provider_signup" | "provider_token" | "reauthenticate" | "reauthenticate_by_code" | "signup" | "verify_email" | "verify_phone";
             provider?: components["schemas"]["Provider"];
             /** @enum {boolean} */
             is_pending?: true;
             /** @description Matches `settings.MFA_SUPPORTED_TYPES`. */
             types?: components["schemas"]["AuthenticatorType"][];
+            /** @description Verified destinations that can receive a reauthentication code. */
+            recipients?: components["schemas"]["ReauthenticationCodeRecipient"][];
         };
         Authenticated: {
             user: components["schemas"]["User"];
@@ -255,11 +251,15 @@ export interface components {
             method: "code";
             at: components["schemas"]["Timestamp"];
             email: components["schemas"]["Email"];
+            /** @enum {boolean} */
+            reauthenticated?: true;
         } | {
             /** @enum {string} */
             method: "code";
             at: components["schemas"]["Timestamp"];
             phone: components["schemas"]["Phone"];
+            /** @enum {boolean} */
+            reauthenticated?: true;
         } | {
             /** @enum {string} */
             method: "password";
@@ -359,6 +359,16 @@ export interface components {
             phone: components["schemas"]["Phone"];
         } | {
             email: components["schemas"]["Email"];
+        };
+        RequestReauthenticationCode: {
+            phone: components["schemas"]["Phone"];
+        } | {
+            email: components["schemas"]["Email"];
+        };
+        ReauthenticationCodeRecipient: {
+            email: components["schemas"]["Email"];
+        } | {
+            phone: components["schemas"]["Phone"];
         };
         Reauthenticate: {
             password: components["schemas"]["Password"];
@@ -1103,11 +1113,9 @@ export interface components {
         EmailVerificationKey: string;
         /** @description The password reset key */
         PasswordResetKey: string;
-        /** @description Session token. Only needed when `client` is equal to `app`. */
-        SessionToken: string;
         /**
          * @description When present (regardless of its value), enables passwordless sign-in via a WebAuthn credential (Passkey),
-         *     but may enforce additional multi-factor authentication (MFA) requirements. Omit the parameter to disable.
+         *     which requires PIN, biometric, or equivalent user verification. Omit the parameter to disable.
          */
         PasswordLess: boolean;
     };
@@ -1216,6 +1224,12 @@ export interface components {
         RequestLoginCode: {
             content: {
                 "application/json": components["schemas"]["RequestLoginCode"];
+            };
+        };
+        /** @description Request a reauthentication code. */
+        RequestReauthenticationCode: {
+            content: {
+                "application/json": components["schemas"]["RequestReauthenticationCode"];
             };
         };
         SetupTOTP: {
