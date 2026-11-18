@@ -459,8 +459,9 @@ Remaining:
   removes a box outside a check list instead of leaving it open, and notes
   don't take their marker and checkbox by
   [placement](specs/outliner/list-types.md#placement). The editor schema step
-  of the [text format plan](text-format-plan.md) closes this with gestures,
-  including Insertion's appended notes and the menu's checkbox action. They
+  of the [text format plan](text-format-plan.md) closes this for workspace
+  documents with gestures, including Insertion's appended notes and the menu's
+  checkbox action; editor documents keep today's gestures until they go. They
   must not produce a note under a body line, a heading under a list item, or a
   note right after a heading at that heading's level.
 

@@ -162,6 +162,14 @@ unchanged.
   own; while both exist, a check shows they agree.
 - A migration follows the mechanism that enables it as its own step, not inside
   the feature.
+- Until workspaces replace editor documents, code that depends on the document
+  format forks rather than branches: a workspace document mounts a new-format
+  module for markers and checkboxes, bodies, links and note IDs, and an editor
+  document keeps today's module unchanged. Format-independent code stays shared
+  and keeps its tests, which move to new-format fixtures over time. A frozen
+  module's tests go with it, and one that conflicts with shared new-format
+  behavior can go sooner. Nothing converts content between the formats before
+  then.
 
 ## Stages
 
@@ -217,6 +225,12 @@ once stage 3 lands.
         after a note's outline children, which it refuses today.
      5. Delete the JSON fixtures, including the invalid-schema ones, once tests
         build editor-only and broken states from Markdown documents.
+     6. Let new-format fixtures give each note its own marker and checkbox, with
+        no list type.
+     7. Compare expected outlines as the outline tree: the test reader returns
+        it, the matcher compares it with what the editor reads as plus fold
+        state, and on new-format documents it also checks that the stored
+        state is what applying its own tree gives.
    - Spike the tree: a Yjs-to-tree-to-text round trip over the fixtures and
      the corpus, with a throwaway writer, keeps what each document reads as,
      writes text that a second round trip leaves unchanged, reports what it
@@ -230,7 +244,9 @@ once stage 3 lands.
      users object to that churn.
    - Extend the editor schema with headings, `block` lines, per-note markers and
      independent checkboxes. Use `line` or `group` storage with no body wrapper,
-     holding body lines as Markdown source.
+     holding body lines as Markdown source. Gestures then place, convert and
+     check notes by [list types](specs/outliner/list-types.md) in the
+     new-format module, tested on new-format fixtures.
    - Add Node's three calls, the cache row, the one-transaction save and hash
      recovery.
    - Add cache IDs on RemDo's own node state, with three sync steps: transfer to
