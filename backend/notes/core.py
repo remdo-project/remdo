@@ -11,6 +11,7 @@ OPERATIONS = {
     "delete": ("delete", ("target",)),
     "setText": ("set_text", ("target",)),
     "setContent": ("set_content", ("target",)),
+    "ensureId": ("ensure_id", ("target",)),
 }
 
 

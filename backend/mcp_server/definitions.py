@@ -301,16 +301,35 @@ NOTE_TOOLS = [
     ),
     declare_note_tool(
         "set_note_text",
-        "Rename note",
-        "Change a note's text: rename a workspace.",
+        "Set note text",
+        "Change a note's text: rename a workspace, or rewrite an outline note's line (marker, "
+        "checkbox, name and text) or a body's Markdown, as written, keeping its children and ID. "
+        "Text that would add, remove or move notes, or change any note's kind or ID, is refused.",
         {
-            "target": {**REF, "description": "The note to rename."},
-            "text": {"type": "string", "description": "The new name."},
+            "target": {**REF, "description": "The note to change."},
+            "text": {
+                "type": "string",
+                "description": "The new text: a workspace's name, or a note's lines as written.",
+            },
             "replacements": REPLACEMENTS,
             "expected": EXPECTED,
             "dryRun": DRY_RUN,
         },
         ["target"],
+    ),
+    declare_note_tool(
+        "ensure_note_id",
+        "Ensure note ID",
+        "Return the ID of a workspace document or one of its outline notes, writing a new one "
+        "into the document when the note has none. A `note:<id>` link in the same workspace, "
+        "or the reference `<workspaceId>_<id>`, reaches the note through edits and moves.",
+        {
+            "target": {**REF, "description": "The note whose ID to return."},
+            "expected": EXPECTED,
+            "dryRun": DRY_RUN,
+        },
+        ["target"],
+        destructive=False,
     ),
     declare_note_tool(
         "set_note_content",

@@ -375,8 +375,8 @@ Switch new documents by reseeding from text once all of these hold:
   need several operations applied all or none.
 - Per-file versions refuse an agent's call whenever someone saved the same
   document since its read; stage 4's live merge reduces that.
-- Until stage 3, Read returns a document's content but not its children, nor
-  whether it has any, and Insert into a document and Ensure ID are refused.
+- Until stage 3, outline notes and bodies offer only Read, Set text and
+  Ensure ID, and Insert into a document is refused.
 - Until stage 3, a workspace's document opens as its Markdown in a plain text
   box. Save applies Set content with the version read; a stale save keeps the
   typed text and offers to reload the current content or overwrite it. A save

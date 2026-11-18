@@ -58,6 +58,13 @@ class Note:
     id: str | None = None
     children: list = field(default_factory=list)
     cache_id: str | None = None  # the note's ID in its document's Yjs state, which the text omits
+    # Where a read note sits in its file, for operations that change only its lines: its own
+    # lines [first, stop), or None when a child starts on its marker's line; what each of those
+    # lines starts with; what its property lines start with; and its first `id::` line.
+    span: tuple | None = field(default=None, compare=False, repr=False)
+    prefix: str = field(default="", compare=False, repr=False)
+    inner: str = field(default="", compare=False, repr=False)
+    id_line: int | None = field(default=None, compare=False, repr=False)
 
     @property
     def text(self):
@@ -68,6 +75,8 @@ class Note:
 class Document:
     id: str | None = None
     children: list = field(default_factory=list)
+    start: int = field(default=0, compare=False, repr=False)  # its first line after front matter
+    id_line: int | None = field(default=None, compare=False, repr=False)
 
 
 def read(source):
@@ -78,9 +87,10 @@ def read(source):
     first_line = 0
     if lines and lines[0] == "---" and "---" in lines[1:]:
         end = lines.index("---", 1)
-        document.children.append(Note("body", lines[: end + 1]))
+        document.children.append(Note("body", lines[: end + 1], span=(0, end + 1)))
         parsed = ["" if index <= end else line for index, line in enumerate(lines)]
         first_line = end + 1
+    document.start = first_line
     tokens = _markdown.parse("\n".join(parsed))
     _Reader(lines, tokens, first_line).section(document)
     return document
@@ -106,7 +116,7 @@ class _Reader:
                 sections.pop()
             inline = self.tokens[index + 1]
             source = [line.strip() for line in self.lines[token.map[0] : token.map[1]]]
-            note = Note("outline", source, ("heading", level))
+            note = Note("outline", source, ("heading", level), span=tuple(token.map))
             self.fill(note, inline.content, inline)
             owner().children.append(note)
             sections.append((level, note))
@@ -119,16 +129,18 @@ class _Reader:
         no token covers included, is one body."""
         last, tail = region or (self.first_line, len(self.lines))
         body = []
-        body_stop = None
+        body_first = body_stop = None
+        body_prefix = ""
 
         def flush():
             nonlocal body
             if body:
-                owner().children.append(Note("body", body))
+                span = (body_first, body_stop)
+                owner().children.append(Note("body", body, span=span, prefix=body_prefix))
                 body = []
 
         def add(first, stop, quoted=False, code=False):
-            nonlocal body_stop
+            nonlocal body_first, body_stop, body_prefix
             raw = self.lines[first:stop]
             if quoted:
                 lines = [QUOTE.sub("", line) for line in raw]
@@ -142,6 +154,9 @@ class _Reader:
                 return
             if body:
                 body.extend([""] * min(first + lead - body_stop, 1))
+            else:
+                body_first = first + lead
+                body_prefix = raw[lead][: len(raw[lead]) - len(lines[lead])]
             body.extend(lines[lead : len(lines) - trail])
             body_stop = stop - trail
 
@@ -181,7 +196,7 @@ class _Reader:
                 item_close = _close_of(self.tokens, index)
                 inline = self._property_inline(index, item_close)
                 if inline is not None:
-                    self._property(inline, owner)
+                    self._property(inline, owner, self.tokens[index].map[0])
                 else:
                     before_note()
                     marker = ("bullet",)
@@ -212,10 +227,11 @@ class _Reader:
             return None
         return inline if PROPERTY.match(CHECKBOX.sub("", inline.content, count=1)) else None
 
-    def _property(self, inline, owner):
+    def _property(self, inline, owner, line):
         # A property's first line takes effect even when its value has none; later ones are ignored.
         if id(owner) not in self.identified:
             self.identified.add(id(owner))
+            owner.id_line = line
             text = _plain(_strip_prefix(inline.children or [], CHECKBOX))
             value = text.partition("::")[2].strip()
             if NOTE_ID.fullmatch(value):
@@ -227,12 +243,11 @@ class _Reader:
         inline = self._inline_of(open_index)
         content = inline.content if inline else ""
         indent = _item_indent(self.lines[line])
+        lead = len(self.lines[line]) - len(self.lines[line].lstrip())
         if inline:
             text_end = _close_of(self.tokens, open_index + 1) + 1
             stop = self.tokens[open_index + 1].map[1]
-            source = _dedent(
-                self.lines[line:stop], len(self.lines[line]) - len(self.lines[line].lstrip())
-            )
+            source = _dedent(self.lines[line:stop], lead)
         else:
             text_end = open_index + 1
             stop = line + 1
@@ -241,7 +256,9 @@ class _Reader:
                 # A block starting on the marker's line is a child; it reads without the marker.
                 stop = line
                 self.lines[line] = " " * indent + self.lines[line][indent:]
-        note = Note("outline", source, marker)
+        span = (line, stop) if stop > line else None
+        prefix = self.lines[line][:lead]
+        note = Note("outline", source, marker, span=span, prefix=prefix, inner=" " * indent)
         checkbox = CHECKBOX.match(content)
         if checkbox:
             note.checkbox = "open" if checkbox.group(1) == " " else "checked"

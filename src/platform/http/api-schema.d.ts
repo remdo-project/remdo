@@ -240,9 +240,10 @@ export interface components {
          *     * `delete` - delete
          *     * `setText` - setText
          *     * `setContent` - setContent
+         *     * `ensureId` - ensureId
          * @enum {string}
          */
-        OpEnum: "insert" | "move" | "delete" | "setText" | "setContent";
+        OpEnum: "insert" | "move" | "delete" | "setText" | "setContent" | "ensureId";
         OperationRequest: {
             op: components["schemas"]["OpEnum"];
             target?: string;

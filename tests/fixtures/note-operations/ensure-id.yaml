@@ -1,0 +1,135 @@
+# Each case: a workspace document's text before, operations whose targets name notes by their text
+# (or README.md for the document), then the text after or the refusal's code. `<new>` in the text
+# after is the ID the operation returns.
+
+- name: a note without an ID gets one before its children
+  before: |
+    - plan
+        - step
+            - detail
+  operations:
+    - {op: ensureId, target: "- step"}
+  after: |
+    - plan
+        - step
+            - id:: <new>
+            - detail
+
+- name: a note's ID line sits level with its first child
+  before: |
+    - step
+      - detail
+  operations:
+    - {op: ensureId, target: "- step"}
+  after: |
+    - step
+      - id:: <new>
+      - detail
+
+- name: a note's ID line comes before the body under it
+  before: |
+    - a
+        > body
+  operations:
+    - {op: ensureId, target: "- a"}
+  after: |
+    - a
+        - id:: <new>
+        > body
+
+- name: a note's ID line follows its continuation lines
+  before: |
+    - a long
+      line
+    - b
+  operations:
+    - {op: ensureId, target: "- a long\n  line"}
+  after: |
+    - a long
+      line
+        - id:: <new>
+    - b
+
+- name: a note with its own ID keeps it and writes nothing
+  before: |
+    - step
+        - id:: k3x9
+  operations:
+    - {op: ensureId, target: "- step"}
+  results: [{id: k3x9}]
+  after: |
+    - step
+        - id:: k3x9
+
+- name: a heading's ID line comes right after it
+  before: |
+    # Plan
+    para
+  operations:
+    - {op: ensureId, target: "# Plan"}
+  after: |
+    # Plan
+
+    - id:: <new>
+
+    para
+
+- name: the document's ID comes first
+  before: |
+    # Plan
+  operations:
+    - {op: ensureId, target: README.md}
+  after: |
+    - id:: <new>
+
+    # Plan
+
+- name: the document's ID follows its front matter
+  before: |
+    ---
+    title: Plan
+    ---
+    - a
+  operations:
+    - {op: ensureId, target: README.md}
+  after: |
+    ---
+    title: Plan
+    ---
+
+    - id:: <new>
+
+    - a
+
+- name: an ID line whose value isn't an ID is rewritten
+  before: |
+    - a
+        - id:: not an id
+  operations:
+    - {op: ensureId, target: "- a"}
+  after: |
+    - a
+        - id:: <new>
+
+- name: a note sharing its ID with another gets a new one
+  before: |
+    - a
+        - id:: k3x9
+    - b
+        - id:: k3x9
+  operations:
+    - {op: ensureId, target: "- b"}
+  after: |
+    - a
+        - id:: k3x9
+    - b
+        - id:: <new>
+
+- name: a body offers no ID
+  before: |
+    # A
+
+    one
+  operations:
+    - {op: ensureId, target: one}
+  refused: INVALID_ARGUMENT

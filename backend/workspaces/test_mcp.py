@@ -17,6 +17,7 @@ NOTE_TOOLS = {
     "delete_note",
     "set_note_text",
     "set_note_content",
+    "ensure_note_id",
 }
 
 
@@ -76,6 +77,34 @@ class WorkspaceMcpTests(McpClient, TransactionTestCase):
             "FAILED_PRECONDITION: 'README.md' changed since it was read. "
             f'Current versions: {{"{document["ref"]}": "{current}"}}',
         )
+
+    async def test_an_agent_links_a_note_and_edits_it_by_its_id(self):
+        await sync_to_async(self.allow_workspaces)()
+        inserted = await self.call_json(
+            "insert_note", {"kind": "workspace", "text": "Plan", "content": "- a\n- b\n"}
+        )
+        [workspace] = inserted["results"]
+        document = await self.call_json("read_note", {"ref": f"{workspace['ref']}/README.md"})
+        [first, _] = document["children"]
+
+        ensured = await self.call_json(
+            "ensure_note_id",
+            {"target": first["ref"], "expected": {document["ref"]: document["version"]}},
+        )
+        [result] = ensured["results"]
+        current = (await sync_to_async(self.read)(workspace["ref"], "README.md")).blob_hash
+        await self.call_json(
+            "set_note_text",
+            {
+                "target": result["ref"],
+                "text": "- a, linked",
+                "expected": {document["ref"]: current},
+            },
+        )
+
+        content = (await sync_to_async(self.read)(workspace["ref"], "README.md")).content
+        self.assertEqual(content.decode(), f"- a, linked\n    - id:: {result['id']}\n- b\n")
+        self.assertEqual(result["ref"], f"{workspace['ref']}_{result['id']}")
 
     async def test_a_tool_runs_only_its_own_operation(self):
         await sync_to_async(self.allow_workspaces)()

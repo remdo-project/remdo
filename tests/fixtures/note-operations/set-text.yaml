@@ -1,0 +1,146 @@
+# Each case: a workspace document's text before, operations whose targets name notes by their text
+# (or README.md for the document), then the text after or the refusal's code.
+
+- name: a nested note's text changes, keeping its ID and children
+  before: |
+    - plan
+        - step
+            - id:: k3x9
+            - detail
+  operations:
+    - {op: setText, target: "- step", text: "- [x] step done"}
+  after: |
+    - plan
+        - [x] step done
+            - id:: k3x9
+            - detail
+
+- name: other notes keep their spelling
+  before: |
+    * a
+    * b
+  operations:
+    - {op: setText, target: "* a", text: "* a, edited"}
+  after: |
+    * a, edited
+    * b
+
+- name: replacements apply to the note's text
+  before: |
+    - buy milk
+  operations:
+    - op: setText
+      target: "- buy milk"
+      replacements: [{old: milk, new: bread}]
+  after: |
+    - buy bread
+
+- name: a bullet becomes a number
+  before: |
+    - a
+    - b
+  operations:
+    - {op: setText, target: "- a", text: 1. a}
+  after: |
+    1. a
+    - b
+
+- name: a heading's text changes, keeping what it contains
+  before: |
+    # Plan
+
+    ## Week
+
+    - step
+  operations:
+    - {op: setText, target: "## Week", text: "## Next week"}
+  after: |
+    # Plan
+
+    ## Next week
+
+    - step
+
+- name: a heading level that would change what it contains is refused
+  before: |
+    # A
+
+    ## B
+
+    para
+
+    ## C
+  operations:
+    - {op: setText, target: "## C", text: "### C"}
+  refused: INVALID_ARGUMENT
+
+- name: a body under a list item keeps its quoting
+  before: |
+    - a
+
+        > one
+    - b
+  operations:
+    - {op: setText, target: one, text: "two\n\nthree"}
+  after: |
+    - a
+
+        > two
+        >
+        > three
+    - b
+
+- name: a body between headings changes as written
+  before: |
+    # A
+
+    one
+
+    # B
+  operations:
+    - {op: setText, target: one, text: "two *lines*\nhere"}
+  after: |
+    # A
+
+    two *lines*
+    here
+
+    # B
+
+- name: text that adds a note is refused
+  before: |
+    - a
+  operations:
+    - {op: setText, target: "- a", text: "- a\n- b"}
+  refused: INVALID_ARGUMENT
+
+- name: text that would read as an ID line is refused
+  before: |
+    - a
+        - b
+  operations:
+    - {op: setText, target: "- b", text: "- id:: k3x9"}
+  refused: INVALID_ARGUMENT
+
+- name: emptying a body is refused
+  before: |
+    # A
+
+    one
+  operations:
+    - {op: setText, target: one, text: ""}
+  refused: INVALID_ARGUMENT
+
+- name: unchanged text is refused
+  before: |
+    - a
+  operations:
+    - {op: setText, target: "- a", text: "- a"}
+  refused: INVALID_ARGUMENT
+
+- name: a note whose child starts on its line is refused
+  before: |
+    - > quote
+  operations:
+    - {op: setText, target: "-", text: "- a"}
+  refused: INVALID_ARGUMENT
