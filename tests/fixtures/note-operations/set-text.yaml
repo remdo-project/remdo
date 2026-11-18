@@ -45,6 +45,20 @@
     1. a
     - b
 
+- name: a nested note keeps its indent when a continuation line sits left of its marker
+  before: |
+    - a
+        - b long
+      cont
+  operations:
+    - op: setText
+      target: "  - b long\ncont"
+      replacements: [{old: cont, new: more}]
+  after: |
+    - a
+        - b long
+      more
+
 - name: a heading's text changes, keeping what it contains
   before: |
     # Plan

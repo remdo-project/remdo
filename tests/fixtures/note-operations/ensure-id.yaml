@@ -50,6 +50,23 @@
         - id:: <new>
     - b
 
+- name: a note's ID line goes under it when its next sibling is indented
+  before: |
+    - a
+     - b
+  operations:
+    - {op: ensureId, target: "- a"}
+  after: |
+    - a
+        - id:: <new>
+     - b
+
+- name: a note indented by a tab gets its ID line under it
+  before: "- p\n\t- a\n"
+  operations:
+    - {op: ensureId, target: "- a"}
+  after: "- p\n\t- a\n\t    - id:: <new>\n"
+
 - name: a note with its own ID keeps it and writes nothing
   before: |
     - step

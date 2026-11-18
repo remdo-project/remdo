@@ -78,16 +78,18 @@ def _outline(parsed, blank=None, renewed=(None, None)):
     return note_id(parsed, ()), notes(parsed.children, ())
 
 
-def _child_indent(note, after):
-    """Where a property line of `note` starts: level with its first child, or where the writer
-    puts children when the lines `after` it don't start with one."""
+def _child_indent(note, lines):
+    """Where a property line of `note` starts in `lines`: level with its first child, or where
+    the writer puts children when the lines after it don't start with one."""
     if note.marker[0] == "heading":
         return ""
-    following = next((line for line in after if line.strip()), "")
+    first, stop = note.span
+    following = next((line for line in lines[stop:] if line.strip()), "")
     width = len(following) - len(following.lstrip())
-    if width > len(note.prefix):
-        return " " * width
-    return " " * max(len(note.inner), len(note.prefix) + 4)
+    if width >= len(note.inner):
+        return following[:width]
+    marker = lines[first][: len(lines[first]) - len(lines[first].lstrip())]
+    return marker + " " * max(len(note.inner) - len(marker), 4)
 
 
 def _name(path):
@@ -567,7 +569,10 @@ class Document(File):
 
     def ensure_id(self, operation):
         parsed = self.parsed
-        note_id = self.own_id(parsed) or self.write_id(parsed, (), self.lines(), parsed.start, "")
+        note_id = self.own_id(parsed)
+        if note_id is None:
+            self.call.check(self)
+            note_id = self.write_id(parsed, (), self.lines(), parsed.start, "")
         return {"ref": self.call.ref(self.path), "id": note_id}
 
     def lines(self):
@@ -656,8 +661,9 @@ class TextNote(Note):
 
     def ref(self):
         # A shared ID resolves to neither note, so such a note keeps its positional reference.
-        if self.note.id is not None and len(self.call.holders(self.note.id)) == 1:
-            return self.call.id_ref(self.note.id)
+        note_id = self.document.own_id(self.note)
+        if note_id is not None:
+            return self.call.id_ref(note_id)
         return self.call.ref("/".join([self.path, *map(str, self.position)]))
 
     def children(self):
@@ -680,7 +686,7 @@ class TextNote(Note):
         prefix = self.note.prefix
         lines = self.document.lines()
         lines[first:stop] = [
-            prefix + line if line else prefix.rstrip() for line in text.split("\n")
+            prefix + line if line else prefix.rstrip() for line in text_format.lines_of(text)
         ]
         content, written = self.document.reading(lines)
         if _outline(written, self.position) != _outline(self.document.parsed, self.position):
@@ -700,9 +706,10 @@ class TextNote(Note):
             if self.note.span is None:
                 self.call.refuse("INVALID_ARGUMENT", SHARED_LINE)
             lines = self.document.lines()
-            at = self.note.span[1]
-            prefix = _child_indent(self.note, lines[at:])
-            note_id = self.document.write_id(self.note, self.position, lines, at, prefix)
+            prefix = _child_indent(self.note, lines)
+            note_id = self.document.write_id(
+                self.note, self.position, lines, self.note.span[1], prefix
+            )
         return {"ref": self.call.id_ref(note_id), "id": note_id}
 
 

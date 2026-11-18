@@ -256,6 +256,8 @@ class _Reader:
             text_end = _close_of(self.tokens, open_index + 1) + 1
             stop = self.tokens[open_index + 1].map[1]
             source = _dedent(self.lines[line:stop], lead)
+            # A lazy continuation line indented less than the marker dedents the note by less.
+            lead = len(self.lines[line]) - len(source[0])
         else:
             text_end = open_index + 1
             stop = line + 1
