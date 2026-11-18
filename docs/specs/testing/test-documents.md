@@ -13,8 +13,13 @@ owns when tests use them.
 - Fixture IDs:: in a fixture, a note without an `id::` line takes its text as
   its ID when that is a valid ID no `id::` line or earlier note claims, and
   otherwise an ID generated the same way on every read.
-- Check lists:: a bulleted list whose notes all have a checkbox is a check
-  list.
+- Check lists:: in an editor-document fixture, a bulleted list whose notes all
+  have a checkbox is a check list.
+- New-format documents:: a document a test starts from gives each note its
+  marker and checkbox as the text holds them, and an `id::` line is its written
+  ID. An expectation compared with it states the whole outline tree and fold
+  state, and also requires that the editor stores the document exactly as
+  applying that tree would.
 - Other documents:: while fixtures load into editor documents, the
   [format's](../../format.md#canonical-spelling) `note:<workspaceId>_<id>`
   spelling names another editor document instead.
