@@ -1,14 +1,41 @@
 <section class="landing-chat landing-container" aria-labelledby="landing-chat-title">
   <div class="landing-chat-introduction">
-    <h2 id="landing-chat-title">Keep your context outside the chat.</h2>
+    <h2 id="landing-chat-title">Bring your notes<br>into the conversation</h2>
     <div class="landing-copy">
       <h3>AI assistants</h3>
-      <p>Connect Claude, ChatGPT or another AI assistant once. Paste a RemDo link to give it that note’s context, and let it add notes back. Only when you say yes. Off whenever you like.</p>
-      <a class="landing-link" href="/docs/mcp/">How to connect an assistant</a>
+      <p>Use your notes as context with your AI assistant, then save plans, summaries and lists back to RemDo.</p>
     </div>
   </div>
   <div class="landing-chat-stage">
-    <img class="landing-chat-background" src="/site-assets/chat-background.webp" alt="" width="1672" height="941" loading="lazy" decoding="async">
-    {% include "pages/landing/artifacts/assistant.html" %}
+    <div class="landing-chat-layout">
+      {% include "pages/landing/artifacts/assistant.html" %}
+      <div class="landing-chat-controls">
+        <h3>Connect your assistant</h3>
+        <nav class="assistant-selectors" aria-label="Choose your assistant">
+          <a class="assistant-selector" id="landing-assistant-tab-chatgpt" href="https://chatgpt.com/plugins/plugin_asdk_app_6ac660fbb52c81918e101590babd0473" target="_blank" rel="noopener noreferrer" data-assistant="chatgpt" aria-current="true">
+            <span class="assistant-logo-box"><span class="assistant-provider-logo assistant-provider-logo--chatgpt" aria-hidden="true"></span></span>
+            <span>ChatGPT</span>
+          </a>
+          <a class="assistant-selector" id="landing-assistant-tab-claude" href="https://claude.ai/customize/connectors?modal=add-custom-connector&amp;connectorName=RemDo&amp;connectorUrl=https%3A%2F%2Fremdo.com%2Fmcp" target="_blank" rel="noopener noreferrer" data-assistant="claude">
+            <span class="assistant-logo-box"><span class="assistant-provider-logo assistant-provider-logo--claude" aria-hidden="true"></span></span>
+            <span>Claude</span>
+          </a>
+          <a class="assistant-selector" id="landing-assistant-tab-other" href="/docs/mcp/" data-assistant="other">
+            <span class="assistant-logo-box"><span class="assistant-provider-logo assistant-provider-logo--other" aria-hidden="true"></span></span>
+            <span>Other assistants</span>
+          </a>
+        </nav>
+        <div class="landing-assistant-action" id="landing-assistant-action-chatgpt">
+          <a class="landing-button" href="https://chatgpt.com/plugins/plugin_asdk_app_6ac660fbb52c81918e101590babd0473" target="_blank" rel="noopener noreferrer">Add RemDo to ChatGPT</a>
+        </div>
+        <div class="landing-assistant-action" id="landing-assistant-action-claude" hidden>
+          <a class="landing-button" href="https://claude.ai/customize/connectors?modal=add-custom-connector&amp;connectorName=RemDo&amp;connectorUrl=https%3A%2F%2Fremdo.com%2Fmcp" target="_blank" rel="noopener noreferrer">Add RemDo to Claude</a>
+        </div>
+        <div class="landing-assistant-action" id="landing-assistant-action-other" hidden>
+          <a class="landing-button" href="/docs/mcp/">Connect another assistant</a>
+        </div>
+      </div>
+    </div>
   </div>
+  <script src="/site-assets/landing-assistants.js" defer></script>
 </section>
