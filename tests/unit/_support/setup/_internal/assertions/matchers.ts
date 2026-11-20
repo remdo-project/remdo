@@ -12,12 +12,17 @@ import {
   isChildrenWrapper,
   resolveContentListItem,
 } from '#tests';
-import { $getSelection, $isNodeSelection, $isRangeSelection, $getRoot } from 'lexical';
+import { $getSelection, $isNodeSelection, $isRangeSelection, $getRoot, createEditor } from 'lexical';
 import type { ElementNode, PointType, RangeSelection, LexicalNode, SerializedEditorState } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
+import { $isNoteFolded } from '#client/editor/outline/fold-state';
+import { editorConfig } from '#client/editor/runtime/config';
+import type { Document, TreeNote } from '../../../../../../src/headless/outline-tree/tree';
+import { $readTree } from '../../../../../../src/headless/outline-tree/read';
+import { $applyTestDocument, $outlineItems, readTestDocument } from '#tests-common/test-document';
 
 type RemdoTestHelpers = TestContext['remdo'];
 
@@ -242,7 +247,61 @@ function readSelectionDetail(remdo: RemdoTestHelpers): SelectionDetail {
   });
 }
 
+// Cache IDs are internal, so expectations compare the IDs notes' text gives.
+const withoutCacheIds = (notes: readonly TreeNote[]): TreeNote[] => notes.map((note) => (note.kind === 'body'
+  ? { ...note, cacheId: null }
+  : { ...note, cacheId: null, children: withoutCacheIds(note.children) }));
+
+interface ReadDocument {
+  document: Document;
+  folded: NotePath[];
+}
+
+function $readDocument(): ReadDocument {
+  const document = $readTree();
+  const folded = $outlineItems().filter(({ item }) => $isNoteFolded(item)).map(({ path }) => path);
+  return { document, folded };
+}
+
+/** The root a fresh editor holds after applying `read`, which a canonical state matches exactly. */
+function canonicalRoot(read: ReadDocument): unknown {
+  const editor = createEditor(editorConfig);
+  editor.update(() => $applyTestDocument(read), { discrete: true });
+  return editor.getEditorState().toJSON().root;
+}
+
 expect.extend({
+  toMatchDocument(this: any, remdo: RemdoTestHelpers, expected: string) {
+    const read = attemptRead(this, '.toMatchDocument', () => {
+      const wanted = readTestDocument(expected);
+      if (wanted.selection) throw new Error('toMatchDocument doesn\'t compare selections yet.');
+      const live = remdo.editor.getEditorState();
+      const actual = live.read($readDocument);
+      return {
+        actual: { document: { ...actual.document, children: withoutCacheIds(actual.document.children) }, folded: actual.folded },
+        wanted: { document: { ...wanted.document, children: withoutCacheIds(wanted.document.children) }, folded: wanted.folded },
+        stored: live.toJSON().root,
+        canonical: canonicalRoot(actual),
+      };
+    });
+    if (!read.ok) return read.result;
+    const { actual, wanted, stored, canonical } = read.value;
+
+    const outline = compareWithExpected(this, actual, wanted, {
+      matcher: 'toMatchDocument',
+      args: ['lexical', 'expectedMarkdown'],
+      passMessage: 'Expected the document not to match, but it did.',
+      failMessage: 'The document differs from the expected Markdown.',
+    });
+    if (!outline.pass) return outline;
+    return compareWithExpected(this, stored, canonical, {
+      matcher: 'toMatchDocument',
+      args: ['lexical', 'expectedMarkdown'],
+      passMessage: 'Expected the document not to match, but it did.',
+      failMessage: 'The document reads as expected, but its stored state isn\'t what applying its own tree gives.',
+    });
+  },
+
   toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: string) {
     const read = attemptRead(this, '.toMatchOutline', () => {
       const { notes, selection } = readMarkdownOutline(expected);

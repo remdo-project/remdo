@@ -1,7 +1,7 @@
 """Public MCP tool declarations, independent of the editor transport."""
 
 # TODO: These instructions and TOOLS serve editor documents that the text format migration
-# (docs/text-format-plan.md) moves into workspaces, and they're the surface the directory reviews
+# (docs/todo.md) moves into workspaces, and they're the surface the directory reviews
 # approved. When migration ends, remove TOOLS and rewrite INSTRUCTIONS for workspaces, checking the
 # published plugin first. Probe: delete TOOLS, then the MCP contract tests fail only on the removed
 # tools.
