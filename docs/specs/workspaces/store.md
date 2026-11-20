@@ -76,6 +76,14 @@ callers.
 
 - Move large file content to an object store, keyed by the same content hash,
   when database size or cost makes it worthwhile.
+- **Git connector:** a workspace connects to one branch of a Git remote over
+  plain Git. A sync fetches only that branch's tip, merges a moved tip note by
+  note, and pushes new revisions as fast-forward commits on the remote tip's
+  tree, changing only the paths RemDo changed. What the store doesn't hold
+  stays in the remote untouched: earlier history, other branches and tags, and
+  entries outside its rules. Duplicate IDs a push brings are reported, not repaired.
+  Start by surveying public vault and docs repositories for what the connector
+  must leave untouched.
 
 ## References
 

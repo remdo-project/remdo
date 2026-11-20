@@ -105,7 +105,7 @@ Tools write:
 
 ## Follow-up
 
-The [adoption plan](text-format-plan.md) tracks repository integration.
+The [text format migration](todo.md#text-format-migration) tracks repository integration.
 
 - Align lint with numbering and indentation, then drop this file's exceptions
 - Decide how to read YAML front matter

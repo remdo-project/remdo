@@ -224,7 +224,7 @@ function LoadedDocument({
   );
 }
 
-// TODO: Temporary until the outline is editable (docs/text-format-plan.md, stage 3): a workspace's
+// TODO: Temporary until the outline is editable (docs/todo.md): a workspace's
 // document opens as a read-only outline, edited as Markdown in a plain text box. Probe: open a
 // workspace from Home; editing the outline replaces the Markdown view.
 export function WorkspaceDocumentView({
