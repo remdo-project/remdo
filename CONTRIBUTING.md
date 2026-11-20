@@ -89,12 +89,13 @@ Dependency changes preserve workspace catalogs, applicable trust and
 build-approval policy, package-manager integrity, and locked runtime and project
 dependencies.
 
-Non-major updates and lock file maintenance open as pull requests that land
-after review. Majors wait for approval.
+Dependency updates land only after review, and majors also wait for approval.
+Updates that need no runtime code change land together in one batch pull
+request; each update that needs one lands in its own pull request with that
+code. Changes never go on bot branches, which their bots rebase.
 
 The developer runs [`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md)
-whenever a Renovate pull request opens; weekly lock file maintenance opens one
-every week.
+once Renovate's weekly pull requests open, and when a Dependabot alert opens.
 
 Dependency-specific workarounds and updater holds follow the
 [tracked-comment policy](#code-comments), which is the only record of deferred

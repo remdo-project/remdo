@@ -14,9 +14,6 @@
     "enabled": false,
   },
   "timezone": "Europe/Warsaw",
-  // remdo-review-deps lands updates through its own batch branch, so rebasing
-  // bot pull requests whenever main moves would only rerun their CI.
-  "rebaseWhen": "conflicted",
   // A rate limit would hold an update back without a PR to show for it.
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
