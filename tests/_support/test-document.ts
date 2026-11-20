@@ -2,6 +2,7 @@ import type { ListItemNode, ListNode } from '@lexical/list';
 import type { LexicalNode } from 'lexical';
 import { $getState, $isTextNode } from 'lexical';
 import type { Token } from 'markdown-it';
+import { formatDateNodeLabel } from '#client/editor/features/date/date-label';
 import { markerState } from '#client/editor/features/list-types/note-marker';
 import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
 import { getContentSiblings } from '#client/editor/outline/list-structure';
@@ -11,7 +12,7 @@ import { $applyTree } from '../../src/headless/outline-tree/apply';
 import { $readTree } from '../../src/headless/outline-tree/read';
 import { nameOf, normalizeRuns, trimRuns } from '../../src/headless/outline-tree/runs';
 import type { Document, Mark, Marker, OutlineNote, Run, TreeNote } from '../../src/headless/outline-tree/tree';
-import type { MarkdownItem, MarkdownNote, MarkdownSelection, NotePath } from './markdown-outline';
+import type { MarkdownItem, MarkdownNote, MarkdownPoint, MarkdownSelection, NotePath } from './markdown-outline';
 import { readMarkdownOutline } from './markdown-outline';
 
 export interface TestDocument {
@@ -29,11 +30,13 @@ export interface TestDocument {
 export function readTestDocument(source: string): TestDocument {
   const { notes, items, selection } = readMarkdownOutline(source);
   const folded: NotePath[] = [];
+  const itemAt = new Map<string, MarkdownItem>();
   const outline = (siblings: MarkdownNote[], path: NotePath): TreeNote[] => {
     const children: TreeNote[] = [];
     siblings.forEach((note, index) => {
       const item = items.get(note)!;
       const notePath = [...path, index];
+      itemAt.set(notePath.join('.'), item);
       if (note.folded) folded.push(notePath);
       const previous = children.at(-1);
       children.push({
@@ -51,7 +54,37 @@ export function readTestDocument(source: string): TestDocument {
     });
     return children;
   };
-  return { document: { id: null, children: outline(notes, []) }, folded, selection };
+  const document: Document = { id: null, children: outline(notes, []) };
+  return { document, folded, selection: selection && inEditorOffsets(selection, (path) => itemAt.get(path.join('.'))!) };
+}
+
+/** A selection whose offsets count each date as the editor labels it, not as its Markdown label. */
+function inEditorOffsets(selection: MarkdownSelection, itemAt: (path: NotePath) => MarkdownItem): MarkdownSelection {
+  const point = ({ note, offset }: MarkdownPoint): MarkdownPoint => ({ note, offset: editorOffset(itemAt(note), offset) });
+  if (selection.state === 'caret') return { state: 'caret', at: point(selection.at) };
+  if (selection.state === 'inline') return { state: 'inline', start: point(selection.start), end: point(selection.end) };
+  return selection;
+}
+
+function editorOffset(item: MarkdownItem, offset: number): number {
+  let read = 0;
+  let shift = 0;
+  let date: { start: number; iso: string } | null = null;
+  for (const token of item.inline ?? []) {
+    if (read > offset) break;
+    if (token.type === 'link_open' && isDate(String(token.attrGet('href')))) {
+      date = { start: read, iso: String(token.attrGet('href')).slice(5) };
+    } else if (token.type === 'link_close' && date) {
+      const label = formatDateNodeLabel(date.iso).length;
+      // An offset inside a date's label can only be one of its edges in the editor.
+      if (offset > date.start && offset < read) return date.start + shift + label;
+      if (offset >= read) shift += label - (read - date.start);
+      date = null;
+    } else if (token.type === 'text' || token.type === 'code_inline') {
+      read += token.content.length;
+    }
+  }
+  return offset + shift;
 }
 
 // Markdown numbers a list from its start; a list right after numbered notes starts again, even at 1.
@@ -74,7 +107,7 @@ const decode = (text: string) => text.replace(/&#(x?)([\da-f]+);/gi, (_, hex: st
 
 /** A note's name and runs as Python's reader reads them (`fill` in text_format.py), with stated edges. */
 function textOf(item: MarkdownItem): Pick<OutlineNote, 'name' | 'runs'> {
-  let content = (item.content ?? '').replace(item.checkbox ? CHECKBOX : /^/, '');
+  let content = item.checkbox ? (item.content ?? '').replace(CHECKBOX, '') : (item.content ?? '');
   let tokens = item.inline ?? [];
   const name = nameOf(content);
   if (name !== null) {
@@ -115,6 +148,9 @@ function runsOf(tokens: Token[]): Run[] {
       text(token.content);
     } else if (token.type === 'code_inline') {
       text(token.content, ['code']);
+    } else if (token.type === 'link_open' && token.markup === 'autolink') {
+      // Python's reader keeps a note with an autolink as verbatim source.
+      throw new Error('A test document\'s note text can\'t hold autolinks yet.');
     } else if (token.type === 'link_open') {
       const href = String(token.attrGet('href') ?? '');
       if (isDate(href)) {

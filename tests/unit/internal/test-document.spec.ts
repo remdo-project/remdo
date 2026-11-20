@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Document } from '../../../src/headless/outline-tree/tree';
+import { formatDateNodeLabel } from '#client/editor/features/date/date-label';
 import { readTestDocument } from '#tests-common/test-document';
 
 const fixture = 'tests/fixtures/outline-tree/test-document';
@@ -50,7 +51,19 @@ describe('reading a test document', () => {
     ]);
   });
 
-  it('refuses a heading, which it doesn\'t read yet', () => {
-    expect(() => readTestDocument('# Title')).toThrow();
+  it('counts a selected date as the editor labels it', () => {
+    const label = formatDateNodeLabel('2026-11-01').length;
+
+    expect(readTestDocument('- a <selection>[1 Nov 2026](date:2026-11-01)</selection> b').selection)
+      .toEqual({ state: 'inline', start: { note: [0], offset: 2 }, end: { note: [0], offset: 2 + label } });
+    expect(readTestDocument('- a [1 Nov 2026](date:2026-11-01) b<selection />').selection)
+      .toEqual({ state: 'caret', at: { note: [0], offset: 4 + label } });
+  });
+
+  it.each([
+    ['a heading', '# Title'],
+    ['an autolink', '- <https://example.com>'],
+  ])('refuses %s, which it doesn\'t read yet', (_, source) => {
+    expect(() => readTestDocument(source)).toThrow();
   });
 });

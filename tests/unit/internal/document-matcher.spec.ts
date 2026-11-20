@@ -1,8 +1,9 @@
 import type { ListNode } from '@lexical/list';
 import { $getRoot, $setState } from 'lexical';
 import { describe, expect, it } from 'vitest';
-import { $getNoteByText, meta, placeCaretAtNote, selectNoteRange, selectStructuralNotes } from '#tests';
+import { $getNoteByText, meta, placeCaretAtNote, placeCaretAtNoteTextNode, selectNoteRange, selectStructuralNotes } from '#tests';
 import { $setNoteCheckedRaw } from '#client/editor/features/list-types/checked-state';
+import { formatDateNodeLabel } from '#client/editor/features/date/date-label';
 import { markerState } from '#client/editor/features/list-types/note-marker';
 
 const document = `
@@ -63,6 +64,13 @@ describe('toMatchDocument', () => {
 
       expect(remdo).toMatchDocument('- alpha\n- be<selection />ta\n    - gamma');
       expect(() => expect(remdo).toMatchDocument('- alpha\n- b<selection />eta\n    - gamma')).toThrow(/differs/u);
+    });
+
+    it('counts a date as the editor labels it', meta({ document: '- a [1 Nov 2026](date:2026-11-01) b' }), async ({ remdo }) => {
+      const text = `a ${formatDateNodeLabel('2026-11-01')} b`;
+      await placeCaretAtNoteTextNode(remdo, text, 1, ' b'.length);
+
+      expect(remdo).toMatchDocument('- a [1 Nov 2026](date:2026-11-01) b<selection />');
     });
 
     it('matches a range within a note', meta({ document: notes }), async ({ remdo }) => {
