@@ -863,11 +863,13 @@ class EmailSignInTests(SessionEmailMixin, TestCase):
         self.assertEqual(EmailAddress.objects.filter(email="held@example.test").count(), 1)
 
     def test_stale_password_record_of_another_account_does_not_admit_a_promoted_signup(self):
+        other = self.account("other@example.test")
         self.post("/accounts/email/", {"email": "new@example.test"})
         session = self.client.session
         session["account_authentication_methods"] = [
-            {"method": "password", "email": "other@example.test", "at": 0}
+            {"method": "password", "email": other.email, "at": 0}
         ]
+        session["account_authentication_methods_user"] = str(other.pk)
         session.save()
         User.objects.filter(email="new@example.test").update(is_staff=True)
 

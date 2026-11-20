@@ -150,3 +150,7 @@ or not the search box has focus, so Search Mode does not apply.
 - Scope becomes part of the query, as in `kind:document PHRASE`, with surfaces
   seeding only the default. Home's search then also covers notes in every
   document.
+- Search the notes of the account's workspaces, for Home and MCP, reading
+  documents as [note operations](./note-operations.md) do and returning only
+  notes the caller can access; a result opens its note. An index waits until
+  scanning is too slow.

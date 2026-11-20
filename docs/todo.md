@@ -42,7 +42,7 @@ implementation.
   access changes, and unavailable sources before choosing direct document
   loading or a derived search index. Coordinate the UI, [note-link picker](specs/outliner/links.md#future), and
   [MCP](#claude-mcp-save-a-conversation-to-remdo) through shared SDK operations. For documents in workspaces, the
-  [adoption plan](text-format-plan.md)'s Note layer stage covers search.
+  [text format migration](#text-format-migration)'s note layer step covers search.
 - **Unopened documents.** Settle host-owned acquisition of non-current documents,
   content retention, and offline availability under the [open-document read boundary](specs/outliner/open-document.md#state-and-observation).
   Reassess persisted user-data handles and document-specific kinds
@@ -60,7 +60,9 @@ implementation.
   in its original source. Use concrete examples to settle identity, navigation,
   availability, and kind-specific capabilities before generalizing the SDK;
   connecting a source need not convert its content into an editable RemDo
-  document.
+  document. One shape to check with a read-only spike: each source kind's
+  adapter offers read, list, search, subscribe and invoke, shaped like MCP
+  resources and tools, and a source's fields are read-only named children.
   A calendar spike fit the note contract with no new availability state: an
   unreachable source is unavailable and a removed event is known absent. It
   stood alone as its own root, so a real connector still settles identity,
@@ -95,14 +97,235 @@ checked against the viewer's own access, as in Notion and Confluence, cannot.
   through the record rather than the viewer's own access, and
   [public audiences](specs/access/access-control.md#future).
 
-### Note representation and history
+### Text format migration
 
-Decided: Markdown in the [RemDo text format](format.md) becomes the source of
-truth, with Yjs state as a cache and history kept in the database. The
-[adoption plan](text-format-plan.md) tracks the work, including search, note
-reads without an editor, history, backups and the `@lexical/y` move; its
-Cleanup stage folds the remaining items into their owners and removes this
-entry.
+Goal: every user's notes are documents in the [RemDo text format](format.md), kept in
+[workspaces](specs/workspaces/store.md) with their history. People edit them live in the editor, and agents
+and integrations change them as text through [note operations](specs/outliner/note-operations.md). Moving existing
+editor documents loses nothing, and afterwards nothing reads editor documents.
+
+The work lands on the integration branch `feat/text-format`, since `main`
+deploys to production:
+
+- Topic branches merge into it through pull requests, and CI runs on those and
+  on pushes to it.
+- Each step deletes the editor-document code, tests and specification wording
+  it replaces; only the migration reads editor documents.
+- `main` takes dependency updates and fixes, merged into the branch regularly;
+  editor work there pauses.
+- [test.remdo.com](guides/production-deployment.md#deploy-to-the-test-sandbox) previews the branch. Migration rehearsals run there on a
+  copy of production data, which only people cleared to see users' notes may
+  access, and the sandbox is reset afterwards.
+- A behavior-preserving step changes only tests or only production code.
+  Mechanical changes, scripted with the command in the pull request, stay apart
+  from logic changes.
+
+Open decisions:
+
+1. Late offline clients: merge their edits through the text door during a grace
+   period, which keeps the old decoder and transport until it ends, or require a
+   sync before cutover.
+2. Cut over on the shipped V2 binding with its move limit, or wait for `@lexical/y`.
+3. Whether cutover requires a rehearsal on a fresh production copy that reports
+   no failures.
+4. The point after which cutover problems are fixed forward rather than rolled back.
+5. Whether changing the MCP surface for everyone waits for the
+   [Claude directory review](#claude-mcp-save-a-conversation-to-remdo) or accepts a re-review.
+
+Steps, in order. After the bootstrap, the editor and server tracks run in parallel.
+
+1. **Bootstrap.** Create the branch from `main` and add it to CI's triggers.
+2. Editor track:
+   1. **Test reader and matcher.** Close the reader and matcher gaps of *Tests
+      on editor documents*.
+   2. **Tests on test documents.** Script editor tests off IDs taken from note
+      text, one area at a time, then start every editor test from a
+      [test document](specs/testing/test-documents.md) and compare with `toMatchDocument`. Browser and
+      collaboration fixtures load through Python's reader and Node's tree. Delete
+      `toMatchOutline`, the fixture builder and the fixture rules editor
+      documents need. A trial run failed 474 of 853 editor tests, about 250 on
+      text-derived IDs; body and marker differences move with the production
+      steps that fix them.
+   3. **Gestures.** Gestures place, convert and check notes by [list types](specs/outliner/list-types.md),
+      and list-level types and the legacy marker fallback go. Waits for the
+      decoder freeze.
+   4. **Blocks and bodies.** Headings, `block` lines and bodies become Markdown
+      source lines without the body wrapper, and links keep every target as
+      written. Decide whether bodies render when not being edited; the
+      [note body](specs/outliner/body.md) shows them as written. The editor keeps a note's name in its
+      text, with any escape that stops text from reading as a name, so
+      `foo:: x` names and `foo\:: x` stays literal. Waits for the decoder freeze.
+   5. **Editable workspace outline.** A workspace's document opens in the
+      editor, replacing the read-only outline, its text box and editor documents
+      in the UI. Its breadcrumb reads Home, then the workspace's name.
+   6. **Editor actions as note operations.** The open document's semantic
+      operations move into note operations, leaving the open document as the
+      editor session; consider the [note range](specs/outliner/selection.md#note-ranges) as the operand of Move and
+      Delete. Operation cases are written once, as text before, operations, and
+      text after or the refusal, run on Python and a few on each other surface;
+      add that rule to the [testing policy](dev/testing.md) once it has worked. Each editor
+      action changes the document as some sequence of note operations would, and
+      a document edits and saves stably through the randomized test and a real
+      process kill. Waits for outline note operations.
+3. Server track:
+   1. **Decoder freeze.** Copy the code that reads list-level types, the body
+      wrapper and the legacy marker fallback into the migration's exporter
+      unchanged, run it on a production copy on test.remdo.com, and report what
+      each document would lose.
+   2. **Outline note operations.** Python note operations and MCP tools for
+      outline notes and bodies, starting with Set text and Ensure ID. A document
+      with an ID reads by its ID reference once expected versions accept one.
+      Each note resolves its own children and names the kinds it holds, and each
+      kind class registers itself. Operations change documents through their
+      [tree](architecture.md#workspace-document-state), starting with closed
+      ones.
+   3. **Note layer.** `resolve(uri)` for `note:` across workspaces,
+      [`/n/` URLs](specs/outliner/note-ids.md#ids-in-workspaces) for workspaces and notes, then [search](specs/outliner/search.md#future) across the account's
+      workspaces.
+   4. **Sharing.** [Workspace members](specs/access/access-control.md#future), shared on Home as editor documents are.
+4. **Live safety**, after both tracks:
+   [note operations on open rooms and stale clients](architecture.md#workspace-document-state),
+   and late offline clients by decision 1. Two editors and an agent then work together
+   with no silent loss beyond the move limit.
+5. **Migration.** Reassess rich body paragraphs and count sharing combinations
+   first. Convert user by user, moving a document only when export, read-back
+   and tree comparison pass, and reporting the rest; a rerun moves only what is
+   left. Rehearse on test.remdo.com until a run reports no failures.
+   - Each editor document becomes its own workspace's `README.md`, with its
+     owner, and its grants as members.
+   - Links between editor documents become `note:` references across workspaces.
+   - Old note IDs stay as cache IDs, referenced ones are promoted to `id::`,
+     fold state is reapplied, and old `/n/` URLs redirect.
+   - History starts with one import revision per workspace, and undo resets.
+6. **Cleanup.** Remove `DocumentContent`, `DocumentGrant`, per-call headless
+   editors, old routes and the experimental flag from everything but the
+   migration. Give the remaining kinds, such as account roots and user-data
+   notes, note operations or retire them; drop editor documents from the sources
+   and their sharing rules; rename what remains of the open document to the
+   editor session. Update the published OpenAI plugin and any pending directory
+   review as the MCP change needs, and remove the [format](format.md)'s note on existing
+   documents.
+7. **Cutover.** Stop writes and back up production, then merge the branch into
+   `main`, which deploys it and runs the migration. Check its report before
+   writes reopen. Keep editor documents' tables through any grace period
+   of decision 1, then remove them with the migration.
+8. **Tracking cleanup.** Fold into their owners or remove what this migration
+   made obsolete in this record, the [legacy backlog](legacy-backlog.md) and the format's
+   Follow-up, then delete this section.
+
+Gaps:
+
+- **Per-note markers and checkboxes.** [List types](specs/outliner/list-types.md)
+  gives each note its own marker and checkbox. The editor stores and shows
+  them, but its gestures still change a list's type on the list, unchecking
+  removes a box outside a check list instead of leaving it open, and notes
+  don't take their marker and checkbox by
+  [placement](specs/outliner/list-types.md#placement). The gestures step closes this, including Insertion's appended
+  notes and the menu's checkbox action. They
+  must not produce a note under a body line, a heading under a list item, or a
+  note right after a heading at that heading's level.
+- **Tests on editor documents.** Until editor documents go:
+  - fixtures load into them, reading an all-checkbox bulleted list as a check
+    list and a `note:<workspaceId>_<id>` link as another editor document, and
+    giving a note without an `id::` line its text as its ID when that is a
+    valid ID no `id::` line or earlier note claims, otherwise an ID generated
+    the same way on every read;
+  - `toMatchOutline` compares text, checked state, stated IDs, bodies and fold
+    state, but not markers or open boxes.
+
+  The tree reader doesn't yet read headings,
+  names, dates or edge whitespace, and `toMatchDocument` doesn't compare
+  selections yet.
+- **Read-only workspace outline.** A workspace's Document opens as a read-only
+  outline, with its Markdown text box as a second view. The outline shows a file
+  change made while it's open only once a client saves or the room reloads,
+  since a reader never saves; editing the outline and agent edits through the
+  room's tree close this. A reader still writes once: when a peer empties the
+  document, Lexical's Yjs binding adds an empty root paragraph to the room.
+  Reading the tree skips it, so the file is unaffected, but the room then holds
+  a node no file line gives.
+- **Links in workspace documents.** The editor's external-link handling unwraps
+  every link whose target isn't http(s), so an editable workspace outline that
+  mounts it would strip `file:`, relative and `note:` links from the file.
+- **Refused workspace saves out of sight.** A workspace room whose save is
+  [refused](architecture.md#workspace-document-state) tells none of its
+  clients, and a refused load leaves the client reconnecting, reported again
+  each time. The read-only outline shows neither; the editable outline shows
+  both.
+- **Body text that reads as structure.** A body is written as stored, so body
+  text that would read as structure where it sits becomes structure on the next
+  read: a line `- x`, a `---` under a paragraph, or an indented first line
+  after a list item. Python's reader never produces such a body; the editor
+  and tools can. Decide before the editor opens a workspace's Document whether
+  the editor escapes such text or accepts it as Markdown it typed.
+- **Unchecked block editing.** Rendered blocks were spiked only in Chromium on
+  a small page: clicking a table puts the caret at the end of its source,
+  dragging across a block fails, and switching shifts layout. Paste, `Enter`
+  inside a fence or table, IME, find in page, screen readers, Firefox, Safari
+  and mobile are unchecked.
+- **Typing lost to a stale save.** When a workspace's file changes while its
+  room is open, the room's next save applies the file, discarding what was
+  typed since its last save. Live safety closes this.
+- **Stale versions refuse agents.** Per-file versions refuse an agent's call
+  whenever someone saved the same document since its read; live safety's
+  open-room operations reduce that.
+- **Cache IDs through recovery.** [Workspace document state](architecture.md#workspace-document-state)
+  recovers from a changed file by applying its tree, which holds no cache IDs.
+  [Apply](architecture.md#outline-tree) keeps a note whose text is unchanged
+  among its siblings, but a note the file edits or moves to another parent is
+  recreated, losing its fold state and its cache ID, which its zoom URL holds
+  when it has no `id::`. A spike measured 29% of cache IDs lost after 20 edits.
+  Note operations lose them the same way until the outline note operations
+  step; edits made outside RemDo keep losing them.
+- **Note operations on files.** Note operations change a workspace document's
+  file rather than its [tree](architecture.md#workspace-document-state). A
+  closed document's cache row takes the change by applying the file's tree,
+  losing cache IDs as *Cache IDs through recovery* describes; an open room
+  takes it only at its next save, which discards what was typed since the last
+  save. Ensure ID writes a fresh ID rather than
+  [the note's cache ID](specs/outliner/note-ids.md#ids-in-workspaces). The
+  outline note operations step closes this for closed documents and live
+  safety for open rooms. Only Node reads the tree, so first decide whether
+  Python reads the cache row's Yjs state or asks the hub.
+- **Note operations on unusual text.** Set text and Ensure ID change only
+  their note's own lines, and refuse what that can't express: notes sharing a
+  marker's line, as in `- > quote` or `- - b`, and a body whose lines hold a
+  property line. Ensure ID also refuses a note whose text
+  wouldn't read back with its new ID line where it puts it.
+- **Changes an open head undoes.** A live document's saves that return a file
+  to what the open head's parent holds leave the head with a change that
+  changes nothing, which the [store](specs/workspaces/store.md#commits) would
+  otherwise refuse. Dropping it can leave an empty revision, which the store
+  can't delete on its own.
+- **Moves under concurrent edits.** Under the V2 binding, an edit concurrent
+  with a move can vanish or land on the wrong note. Indent needs `@lexical/y`
+  and reorder its unmerged PR 9449, so don't build a fix on V2.
+- **Delete beats edit.** Yjs lets a delete win silently over a concurrent edit,
+  so it needs detection.
+- **Invalid trees under concurrency.** A few concurrent test runs left invalid
+  trees that normalization didn't repair.
+
+After cutover:
+
+- Show same-word and delete-versus-edit conflicts to the user.
+- Agent change review: a note-level diff with per-hunk revert.
+- Backlinks, run on the server.
+- `useNote(ref)` for UI that reads notes outside the open document, holding
+  reads in TanStack Query keyed by reference. The SDK reads every kind from
+  Django over REST and stays current through the change stream, outline notes as
+  of their last save.
+- Give the Python account root the [user-data hierarchy](specs/outliner/user-data.md#hierarchy), replacing the SDK's
+  `user-data`, `document-source` and `collection` kinds; the SDK becomes a REST
+  client plus the editor session, and code names for user-data's servers stop
+  saying "source". Decide whether the account root lists workspaces per server.
+- **Early editor operations.** Revisit the editor's structural operations against
+  [note operations](specs/outliner/note-operations.md) and adjust those that
+  diverge.
+- Move to `@lexical/y`, reseeding documents from text, once `@y/y` is final or
+  its update corruption bug is fixed, `@lexical/y` ships in a Lexical release,
+  reorder preservation lands (unmerged PR 9449), Hocuspocus supports Yjs 14 or a
+  tested alias covers packaging, Redis and auth, and RemDo's collaboration suite
+  and the randomized test pass.
 
 ### Post-Hocuspocus simplification proposals
 
@@ -290,7 +513,7 @@ RemDo document, minimal but useful for real work.
   and delete a note, which first need [open document](specs/outliner/open-document.md)
   operations addressing a note. Appending cannot add a body, although reading
   returns bodies. For documents in workspaces, [note operations](specs/outliner/note-operations.md)
-  cover this in the [adoption plan](text-format-plan.md)'s Editor on text stage.
+  cover this in the [text format migration](#text-format-migration)'s outline note operations step.
 - Expose [cross-document search](#cross-source-discovery) once server-side search spans a user's documents;
   searching a single document adds little over reading it whole.
 - **Oversized upload regression coverage.** Django closing the connection before
@@ -453,77 +676,9 @@ Remaining:
 
 ### Outliner
 
-- **Per-note markers and checkboxes.** [List types](specs/outliner/list-types.md)
-  gives each note its own marker and checkbox. The editor stores and shows
-  them, but its gestures still change a list's type on the list, unchecking
-  removes a box outside a check list instead of leaving it open, and notes
-  don't take their marker and checkbox by
-  [placement](specs/outliner/list-types.md#placement). The editor schema step
-  of the [text format plan](text-format-plan.md) closes this with gestures,
-  including Insertion's appended notes and the menu's checkbox action. They
-  must not produce a note under a body line, a heading under a list item, or a
-  note right after a heading at that heading's level.
-
-- **Read-only workspace outline.** A workspace's Document opens as a read-only
-  outline, with its Markdown text box as a second view. The outline shows a file
-  change made while it's open only once a client saves or the room reloads,
-  since a reader never saves; editing the outline and agent edits through the
-  room's tree close this. A reader still writes once: when a peer empties the
-  document, Lexical's Yjs binding adds an empty root paragraph to the room.
-  Reading the tree skips it, so the file is unaffected, but the room then holds
-  a node no file line gives.
-
-- **Links in workspace documents.** The editor's external-link handling unwraps
-  every link whose target isn't http(s), so an editable workspace outline that
-  mounts it would strip `file:`, relative and `note:` links from the file.
-  Workspace documents need link handling that keeps targets as written.
-
-- **Cache IDs through recovery.** [Workspace document state](architecture.md#workspace-document-state)
-  recovers from a changed file by applying its tree, which holds no cache IDs.
-  [Apply](architecture.md#outline-tree) keeps a note whose text is unchanged
-  among its siblings, but a note the file edits or moves to another parent is
-  recreated, losing its fold state and, without an `id::`, its zoom URL.
-- **Refused workspace saves out of sight.** A workspace room whose save is
-  [refused](architecture.md#workspace-document-state) tells none of its
-  clients, and a refused load leaves the client reconnecting, reported again
-  each time. The read-only outline shows neither; the editable outline shows
-  both.
-- **Changes an open head undoes.** A live document's saves that return a file
-  to what the open head's parent holds leave the head with a change that
-  changes nothing, which the [store](specs/workspaces/store.md#commits) would
-  otherwise refuse. Dropping it can leave an empty revision, which the store
-  can't delete on its own.
-- **Typing lost to a stale save.** When a workspace's file changes while its
-  room is open, the room's next save applies the file, discarding what was
-  typed since its last save. Stage 4 of the
-  [text format plan](text-format-plan.md) closes this with the stale-client
-  merge.
-- **Agent edits behind an open room.** A [note operation](specs/outliner/note-operations.md)
-  on an open workspace document reaches its room only at the room's next
-  save, which then discards what was typed since the last save. Django's
-  change notice could make the hub save loaded workspace rooms at once, so
-  the stale-save path applies the file before more typing piles up.
-- **Note operations on unusual text.** Set text and Ensure ID change only
-  their note's own lines, and refuse what that can't express: notes sharing a
-  marker's line, as in `- > quote` or `- - b`, and a body whose lines hold a
-  property line. Ensure ID also refuses a note whose text
-  wouldn't read back with its new ID line where it puts it.
-- **Ensure ID and cache IDs.** Ensure ID writes a new ID, where the
-  [text format plan](text-format-plan.md) promotes the note's cache ID, so a
-  note of an open document changes its editor ID once its room applies the
-  file. Promote the cache ID once note operations on open documents go through
-  the room's tree, before workspace notes get URLs.
-- **Body text that reads as structure.** A body is written as stored, so body
-  text that would read as structure where it sits becomes structure on the next
-  read: a line `- x`, a `---` under a paragraph, or an indented first line
-  after a list item. Python's reader never produces such a body; the editor
-  and tools can. Decide before the editor opens a workspace's Document whether
-  the editor escapes such text or accepts it as Markdown it typed.
-
-- **Early editor operations.** After the [text format migration](text-format-plan.md),
-  revisit the editor's structural operations against
-  [note operations](specs/outliner/note-operations.md) and adjust those that
-  diverge.
+- **Emoji replacement corrupts text.** Replacing 😀 with 😁 saves corrupted text
+  to Yjs, because `simpleDiffWithCursor` in `@lexical/yjs` splits a surrogate
+  pair. It was reproduced headlessly, not yet in a browser.
 
 - **Touch and menu entry for note bodies.** [Body](specs/outliner/body.md#core-behavior)
   creation is reachable only through `Shift+Enter`, so touch devices cannot add

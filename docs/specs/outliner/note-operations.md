@@ -26,8 +26,8 @@ agents and integrations use them alike.
    given. **Deterministic.**
 6. **Set content** changes a document's whole content.
    **Deterministic.**
-7. **Ensure ID** returns a note's ID, writing a new one into its document when
-   the note has none. **Deterministic.**
+7. **Ensure ID** returns a note's [ID](./note-ids.md#ids-in-workspaces),
+   writing one into its document when the note has none. **Deterministic.**
 
 Set text and Set content take the new value, or exact replacements applied in
 order, each matching exactly once in the value left by the previous one,

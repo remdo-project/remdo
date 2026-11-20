@@ -760,7 +760,7 @@ def create_workspace(call, name, content):
 class WorkspaceCall(Call):
     """A call on the notes of one workspace, applied to a tree of its files."""
 
-    # Multi-file workspaces return with a later plan (docs/text-format-plan.md); until then their
+    # Multi-file workspaces are future work (docs/specs/outliner/note-model.md); until then their
     # tests turn this off to keep the folder and plain-file kinds working.
     single_file = True
 

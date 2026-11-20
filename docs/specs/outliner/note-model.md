@@ -123,14 +123,14 @@ form a tree of notes of the kinds below, which share the
 Changing a note's text never changes its kind.
 
 A reference is a string that Read returns for every note and callers pass back
-unchanged; [Note IDs](./note-ids.md#ids-in-workspaces) spells its forms. A
-workspace's notes are referenced through their workspace, either by ID, once
-they have one, by path for its folders and files, or for any other note of a
-document by a temporary reference. An ID reference survives renames and
-moves; a path reference names whatever is at that path. Read returns a note's
-ID reference when it has an ID. **Deterministic.**
+unchanged; [Note IDs](./note-ids.md#ids-in-workspaces) spells its forms. An
+ID reference survives renames and moves; a path reference names whatever is at
+that path. Read returns a note's ID reference when it has an ID.
+**Deterministic.**
 
 ## Future
 
 - **Multi-file workspaces:** folders, plain files and several documents in one
-  workspace, listed as the workspace's children by name.
+  workspace, listed as the workspace's children by name, with a listing in
+  place of a missing `README.md`. Renaming a file rewrites the links to it, and
+  a check reports broken links.

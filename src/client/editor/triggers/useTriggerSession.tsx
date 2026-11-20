@@ -410,7 +410,6 @@ export function useTriggerSession<TOption>(spec: TriggerSpec<TOption>): ReactNod
 
   useEffect(() => {
     installOutlineSelectionHelpers(editor);
-    syncFromSelection();
 
     // Plain Enter confirms the active option. A modifier+Enter (e.g.
     // Cmd/Ctrl+Enter) is owned while the picker is open but is not a commit key:

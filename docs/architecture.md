@@ -278,6 +278,13 @@ deleted with its workspace.
 - **Stale save:** when the file changed since the row's version, a save writes
   nothing, and the room applies the current file's tree, as on load, before
   trying again. **Deterministic.**
+- **Note operations:** a note operation changes a document through its tree,
+  read from its room when the room is open and from its cache row otherwise,
+  so open clients lose no unsaved edits and notes keep their cache IDs.
+- **Stale client:** loading a file's tree into an empty state starts a new
+  lineage of the document's Yjs state. A client holding state from an earlier
+  lineage never syncs it; what it changed since its last synced text merges
+  into the document three ways, losing neither side's text.
 - **Refusal:** a save whose text is over the file limit or whose tree is
   malformed, or a load or save of a file that isn't UTF-8 text, writes nothing
   and is [reported](specs/runtime/configuration.md#error-reporting). The room

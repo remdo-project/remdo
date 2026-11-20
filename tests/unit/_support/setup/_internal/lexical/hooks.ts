@@ -7,23 +7,36 @@ import type { Fixture } from '#tools/fixtures';
 import { installAuthenticatedApiFetch } from '../../../../collab/_support/auth';
 import { createCollabTestDocument } from '../../../../collab/_support/documents';
 import { renderRemdoEditor } from '../../../../collab/_support/render-editor';
+import { $applyTestDocument, readTestDocument } from '#tests-common/test-document';
 import { setExpectedConsoleIssues } from '../assertions/console-allowlist';
 
-async function applyEditorFixture(
-  remdo: TestContext['remdo'],
-  fixture: Fixture,
-  fixtureOptions?: { skipSchemaValidationOnce?: boolean }
-): Promise<void> {
-  const stateJson = await readFixture(fixture);
-  await remdo._bridge.applySerializedState(stateJson, fixtureOptions);
+interface Start {
+  fixture?: Fixture;
+  document?: string;
+  fixtureOptions?: { skipSchemaValidationOnce?: boolean };
+}
+
+async function applyStart(remdo: TestContext['remdo'], { fixture, document, fixtureOptions }: Start): Promise<void> {
+  if (document !== undefined) {
+    const read = readTestDocument(document);
+    if (read.selection) throw new Error('A starting document holds no selection.');
+    await remdo.mutate(() => $applyTestDocument(read));
+  } else {
+    await remdo._bridge.applySerializedState(await readFixture(fixture!), fixtureOptions);
+  }
   await remdo.waitForSynced();
 }
 
 aroundEach<TestContext>(async (run, ctx) => {
   const cleanupFetch = config.env.COLLAB_ENABLED ? await installAuthenticatedApiFetch() : () => {};
   const meta = ctx.task.meta;
-  const fixture = meta.fixture;
-  const fixtureOptions = meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined;
+  if (meta.fixture && meta.document !== undefined) throw new Error('A test starts from a fixture or a document, not both.');
+  const start: Start = {
+    fixture: meta.fixture,
+    document: meta.document,
+    fixtureOptions: meta.fixtureSchemaBypass ? { skipSchemaValidationOnce: true } : undefined,
+  };
+  const hasStart = Boolean(meta.fixture) || meta.document !== undefined;
   setExpectedConsoleIssues(meta.expectedConsoleIssues ?? null);
 
   const rawDocId = meta.collabDocId ?? (config.env.COLLAB_ENABLED ? undefined : config.env.DEV_DOCUMENT_ID);
@@ -31,14 +44,14 @@ aroundEach<TestContext>(async (run, ctx) => {
     ? undefined
     : normalizeNoteIdOrThrow(rawDocId, `Invalid collab doc id: ${rawDocId}`));
 
-  const seedFixtureBeforeMount = Boolean(config.env.COLLAB_ENABLED && fixture);
+  const seedFixtureBeforeMount = config.env.COLLAB_ENABLED && hasStart;
 
   if (seedFixtureBeforeMount) {
     // In collab mode the document must already contain the fixture before the
     // test editor mounts, otherwise the live sync path starts from an empty doc.
     const { api: loader, unmount } = await renderRemdoEditor(docId);
     try {
-      await applyEditorFixture(loader, fixture!, fixtureOptions);
+      await applyStart(loader, start);
     } finally {
       unmount();
     }
@@ -46,8 +59,8 @@ aroundEach<TestContext>(async (run, ctx) => {
 
   const { api: remdoTest } = await renderRemdoEditor(docId, meta.viewProps);
 
-  if (fixture && !seedFixtureBeforeMount) {
-    await applyEditorFixture(remdoTest, fixture, fixtureOptions);
+  if (hasStart && !seedFixtureBeforeMount) {
+    await applyStart(remdoTest, start);
   }
 
   ctx.remdo = remdoTest;
