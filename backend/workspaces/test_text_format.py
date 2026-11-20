@@ -326,6 +326,13 @@ class OutlineTreeTests(SimpleTestCase):
     def test_a_document_reads_as_the_shared_tree(self):
         self.assertEqual(text_format.to_json(text_format.read(self.source)), self.tree)
 
+    def test_the_test_document_reads_as_its_shared_tree(self):
+        fixture = REPO / "tests/fixtures/outline-tree/test-document"
+        self.assertEqual(
+            text_format.to_json(text_format.read(fixture.with_suffix(".md").read_text("utf8"))),
+            json.loads(fixture.with_suffix(".json").read_text("utf8")),
+        )
+
     def test_the_shared_tree_writes_as_its_document(self):
         self.assertEqual(text_format.write(text_format.from_json(self.tree)), self.source)
 

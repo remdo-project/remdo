@@ -143,3 +143,9 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
    document has a temporary reference that Read returns, valid while its
    document is unchanged; its form isn't part of the contract.
    **Deterministic.**
+7. A workspace opens at `/n/<workspaceId>`, and a note at
+   `/n/<workspaceId>_<id>` with its ID or, when it has none, its
+   [cache ID](../../architecture.md#outline-tree). The ID first written for a
+   note is its cache ID, so its URL stays the same. A note keeps its cache ID
+   through every note operation except Delete. Only the opened document
+   resolves a cache ID, which isn't a reference.

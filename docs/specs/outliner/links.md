@@ -1,7 +1,9 @@
 # Links
 
 RemDo-owned note links preserve stable note identity and remain distinct from
-generic external links.
+generic external links. In a workspace's document, a note link is a `note:`
+link as the [text format](../../format.md) spells it, resolved as
+[Note IDs](./note-ids.md#ids-in-workspaces) defines.
 
 ## Definitions
 

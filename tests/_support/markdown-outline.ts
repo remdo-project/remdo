@@ -32,9 +32,17 @@ export interface MarkdownItem {
   /** The numbered list's first number, when it isn't 1. */
   start?: number;
   checkbox: boolean;
+  /** The number Markdown gives the item: its list's start plus the items before it. */
+  number: number;
+  /** Whether the item is its list's first note, property lines aside. */
+  opensList: boolean;
   /** The text's markdown-it inline tokens, without the checkbox. */
   inline?: Token[];
+  /** The text as written on the marker's line, without the checkbox. */
+  content: string;
   bodyLines?: Token[][];
+  /** The body's lines without their `>` prefixes. */
+  bodySource?: string[];
 }
 
 export interface MarkdownOutline {
@@ -53,6 +61,8 @@ const PROPERTY_LINE = /^(id|folded)::(?: .*)?$/;
 const SENTINEL = { caret: '', open: '', close: '' } as const;
 type MarkKind = keyof typeof SENTINEL;
 const KIND_BY_SENTINEL = new Map<string, MarkKind>(Object.entries(SENTINEL).map(([kind, char]) => [char, kind as MarkKind]));
+
+const stripTags = (text: string) => [...text].filter((char) => !KIND_BY_SENTINEL.has(char)).join('');
 
 interface Mark extends MarkdownPoint {
   kind: MarkKind;
@@ -134,23 +144,25 @@ function readList(
 ): MarkdownNote[] {
   const top: MarkdownNote[] = [];
   const frames: Frame[] = [{ note: null, children: top, path: [] }];
-  const lists: Pick<MarkdownItem, 'ordered' | 'start'>[] = [];
+  const lists: Array<Pick<MarkdownItem, 'ordered' | 'start'> & { items: number; notes: number }> = [];
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index]!;
     const frame = frames.at(-1)!;
     if (token.type === 'ordered_list_open' || token.type === 'bullet_list_open') {
       const start = Number(token.attrGet('start') ?? 1);
-      lists.push(token.type === 'ordered_list_open' ? { ordered: true, ...(start !== 1 && { start }) } : { ordered: false });
+      lists.push({ ...(token.type === 'ordered_list_open' ? { ordered: true, ...(start !== 1 && { start }) } : { ordered: false }), items: 0, notes: 0 });
     } else if (token.type === 'ordered_list_close' || token.type === 'bullet_list_close') {
       lists.pop();
     } else if (token.type === 'blockquote_open' && frame.note) {
       index = readBody(tokens, index, frame, lines);
     } else if (token.type === 'list_item_open') {
+      const list = lists.at(-1)!;
+      list.items += 1;
       const line = token.map![0];
       const marker = MARKER.exec(lines[line]!)!;
       const checkbox = marker[1] !== undefined;
       const content = lines[line]!.slice(marker[0].length).trim();
-      const property = PROPERTY_LINE.exec([...content].filter((char) => !KIND_BY_SENTINEL.has(char)).join(''));
+      const property = PROPERTY_LINE.exec(stripTags(content));
       if (property && tokens[index + 1]!.type === 'paragraph_open') {
         const name = property[1]!;
         const stated = (frame.statedProperties ??= new Set());
@@ -173,7 +185,16 @@ function readList(
       const path = [...frame.path, frame.children.length];
       frame.children.push(note);
       located.push({ path, line });
-      const item: MarkdownItem = { ...lists.at(-1)!, checkbox };
+      const { ordered, start } = list;
+      const item: MarkdownItem = {
+        ordered,
+        ...(start !== undefined && { start }),
+        checkbox,
+        number: (start ?? 1) + list.items - 1,
+        opensList: list.notes === 0,
+        content: stripTags(content),
+      };
+      list.notes += 1;
       items.set(note, item);
       frames.push({ note, children: [], path, line, item });
     } else if (token.type === 'list_item_close') {
@@ -189,7 +210,7 @@ function readList(
       if (token.map![0] !== frame.line) throw new Error('A note\'s text must fit on its marker\'s line.');
       frame.textRead = true;
       const inline = withoutCheckbox(token.children ?? [], frame.item!.checkbox);
-      frame.item!.inline = inline;
+      frame.item!.inline = inline.map(withoutTags);
       const text = takeMarks(plainText(inline), frame.path, marks);
       if (text) frame.note!.text = text;
     }
@@ -201,9 +222,14 @@ function readList(
 function withoutCheckbox(tokens: Token[], checkbox: boolean): Token[] {
   const [first, ...rest] = tokens;
   if (!checkbox || first?.type !== 'text') return tokens;
-  const stripped = Object.assign(Object.create(Object.getPrototypeOf(first) as object) as Token, first);
-  stripped.content = first.content.replace(/^\[[ x]\] ?/, '');
-  return [stripped, ...rest];
+  return [withContent(first, first.content.replace(/^\[[ x]\] ?/, '')), ...rest];
+}
+
+/** A copy of a markdown-it token holding other content. */
+export function withContent(token: Token, content: string): Token {
+  const copy = Object.assign(Object.create(Object.getPrototypeOf(token) as object) as Token, token);
+  copy.content = content;
+  return copy;
 }
 
 function closeOf(tokens: Token[], open: number): number {
@@ -227,6 +253,7 @@ function readBody(tokens: Token[], open: number, frame: Frame, lines: string[]):
   const bodyLines = source.map((line) => markdown.parseInline(line.replace(/^\s*> ?/, ''), {})[0]?.children ?? []);
   note.body = bodyLines.map(plainText).join('\n');
   frame.item!.bodyLines = bodyLines;
+  frame.item!.bodySource = source.map((line) => line.replace(/^\s*> ?/, ''));
   frame.textRead = true;
   return closeOf(tokens, open);
 }
@@ -239,6 +266,10 @@ function plainText(tokens: Token[]): string {
     }
     return token.type === 'text' || token.type === 'code_inline' ? token.content : '';
   }).join('');
+}
+
+function withoutTags(token: Token): Token {
+  return token.type === 'text' || token.type === 'code_inline' ? withContent(token, stripTags(token.content)) : token;
 }
 
 function takeMarks(text: string, note: NotePath, marks: Mark[]): string {

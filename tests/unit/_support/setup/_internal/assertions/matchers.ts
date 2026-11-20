@@ -12,12 +12,15 @@ import {
   isChildrenWrapper,
   resolveContentListItem,
 } from '#tests';
-import { $getSelection, $isNodeSelection, $isRangeSelection, $getRoot } from 'lexical';
+import { $getSelection, $isNodeSelection, $isRangeSelection, $getRoot, createEditor } from 'lexical';
 import type { ElementNode, PointType, RangeSelection, LexicalNode, SerializedEditorState } from 'lexical';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
+import { editorConfig } from '#client/editor/runtime/config';
+import type { TreeNote } from '../../../../../../src/headless/outline-tree/tree';
+import { $applyTestDocument, $outlineItems, $readTestDocument, readTestDocument } from '#tests-common/test-document';
 
 type RemdoTestHelpers = TestContext['remdo'];
 
@@ -162,14 +165,14 @@ function $getCaretNoteId(selection: RangeSelection): string | null {
   return $resolveId(selection.focus) ?? $resolveId(selection.anchor);
 }
 
-function noteIdAt(outline: Outline, path: NotePath): string {
+function noteIdAt(outline: Outline, path: NotePath): string | undefined {
   let notes: Outline | undefined = outline;
   let node: OutlineNode | undefined;
   for (const index of path) {
     node = notes?.[index];
     notes = node?.children;
   }
-  return node?.noteId ?? `<no note at ${path.join('.')}>`;
+  return node?.noteId;
 }
 
 interface NotePoint {
@@ -183,9 +186,11 @@ type SelectionDetail =
   | { state: 'inline'; start: NotePoint; end: NotePoint }
   | { state: 'structural'; notes: string[] };
 
-function resolveMarkdownSelection(selection: MarkdownSelection, outline: Outline): SelectionDetail {
-  const at = (point: MarkdownPoint) => ({ note: noteIdAt(outline, point.note), offset: point.offset });
-  if (selection.state === 'structural') return { state: 'structural', notes: selection.notes.map((path) => noteIdAt(outline, path)) };
+/** A selection a document marks, with each note named by the ID `idAt` gives its path. */
+function resolveMarkdownSelection(selection: MarkdownSelection, idAt: (path: NotePath) => string | null | undefined): SelectionDetail {
+  const id = (path: NotePath) => idAt(path) ?? `<no note at ${path.join('.')}>`;
+  const at = (point: MarkdownPoint) => ({ note: id(point.note), offset: point.offset });
+  if (selection.state === 'structural') return { state: 'structural', notes: selection.notes.map(id) };
   if (selection.state === 'caret') return { state: 'caret', at: at(selection.at) };
   return { state: 'inline', start: at(selection.start), end: at(selection.end) };
 }
@@ -242,7 +247,61 @@ function readSelectionDetail(remdo: RemdoTestHelpers): SelectionDetail {
   });
 }
 
+// Cache IDs are internal, so expectations compare the IDs notes' text gives.
+const withoutCacheIds = (notes: readonly TreeNote[]): TreeNote[] => notes.map((note) => (note.kind === 'body'
+  ? { ...note, cacheId: null }
+  : { ...note, cacheId: null, children: withoutCacheIds(note.children) }));
+
+type ReadDocument = ReturnType<typeof $readTestDocument>;
+
+function $resolveTestSelection(selection: MarkdownSelection): SelectionDetail {
+  const ids = new Map($outlineItems().map(({ path, item }) => [path.join('.'), $getNoteId(item)]));
+  return resolveMarkdownSelection(selection, (path) => ids.get(path.join('.')));
+}
+
+/** The root a fresh editor holds after applying `read`, which a canonical state matches exactly. */
+function canonicalRoot(read: ReadDocument): unknown {
+  const editor = createEditor(editorConfig);
+  editor.update(() => $applyTestDocument(read), { discrete: true });
+  return editor.getEditorState().toJSON().root;
+}
+
 expect.extend({
+  toMatchDocument(this: any, remdo: RemdoTestHelpers, expected: string) {
+    const read = attemptRead(this, '.toMatchDocument', () => {
+      const wanted = readTestDocument(expected);
+      const live = remdo.editor.getEditorState();
+      const actual = live.read($readTestDocument);
+      const compared = (doc: ReadDocument, selection?: SelectionDetail) => ({
+        document: { ...doc.document, children: withoutCacheIds(doc.document.children) },
+        folded: doc.folded,
+        ...(selection && { selection }),
+      });
+      return {
+        actual: compared(actual, wanted.selection ? readSelectionDetail(remdo) : undefined),
+        wanted: compared(wanted, wanted.selection ? live.read(() => $resolveTestSelection(wanted.selection!)) : undefined),
+        stored: live.toJSON().root,
+        canonical: canonicalRoot(actual),
+      };
+    });
+    if (!read.ok) return read.result;
+    const { actual, wanted, stored, canonical } = read.value;
+
+    const outline = compareWithExpected(this, actual, wanted, {
+      matcher: 'toMatchDocument',
+      args: ['lexical', 'expectedMarkdown'],
+      passMessage: 'Expected the document not to match, but it did.',
+      failMessage: 'The document differs from the expected Markdown.',
+    });
+    if (!outline.pass) return outline;
+    return compareWithExpected(this, stored, canonical, {
+      matcher: 'toMatchDocument',
+      args: ['lexical', 'expectedMarkdown'],
+      passMessage: 'Expected the document not to match, but it did.',
+      failMessage: 'The document reads as expected, but its stored state isn\'t what applying its own tree gives.',
+    });
+  },
+
   toMatchOutline(this: any, remdo: RemdoTestHelpers, expected: string) {
     const read = attemptRead(this, '.toMatchOutline', () => {
       const { notes, selection } = readMarkdownOutline(expected);
@@ -251,7 +310,7 @@ expect.extend({
       const wanted: typeof actual = { outline: notes };
       if (selection) {
         actual.selection = readSelectionDetail(remdo);
-        wanted.selection = resolveMarkdownSelection(selection, outline);
+        wanted.selection = resolveMarkdownSelection(selection, (path) => noteIdAt(outline, path));
       }
       return { actual, wanted };
     });
