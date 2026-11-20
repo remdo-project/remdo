@@ -18,11 +18,9 @@ import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { ListItemNode } from '@lexical/list';
 import { $getNoteId } from '#client/editor/runtime/note-ids/note-id-state';
 import { $resolveStructuralItemsFromRange } from '#client/editor/outline/selection/range';
-import { $isNoteFolded } from '#client/editor/outline/fold-state';
 import { editorConfig } from '#client/editor/runtime/config';
-import type { Document, TreeNote } from '../../../../../../src/headless/outline-tree/tree';
-import { $readTree } from '../../../../../../src/headless/outline-tree/read';
-import { $applyTestDocument, $outlineItems, readTestDocument } from '#tests-common/test-document';
+import type { TreeNote } from '../../../../../../src/headless/outline-tree/tree';
+import { $applyTestDocument, $outlineItems, $readTestDocument, readTestDocument } from '#tests-common/test-document';
 
 type RemdoTestHelpers = TestContext['remdo'];
 
@@ -252,15 +250,15 @@ const withoutCacheIds = (notes: readonly TreeNote[]): TreeNote[] => notes.map((n
   ? { ...note, cacheId: null }
   : { ...note, cacheId: null, children: withoutCacheIds(note.children) }));
 
-interface ReadDocument {
-  document: Document;
-  folded: NotePath[];
-}
+type ReadDocument = ReturnType<typeof $readTestDocument>;
 
-function $readDocument(): ReadDocument {
-  const document = $readTree();
-  const folded = $outlineItems().filter(({ item }) => $isNoteFolded(item)).map(({ path }) => path);
-  return { document, folded };
+function $resolveTestSelection(selection: MarkdownSelection): SelectionDetail {
+  const ids = new Map($outlineItems().map(({ path, item }) => [path.join('.'), $getNoteId(item)]));
+  const id = (path: NotePath) => ids.get(path.join('.')) ?? `<no note at ${path.join('.')}>`;
+  const at = (point: MarkdownPoint) => ({ note: id(point.note), offset: point.offset });
+  if (selection.state === 'structural') return { state: 'structural', notes: selection.notes.map(id) };
+  if (selection.state === 'caret') return { state: 'caret', at: at(selection.at) };
+  return { state: 'inline', start: at(selection.start), end: at(selection.end) };
 }
 
 /** The root a fresh editor holds after applying `read`, which a canonical state matches exactly. */
@@ -274,12 +272,16 @@ expect.extend({
   toMatchDocument(this: any, remdo: RemdoTestHelpers, expected: string) {
     const read = attemptRead(this, '.toMatchDocument', () => {
       const wanted = readTestDocument(expected);
-      if (wanted.selection) throw new Error('toMatchDocument doesn\'t compare selections yet.');
       const live = remdo.editor.getEditorState();
-      const actual = live.read($readDocument);
+      const actual = live.read($readTestDocument);
+      const compared = (doc: ReadDocument, selection?: SelectionDetail) => ({
+        document: { ...doc.document, children: withoutCacheIds(doc.document.children) },
+        folded: doc.folded,
+        ...(selection && { selection }),
+      });
       return {
-        actual: { document: { ...actual.document, children: withoutCacheIds(actual.document.children) }, folded: actual.folded },
-        wanted: { document: { ...wanted.document, children: withoutCacheIds(wanted.document.children) }, folded: wanted.folded },
+        actual: compared(actual, wanted.selection ? readSelectionDetail(remdo) : undefined),
+        wanted: compared(wanted, wanted.selection ? live.read(() => $resolveTestSelection(wanted.selection!)) : undefined),
         stored: live.toJSON().root,
         canonical: canonicalRoot(actual),
       };

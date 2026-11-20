@@ -1,12 +1,14 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import { $getState } from 'lexical';
+import type { LexicalNode } from 'lexical';
+import { $getState, $isTextNode } from 'lexical';
 import type { Token } from 'markdown-it';
 import { markerState } from '#client/editor/features/list-types/note-marker';
-import { $setNoteFolded } from '#client/editor/outline/fold-state';
+import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
 import { getContentSiblings } from '#client/editor/outline/list-structure';
 import { $resolveRootContentList } from '#client/editor/outline/schema';
 import { getNestedList } from '#client/editor/outline/selection/tree';
 import { $applyTree } from '../../src/headless/outline-tree/apply';
+import { $readTree } from '../../src/headless/outline-tree/read';
 import { nameOf, normalizeRuns, trimRuns } from '../../src/headless/outline-tree/runs';
 import type { Document, Mark, Marker, OutlineNote, Run, TreeNote } from '../../src/headless/outline-tree/tree';
 import type { MarkdownItem, MarkdownNote, MarkdownSelection, NotePath } from './markdown-outline';
@@ -20,8 +22,9 @@ export interface TestDocument {
 }
 
 /**
- * Reads a test document as the outline tree Python's reader gives the same text. Text it can't read
- * exactly as Python does, such as headings, names or edge whitespace, is refused.
+ * Reads a test document as the outline tree Python's reader gives the same text, keeping the edge
+ * whitespace character references state, which Python's reader drops. Text it can't read exactly as
+ * Python does, such as headings, is refused.
  */
 export function readTestDocument(source: string): TestDocument {
   const { notes, items, selection } = readMarkdownOutline(source);
@@ -37,8 +40,7 @@ export function readTestDocument(source: string): TestDocument {
         kind: 'outline',
         marker: markerOf(item, previous?.kind === 'outline' && previous.marker.kind === 'number'),
         checkbox: item.checkbox ? (note.checked ? 'checked' : 'open') : null,
-        name: null,
-        runs: runsOf(item.inline ?? []),
+        ...textOf(item),
         id: note.id ?? null,
         cacheId: null,
         children: [
@@ -59,21 +61,54 @@ function markerOf(item: MarkdownItem, afterNumber: boolean): Marker {
   return { kind: 'number', start: restarts ? item.number : null };
 }
 
+const CHECKBOX = /^\[[ x]\](?:[ \t]+|$)/i;
+const DATE = /^date:(\d{4})-(\d{2})-(\d{2})$/;
+const LEADING_REFERENCES = /^(?:&#(?:\d+|x[\da-f]+);)+/i;
+const TRAILING_REFERENCES = /(?:&#(?:\d+|x[\da-f]+);)+$/i;
 const MARKS = new Map<string, Mark>([['strong', 'bold'], ['em', 'italic'], ['s', 'strike']]);
 
-const textOf = (runs: readonly Run[]): string =>
-  runs.map((run) => (run.kind === 'text' ? run.text : run.kind === 'link' ? textOf(run.runs) : '')).join('');
+const plain = (text: string): Run => ({ kind: 'text', text, marks: [] });
+
+const decode = (text: string) => text.replace(/&#(x?)([\da-f]+);/gi, (_, hex: string, code: string) =>
+  String.fromCodePoint(Number.parseInt(code, hex ? 16 : 10)));
+
+/** A note's name and runs as Python's reader reads them (`fill` in text_format.py), with stated edges. */
+function textOf(item: MarkdownItem): Pick<OutlineNote, 'name' | 'runs'> {
+  let content = (item.content ?? '').replace(item.checkbox ? CHECKBOX : /^/, '');
+  let tokens = item.inline ?? [];
+  const name = nameOf(content);
+  if (name !== null) {
+    content = content.slice(name.length + 2).replace(/^\s/, '');
+    tokens = withoutName(tokens, name);
+  }
+  const lead = /^\s*/.exec(decode(LEADING_REFERENCES.exec(content)?.[0] ?? ''))![0];
+  const tail = lead.length === decode(content).length ? '' : /\s*$/.exec(decode(TRAILING_REFERENCES.exec(content)?.[0] ?? ''))![0];
+  const runs = normalizeRuns([plain(lead), ...trimRuns(normalizeRuns(runsOf(tokens))), plain(tail)]);
+  return { name, runs: runs.filter((run) => run.kind !== 'text' || run.text) };
+}
+
+// A name holds no Markdown, so it opens the first text token.
+function withoutName(tokens: Token[], name: string): Token[] {
+  const [first, ...rest] = tokens;
+  if (first?.type !== 'text') return tokens;
+  const stripped = Object.assign(Object.create(Object.getPrototypeOf(first) as object) as Token, first);
+  stripped.content = first.content.slice(name.length + 2).replace(/^\s/, '');
+  return [stripped, ...rest];
+}
 
 function runsOf(tokens: Token[]): Run[] {
   const top: Run[] = [];
   let target = top;
+  let inDate = false;
   const marks: Mark[] = [];
   const text = (content: string, extra: Mark[] = []) => {
     if (content) target.push({ kind: 'text', text: content, marks: [...marks, ...extra] });
   };
   for (const token of tokens) {
     const mark = token.type === 'html_inline' ? 'underline' : MARKS.get(token.type.replace(/_(?:open|close)$/, ''));
-    if (mark !== undefined) {
+    if (inDate) {
+      inDate = token.type !== 'link_close';
+    } else if (mark !== undefined) {
       if (token.type === 'html_inline' ? token.content === '<u>' : token.nesting === 1) marks.push(mark);
       else marks.splice(marks.lastIndexOf(mark), 1);
     } else if (token.type === 'text') {
@@ -82,23 +117,31 @@ function runsOf(tokens: Token[]): Run[] {
       text(token.content, ['code']);
     } else if (token.type === 'link_open') {
       const href = String(token.attrGet('href') ?? '');
-      if (href.startsWith('date:')) throw new Error('A test document doesn\'t read dates yet.');
-      const link: Run = { kind: 'link', href, runs: [] };
-      top.push(link);
-      target = link.runs;
+      if (isDate(href)) {
+        // A date's label is presentation: it reads as its date.
+        top.push({ kind: 'date', date: href.slice(5) });
+        inDate = true;
+      } else {
+        const link: Run = { kind: 'link', href, runs: [] };
+        top.push(link);
+        target = link.runs;
+      }
     } else if (token.type === 'link_close') {
       target = top;
     } else {
       throw new Error(`A test document's note text can't hold ${token.type} yet.`);
     }
   }
-  const runs = normalizeRuns(top);
-  const plain = textOf(runs);
-  if (nameOf(plain) !== null) throw new Error('A test document doesn\'t read names yet.');
-  if (/^\s|\s$/.test(plain)) throw new Error('A test document doesn\'t read edge whitespace yet.');
-  return trimRuns(runs);
+  return top;
 }
 
+function isDate(href: string): boolean {
+  const match = DATE.exec(href);
+  if (!match) return false;
+  const [year, month, day] = match.slice(1).map(Number) as [number, number, number];
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
 
 /** Each outline note's list item by its path over outline notes, as a test document gives paths. */
 export function $outlineItems(): Array<{ path: NotePath; item: ListItemNode }> {
@@ -124,4 +167,51 @@ export function $applyTestDocument({ document, folded }: Pick<TestDocument, 'doc
   $applyTree(document);
   const items = new Map($outlineItems().map(({ path, item }) => [path.join('.'), item]));
   for (const path of folded) $setNoteFolded(items.get(path.join('.'))!, true);
+}
+
+/**
+ * The document the editor holds, as a test document reads: its outline tree, with each note's edge
+ * whitespace, and its fold state. Call inside an editor read or update.
+ */
+export function $readTestDocument(): Pick<TestDocument, 'document' | 'folded'> {
+  const document = $readTree();
+  const folded: NotePath[] = [];
+  for (const { path, item } of $outlineItems()) {
+    if ($isNoteFolded(item)) folded.push(path);
+    const note = outlineNoteAt(document.children, path);
+    const [lead, tail] = $edgesOf(item);
+    if (note && (lead || tail)) {
+      note.runs = normalizeRuns([plain(lead), ...note.runs, plain(tail)]).filter((run) => run.kind !== 'text' || run.text);
+    }
+  }
+  return { document, folded };
+}
+
+function outlineNoteAt(notes: TreeNote[], path: NotePath): OutlineNote | undefined {
+  let note: OutlineNote | undefined;
+  let siblings = notes;
+  for (const index of path) {
+    note = siblings.filter((child) => child.kind === 'outline')[index];
+    siblings = note?.children ?? [];
+  }
+  return note;
+}
+
+// The whitespace at a note's edges that reading its tree drops: plain text outside links and code.
+function $edgesOf(item: ListItemNode): [string, string] {
+  const edge = (nodes: readonly LexicalNode[], atStart: boolean) => {
+    let found = '';
+    for (const node of nodes) {
+      if (!$isTextNode(node) || node.hasFormat('code')) break;
+      const text = node.getTextContent();
+      const space = (atStart ? /^\s*/ : /\s*$/).exec(text)![0];
+      found = atStart ? found + space : space + found;
+      if (space.length < text.length) break;
+    }
+    return found;
+  };
+  const children = item.getChildren();
+  const lead = edge(children, true);
+  if (lead.length === item.getTextContent().length) return [lead, ''];
+  return [lead, edge([...children].reverse(), false)];
 }

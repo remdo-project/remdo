@@ -34,11 +34,23 @@ describe('reading a test document', () => {
     `).folded).toEqual([[0, 0]]);
   });
 
-  it.each([
-    ['a name', '- Status:: task'],
-    ['edge whitespace', '- &#32;a'],
-    ['a date', '- [1 Nov 2026](date:2026-11-01)'],
-  ])('refuses %s, which it can\'t read as Python does', (_, source) => {
-    expect(() => readTestDocument(source)).toThrow();
+  it('keeps the edge whitespace character references state, which Python\'s reader drops', () => {
+    const texts = readTestDocument(`
+      - &#32;lead
+      - tail&#160;
+      - &#32;
+      - &#32;&#32;**both**&#32;
+    `).document.children.map((note) => note.kind === 'outline' && note.runs);
+
+    expect(texts).toEqual([
+      [{ kind: 'text', text: ' lead', marks: [] }],
+      [{ kind: 'text', text: 'tail\u00A0', marks: [] }],
+      [{ kind: 'text', text: ' ', marks: [] }],
+      [{ kind: 'text', text: '  ', marks: [] }, { kind: 'text', text: 'both', marks: ['bold'] }, { kind: 'text', text: ' ', marks: [] }],
+    ]);
+  });
+
+  it('refuses a heading, which it doesn\'t read yet', () => {
+    expect(() => readTestDocument('# Title')).toThrow();
   });
 });
