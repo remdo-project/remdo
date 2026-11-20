@@ -8,6 +8,7 @@
     "security:minimumReleaseAgeNpm",
     "security:minimumReleaseAgePypi",
     ":approveMajorUpdates",
+    ":rebaseStalePrs",
   ],
   // Dependabot security updates raise every fix this would, including transitive ones.
   "vulnerabilityAlerts": {
