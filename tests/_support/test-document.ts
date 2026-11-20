@@ -9,12 +9,10 @@ import { getNestedList } from '#client/editor/outline/selection/tree';
 import { $applyTree } from '../../src/headless/outline-tree/apply';
 import { nameOf, normalizeRuns, trimRuns } from '../../src/headless/outline-tree/runs';
 import type { Document, Mark, Marker, OutlineNote, Run, TreeNote } from '../../src/headless/outline-tree/tree';
-import { assignIds } from './markdown-fixture';
 import type { MarkdownItem, MarkdownNote, MarkdownSelection, NotePath } from './markdown-outline';
 import { readMarkdownOutline } from './markdown-outline';
 
 export interface TestDocument {
-  /** The outline tree, with each note's fixture ID as its cache ID. */
   document: Document;
   /** Folded notes, by their paths over outline notes. */
   folded: NotePath[];
@@ -27,7 +25,6 @@ export interface TestDocument {
  */
 export function readTestDocument(source: string): TestDocument {
   const { notes, items, selection } = readMarkdownOutline(source);
-  const ids = assignIds(notes);
   const folded: NotePath[] = [];
   const outline = (siblings: MarkdownNote[], path: NotePath): TreeNote[] => {
     const children: TreeNote[] = [];
@@ -43,7 +40,7 @@ export function readTestDocument(source: string): TestDocument {
         name: null,
         runs: runsOf(item.inline ?? []),
         id: note.id ?? null,
-        cacheId: ids.get(note)!,
+        cacheId: null,
         children: [
           ...(item.bodySource ? [{ kind: 'body' as const, source: item.bodySource, cacheId: null }] : []),
           ...outline(note.children ?? [], notePath),
@@ -98,7 +95,7 @@ function runsOf(tokens: Token[]): Run[] {
   const runs = normalizeRuns(top);
   const plain = textOf(runs);
   if (nameOf(plain) !== null) throw new Error('A test document doesn\'t read names yet.');
-  if (/^\s|\s$/.test(plain)) throw new Error('A note\'s edge whitespace isn\'t its text, so a test document can\'t state it.');
+  if (/^\s|\s$/.test(plain)) throw new Error('A test document doesn\'t read edge whitespace yet.');
   return trimRuns(runs);
 }
 

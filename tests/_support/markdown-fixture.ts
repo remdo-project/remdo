@@ -134,7 +134,7 @@ function listKind(notes: MarkdownNote[], items: Map<MarkdownNote, MarkdownItem>)
   return ordered ? 'number' : 'bullet';
 }
 
-export function assignIds(notes: MarkdownNote[]): Map<MarkdownNote, string> {
+function assignIds(notes: MarkdownNote[]): Map<MarkdownNote, string> {
   const all = flattenOutline(notes);
   const used = new Set<string>();
   for (const { id } of all) {
