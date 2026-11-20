@@ -89,14 +89,12 @@ Dependency changes preserve workspace catalogs, applicable trust and
 build-approval policy, package-manager integrity, and locked runtime and project
 dependencies.
 
-Non-major updates and lock file maintenance open as pull requests that the
-developer merges after review. Majors wait for approval on the Dependency
-Dashboard.
+Non-major updates and lock file maintenance open as pull requests that land
+after review. Majors wait for approval.
 
 The developer runs [`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md)
 whenever a Renovate pull request opens; weekly lock file maintenance opens one
-every week. Commits added to a Renovate branch stop Renovate from updating it,
-so finish that pull request by merging it.
+every week.
 
 Dependency-specific workarounds and updater holds follow the
 [tracked-comment policy](#code-comments), which is the only record of deferred
@@ -111,7 +109,7 @@ already defers it.
 The [dependency-patch registry](pnpm-workspace.yaml) inventories exact-version patches for upstream runtime
 defects. Each patch records its rationale and a focused regression that fails
 without the correction. Renovate cannot regenerate a patch, so a Renovate
-rule holds each patched dependency's updates for Dependency Dashboard approval.
+rule holds each patched dependency's updates for approval.
 
 For an affected dependency update, retain the patch, regenerate it for the new
 exact version, or remove it when its focused regression passes without it. New
