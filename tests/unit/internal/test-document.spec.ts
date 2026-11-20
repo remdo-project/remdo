@@ -51,6 +51,11 @@ describe('reading a test document', () => {
     ]);
   });
 
+  it('reads whitespace written before a trailing tag as no text', () => {
+    expect(readTestDocument('- alpha <selection />').document.children[0])
+      .toMatchObject({ runs: [{ kind: 'text', text: 'alpha', marks: [] }] });
+  });
+
   it('counts a selected date as the editor labels it', () => {
     const label = formatDateNodeLabel('2026-11-01').length;
 

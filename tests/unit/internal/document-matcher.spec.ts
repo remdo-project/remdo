@@ -56,6 +56,10 @@ describe('toMatchDocument', () => {
 
     expect(() => expect(remdo).toMatchDocument('- a')).toThrow(/stored state isn't what applying its own tree gives/u);
   });
+  it('matches edge whitespace after a name', meta({ document: '- Status:: &#32;x\n- Empty:: &#32;' }), async ({ remdo }) => {
+    expect(remdo).toMatchDocument('- Status:: &#32;x\n- Empty:: &#32;');
+  });
+
   describe('selections', () => {
     const notes = '- alpha\n- beta\n    - gamma';
 
@@ -71,6 +75,12 @@ describe('toMatchDocument', () => {
       await placeCaretAtNoteTextNode(remdo, text, 1, ' b'.length);
 
       expect(remdo).toMatchDocument('- a [1 Nov 2026](date:2026-11-01) b<selection />');
+    });
+
+    it('counts the escape the editor writes before an unnamed note\'s ::', meta({ document: String.raw`- Not\:: a name` }), async ({ remdo }) => {
+      await placeCaretAtNote(remdo, String.raw`Not\:: a name`, String.raw`Not\:: a`.length);
+
+      expect(remdo).toMatchDocument(String.raw`- Not\:: a<selection /> name`);
     });
 
     it('matches a range within a note', meta({ document: notes }), async ({ remdo }) => {

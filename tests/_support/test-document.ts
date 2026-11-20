@@ -1,5 +1,4 @@
 import type { ListItemNode, ListNode } from '@lexical/list';
-import type { LexicalNode } from 'lexical';
 import { $getState, $isTextNode } from 'lexical';
 import type { Token } from 'markdown-it';
 import { formatDateNodeLabel } from '#client/editor/features/date/date-label';
@@ -11,7 +10,7 @@ import { $resolveRootContentList } from '#client/editor/outline/schema';
 import { getNestedList } from '#client/editor/outline/selection/tree';
 import { $applyTree } from '../../src/headless/outline-tree/apply';
 import { $readTree } from '../../src/headless/outline-tree/read';
-import { normalizeRuns, splitName, trimRuns } from '../../src/headless/outline-tree/runs';
+import { isPlainText, nameOf, normalizeRuns, splitName, trimRuns } from '../../src/headless/outline-tree/runs';
 import type { Document, Mark, Marker, OutlineNote, Run, TreeNote } from '../../src/headless/outline-tree/tree';
 import type { MarkdownItem, MarkdownNote, MarkdownPoint, MarkdownSelection, NotePath } from './markdown-outline';
 import { readMarkdownOutline, withContent } from './markdown-outline';
@@ -31,20 +30,21 @@ export interface TestDocument {
 export function readTestDocument(source: string): TestDocument {
   const { notes, items, selection } = readMarkdownOutline(source);
   const folded: NotePath[] = [];
-  const itemAt = new Map<string, MarkdownItem>();
+  const textAt = new Map<string, WrittenText>();
   const outline = (siblings: MarkdownNote[], path: NotePath): TreeNote[] => {
     const children: TreeNote[] = [];
     siblings.forEach((note, index) => {
       const item = items.get(note)!;
       const notePath = [...path, index];
-      itemAt.set(notePath.join('.'), item);
+      const text = textOf(item);
+      textAt.set(notePath.join('.'), { item, escape: escapeOf(text) });
       if (note.folded) folded.push(notePath);
       const previous = children.at(-1);
       children.push({
         kind: 'outline',
         marker: markerOf(item, previous?.kind === 'outline' && previous.marker.kind === 'number'),
         checkbox: item.checkbox ? (note.checked ? 'checked' : 'open') : null,
-        ...textOf(item),
+        ...text,
         id: note.id ?? null,
         cacheId: null,
         children: [
@@ -56,20 +56,30 @@ export function readTestDocument(source: string): TestDocument {
     return children;
   };
   const document: Document = { id: null, children: outline(notes, []) };
-  return { document, folded, selection: selection && inEditorOffsets(selection, (path) => itemAt.get(path.join('.'))!) };
+  return { document, folded, selection: selection && inEditorOffsets(selection, (path) => textAt.get(path.join('.'))!) };
 }
 
-/** A selection whose offsets count each date as the editor labels it, not as its Markdown label. */
-function inEditorOffsets(selection: MarkdownSelection, itemAt: (path: NotePath) => MarkdownItem): MarkdownSelection {
-  const point = ({ note, offset }: MarkdownPoint): MarkdownPoint => ({ note, offset: editorOffset(itemAt(note), offset) });
+interface WrittenText {
+  item: MarkdownItem;
+  /** Where the editor writes a backslash before the `::` of unnamed text that would read as named. */
+  escape: number | null;
+}
+
+function escapeOf({ name, runs: [first] }: Pick<OutlineNote, 'name' | 'runs'>): number | null {
+  return name === null && isPlainText(first) ? nameOf(first.text)?.length ?? null : null;
+}
+
+/** A selection whose offsets count the text as the editor holds it: each date as its label, and a name's escape. */
+function inEditorOffsets(selection: MarkdownSelection, textAt: (path: NotePath) => WrittenText): MarkdownSelection {
+  const point = ({ note, offset }: MarkdownPoint): MarkdownPoint => ({ note, offset: editorOffset(textAt(note), offset) });
   if (selection.state === 'caret') return { state: 'caret', at: point(selection.at) };
   if (selection.state === 'inline') return { state: 'inline', start: point(selection.start), end: point(selection.end) };
   return selection;
 }
 
-function editorOffset(item: MarkdownItem, offset: number): number {
+function editorOffset({ item, escape }: WrittenText, offset: number): number {
   let read = 0;
-  let shift = 0;
+  let shift = escape !== null && offset > escape ? 1 : 0;
   let date: { start: number; iso: string } | null = null;
   for (const token of item.inline ?? []) {
     const iso = token.type === 'link_open' ? dateOf(token) : null;
@@ -99,7 +109,6 @@ const MARKS = new Map<string, Mark>([['strong', 'bold'], ['em', 'italic'], ['s',
 
 const plain = (text: string): Run => ({ kind: 'text', text, marks: [] });
 
-/** Runs with whitespace added at their edges. */
 const withEdges = (runs: readonly Run[], lead: string, tail: string): Run[] => normalizeRuns([plain(lead), ...runs, plain(tail)]);
 
 /**
@@ -114,8 +123,10 @@ function textOf(item: MarkdownItem): Pick<OutlineNote, 'name' | 'runs'> {
   const runs = trimRuns(read);
   const edge = (run: Run | undefined, pattern: RegExp) =>
     (run?.kind === 'text' && !run.marks.includes('code') ? pattern.exec(run.text)![0] : '');
-  const lead = edge(read[0], /^\s*/).slice(/^\s*/.exec(rest)![0].length);
-  const tail = runs.length === 0 ? '' : edge(read.at(-1), /\s*$/);
+  const written = (pattern: RegExp) => pattern.exec(rest)![0].length;
+  const lead = edge(read[0], /^\s*/).slice(written(/^\s*/));
+  const trailing = runs.length === 0 ? '' : edge(read.at(-1), /\s*$/);
+  const tail = trailing.slice(0, trailing.length - written(/\s*$/));
   return { name, runs: withEdges(runs, lead, tail) };
 }
 
@@ -209,7 +220,7 @@ export function $readTestDocument(): Pick<TestDocument, 'document' | 'folded'> {
   for (const { path, item } of $outlineItems()) {
     if ($isNoteFolded(item)) folded.push(path);
     const note = notes.get(path.join('.'));
-    if (note && note.runs[0]?.kind !== 'verbatim') note.runs = withEdges(note.runs, ...$edgesOf(item));
+    if (note && note.runs[0]?.kind !== 'verbatim') note.runs = withEdges(note.runs, ...$edgesOf(item, note.name));
   }
   return { document, folded };
 }
@@ -223,21 +234,14 @@ function outlineNotesByPath(notes: readonly TreeNote[], path: NotePath = [], fou
   return found;
 }
 
-// The whitespace at a note's edges that reading its tree drops: plain text outside links and code.
-function $edgesOf(item: ListItemNode): [string, string] {
-  const edge = (nodes: readonly LexicalNode[], atStart: boolean) => {
-    let found = '';
-    for (const node of nodes) {
-      if (!$isTextNode(node) || node.hasFormat('code')) break;
-      const text = node.getTextContent();
-      const space = (atStart ? /^\s*/ : /\s*$/).exec(text)![0];
-      found = atStart ? found + space : space + found;
-      if (space.length < text.length) break;
-    }
-    return found;
-  };
-  const children = item.getChildren();
-  const lead = edge(children, true);
-  if (lead.length === item.getTextContent().length) return [lead, ''];
-  return [lead, edge([...children].reverse(), false)];
+const OPAQUE = '\uFFFC';
+
+// The whitespace at a note's edges, after any name, that reading its tree drops: plain text outside
+// links and code.
+function $edgesOf(item: ListItemNode, name: string | null): [string, string] {
+  const content = item.getChildren().map((node) => ($isTextNode(node) && !node.hasFormat('code') ? node.getTextContent() : OPAQUE)).join('');
+  const text = name === null ? content : content.slice(name.length + 2).replace(/^\s/, '');
+  const lead = /^\s*/.exec(text)![0];
+  if (lead.length === text.length) return [lead, ''];
+  return [lead, /\s*$/.exec(text)![0]];
 }
