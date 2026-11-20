@@ -92,7 +92,8 @@ dependencies.
 Dependency updates land only after review, and majors also wait for approval.
 Updates that need no runtime code change land together in one batch pull
 request; each update that needs one lands in its own pull request with that
-code. Changes never go on bot branches, which their bots rebase.
+code. Changes never go on bot branches: their bots stop updating a branch
+carrying added commits, and a requested rebase discards them.
 
 The developer runs [`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md)
 once Renovate's weekly pull requests open, and when a Dependabot alert opens.
