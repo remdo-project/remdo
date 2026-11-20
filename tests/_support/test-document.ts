@@ -3,6 +3,7 @@ import type { LexicalNode } from 'lexical';
 import { $getState, $isTextNode } from 'lexical';
 import type { Token } from 'markdown-it';
 import { formatDateNodeLabel } from '#client/editor/features/date/date-label';
+import { isValidIsoDate } from '#client/editor/features/date/date-node';
 import { markerState } from '#client/editor/features/list-types/note-marker';
 import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
 import { getContentSiblings } from '#client/editor/outline/list-structure';
@@ -10,10 +11,10 @@ import { $resolveRootContentList } from '#client/editor/outline/schema';
 import { getNestedList } from '#client/editor/outline/selection/tree';
 import { $applyTree } from '../../src/headless/outline-tree/apply';
 import { $readTree } from '../../src/headless/outline-tree/read';
-import { nameOf, normalizeRuns, trimRuns } from '../../src/headless/outline-tree/runs';
+import { normalizeRuns, splitName, trimRuns } from '../../src/headless/outline-tree/runs';
 import type { Document, Mark, Marker, OutlineNote, Run, TreeNote } from '../../src/headless/outline-tree/tree';
 import type { MarkdownItem, MarkdownNote, MarkdownPoint, MarkdownSelection, NotePath } from './markdown-outline';
-import { readMarkdownOutline } from './markdown-outline';
+import { readMarkdownOutline, withContent } from './markdown-outline';
 
 export interface TestDocument {
   document: Document;
@@ -71,9 +72,9 @@ function editorOffset(item: MarkdownItem, offset: number): number {
   let shift = 0;
   let date: { start: number; iso: string } | null = null;
   for (const token of item.inline ?? []) {
-    if (read > offset) break;
-    if (token.type === 'link_open' && isDate(String(token.attrGet('href')))) {
-      date = { start: read, iso: String(token.attrGet('href')).slice(5) };
+    const iso = token.type === 'link_open' ? dateOf(token) : null;
+    if (iso !== null) {
+      date = { start: read, iso };
     } else if (token.type === 'link_close' && date) {
       const label = formatDateNodeLabel(date.iso).length;
       // An offset inside a date's label can only be one of its edges in the editor.
@@ -94,39 +95,39 @@ function markerOf(item: MarkdownItem, afterNumber: boolean): Marker {
   return { kind: 'number', start: restarts ? item.number : null };
 }
 
-const CHECKBOX = /^\[[ x]\](?:[ \t]+|$)/i;
-const DATE = /^date:(\d{4})-(\d{2})-(\d{2})$/;
-const LEADING_REFERENCES = /^(?:&#(?:\d+|x[\da-f]+);)+/i;
-const TRAILING_REFERENCES = /(?:&#(?:\d+|x[\da-f]+);)+$/i;
 const MARKS = new Map<string, Mark>([['strong', 'bold'], ['em', 'italic'], ['s', 'strike']]);
 
 const plain = (text: string): Run => ({ kind: 'text', text, marks: [] });
 
-const decode = (text: string) => text.replace(/&#(x?)([\da-f]+);/gi, (_, hex: string, code: string) =>
-  String.fromCodePoint(Number.parseInt(code, hex ? 16 : 10)));
+/** Runs with whitespace added at their edges. */
+const withEdges = (runs: readonly Run[], lead: string, tail: string): Run[] => normalizeRuns([plain(lead), ...runs, plain(tail)]);
 
-/** A note's name and runs as Python's reader reads them (`fill` in text_format.py), with stated edges. */
+/**
+ * A note's name and runs as Python's reader reads them (`fill` in text_format.py). Markdown drops
+ * whitespace written at a note's edges, so whitespace left there after the name was stated through
+ * character references, and the runs keep it.
+ */
 function textOf(item: MarkdownItem): Pick<OutlineNote, 'name' | 'runs'> {
-  let content = item.checkbox ? (item.content ?? '').replace(CHECKBOX, '') : (item.content ?? '');
-  let tokens = item.inline ?? [];
-  const name = nameOf(content);
-  if (name !== null) {
-    content = content.slice(name.length + 2).replace(/^\s/, '');
-    tokens = withoutName(tokens, name);
-  }
-  const lead = /^\s*/.exec(decode(LEADING_REFERENCES.exec(content)?.[0] ?? ''))![0];
-  const tail = lead.length === decode(content).length ? '' : /\s*$/.exec(decode(TRAILING_REFERENCES.exec(content)?.[0] ?? ''))![0];
-  const runs = normalizeRuns([plain(lead), ...trimRuns(normalizeRuns(runsOf(tokens))), plain(tail)]);
-  return { name, runs: runs.filter((run) => run.kind !== 'text' || run.text) };
+  const { name, rest } = splitName(item.content);
+  const tokens = name === null ? item.inline ?? [] : withoutName(item.inline ?? []);
+  const read = normalizeRuns(runsOf(tokens));
+  const runs = trimRuns(read);
+  const edge = (run: Run | undefined, pattern: RegExp) =>
+    (run?.kind === 'text' && !run.marks.includes('code') ? pattern.exec(run.text)![0] : '');
+  const lead = edge(read[0], /^\s*/).slice(/^\s*/.exec(rest)![0].length);
+  const tail = runs.length === 0 ? '' : edge(read.at(-1), /\s*$/);
+  return { name, runs: withEdges(runs, lead, tail) };
 }
 
 // A name holds no Markdown, so it opens the first text token.
-function withoutName(tokens: Token[], name: string): Token[] {
-  const [first, ...rest] = tokens;
-  if (first?.type !== 'text') return tokens;
-  const stripped = Object.assign(Object.create(Object.getPrototypeOf(first) as object) as Token, first);
-  stripped.content = first.content.slice(name.length + 2).replace(/^\s/, '');
-  return [stripped, ...rest];
+function withoutName(tokens: Token[]): Token[] {
+  const [first, ...others] = tokens;
+  return first?.type === 'text' ? [withContent(first, splitName(first.content).rest), ...others] : tokens;
+}
+
+function dateOf(link: Token): string | null {
+  const href = String(link.attrGet('href') ?? '');
+  return href.startsWith('date:') && isValidIsoDate(href.slice(5)) ? href.slice(5) : null;
 }
 
 function runsOf(tokens: Token[]): Run[] {
@@ -152,13 +153,13 @@ function runsOf(tokens: Token[]): Run[] {
       // Python's reader keeps a note with an autolink as verbatim source.
       throw new Error('A test document\'s note text can\'t hold autolinks yet.');
     } else if (token.type === 'link_open') {
-      const href = String(token.attrGet('href') ?? '');
-      if (isDate(href)) {
+      const date = dateOf(token);
+      if (date !== null) {
         // A date's label is presentation: it reads as its date.
-        top.push({ kind: 'date', date: href.slice(5) });
+        top.push({ kind: 'date', date });
         inDate = true;
       } else {
-        const link: Run = { kind: 'link', href, runs: [] };
+        const link: Run = { kind: 'link', href: String(token.attrGet('href') ?? ''), runs: [] };
         top.push(link);
         target = link.runs;
       }
@@ -169,14 +170,6 @@ function runsOf(tokens: Token[]): Run[] {
     }
   }
   return top;
-}
-
-function isDate(href: string): boolean {
-  const match = DATE.exec(href);
-  if (!match) return false;
-  const [year, month, day] = match.slice(1).map(Number) as [number, number, number];
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
 /** Each outline note's list item by its path over outline notes, as a test document gives paths. */
@@ -211,26 +204,23 @@ export function $applyTestDocument({ document, folded }: Pick<TestDocument, 'doc
  */
 export function $readTestDocument(): Pick<TestDocument, 'document' | 'folded'> {
   const document = $readTree();
+  const notes = outlineNotesByPath(document.children);
   const folded: NotePath[] = [];
   for (const { path, item } of $outlineItems()) {
     if ($isNoteFolded(item)) folded.push(path);
-    const note = outlineNoteAt(document.children, path);
-    const [lead, tail] = $edgesOf(item);
-    if (note && (lead || tail)) {
-      note.runs = normalizeRuns([plain(lead), ...note.runs, plain(tail)]).filter((run) => run.kind !== 'text' || run.text);
-    }
+    const note = notes.get(path.join('.'));
+    if (note && note.runs[0]?.kind !== 'verbatim') note.runs = withEdges(note.runs, ...$edgesOf(item));
   }
   return { document, folded };
 }
 
-function outlineNoteAt(notes: TreeNote[], path: NotePath): OutlineNote | undefined {
-  let note: OutlineNote | undefined;
-  let siblings = notes;
-  for (const index of path) {
-    note = siblings.filter((child) => child.kind === 'outline')[index];
-    siblings = note?.children ?? [];
-  }
-  return note;
+function outlineNotesByPath(notes: readonly TreeNote[], path: NotePath = [], found = new Map<string, OutlineNote>()) {
+  notes.filter((note) => note.kind === 'outline').forEach((note, index) => {
+    const notePath = [...path, index];
+    found.set(notePath.join('.'), note);
+    outlineNotesByPath(note.children, notePath, found);
+  });
+  return found;
 }
 
 // The whitespace at a note's edges that reading its tree drops: plain text outside links and code.

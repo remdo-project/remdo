@@ -165,14 +165,14 @@ function $getCaretNoteId(selection: RangeSelection): string | null {
   return $resolveId(selection.focus) ?? $resolveId(selection.anchor);
 }
 
-function noteIdAt(outline: Outline, path: NotePath): string {
+function noteIdAt(outline: Outline, path: NotePath): string | undefined {
   let notes: Outline | undefined = outline;
   let node: OutlineNode | undefined;
   for (const index of path) {
     node = notes?.[index];
     notes = node?.children;
   }
-  return node?.noteId ?? `<no note at ${path.join('.')}>`;
+  return node?.noteId;
 }
 
 interface NotePoint {
@@ -186,9 +186,11 @@ type SelectionDetail =
   | { state: 'inline'; start: NotePoint; end: NotePoint }
   | { state: 'structural'; notes: string[] };
 
-function resolveMarkdownSelection(selection: MarkdownSelection, outline: Outline): SelectionDetail {
-  const at = (point: MarkdownPoint) => ({ note: noteIdAt(outline, point.note), offset: point.offset });
-  if (selection.state === 'structural') return { state: 'structural', notes: selection.notes.map((path) => noteIdAt(outline, path)) };
+/** A selection a document marks, with each note named by the ID `idAt` gives its path. */
+function resolveMarkdownSelection(selection: MarkdownSelection, idAt: (path: NotePath) => string | null | undefined): SelectionDetail {
+  const id = (path: NotePath) => idAt(path) ?? `<no note at ${path.join('.')}>`;
+  const at = (point: MarkdownPoint) => ({ note: id(point.note), offset: point.offset });
+  if (selection.state === 'structural') return { state: 'structural', notes: selection.notes.map(id) };
   if (selection.state === 'caret') return { state: 'caret', at: at(selection.at) };
   return { state: 'inline', start: at(selection.start), end: at(selection.end) };
 }
@@ -254,11 +256,7 @@ type ReadDocument = ReturnType<typeof $readTestDocument>;
 
 function $resolveTestSelection(selection: MarkdownSelection): SelectionDetail {
   const ids = new Map($outlineItems().map(({ path, item }) => [path.join('.'), $getNoteId(item)]));
-  const id = (path: NotePath) => ids.get(path.join('.')) ?? `<no note at ${path.join('.')}>`;
-  const at = (point: MarkdownPoint) => ({ note: id(point.note), offset: point.offset });
-  if (selection.state === 'structural') return { state: 'structural', notes: selection.notes.map(id) };
-  if (selection.state === 'caret') return { state: 'caret', at: at(selection.at) };
-  return { state: 'inline', start: at(selection.start), end: at(selection.end) };
+  return resolveMarkdownSelection(selection, (path) => ids.get(path.join('.')));
 }
 
 /** The root a fresh editor holds after applying `read`, which a canonical state matches exactly. */
@@ -312,7 +310,7 @@ expect.extend({
       const wanted: typeof actual = { outline: notes };
       if (selection) {
         actual.selection = readSelectionDetail(remdo);
-        wanted.selection = resolveMarkdownSelection(selection, outline);
+        wanted.selection = resolveMarkdownSelection(selection, (path) => noteIdAt(outline, path));
       }
       return { actual, wanted };
     });

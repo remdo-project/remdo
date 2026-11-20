@@ -38,8 +38,8 @@ export interface MarkdownItem {
   opensList: boolean;
   /** The text's markdown-it inline tokens, without the checkbox. */
   inline?: Token[];
-  /** The text as written, checkbox included. */
-  content?: string;
+  /** The text as written on the marker's line, without the checkbox. */
+  content: string;
   bodyLines?: Token[][];
   /** The body's lines without their `>` prefixes. */
   bodySource?: string[];
@@ -192,6 +192,7 @@ function readList(
         checkbox,
         number: (start ?? 1) + list.items - 1,
         opensList: list.notes === 0,
+        content: stripTags(content),
       };
       list.notes += 1;
       items.set(note, item);
@@ -210,7 +211,6 @@ function readList(
       frame.textRead = true;
       const inline = withoutCheckbox(token.children ?? [], frame.item!.checkbox);
       frame.item!.inline = inline.map(withoutTags);
-      frame.item!.content = stripTags(token.content);
       const text = takeMarks(plainText(inline), frame.path, marks);
       if (text) frame.note!.text = text;
     }
@@ -222,9 +222,14 @@ function readList(
 function withoutCheckbox(tokens: Token[], checkbox: boolean): Token[] {
   const [first, ...rest] = tokens;
   if (!checkbox || first?.type !== 'text') return tokens;
-  const stripped = Object.assign(Object.create(Object.getPrototypeOf(first) as object) as Token, first);
-  stripped.content = first.content.replace(/^\[[ x]\] ?/, '');
-  return [stripped, ...rest];
+  return [withContent(first, first.content.replace(/^\[[ x]\] ?/, '')), ...rest];
+}
+
+/** A copy of a markdown-it token holding other content. */
+export function withContent(token: Token, content: string): Token {
+  const copy = Object.assign(Object.create(Object.getPrototypeOf(token) as object) as Token, token);
+  copy.content = content;
+  return copy;
 }
 
 function closeOf(tokens: Token[], open: number): number {
@@ -264,10 +269,7 @@ function plainText(tokens: Token[]): string {
 }
 
 function withoutTags(token: Token): Token {
-  if (token.type !== 'text' && token.type !== 'code_inline') return token;
-  const copy = Object.assign(Object.create(Object.getPrototypeOf(token) as object) as Token, token);
-  copy.content = stripTags(token.content);
-  return copy;
+  return token.type === 'text' || token.type === 'code_inline' ? withContent(token, stripTags(token.content)) : token;
 }
 
 function takeMarks(text: string, note: NotePath, marks: Mark[]): string {
