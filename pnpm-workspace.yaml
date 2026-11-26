@@ -26,7 +26,7 @@ overrides:
   # TODO(deps): drop once micromark-extension-math accepts katex 0.18; katex 0.16 has no GHSA-238p-pmpm-9mq7 fix,
   # and markdownlint and @eslint/markdown use only its math syntax, which imports but never calls katex.
   # Probe: remove it, run pnpm install, and confirm every katex resolves to 0.18.2 or later.
-  micromark-extension-math>katex: '>=0.18.2 <0.19'
+  micromark-extension-math>katex: '>=0.18.2 <0.20'
   minimatch@5>brace-expansion: 2.1.8
   nanoid@3: '>=3.3.17 <4'
   postcss: '>=8.5.23'
