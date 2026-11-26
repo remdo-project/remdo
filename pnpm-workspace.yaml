@@ -1,5 +1,7 @@
 catalogMode: prefer
 
+# Renovate's release-age hold skips lock-file maintenance and updates applied outside its branches, so pnpm enforces it.
+minimumReleaseAge: 4320
 minimumReleaseAgeExcludePrune: true
 trustPolicy: no-downgrade
 
