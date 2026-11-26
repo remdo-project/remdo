@@ -298,6 +298,80 @@
       "id": null,
       "cacheId": null,
       "children": []
+    },
+    {
+      "kind": "outline",
+      "marker": {
+        "kind": "bullet"
+      },
+      "checkbox": null,
+      "name": "Status",
+      "runs": [
+        {
+          "kind": "text",
+          "text": "in review",
+          "marks": []
+        }
+      ],
+      "id": null,
+      "cacheId": null,
+      "children": []
+    },
+    {
+      "kind": "outline",
+      "marker": {
+        "kind": "bullet"
+      },
+      "checkbox": null,
+      "name": null,
+      "runs": [
+        {
+          "kind": "text",
+          "text": "Not:: a name",
+          "marks": []
+        }
+      ],
+      "id": null,
+      "cacheId": null,
+      "children": []
+    },
+    {
+      "kind": "outline",
+      "marker": {
+        "kind": "bullet"
+      },
+      "checkbox": null,
+      "name": null,
+      "runs": [
+        {
+          "kind": "text",
+          "text": "due ",
+          "marks": []
+        },
+        {
+          "kind": "date",
+          "date": "2026-11-01"
+        },
+        {
+          "kind": "text",
+          "text": " or ",
+          "marks": []
+        },
+        {
+          "kind": "link",
+          "href": "date:2026-02-30",
+          "runs": [
+            {
+              "kind": "text",
+              "text": "later",
+              "marks": []
+            }
+          ]
+        }
+      ],
+      "id": null,
+      "cacheId": null,
+      "children": []
     }
   ]
 }
