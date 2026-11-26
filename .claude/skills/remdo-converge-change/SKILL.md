@@ -20,7 +20,7 @@ each validated step's edits as one
 
 Wait for each invoked skill's result before continuing.
 
-1. **Scope.** Run `git fetch origin main`, then
+1. **Scope.** Run `git fetch origin`, then
    `sh .agents/skills/_shared/tools/resolve-scope.sh [scope]` with the caller's
    scope, if any. Report its
    [display](../../../docs/specs/agents/change-scope.md#caller-visible-display)

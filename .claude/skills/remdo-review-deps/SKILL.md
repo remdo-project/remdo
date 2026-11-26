@@ -53,8 +53,8 @@ instructions.
   Neither Renovate nor Dependabot rebases a branch carrying added commits, and a
   requested rebase discards them. When `main` moves after a change is prepared,
   the developer commits it and runs
-  [`/remdo-merge-main`](../../../.agents/skills/remdo-merge-main/SKILL.md) before
-  pushing.
+  [`/remdo-merge-integration main`](../../../.agents/skills/remdo-merge-integration/SKILL.md)
+  before pushing.
 - Renovate closes its pull request once `main` carries that update. Closing one
   manually makes Renovate ignore that version, or the whole major for a major.
 - Renovate's pull request bodies truncate release notes.
