@@ -9,8 +9,8 @@ Testing follows the [contributor testing policy](docs/dev/testing.md).
 
 ## Git Workflow
 
-`origin/main` is the default review baseline for committed changes. Work
-explicitly targeting an integration branch uses that branch instead.
+The [integration branch](#integration-branch) is the baseline that review,
+merge, and pull-request tooling targets for committed changes.
 
 `deploy-test` is a mutable deployment pointer for the hosted test sandbox.
 Do not develop, merge, or base review work on it. `pnpm hosted:deploy-test`
@@ -31,6 +31,16 @@ Commit subjects use `<type>: <summary>` or `<type>(<scope>): <summary>`. The typ
 describes that commit's change, the optional scope names the affected area, and
 the summary states the concrete result. A commit's type may differ from the
 branch prefix because the prefix describes the branch's combined outcome.
+
+### Integration branch
+
+The integration branch is `git config integration.branch`, an `origin`
+remote-tracking ref such as `origin/feat/x`, or `origin/main` when that is
+unset or already contains it.
+Tooling targets a configured one only from branches made from it and refuses
+elsewhere.
+List a configured integration branch in
+[`ci.yml`](.github/workflows/ci.yml) too.
 
 ## Runtime Baseline
 

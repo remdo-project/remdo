@@ -36,10 +36,8 @@ exec git "$@"
   return bin;
 }
 
-// A task branch: cloned from origin (main), branched, with one commit ahead.
-function taskBranch(): string {
-  const work = makeScratchWithOrigin({ 'a.md': '# A\n' });
-  git(work, 'switch', '--quiet', '-c', 'feat/x');
+function taskBranch(work = makeScratchWithOrigin({ 'a.md': '# A\n' }), base?: string): string {
+  git(work, 'switch', '--quiet', '-c', 'feat/x', ...(base ? [base] : []));
   writeFile(work, 'b.md', '# B\n');
   commitAll(work, 'add b');
   return work;
@@ -203,6 +201,66 @@ describe('resolve-scope.sh (shared tool)', () => {
     expect(result.stdout).toContain('SELECTION=origin/main...HEAD');
     expect(result.stdout).toContain('KIND=commit-range');
     expect(result.stdout).toContain('dev.md');
+  });
+
+  function withIntegration(): string {
+    const work = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    git(work, 'switch', '--quiet', '-c', 'integ');
+    writeFile(work, 'integ.md', '# Integ\n');
+    commitAll(work, 'integration work');
+    git(work, 'update-ref', 'refs/remotes/origin/integ', 'integ');
+    git(work, 'config', 'integration.branch', 'origin/integ');
+    return work;
+  }
+
+  it('defaults to the integration branch for a branch made from it', () => {
+    const result = run(taskBranch(withIntegration()));
+
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('SELECTION=origin/integ...HEAD');
+    expect(result.stdout).toContain('b.md');
+    expect(result.stdout).not.toContain('integ.md');
+  });
+
+  it('refuses the integration default on the integration branch itself', () => {
+    const result = run(withIntegration());
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('STATE=failed');
+    expect(result.stderr).toContain('on the integration branch origin/integ itself');
+  });
+
+  it('refuses the integration default on the integration branch configured as a full ref', () => {
+    const work = withIntegration();
+    git(work, 'config', 'integration.branch', 'refs/remotes/origin/integ');
+
+    const result = run(work);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('STATE=failed');
+    expect(result.stderr).toContain('on the integration branch refs/remotes/origin/integ itself');
+  });
+
+  it('falls back to origin/main while origin/main contains the integration branch', () => {
+    const work = makeScratchWithOrigin({ 'a.md': '# A\n' });
+    git(work, 'update-ref', 'refs/remotes/origin/integ', 'main');
+    git(work, 'config', 'integration.branch', 'origin/integ');
+
+    const result = run(taskBranch(work, 'origin/integ'));
+
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('SELECTION=origin/main...HEAD');
+    expect(result.stdout).toContain('b.md');
+  });
+
+  it('refuses the integration default for a branch made from main', () => {
+    const result = run(taskBranch(withIntegration(), 'main'));
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('STATE=failed');
+    expect(result.stderr).toContain('HEAD was not branched from origin/integ');
   });
 
   it('refuses when there is no merge-base with origin/main', () => {

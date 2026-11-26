@@ -66,7 +66,8 @@ reason.
   manually makes Renovate ignore that version, or the whole major for a major.
 - Renovate's pull request bodies truncate release notes.
 - When `main` moves after a change is prepared, the developer commits it and
-  runs [`/remdo-merge-main`](../../../.agents/skills/remdo-merge-main/SKILL.md)
+  runs
+  [`/remdo-merge-integration main`](../../../.agents/skills/remdo-merge-integration/SKILL.md)
   before pushing.
 
 ## Report
