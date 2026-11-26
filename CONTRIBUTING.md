@@ -100,13 +100,12 @@ build-approval policy, package-manager integrity, and locked runtime and project
 dependencies.
 
 Dependency updates land only after review, and majors also need the
-developer's approval. Each update waits three days after its release, except a
-security fix. Updates that need no runtime code change land together
-in one batch pull request; each update, or Renovate group that must move
-together, that needs or enables one lands in its own pull request with that
-code. Changes never go on bot
-branches: their bots stop updating a branch carrying added commits, and a
-requested rebase discards them.
+developer's approval. Each npm and PyPI update waits three days after its
+release, except a security fix. Updates that need no runtime code change land
+together in one batch pull request; each update, or Renovate group that must
+move together, that needs or enables one lands in its own pull request with
+that code. Changes never go on bot branches: their bots stop updating a branch
+carrying added commits, and a requested rebase discards them.
 
 The developer runs [`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md)
 once Renovate's weekly pull requests open, and when a Dependabot alert opens.
@@ -116,8 +115,8 @@ Dependency-specific workarounds and updater holds follow the
 dependency work. A hold that blocks an update disables it with a
 [renovate.json5](renovate.json5) rule; closing a Renovate pull request by hand
 would make Renovate ignore that version, or the whole major for a major,
-instead. Remove an affected existing
-hold only when the selected update proves its deferral obsolete.
+instead. Remove an affected existing hold only when the selected update proves
+its deferral obsolete.
 
 ### Dependency patches
 
