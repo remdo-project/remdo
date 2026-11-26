@@ -34,8 +34,9 @@ branch prefix because the prefix describes the branch's combined outcome.
 
 ### Integration branch
 
-The integration branch is `git config integration.branch` (e.g.
-`origin/feat/x`), or `origin/main` when that is unset or already contains it.
+The integration branch is `git config integration.branch`, an `origin`
+remote-tracking ref such as `origin/feat/x`, or `origin/main` when that is
+unset or already contains it.
 Tooling targets a configured one only from branches made from it and refuses
 elsewhere.
 List a configured integration branch in
