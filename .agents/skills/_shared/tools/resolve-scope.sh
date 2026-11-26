@@ -2,7 +2,9 @@
 # Resolve an optional change-scope input as a complete ChangeScopeResult; refuse
 # mixed scopes.
 # Usage: resolve-scope.sh [<range> | uncommitted]
-#   no arg       select uncommitted when dirty, origin/main...HEAD otherwise
+#   no arg       select uncommitted when dirty, <integration>...HEAD otherwise:
+#                git config integration.branch, or origin/main when unset or
+#                when origin/main contains it
 #   <range>      an explicit commit range: A..B or A...B. Both endpoints are
 #                required and must resolve to commits; B must resolve to HEAD,
 #                and A must be its ancestor for a two-dot range.
@@ -111,12 +113,29 @@ case "$scope_arg" in
       resolve_uncommitted
       exit 0
     fi
-    git rev-parse --verify --quiet origin/main >/dev/null \
-      || fail "origin/main not found — cannot compute the task-branch default; pass an explicit range"
-    merge_base=$(git merge-base origin/main HEAD 2>/dev/null) \
-      || fail "no merge-base with origin/main — cannot compute the task-branch default; pass an explicit range"
+    integration=$(git config --get integration.branch) || integration=origin/main
+    git rev-parse --verify --quiet "$integration" >/dev/null \
+      || fail "$integration not found — cannot compute the task-branch default; pass an explicit range"
+    if [ "$integration" != origin/main ]; then
+      git rev-parse --verify --quiet origin/main >/dev/null \
+        || fail "origin/main not found — cannot check that HEAD was branched from $integration; pass an explicit range"
+      if git merge-base --is-ancestor "$integration" origin/main; then
+        integration=origin/main
+      fi
+    fi
+    merge_base=$(git merge-base "$integration" HEAD 2>/dev/null) \
+      || fail "no merge-base with $integration — cannot compute the task-branch default; pass an explicit range"
+    if [ "$integration" != origin/main ]; then
+      head_branch=$(git symbolic-ref --quiet --short HEAD) || head_branch=
+      if [ "$(git rev-parse --symbolic-full-name "$integration")" = "refs/remotes/origin/$head_branch" ]; then
+        fail "on the integration branch $integration itself — pass a range such as origin/main...HEAD"
+      fi
+      if git merge-base --is-ancestor "$merge_base" origin/main; then
+        fail "HEAD was not branched from $integration — pass an explicit range"
+      fi
+    fi
     right_sha=$(git rev-parse --verify HEAD)
-    resolve_commit_range "$merge_base" "$right_sha" "origin/main...HEAD"
+    resolve_commit_range "$merge_base" "$right_sha" "$integration...HEAD"
     ;;
   *..*)
     # Resolve both endpoints once and require the right endpoint to be HEAD.

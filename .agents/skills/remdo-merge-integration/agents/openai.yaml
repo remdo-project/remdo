@@ -1,0 +1,6 @@
+interface:
+  display_name: "RemDo Merge Integration"
+  short_description: "Merge the integration branch into the current branch"
+  default_prompt: "Use $remdo-merge-integration to merge the current integration branch into the current RemDo branch and verify the result."
+policy:
+  allow_implicit_invocation: false

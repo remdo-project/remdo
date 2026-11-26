@@ -9,8 +9,8 @@ Testing follows the [contributor testing policy](docs/dev/testing.md).
 
 ## Git Workflow
 
-`origin/main` is the default review baseline for committed changes. Work
-explicitly targeting an integration branch uses that branch instead.
+The [integration branch](#integration-branch) is the baseline that review,
+merge, and pull-request tooling targets for committed changes.
 
 `deploy-test` is a mutable deployment pointer for the hosted test sandbox.
 Do not develop, merge, or base review work on it. `pnpm hosted:deploy-test`
@@ -31,6 +31,16 @@ Commit subjects use `<type>: <summary>` or `<type>(<scope>): <summary>`. The typ
 describes that commit's change, the optional scope names the affected area, and
 the summary states the concrete result. A commit's type may differ from the
 branch prefix because the prefix describes the branch's combined outcome.
+
+### Integration branch
+
+The integration branch is `git config integration.branch`, an `origin`
+remote-tracking ref such as `origin/feat/x`, or `origin/main` when that is
+unset or already contains it.
+Tooling targets a configured one only from branches made from it and refuses
+elsewhere.
+List a configured integration branch in
+[`ci.yml`](.github/workflows/ci.yml) too.
 
 ## Runtime Baseline
 
@@ -89,14 +99,15 @@ Dependency changes preserve workspace catalogs, applicable trust and
 build-approval policy, package-manager integrity, and locked runtime and project
 dependencies.
 
-Non-major updates and lock file maintenance open as pull requests that the
-developer merges after review. Majors wait for approval on the Dependency
-Dashboard.
+Dependency updates land only after review, and majors also wait for approval.
+Updates that need no runtime code change land together in one batch pull
+request; each update, or Renovate group that must move together, that needs
+one lands in its own pull request with that code. Changes never go on bot
+branches: their bots stop updating a branch carrying added commits, and a
+requested rebase discards them.
 
 The developer runs [`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md)
-whenever a Renovate pull request opens; weekly lock file maintenance opens one
-every week. Commits added to a Renovate branch stop Renovate from updating it,
-so finish that pull request by merging it.
+once Renovate's weekly pull requests open, and when a Dependabot alert opens.
 
 Dependency-specific workarounds and updater holds follow the
 [tracked-comment policy](#code-comments), which is the only record of deferred
@@ -111,7 +122,7 @@ already defers it.
 The [dependency-patch registry](pnpm-workspace.yaml) inventories exact-version patches for upstream runtime
 defects. Each patch records its rationale and a focused regression that fails
 without the correction. Renovate cannot regenerate a patch, so a Renovate
-rule holds each patched dependency's updates for Dependency Dashboard approval.
+rule holds each patched dependency's updates for approval.
 
 For an affected dependency update, retain the patch, regenerate it for the new
 exact version, or remove it when its focused regression passes without it. New
