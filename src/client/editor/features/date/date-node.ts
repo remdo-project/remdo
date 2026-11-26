@@ -25,7 +25,7 @@ export type SerializedDateNode = Spread<
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const INVALID_DATE_ERROR = 'DateNode isoDate must be a valid YYYY-MM-DD date.';
 
-function isValidIsoDate(value: string): boolean {
+export function isValidIsoDate(value: string): boolean {
   if (!ISO_DATE_PATTERN.test(value)) {
     return false;
   }

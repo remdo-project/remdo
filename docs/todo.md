@@ -233,9 +233,8 @@ Gaps:
   - `toMatchOutline` compares text, checked state, stated IDs, bodies and fold
     state, but not markers or open boxes.
 
-  The tree reader doesn't yet read headings,
-  names, dates or edge whitespace, and `toMatchDocument` doesn't compare
-  selections yet.
+  The test-document reader doesn't yet read headings, which no editor test
+  states before the gestures step.
 - **Read-only workspace outline.** A workspace's Document opens as a read-only
   outline, with its Markdown text box as a second view. The outline shows a file
   change made while it's open only once a client saves or the room reloads,

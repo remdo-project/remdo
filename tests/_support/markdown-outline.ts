@@ -38,6 +38,8 @@ export interface MarkdownItem {
   opensList: boolean;
   /** The text's markdown-it inline tokens, without the checkbox. */
   inline?: Token[];
+  /** The text as written on the marker's line, without the checkbox. */
+  content: string;
   bodyLines?: Token[][];
   /** The body's lines without their `>` prefixes. */
   bodySource?: string[];
@@ -59,6 +61,8 @@ const PROPERTY_LINE = /^(id|folded)::(?: .*)?$/;
 const SENTINEL = { caret: '', open: '', close: '' } as const;
 type MarkKind = keyof typeof SENTINEL;
 const KIND_BY_SENTINEL = new Map<string, MarkKind>(Object.entries(SENTINEL).map(([kind, char]) => [char, kind as MarkKind]));
+
+const stripTags = (text: string) => [...text].filter((char) => !KIND_BY_SENTINEL.has(char)).join('');
 
 interface Mark extends MarkdownPoint {
   kind: MarkKind;
@@ -158,7 +162,7 @@ function readList(
       const marker = MARKER.exec(lines[line]!)!;
       const checkbox = marker[1] !== undefined;
       const content = lines[line]!.slice(marker[0].length).trim();
-      const property = PROPERTY_LINE.exec([...content].filter((char) => !KIND_BY_SENTINEL.has(char)).join(''));
+      const property = PROPERTY_LINE.exec(stripTags(content));
       if (property && tokens[index + 1]!.type === 'paragraph_open') {
         const name = property[1]!;
         const stated = (frame.statedProperties ??= new Set());
@@ -188,6 +192,7 @@ function readList(
         checkbox,
         number: (start ?? 1) + list.items - 1,
         opensList: list.notes === 0,
+        content: stripTags(content),
       };
       list.notes += 1;
       items.set(note, item);
@@ -205,7 +210,7 @@ function readList(
       if (token.map![0] !== frame.line) throw new Error('A note\'s text must fit on its marker\'s line.');
       frame.textRead = true;
       const inline = withoutCheckbox(token.children ?? [], frame.item!.checkbox);
-      frame.item!.inline = inline;
+      frame.item!.inline = inline.map(withoutTags);
       const text = takeMarks(plainText(inline), frame.path, marks);
       if (text) frame.note!.text = text;
     }
@@ -217,9 +222,14 @@ function readList(
 function withoutCheckbox(tokens: Token[], checkbox: boolean): Token[] {
   const [first, ...rest] = tokens;
   if (!checkbox || first?.type !== 'text') return tokens;
-  const stripped = Object.assign(Object.create(Object.getPrototypeOf(first) as object) as Token, first);
-  stripped.content = first.content.replace(/^\[[ x]\] ?/, '');
-  return [stripped, ...rest];
+  return [withContent(first, first.content.replace(/^\[[ x]\] ?/, '')), ...rest];
+}
+
+/** A copy of a markdown-it token holding other content. */
+export function withContent(token: Token, content: string): Token {
+  const copy = Object.assign(Object.create(Object.getPrototypeOf(token) as object) as Token, token);
+  copy.content = content;
+  return copy;
 }
 
 function closeOf(tokens: Token[], open: number): number {
@@ -256,6 +266,10 @@ function plainText(tokens: Token[]): string {
     }
     return token.type === 'text' || token.type === 'code_inline' ? token.content : '';
   }).join('');
+}
+
+function withoutTags(token: Token): Token {
+  return token.type === 'text' || token.type === 'code_inline' ? withContent(token, stripTags(token.content)) : token;
 }
 
 function takeMarks(text: string, note: NotePath, marks: Mark[]): string {

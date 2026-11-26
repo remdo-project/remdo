@@ -7,7 +7,9 @@ Resolution does not review, modify, or advance the change.
 
 The caller may request `uncommitted`, a two-dot range (`<left>..HEAD`), or a
 three-dot range (`<left>...HEAD`). Without input, resolution selects
-`uncommitted` when the repository is dirty and `origin/main...HEAD` otherwise.
+`uncommitted` when the repository is dirty and `<integration>...HEAD`
+otherwise, where `<integration>` is the current
+[integration branch](../../../CONTRIBUTING.md#integration-branch).
 
 `uncommitted` contains Git's staged and unstaged changes plus untracked files
 not excluded by standard ignore rules. A repository is dirty when standard Git

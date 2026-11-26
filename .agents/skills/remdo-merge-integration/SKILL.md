@@ -1,9 +1,9 @@
 ---
-name: remdo-merge-main
-description: Merge the latest fetched origin/main into the current attached branch from a clean working tree, resolving determined conflicts and verifying the merge before committing it, without rebasing or remote mutation. Use when the user asks to merge, sync, or update the current RemDo branch from main.
+name: remdo-merge-integration
+description: Merge the latest fetched integration branch into the current attached branch from a clean working tree, resolving determined conflicts and verifying the merge before committing it, without rebasing or remote mutation. Use when the user asks to merge, sync, or update the current RemDo branch from main or its integration branch.
 ---
 
-# RemDo Merge Main
+# RemDo Merge Integration
 
 ## Authority
 
@@ -17,10 +17,15 @@ fixes. Concurrent repository mutation is unsupported.
 1. **Check.** If `HEAD` is detached or
    `git status --porcelain --untracked-files=normal` reports anything, then
    return `stopped`.
-2. **Fetch.** Run `git fetch --no-tags origin main`, pin the target with
-   `T=$(git rev-parse FETCH_HEAD)`, and count incoming commits with
-   `N=$(git rev-list --count HEAD.."$T")`. If the fetch or either command
-   fails, then return `stopped`. If `N` is 0, then return `up-to-date`.
+2. **Fetch.** Run `git fetch --no-tags origin`, then
+   `sh .agents/skills/_shared/tools/resolve-scope.sh`, with input
+   `origin/<branch>...HEAD` when the caller names a branch to merge from. Its
+   `SELECTION=<R>...HEAD` names that branch, or else the
+   [integration branch](../../../CONTRIBUTING.md#integration-branch),
+   as `R`. Pin the target with `T=$(git rev-parse "$R")` and count
+   incoming commits with `N=$(git rev-list --count HEAD.."$T")`. If the fetch,
+   the resolver, or either command fails, then return `stopped`. If `N` is 0,
+   then return `up-to-date`.
 3. **Merge.** Run the merge with configured merge options cleared and
    squash or no-fast-forward defaults overridden, so a branch setting such as
    `--strategy=ours` cannot drop incoming changes:
@@ -58,5 +63,6 @@ fixes. Concurrent repository mutation is unsupported.
 ## Report
 
 Report under the shared [Reports](../../../docs/specs/agents/protocol.md#reports)
-contract: the outcome, branch, pinned target, incoming commit count, resolved
-and unresolved conflicts, integration fixes, and checks run.
+contract: the outcome, branch, integration branch and pinned target, incoming
+commit count, resolved and unresolved conflicts, integration fixes, and checks
+run.

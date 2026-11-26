@@ -22,12 +22,14 @@ authority in step 5.
    read-only fresh-context subagent only for an independent question, and give
    it the question without a proposed answer. Continue when the developer asks
    to proceed or the request already frames the change sufficiently.
-2. **Branch.** Run `git fetch origin main`. If switching would carry
+2. **Branch.** Run `git fetch origin`. If switching would carry
    uncommitted work the framed change does not adopt, or the owning branch holds
    commits it does not adopt, then ask. Otherwise switch to the owning
    [topic branch](../../../CONTRIBUTING.md#git-workflow), creating it with
-   `git switch -c <branch> --no-track origin/main` unless the developer named
-   another base. Record the commit the branch forks from as its base.
+   `git switch -c <branch> --no-track <base>`. The base is the one the developer
+   named, or else the
+   [integration branch](../../../CONTRIBUTING.md#integration-branch). Record the
+   commit the branch forks from as its base.
 3. **Contracts.** Identify the
    [contract owners](../../../docs/documentation.md#ownership) of the change's
    behavior. If accepted behavior does not change, then say so and continue.
