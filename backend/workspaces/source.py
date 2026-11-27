@@ -1,13 +1,13 @@
 """The workspace source: its document, folders and plain files as notes, one class per kind.
 
 A workspace holds one document, README.md, until multi-file workspaces return. A document's
-outline notes and bodies are read in the text format; operations that change them arrive later.
+outline notes and bodies are read in the text format, and an operation on one changes only its
+own lines of the file.
 """
 
 import base64
 import difflib
 import re
-from functools import cached_property
 
 from notes.core import Call, Refusal, with_children
 
@@ -55,6 +55,55 @@ def ids_in(content):
     return [note.id for _, note in _identified(parsed_document(content))]
 
 
+def _outline(parsed, blank=None, renewed=(None, None)):
+    """What a reading holds for operations to keep: each note's kind, text, ID and children,
+    leaving out the text of the note at position `blank`, and giving the note at `renewed`'s
+    position, `()` for the document, its new ID."""
+    at, new_id = renewed
+
+    def note_id(note, position):
+        return new_id if position == at else note.id
+
+    def notes(children, position):
+        return [
+            (
+                note.kind,
+                None if position + (index,) == blank else note.text,
+                note_id(note, position + (index,)),
+                notes(note.children, position + (index,)),
+            )
+            for index, note in enumerate(children)
+        ]
+
+    return note_id(parsed, ()), notes(parsed.children, ())
+
+
+def _note_at(parsed, position):
+    note = parsed
+    for index in position:
+        note = note.children[index]
+    return note
+
+
+def _skeleton(parsed):
+    """Each note's kind and children, the positions temporary references count."""
+    return [(note.kind, _skeleton(note)) for note in parsed.children]
+
+
+def _child_indent(note, lines):
+    """Where a property line of `note` starts in `lines`: level with its first child, or where
+    the writer puts children when the lines after it don't start with one."""
+    if note.marker[0] == "heading":
+        return ""
+    first, stop = note.span
+    following = next((line for line in lines[stop:] if line.strip()), "")
+    width = len(following) - len(following.lstrip())
+    if width >= len(note.inner):
+        return following[:width]
+    marker = lines[first][: len(lines[first]) - len(lines[first].lstrip())]
+    return marker + " " * max(len(note.inner) - len(marker), 4)
+
+
 def _name(path):
     return path.rsplit("/", 1)[-1]
 
@@ -76,6 +125,7 @@ class Tree:
         self.files = dict(self.initial)
         self.namespace = store.Namespace(self.initial)
         self.contents = {}
+        self.readings = {}
 
     def kind(self, path):
         if path == "":
@@ -110,9 +160,21 @@ class Tree:
         self.load_blobs([hash_])
         return self.contents[hash_]
 
-    def put(self, path, content):
+    def reading(self, path, initial=False):
+        """The text format's reading of a document, now or as the call found it; missing ones
+        read empty."""
+        hash_ = (self.initial if initial else self.files).get(path)
+        if hash_ is None:
+            return text_format.Document()
+        if hash_ not in self.readings:
+            self.readings[hash_] = parsed_document(self.blob(hash_))
+        return self.readings[hash_]
+
+    def put(self, path, content, reading=None):
         hash_ = store.blob_hash(content)
         self.contents[hash_] = content
+        if reading is not None:
+            self.readings[hash_] = reading
         if path not in self.files:
             self.namespace.add(path)
         self.files[path] = hash_
@@ -235,6 +297,7 @@ class Note:
     kind = None
     operations = ("read",)
     listing = False
+    temporary = False  # named by a temporary reference
 
     def __init__(self, call, path):
         self.call = call
@@ -451,7 +514,9 @@ class Document(File):
 
     @property
     def operations(self):
-        return ("read", "setContent") if self.call.single_file else super().operations
+        if self.call.single_file:
+            return ("read", "setContent", "ensureId")
+        return (*super().operations, "ensureId")
 
     @classmethod
     def name_for(cls, call, text):
@@ -477,17 +542,17 @@ class Document(File):
     def has_children(self):
         return bool(self.parsed.children)
 
-    @cached_property
+    @property
     def parsed(self):
-        return parsed_document(self.content)
+        return self.tree.reading(self.path)
 
     def children(self):
         return [TextNote(self, (index,), note) for index, note in enumerate(self.parsed.children)]
 
     def read(self, depth, content=False):
-        # A document keeps its path reference, which callers' expected versions name, until
-        # Ensure ID arrives; its own ID still resolves. At the depth limit it says nothing about
-        # children, so listing workspaces doesn't parse their documents.
+        # A document keeps its path reference, which callers' expected versions name, until they
+        # accept an ID reference; its own ID still resolves. At the depth limit it says nothing
+        # about children, so listing workspaces doesn't parse their documents.
         node = Note.read(self, depth)
         if depth > 0:
             node["children"] = [child.read(depth - 1) for child in self.children()]
@@ -515,6 +580,54 @@ class Document(File):
         self.check_text(self.call, content)
         if sorted(ids_in(content)) != sorted(ids_in(current)):
             self.call.refuse("INVALID_ARGUMENT", "content: Set content can't add or remove IDs.")
+
+    def ensure_id(self, operation):
+        parsed = self.parsed
+        note_id = self.own_id(parsed)
+        if note_id is None:
+            self.call.check(self)
+            note_id = self.write_id(parsed, (), self.lines(), parsed.start, "")
+        return {"ref": self.call.ref(self.path), "id": note_id}
+
+    def lines(self):
+        try:
+            text = self.content.decode()
+        except UnicodeDecodeError:
+            self.call.refuse("INVALID_ARGUMENT", "target: its document isn't UTF-8 text.")
+        return text_format.lines_of(text) if text else []
+
+    def written(self, lines):
+        content = "\n".join(lines) + "\n" if lines else ""
+        return content.encode(), text_format.read(content)
+
+    def own_id(self, owner):
+        """The ID of the document or one of its notes, unless it has none or shares it."""
+        if owner.id is not None and len(self.call.holders(owner.id)) == 1:
+            return owner.id
+        return None
+
+    def write_id(self, owner, position, lines, at, prefix):
+        """Give `owner`, the document or its note at `position`, a new ID: in place of its first
+        `id::` line, or as a line starting with `prefix` at line `at` of `lines`."""
+        note_id = self.call.new_id()
+        if owner.id_line is not None:
+            line = lines[owner.id_line]
+            lines[owner.id_line] = f"{line[: line.index('::') + 2]} {note_id}"
+        else:
+            added = [prefix + text_format.id_line(note_id)]
+            # Under a list item the ID line is a child. Unindented, a heading's or the document's
+            # stands apart, as the writer spells it, so the text after it can't continue it.
+            if not prefix:
+                if at < len(lines) and lines[at].strip():
+                    added.append("")
+                if at > 0 and lines[at - 1].strip():
+                    added.insert(0, "")
+            lines[at:at] = added
+        content, written = self.written(lines)
+        if _outline(written) != _outline(self.parsed, renewed=(position, note_id)):
+            self.call.refuse("FAILED_PRECONDITION", "target: its text has no place for an ID.")
+        self.call.put(self.path, content, written)
+        return note_id
 
 
 class Readme(Document):
@@ -544,8 +657,17 @@ class TextNote(Note):
         self.note = note
         self.kind = self.kinds[0] if note.kind == "outline" else self.kinds[1]
 
+    @property
+    def operations(self):
+        if self.kind == "body":
+            return ("read", "setText")
+        return ("read", "setText", "ensureId")
+
     def version(self):
         return self.document.version()
+
+    def files(self):
+        return [self.path]
 
     @property
     def text(self):
@@ -553,8 +675,9 @@ class TextNote(Note):
 
     def ref(self):
         # A shared ID resolves to neither note, so such a note keeps its positional reference.
-        if self.note.id is not None and len(self.call.holders(self.note.id)) == 1:
-            return self.call.id_ref(self.note.id)
+        note_id = self.document.own_id(self.note)
+        if note_id is not None:
+            return self.call.id_ref(note_id)
         return self.call.ref("/".join([self.path, *map(str, self.position)]))
 
     def children(self):
@@ -566,6 +689,50 @@ class TextNote(Note):
     def read(self, depth, content=False):
         return with_children(super().read(depth), self.children(), depth)
 
+    def set_text(self, operation):
+        self.call.check(self)
+        text = self.call.changed_text(self.text, operation)
+        self.call.encoded(text, "text")
+        if self.note.span is None:
+            self.call.refuse("INVALID_ARGUMENT", SHARED_LINE)
+        ref = self.ref()
+        first, stop = self.note.span
+        prefix = self.note.prefix
+        lines = self.document.lines()
+        lines[first:stop] = [
+            prefix + line if line else prefix.rstrip() for line in text_format.lines_of(text)
+        ]
+        content, written = self.document.written(lines)
+        if content == self.document.content:
+            self.call.refuse("INVALID_ARGUMENT", "The text is unchanged.")
+        if _outline(written, self.position) != _outline(self.document.parsed, self.position):
+            self.call.refuse(
+                "INVALID_ARGUMENT",
+                "text: it would also add, remove or move notes, or change their kinds, texts or "
+                "IDs; Set text changes only this note's own text.",
+            )
+        if _note_at(written, self.position).text != text:
+            self.call.refuse(
+                "INVALID_ARGUMENT", "text: it wouldn't read back as given where this note is."
+            )
+        self.call.put(self.path, content, written)
+        return {"ref": ref}
+
+    def ensure_id(self, operation):
+        note_id = self.document.own_id(self.note)
+        if note_id is None:
+            self.call.check(self)
+            if self.note.span is None:
+                self.call.refuse("INVALID_ARGUMENT", SHARED_LINE)
+            lines = self.document.lines()
+            prefix = _child_indent(self.note, lines)
+            note_id = self.document.write_id(
+                self.note, self.position, lines, self.note.span[1], prefix
+            )
+        return {"ref": self.call.id_ref(note_id), "id": note_id}
+
+
+SHARED_LINE = "target: it shares its first line with another note, so it can't change on its own."
 
 KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file": File}
 NOTE_KINDS = [*KINDS, *TextNote.kinds]
@@ -615,6 +782,8 @@ class WorkspaceCall(Call):
         self.expectations = Expectations(self.tree, self.expected_paths(expected or {}), self.ref)
         self.name = workspace.name
         self.deleted = False
+        self._holders = {}
+        self._holders_of = None
 
     def apply(self, operation):
         if self.deleted:
@@ -630,6 +799,23 @@ class WorkspaceCall(Call):
         return paths
 
     def note(self, ref, field="target"):
+        """The note an operation names. A temporary reference counts positions in the document as
+        the caller read it, so it holds only while earlier operations leave those positions."""
+        note = self.find(ref, field)
+        if note.temporary:
+            self.check(note)
+            if _skeleton(self.tree.reading(note.path)) != _skeleton(
+                self.tree.reading(note.path, initial=True)
+            ):
+                self.refuse(
+                    "INVALID_ARGUMENT",
+                    f"{field}: an earlier operation moved the notes this temporary reference "
+                    "counts; name the note by its ID, or change it in a call of its own.",
+                )
+        return note
+
+    def find(self, ref, field):
+        """The note a reference names, as Read resolves it."""
         _, path, note_id = self.parsed(ref, field)
         if note_id:
             return self.note_with_id(note_id, field)
@@ -638,6 +824,7 @@ class WorkspaceCall(Call):
             note = document.note_at_position(position)
             if note is None:
                 self.refuse("NOT_FOUND", f"{field}: no note at {path!r}.")
+            note.temporary = True
             return note
         path = self.path(path, field)
         if not self.is_readme(path) and self.tree.kind(path) is None:
@@ -656,20 +843,20 @@ class WorkspaceCall(Call):
 
     def holders(self, note_id):
         """The notes of the workspace that carry an ID, the documents themselves included."""
-        return self._holders.get(note_id, [])
-
-    @cached_property
-    def _holders(self):
         if self.single_file:
             documents = [README]
         else:
             documents = [p for p in self.tree.files if self.tree.kind(p) == "document"]
-            self.tree.load(documents)
-        holders = {}
-        for path in documents:
-            for note_id, note in self.note_at(path).identified():
-                holders.setdefault(note_id, []).append(note)
-        return holders
+        # Earlier operations of the call may have changed, moved or removed documents.
+        versions = [(path, self.tree.files.get(path)) for path in documents]
+        if versions != self._holders_of:
+            self.tree.load(path for path in documents if path in self.tree.files)
+            self._holders = {}
+            for path in documents:
+                for found, note in self.note_at(path).identified():
+                    self._holders.setdefault(found, []).append(note)
+            self._holders_of = versions
+        return self._holders.get(note_id, [])
 
     def note_with_id(self, note_id, field):
         found = self.holders(note_id)
@@ -681,6 +868,12 @@ class WorkspaceCall(Call):
 
     def id_ref(self, note_id):
         return f"{self.workspace.pk}_{note_id}"
+
+    def new_id(self):
+        while True:
+            note_id = models.workspace_id()
+            if not self.holders(note_id):
+                return note_id
 
     def note_at(self, path):
         if self.is_readme(path):
@@ -769,9 +962,9 @@ class WorkspaceCall(Call):
                 {self.ref(occupant): version for occupant, version in occupants.items()},
             )
 
-    def put(self, path, content):
+    def put(self, path, content, reading=None):
         try:
-            self.tree.put(path, content)
+            self.tree.put(path, content, reading)
         except store.InvalidContent as error:
             self.refuse("INVALID_ARGUMENT", f"content: {error}")
 

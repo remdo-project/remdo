@@ -73,7 +73,7 @@ def read(user, ref=None, depth=1, content=False):
     workspace_id = account.parsed(ref, "ref")[0]
     if workspace_id is None:
         return account.root.read(depth, content)
-    return workspaces.open_call(user, workspace_id).note(ref, "ref").read(depth, content)
+    return workspaces.open_call(user, workspace_id).find(ref, "ref").read(depth, content)
 
 
 def call(user, operations, expected=None, dry_run=False):

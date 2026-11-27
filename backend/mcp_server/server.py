@@ -110,6 +110,7 @@ NOTE_OPERATIONS = {
     "delete_note": "delete",
     "set_note_text": "setText",
     "set_note_content": "setContent",
+    "ensure_note_id": "ensureId",
 }
 
 

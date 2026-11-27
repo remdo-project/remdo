@@ -22,8 +22,9 @@ agents and integrations use them alike.
    workspace, at a position as for Insert. **Deterministic.**
 4. **Delete** removes a note. A note with children is removed only when the
    operation says so, along with its children. **Deterministic.**
-5. **Set text** changes a note's [text](./note-model.md#note-kinds).
-   **Deterministic.**
+5. **Set text** changes a note's [text](./note-model.md#note-kinds) to read as
+   given: a body keeps it as given, and an outline note takes the text format's
+   [canonical spelling](../../format.md#canonical-spelling). **Deterministic.**
 6. **Set content** changes a document's whole content.
    **Deterministic.**
 7. **Ensure ID** returns a note's [ID](./note-ids.md#ids-in-workspaces),
@@ -59,10 +60,13 @@ content, and deletes the workspace's history with it.
 3. An operation is refused when its target path is taken, or when it would put
    a note somewhere the [text format](../../format.md) can't hold it, such as a
    heading under a deeper heading. **Deterministic.**
-4. Notes an operation doesn't name keep their text, position and children. Set
-   text never changes structure. Set content can change a document's outline,
-   but an ID it removes must belong to a note an earlier Delete in the call
-   removed. **Deterministic.**
+4. An operation changes only the notes it names. Every other note keeps its
+   text, parent and place among its siblings, and gains or loses children only
+   as the operation inserts, moves or deletes them. Set text changes only its
+   target's text, and is refused when the new text would
+   also add or remove a note, or change any note's kind, parent, position or
+   ID. Set content can change a document's outline, but an ID it removes must
+   belong to a note an earlier Delete in the call removed. **Deterministic.**
 5. A refused call names the failing operation and why, and returns the current
    versions of the files involved. A successful one returns each operation's
    result, the new references and the new versions. **Deterministic.**

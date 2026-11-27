@@ -480,7 +480,8 @@ class MultiFileNoteOperationTests(TestCase):
             ],
         )
         self.assertEqual(
-            node["children"][1]["operations"], ["read", "move", "delete", "setText", "setContent"]
+            node["children"][1]["operations"],
+            ["read", "move", "delete", "setText", "setContent", "ensureId"],
         )
 
     def test_read_returns_content_when_asked(self):
@@ -527,7 +528,7 @@ class SingleFileWorkspaceTests(TestCase):
             (document["ref"], document["kind"], document["text"], document["version"]),
             (self.readme, "document", "README", None),
         )
-        self.assertEqual(document["operations"], ["read", "setContent"])
+        self.assertEqual(document["operations"], ["read", "setContent", "ensureId"])
         self.assertEqual(notes.read(self.owner, self.readme, content=True)["content"], "")
 
     def test_the_first_save_creates_the_readme_and_a_stale_one_is_refused(self):
@@ -633,7 +634,9 @@ class SingleFileWorkspaceTests(TestCase):
         ):
             with self.subTest(ref=ref):
                 node = notes.read(self.owner, ref, depth=0)
-                self.assertEqual((node["text"], node["operations"]), (text, ["read"]))
+                self.assertEqual(
+                    (node["text"], node["operations"]), (text, ["read", "setText", "ensureId"])
+                )
                 self.assertEqual(node["version"], store.read(self.workspace, "README.md").blob_hash)
 
     def test_a_handle_past_the_documents_notes_and_a_shared_id_are_not_found(self):

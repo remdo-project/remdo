@@ -62,7 +62,7 @@ def _tree(document):
     """A document's reading, leaving out outline notes' lines as written, which writing respells."""
 
     def note(node):
-        fields = dataclasses.asdict(node)
+        fields = {f.name: getattr(node, f.name) for f in dataclasses.fields(node) if f.compare}
         if node.kind == "outline":
             del fields["source"]
         fields["children"] = [note(child) for child in node.children]
