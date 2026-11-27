@@ -64,7 +64,6 @@ class Note:
     # marker's line.
     span: tuple | None = field(default=None, compare=False, repr=False)
     prefix: str = field(default="", compare=False, repr=False)
-    inner: str = field(default="", compare=False, repr=False)
     id_line: int | None = field(default=None, compare=False, repr=False)
 
     @property
@@ -76,7 +75,6 @@ class Note:
 class Document:
     id: str | None = None
     children: list = field(default_factory=list)
-    start: int = field(default=0, compare=False, repr=False)
     id_line: int | None = field(default=None, compare=False, repr=False)
     property_lines: set = field(default_factory=set, compare=False, repr=False)
 
@@ -101,7 +99,6 @@ def read(source):
         document.children.append(Note("body", lines[: end + 1], span=(0, end + 1)))
         parsed = ["" if index <= end else line for index, line in enumerate(lines)]
         first_line = end + 1
-    document.start = first_line
     tokens = _markdown.parse("\n".join(parsed))
     _Reader(lines, tokens, first_line, document.property_lines).section(document)
     return document
@@ -275,7 +272,7 @@ class _Reader:
                 self.shared_lines.add(line)
         span = (line, stop) if stop > line and line not in self.shared_lines else None
         prefix = self.lines[line][:lead]
-        note = Note("outline", source, marker, span=span, prefix=prefix, inner=" " * indent)
+        note = Note("outline", source, marker, span=span, prefix=prefix)
         checkbox = CHECKBOX.match(content)
         if checkbox:
             note.checkbox = "open" if checkbox.group(1) == " " else "checked"
@@ -569,21 +566,24 @@ def write(document, source=None):
     bodies joined into one; or, given `source`, an edit of that text reading as the canonical one
     does, unchanged when `source` already reads so."""
     canonical = _Writer().text(document)
-    return canonical if source is None else edit(canonical, source, read(source))
+    return canonical if source is None else edit(canonical, source, read(source))[0]
 
 
 def edit(canonical, source, parsed, document=None):
     """`canonical`, a document's canonical text, which reads as `document`, written as an edit of
-    `source`, which reads as `parsed` (docs/architecture.md, under Outline tree): `source` itself
-    when it reads as `canonical` does, notes reading as they do in it keeping their lines, and
-    `canonical` when the edit wouldn't read as it does."""
+    `source`, which reads as `parsed` (docs/architecture.md, under Outline tree), with what the
+    text written reads as: `source` itself when it reads as `canonical` does, notes reading as
+    they do in it keeping their lines, and `canonical` when the edit wouldn't read as it does."""
     document = document or read(canonical)
     reading = to_json(document)
     if to_json(parsed) == reading:
-        return source
+        return source, parsed
     edited = _Writer(_Spellings(source, parsed)).text(document)
+    edited_reading = read(edited)
     # Writing a reading again can read differently, so only the canonical text is sure to.
-    return edited if to_json(read(edited)) == reading else canonical
+    if to_json(edited_reading) == reading:
+        return edited, edited_reading
+    return canonical, document
 
 
 class _Spellings:
@@ -593,9 +593,11 @@ class _Spellings:
         self.lines = lines_of(source)
         self.document = parsed
         self.unclaimed = {}
-        # Indents past their parent list item's own: of the notes under one, and of ID lines.
+        # Indents past their parent list item's own: of the notes under one, and of ID lines;
+        # and top-level list items' own.
         self.offsets = {}
         self.id_offsets = {}
+        self.top_offsets = {}
 
         def gather(notes, parent):
             under_item = parent is not None and parent.marker[0] != "heading"
@@ -604,6 +606,8 @@ class _Spellings:
                     self.unclaimed.setdefault(_reads_as(note, under_item), deque()).append(note)
                     if under_item:
                         self.offsets[id(note)] = _past(_leading(note.prefix), parent.prefix)
+                    elif parent is None and note.kind == "outline":
+                        self.top_offsets[id(note)] = _leading(note.prefix)
                 if note.kind == "outline" and note.id_line is not None:
                     line = self.lines[note.id_line]
                     self.id_offsets[id(note)] = _past(_leading(line), note.prefix)
@@ -809,7 +813,7 @@ class _Writer:
             else:
                 if numbering.previous is None:
                     self.separate()
-                indent = _leading(written.prefix) if written else ""
+                indent = written and self.spellings.top_offsets.get(id(written))
                 self.item(child, indent if _fits(indent, 0) else "", numbering, written)
 
     def item(self, note, indent, numbering, written):

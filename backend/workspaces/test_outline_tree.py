@@ -13,7 +13,7 @@ def tree_of(text):
 
 
 def notes_of(tree):
-    return list(outline_tree._in_order(tree["children"]))
+    return list(outline_tree.in_order(tree["children"]))
 
 
 class MatchTests(SimpleTestCase):

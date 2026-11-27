@@ -94,7 +94,7 @@ def _load(workspace):
         "state": base64.b64encode(bytes(row.state)).decode() if row else None,
     }
     if row is None or row.version != version:
-        body["tree"] = outline_tree.current(row and row.tree, _reading(version))
+        body["tree"] = outline_tree.kept(locked, row and row.tree, _reading(version))
     return JsonResponse(body)
 
 
@@ -119,17 +119,20 @@ def _write(workspace, base, state, tree, canonical, loading):
     reading = text_format.to_json(document)
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
     version = store.version(locked, README)
-    row = DocumentState.objects.filter(workspace=locked).only("version", "tree").first()
+    row = DocumentState.objects.filter(workspace=locked).only("version").first()
     # Only the room writes its row's state and version, so a row on the current file means the
     # room's last write landed even if its reply was lost.
     if version != base and not (row and row.version == version):
-        current = outline_tree.current(row and row.tree, _reading(version))
+        kept = DocumentState.objects.filter(workspace=locked).values_list("tree", flat=True).first()
+        current = outline_tree.kept(locked, kept, _reading(version))
         return JsonResponse({"version": version, "tree": current}, status=409)
     # A save that reads as the file leaves it alone, and opening a room writes no file even when
     # applying the file doesn't read back the same.
     if not loading and reading != _reading(version):
         source = _file(version).decode()
-        content = text_format.edit(canonical, source, text_format.read(source), document).encode()
+        content = text_format.edit(canonical, source, text_format.read(source), document)[
+            0
+        ].encode()
         if len(content) > FILE_MAX_BYTES:
             # Kept spellings can be longer than the canonical text, which fits.
             content = canonical.encode()
@@ -140,12 +143,11 @@ def _write(workspace, base, state, tree, canonical, loading):
         _readings.pop(version, None)
         version = store.blob_hash(content)
         _remember(version, reading)
-    DocumentState.objects.update_or_create(
-        workspace=locked,
-        defaults={
-            "state": state,
-            "version": version,
-            "tree": outline_tree.current(tree, _reading(version)),
-        },
-    )
+    fields = {
+        "state": state,
+        "version": version,
+        "tree": outline_tree.current(tree, _reading(version)),
+    }
+    if not DocumentState.objects.filter(workspace=locked).update(**fields):
+        DocumentState.objects.create(workspace=locked, **fields)
     return JsonResponse({"version": version})

@@ -550,6 +550,15 @@ class SingleFileWorkspaceTests(TestCase):
         self.assertEqual(row.tree["children"][0]["cacheId"], child["ref"].rsplit("/", 1)[1])
         self.assertEqual(row.tree["children"][0]["runs"][0]["text"], "a2")
 
+    def test_listing_workspaces_reads_no_document(self):
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, b"- id:: doc\n")})
+
+        with mock.patch.object(source.text_format, "read", wraps=source.text_format.read) as read:
+            [workspace] = notes.read(self.owner, "me", depth=2)["children"]
+
+        self.assertEqual(read.call_count, 0)
+        self.assertEqual(workspace["children"][0]["ref"], self.readme)
+
     def test_a_dry_run_and_listing_workspaces_keep_no_tree(self):
         store.commit(self.workspace, self.owner, "", {"README.md": (None, b"- a\n")})
 

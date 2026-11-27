@@ -202,6 +202,14 @@ class WorkspaceRoomTests(TestCase):
         self.assertNotIn(loaded["tree"]["children"][1]["cacheId"], (None, "c2"))
         self.assertEqual(loaded["version"], self.readme().blob_hash)
 
+    def test_loads_keep_the_cache_ids_they_give(self):
+        store.commit(self.workspace, self.owner, "agent", {"README.md": (None, b"- a\n")})
+
+        first, second = self.load(), self.load()
+
+        self.assertEqual(first["tree"], second["tree"])
+        self.assertEqual(DocumentState.objects.get(workspace=self.workspace).tree, first["tree"])
+
     def test_the_state_goes_with_its_workspace(self):
         version = self.save(tree_of("- one\n"), None).json()["version"]
 
@@ -236,7 +244,7 @@ class WorkspaceRoomTests(TestCase):
 
     def test_a_failed_state_write_leaves_no_revision(self):
         with (
-            patch.object(DocumentState.objects, "update_or_create", side_effect=DatabaseError),
+            patch.object(DocumentState.objects, "create", side_effect=DatabaseError),
             self.assertRaises(DatabaseError),
         ):
             self.save(tree_of("- one\n"), None)

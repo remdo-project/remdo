@@ -395,3 +395,17 @@
     1. a2
         - b
     - z
+
+- name: a note moved to the top level takes the top level's indent
+  file: |
+    - a
+      - b
+    * c
+  tree: |
+    - a
+    - b
+    - c
+  written: |
+    - a
+    - b
+    * c

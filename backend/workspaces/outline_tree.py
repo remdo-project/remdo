@@ -4,6 +4,8 @@ state): the cache IDs Apply gives a tree's notes, and a document's current tree.
 import copy
 import json
 
+from django.db import transaction
+
 from . import models
 
 
@@ -16,13 +18,43 @@ def stripped(tree):
     return tree
 
 
+def same(tree, other):
+    """Whether two trees read alike, cache IDs aside."""
+    if isinstance(tree, dict):
+        return (
+            isinstance(other, dict)
+            and tree.keys() == other.keys()
+            and all(key == "cacheId" or same(value, other[key]) for key, value in tree.items())
+        )
+    if isinstance(tree, list):
+        return isinstance(other, list) and len(tree) == len(other) and all(map(same, tree, other))
+    return tree == other
+
+
 def current(tree, reading):
     """A document's current tree, given its file's `reading` and the tree its cache row holds, if
     any: that tree while it reads as the file, or else the reading with the cache IDs matching it
     to that tree gives."""
-    if tree is not None and stripped(tree) == stripped(reading):
-        return tree
-    return match(reading, tree)
+    return tree if tree is not None and same(tree, reading) else match(reading, tree)
+
+
+def kept(workspace, tree, reading):
+    """The current tree of `workspace`'s document, given its cache row's `tree`, which the row then
+    holds."""
+    result = current(tree, reading)
+    if result is not tree:
+        keep(workspace, result)
+    return result
+
+
+def keep(workspace, tree):
+    """Keep `tree` on `workspace`'s cache row, leaving the row's state and the version it builds on
+    to the room."""
+    with transaction.atomic():
+        # The room's saves write the row under the same lock.
+        models.Workspace.objects.select_for_update().filter(pk=workspace.pk).first()
+        if not models.DocumentState.objects.filter(workspace=workspace).update(tree=tree):
+            models.DocumentState.objects.create(workspace=workspace, state=b"", tree=tree)
 
 
 def match(tree, base=None):
@@ -31,7 +63,7 @@ def match(tree, base=None):
     result = copy.deepcopy(tree)
     base = copy.deepcopy(base) if base is not None else {"id": None, "children": []}
     matching = _Matching()
-    for item in _in_order(base["children"]):
+    for item in in_order(base["children"]):
         cache_id = item["cacheId"]
         if cache_id is None:
             continue
@@ -76,7 +108,7 @@ class _Matching:
 
     def by_ids(self, notes):
         """Match notes to the base notes holding their written IDs, then their cache IDs."""
-        ordered = list(_in_order(notes))
+        ordered = list(in_order(notes))
         for note in ordered:
             note_id = note.get("id")
             if note_id is None or note_id in self.owners:
@@ -145,10 +177,10 @@ class _Matching:
         self.set_cache_id(item, note_id)
 
 
-def _in_order(notes):
+def in_order(notes):
     for note in notes:
         yield note
-        yield from _in_order(note.get("children", []))
+        yield from in_order(note.get("children", []))
 
 
 def _content(note):
