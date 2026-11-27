@@ -167,7 +167,8 @@ class Tree:
         hash_ = store.blob_hash(content)
         self.contents[hash_] = content
         if reading is not None:
-            self.readings[hash_] = reading
+            # Notes found earlier in the call stay keyed by the reading they came from.
+            self.readings.setdefault(hash_, reading)
         if path not in self.files:
             self.namespace.add(path)
         self.files[path] = hash_
@@ -558,7 +559,7 @@ class Document(File):
         return [TextNote(self, note) for note in self.parsed.children]
 
     def read(self, depth, content=False):
-        node = Note.read(self, depth)
+        node = Note.read(self, depth, content)
         if depth > 0:
             node["children"] = [child.read(depth - 1) for child in self.children()]
         if content:
@@ -708,7 +709,16 @@ class TextNote(Note):
                 != {"kind": "outline", "id": None, "children": []}
             ):
                 self.call.refuse("INVALID_ARGUMENT", f"text: {CHANGES_OTHERS}")
-            node.update({key: new[key] for key in ("marker", "checkbox", "name", "runs")})
+            # Read alone, a note's text can say more than its place does, as `2.` restarting a
+            # list, so only what the text changes applies.
+            [old] = text_format.to_json(text_format.read(self.text))["children"][:1] or [None]
+            node.update(
+                {
+                    key: new[key]
+                    for key in ("marker", "checkbox", "name", "runs")
+                    if old is None or old["kind"] != "outline" or old[key] != new[key]
+                }
+            )
         if node == before:
             self.call.refuse("INVALID_ARGUMENT", "The text is unchanged.")
         self.document.change(tree, "INVALID_ARGUMENT", f"text: {CHANGES_OTHERS}")
@@ -850,11 +860,7 @@ class WorkspaceCall(Call):
             if outline is not None:
                 tree = outline_tree.current(outline.tree, reading)
             elif self.is_readme(path):
-                row = models.DocumentState.objects.filter(workspace=self.workspace)
-                tree = outline_tree.kept(
-                    self.workspace, row.values_list("tree", flat=True).first(), reading
-                )
-                self.kept = tree
+                tree = self.kept = outline_tree.kept(self.workspace, reading)
             else:
                 tree = outline_tree.match(reading)
             outline = self.outlines[path] = _Outline(version, tree)
@@ -917,7 +923,7 @@ class WorkspaceCall(Call):
                 raise Refusal("NOT_FOUND", MISSING_WORKSPACE)
             described.append({"ref": self.ref(""), "change": "renamed", "text": self.name})
         changes = self.tree.changes()
-        if README in changes and self.tree.files.get(README) is not None:
+        if self.is_readme(README) and README in changes and self.tree.files.get(README) is not None:
             tree = self.outline(README).tree
             if tree is not self.kept:
                 outline_tree.keep(self.workspace, tree)

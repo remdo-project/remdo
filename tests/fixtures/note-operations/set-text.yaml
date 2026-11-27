@@ -68,6 +68,43 @@
     1. a
     - b
 
+- name: a numbered note keeps its place in its list when its number stays
+  before: |
+    1. a
+    2. b
+    3. c
+  operations:
+    - {op: setText, target: 2. b, text: 2. b edited}
+  after: |
+    1. a
+    2. b edited
+    3. c
+
+- name: an indented top-level note's sibling stays beside it when the note changes
+  before: |2
+      * a
+      * b
+  operations:
+    - {op: setText, target: "* a", text: "* a2"}
+  after: |
+    - a2
+    * b
+
+- name: a note named by its ID after the text returns to an earlier version
+  before: |
+    - a
+    - k
+        - id:: k1
+  operations:
+    - {op: ensureId, target: "- k"}
+    - {op: setText, target: "- a", text: "- b"}
+    - {op: setText, target: "- a", text: "- a"}
+    - {op: setText, target: "- k", text: "- k2"}
+  after: |
+    - a
+    - k2
+        - id:: k1
+
 - name: a nested note whose continuation line sits left of its marker stays under its parent
   before: |
     - a

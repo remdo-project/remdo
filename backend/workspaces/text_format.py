@@ -787,6 +787,7 @@ class _Writer:
 
     def section(self, children):
         numbering = _Numbering()
+        content_column = None
         for child in children:
             written = self.claim(child, under_item=False)
             if child.kind == "body":
@@ -799,6 +800,7 @@ class _Writer:
                     for line in child.source:
                         self.put(line)
                 numbering.previous = None
+                content_column = None
             elif child.marker[0] == "heading":
                 self.separate()
                 if written:
@@ -810,11 +812,19 @@ class _Writer:
                     self.put(f"{'#' * child.marker[1]} {text}".rstrip())
                 self.owner_children(child.children, child.id, written)
                 numbering.previous = None
+                content_column = None
             else:
                 if numbering.previous is None:
                     self.separate()
                 indent = written and self.spellings.top_offsets.get(id(written))
-                self.item(child, indent if _fits(indent, 0) else "", numbering, written)
+                # Indented to the previous item's content, a kept item would nest under it.
+                if not _fits(indent, 0) or (
+                    content_column is not None and len(indent.expandtabs(4)) >= content_column
+                ):
+                    indent = ""
+                start = len(self.out)
+                self.item(child, indent, numbering, written)
+                content_column = _item_indent(self.out[start].expandtabs(4))
 
     def item(self, note, indent, numbering, written):
         place = numbering.follows(note)

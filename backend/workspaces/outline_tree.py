@@ -38,12 +38,15 @@ def current(tree, reading):
     return tree if tree is not None and same(tree, reading) else match(reading, tree)
 
 
-def kept(workspace, tree, reading):
-    """The current tree of `workspace`'s document, given its cache row's `tree`, which the row then
-    holds."""
-    result = current(tree, reading)
-    if result is not tree:
-        keep(workspace, result)
+def kept(workspace, reading):
+    """The current tree of `workspace`'s document, whose file reads as `reading`, which its cache
+    row then holds."""
+    with transaction.atomic():
+        rows = _locked(workspace)
+        tree = rows.values_list("tree", flat=True).first()
+        result = current(tree, reading)
+        if result is not tree:
+            _store(workspace, rows, result)
     return result
 
 
@@ -51,10 +54,18 @@ def keep(workspace, tree):
     """Keep `tree` on `workspace`'s cache row, leaving the row's state and the version it builds on
     to the room."""
     with transaction.atomic():
-        # The room's saves write the row under the same lock.
-        models.Workspace.objects.select_for_update().filter(pk=workspace.pk).first()
-        if not models.DocumentState.objects.filter(workspace=workspace).update(tree=tree):
-            models.DocumentState.objects.create(workspace=workspace, state=b"", tree=tree)
+        _store(workspace, _locked(workspace), tree)
+
+
+def _locked(workspace):
+    # The room's saves write the row under the same lock.
+    models.Workspace.objects.select_for_update().filter(pk=workspace.pk).first()
+    return models.DocumentState.objects.filter(workspace=workspace)
+
+
+def _store(workspace, rows, tree):
+    if not rows.update(tree=tree):
+        models.DocumentState.objects.create(workspace=workspace, state=b"", tree=tree)
 
 
 def match(tree, base=None):

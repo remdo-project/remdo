@@ -584,6 +584,9 @@ class SingleFileWorkspaceTests(TestCase):
         )
 
         self.assertEqual(document["ref"], f"{ws}_doc")
+        self.assertEqual(
+            notes.read(self.owner, self.readme, depth=0, content=True)["ref"], f"{ws}_doc"
+        )
         self.assertEqual(store.read(self.workspace, "README.md").content, b"- id:: doc\n\n- a2\n")
 
     def test_a_workspace_holds_its_readme_which_reads_empty_until_saved(self):

@@ -94,7 +94,7 @@ def _load(workspace):
         "state": base64.b64encode(bytes(row.state)).decode() if row else None,
     }
     if row is None or row.version != version:
-        body["tree"] = outline_tree.kept(locked, row and row.tree, _reading(version))
+        body["tree"] = outline_tree.kept(locked, _reading(version))
     return JsonResponse(body)
 
 
@@ -123,8 +123,7 @@ def _write(workspace, base, state, tree, canonical, loading):
     # Only the room writes its row's state and version, so a row on the current file means the
     # room's last write landed even if its reply was lost.
     if version != base and not (row and row.version == version):
-        kept = DocumentState.objects.filter(workspace=locked).values_list("tree", flat=True).first()
-        current = outline_tree.kept(locked, kept, _reading(version))
+        current = outline_tree.kept(locked, _reading(version))
         return JsonResponse({"version": version, "tree": current}, status=409)
     # A save that reads as the file leaves it alone, and opening a room writes no file even when
     # applying the file doesn't read back the same.
