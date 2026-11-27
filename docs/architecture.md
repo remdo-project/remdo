@@ -285,7 +285,8 @@ and the file is unchanged.
   [continuing commit](specs/workspaces/store.md#commits) by the workspace's
   owner, and the tree and state it was read from with that file's version, in one
   transaction: both land or neither does. A save that leaves the file
-  unchanged updates only the row. **Deterministic.**
+  unchanged updates only the row, and one whose kept lines would put the file
+  over its limit writes it in canonical spelling. **Deterministic.**
 - **Stale save:** when the file changed since the room's state, a save writes
   nothing, and the room merges the current tree into its state, keeping what
   was typed since its last save, before trying again. **Deterministic.**

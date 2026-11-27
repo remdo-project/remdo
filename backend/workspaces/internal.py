@@ -115,7 +115,8 @@ def _save(request, workspace):
 @transaction.atomic
 def _write(workspace, base, state, canonical, loading):
     """Save the room's text, given in canonical spelling."""
-    reading = text_format.to_json(text_format.read(canonical))
+    document = text_format.read(canonical)
+    reading = text_format.to_json(document)
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
     version = store.version(locked, README)
     row = DocumentState.objects.filter(workspace=locked).only("version").first()
@@ -127,9 +128,10 @@ def _write(workspace, base, state, canonical, loading):
     # applying the file doesn't read back the same.
     if not loading and reading != _reading(version):
         source = _file(version).decode()
-        content = text_format.edit(canonical, source, text_format.read(source)).encode()
+        content = text_format.edit(canonical, source, text_format.read(source), document).encode()
         if len(content) > FILE_MAX_BYTES:
-            return _refuse("TOO_LARGE")
+            # Kept spellings can be longer than the canonical text, which fits.
+            content = canonical.encode()
         store.commit(
             locked, locked.owner, SAVE_MESSAGE, {README: (version, content)}, continuing=True
         )

@@ -152,6 +152,16 @@ class WorkspaceRoomTests(TestCase):
 
         self.assertEqual(self.readme().content, b"* a\n- b, typed\n")
 
+    def test_a_save_whose_kept_spelling_would_be_too_large_writes_the_canonical_text(self):
+        store.commit(self.workspace, self.owner, "agent", {"README.md": (None, b"*   a\n*   b\n")})
+        version = self.load()["version"]
+
+        with patch("workspaces.internal.FILE_MAX_BYTES", 10):
+            response = self.save(tree_of("- a2\n- b\n"), version)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.readme().content, b"- a2\n- b\n")
+
     def test_a_stale_save_writes_nothing_and_returns_the_current_file(self):
         version = self.save(tree_of("- one\n"), None, b"first").json()["version"]
         changed = store.commit(
