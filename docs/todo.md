@@ -291,9 +291,11 @@ Gaps:
   left open what an operation on a note that unsaved typing deleted does.
 - **Note operations on unusual text.** Set text and Ensure ID change only
   their note's own lines, and refuse what that can't express: notes sharing a
-  marker's line, as in `- > quote` or `- - b`, and a body whose lines hold a
-  property line. Ensure ID also refuses a note whose text
-  wouldn't read back with its new ID line where it puts it.
+  marker's line, as in `- > quote` or `- - b`, a body whose lines hold a
+  property line, and text that wouldn't read back as given where the note is,
+  such as `> quote` in an unquoted body under a list item. Ensure ID also
+  refuses a note whose text wouldn't read back with its new ID line where it
+  puts it.
 - **Changes an open head undoes.** A live document's saves that return a file
   to what the open head's parent holds leave the head with a change that
   changes nothing, which the [store](specs/workspaces/store.md#commits) would

@@ -78,6 +78,13 @@ def _outline(parsed, blank=None, renewed=(None, None)):
     return note_id(parsed, ()), notes(parsed.children, ())
 
 
+def _note_at(parsed, position):
+    note = parsed
+    for index in position:
+        note = note.children[index]
+    return note
+
+
 def _skeleton(parsed):
     """Each note's kind and children, the positions temporary references count."""
     return [(note.kind, _skeleton(note)) for note in parsed.children]
@@ -703,6 +710,10 @@ class TextNote(Note):
                 "INVALID_ARGUMENT",
                 "text: it would also add, remove or move notes, or change their kinds, texts or "
                 "IDs; Set text changes only this note's own text.",
+            )
+        if _note_at(written, self.position).text != text:
+            self.call.refuse(
+                "INVALID_ARGUMENT", "text: it wouldn't read back as given where this note is."
             )
         self.call.put(self.path, content, written)
         return {"ref": ref}

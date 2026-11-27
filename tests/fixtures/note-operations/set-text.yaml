@@ -124,6 +124,15 @@
         > three
     - b
 
+- name: body text that wouldn't read back as given is refused
+  before: |
+    - a
+
+      old
+  operations:
+    - {op: setText, target: old, text: "> quote"}
+  refused: INVALID_ARGUMENT
+
 - name: a body between headings changes as written
   before: |
     # A
