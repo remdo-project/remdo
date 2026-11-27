@@ -409,10 +409,9 @@ class WriteTests(SimpleTestCase):
         self.assertEqual(text_format.write(document, source), "* **bold** a\n- b2\n")
 
     def test_a_tree_whose_kept_lines_wouldnt_read_as_it_takes_canonical_spelling(self):
-        source = "* a\n\n# H\n\n* b\n"
+        source = "* a [link][ref]\n* b\n\n[ref]: https://example.com\n"
         document = text_format.read(source)
-        heading = document.children.pop(1)
-        document.children[0].children.append(heading)
+        document.children.pop()
 
         self.assertEqual(text_format.write(document, source), text_format.write(document))
 

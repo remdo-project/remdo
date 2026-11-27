@@ -288,8 +288,8 @@ Gaps:
   pairs notes by what they read as, so it doesn't know an edited note's own
   spelling, and the blank lines before it go. A file with CRLF endings goes LF
   on the first save that changes it, and an edit whose kept lines wouldn't read
-  as the tree, so far only a heading moved into a list item, re-spells the
-  whole file unreported.
+  as the tree, such as a kept reference link whose definition the edit deletes,
+  re-spells the whole file unreported.
 - **Note operations on unusual text.** Set text and Ensure ID change only
   their note's own lines, and refuse what that can't express: notes sharing a
   marker's line, as in `- > quote` or `- - b`, a body whose lines hold a

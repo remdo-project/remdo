@@ -103,19 +103,21 @@ def _save(request, workspace):
     try:
         data = json.loads(request.read())
         state = base64.b64decode(data["state"])
-        document = text_format.from_json(data["tree"])
-        canonical = text_format.write(document)
+        canonical = text_format.write(text_format.from_json(data["tree"]))
         base = data["version"]
     except KeyError, TypeError, ValueError, AttributeError:
         return _refuse("MALFORMED")
     if len(canonical.encode()) > FILE_MAX_BYTES:
         return _refuse("TOO_LARGE")
-    reading = text_format.to_json(text_format.read(canonical))
-    return _write(workspace, base, state, document, reading, loading=data.get("load") is True)
+    return _write(
+        workspace, base, state, text_format.read(canonical), loading=data.get("load") is True
+    )
 
 
 @transaction.atomic
-def _write(workspace, base, state, document, reading, loading):
+def _write(workspace, base, state, document, loading):
+    """Save `document`, what the room's text reads as."""
+    reading = text_format.to_json(document)
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
     version = store.version(locked, README)
     row = DocumentState.objects.filter(workspace=locked).only("version").first()
@@ -126,7 +128,8 @@ def _write(workspace, base, state, document, reading, loading):
     # A save that reads as the file leaves it alone, and opening a room writes no file even when
     # applying the file doesn't read back the same.
     if not loading and reading != _reading(version):
-        content = text_format.write(document, _file(version).decode()).encode()
+        source = _file(version).decode()
+        content = text_format.edit(document, source, text_format.read(source)).encode()
         if len(content) > FILE_MAX_BYTES:
             return _refuse("TOO_LARGE")
         store.commit(

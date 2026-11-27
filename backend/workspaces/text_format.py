@@ -4,7 +4,6 @@ The tree holds a document, outline notes (headings included) and bodies, each no
 lines as written. A body holds any other Markdown verbatim.
 """
 
-import copy
 import dataclasses
 import datetime
 import json
@@ -67,7 +66,6 @@ class Note:
     prefix: str = field(default="", compare=False, repr=False)
     inner: str = field(default="", compare=False, repr=False)
     id_line: int | None = field(default=None, compare=False, repr=False)
-    quoted: bool = field(default=False, compare=False, repr=False)  # a body written as a quote
 
     @property
     def text(self):
@@ -144,19 +142,16 @@ class _Reader:
         body = []
         body_first = body_stop = None
         body_prefix = ""
-        body_quoted = False
 
         def flush():
             nonlocal body
             if body:
                 span = None if body_first in self.shared_lines else (body_first, body_stop)
-                owner().children.append(
-                    Note("body", body, span=span, prefix=body_prefix, quoted=body_quoted)
-                )
+                owner().children.append(Note("body", body, span=span, prefix=body_prefix))
                 body = []
 
         def add(first, stop, quoted=False, code=False):
-            nonlocal body_first, body_stop, body_prefix, body_quoted
+            nonlocal body_first, body_stop, body_prefix
             raw = self.lines[first:stop]
             if quoted:
                 lines = [QUOTE.sub("", line) for line in raw]
@@ -173,7 +168,6 @@ class _Reader:
             else:
                 body_first = first + lead
                 body_prefix = raw[lead][: len(raw[lead]) - len(lines[lead])]
-                body_quoted = quoted
             body.extend(lines[lead : len(lines) - trail])
             body_stop = stop - trail
 
@@ -569,18 +563,21 @@ def _run_from_json(data):
 
 def write(document, source=None):
     """A document's text: its canonical spelling, which reads back as the same tree, adjacent
-    bodies joined into one; or, given `source`, an edit of that text (docs/architecture.md, under
-    Outline tree) reading as the canonical one does, in which notes reading as they do in it keep
-    their lines."""
+    bodies joined into one; or, given `source`, an edit of that text reading as the canonical one
+    does, unchanged when `source` already reads so."""
     canonical = _Writer().text(document)
     if source is None:
         return canonical
-    reading = to_json(read(canonical))
-    parsed = read(source)
-    if to_json(parsed) == reading:
-        return source
-    edited = _Writer(_Spellings(source, parsed)).text(document)
-    return edited if to_json(read(edited)) == reading else canonical
+    reading, parsed = read(canonical), read(source)
+    return source if to_json(parsed) == to_json(reading) else edit(reading, source, parsed)
+
+
+def edit(reading, source, parsed):
+    """`reading`, what a document's canonical text reads as, written as an edit of `source`, which
+    reads as `parsed` (docs/architecture.md, under Outline tree): notes reading as they do in it
+    keep their lines, and an edit that wouldn't read as `reading` is canonical throughout."""
+    edited = _Writer(_Spellings(source, parsed)).text(reading)
+    return edited if to_json(read(edited)) == to_json(reading) else _Writer().text(reading)
 
 
 class _Spellings:
@@ -590,7 +587,9 @@ class _Spellings:
         self.lines = lines_of(source)
         self.document = parsed
         self.unclaimed = {}
-        self.offsets = {}  # each outline note's indent past its parent list item's
+        # Indents past a list item's own: its outline children's, and its ID line's.
+        self.offsets = {}
+        self.id_offsets = {}
 
         def gather(notes, parent):
             under_item = parent is not None and parent.marker[0] != "heading"
@@ -598,19 +597,29 @@ class _Spellings:
                 if note.span is None:
                     continue
                 self.unclaimed.setdefault(_reads_as(note, under_item), deque()).append(note)
-                if under_item and note.kind == "outline" and note.prefix.startswith(parent.prefix):
+                if note.kind != "outline":
+                    continue
+                if under_item and note.prefix.startswith(parent.prefix):
                     self.offsets[id(note)] = note.prefix.removeprefix(parent.prefix)
+                if note.id_line is not None:
+                    line = self.lines[note.id_line]
+                    indent = line[: len(line) - len(line.lstrip())]
+                    if indent.startswith(note.prefix):
+                        self.id_offsets[id(note)] = indent.removeprefix(note.prefix)
             for note in notes:
                 gather(note.children, note if note.kind == "outline" else None)
 
         gather(parsed.children, None)
 
+    def unclaimed_like(self, note, under_item):
+        return self.unclaimed.get(_reads_as(note, under_item)) or ()
+
     def peek(self, note, under_item):
-        written = self.unclaimed.get(_reads_as(note, under_item))
+        written = self.unclaimed_like(note, under_item)
         return written[0] if written else None
 
     def claim(self, note, under_item):
-        written = self.unclaimed.get(_reads_as(note, under_item))
+        written = self.unclaimed_like(note, under_item)
         return written.popleft() if written else None
 
     def blank_lines_before(self, note):
@@ -624,15 +633,8 @@ def _reads_as(note, under_item):
     if note.kind == "body":
         # A body's lines read as written only where they were: under a list item they lose quoting.
         return ("body", under_item, tuple(note.source))
-    # A tree's runs read as their normal form, which a file's reading already has.
-    runs = _trim(_normalize(copy.deepcopy(note.runs)))
-    return (
-        "outline",
-        note.marker,
-        note.checkbox,
-        note.name,
-        json.dumps(list(map(_run_json, runs))),
-    )
+    runs = json.dumps([_run_json(run) for run in note.runs])
+    return ("outline", note.marker, note.checkbox, note.name, runs)
 
 
 NUMBER = re.compile(r"\s*(\d+)([.)])")
@@ -671,12 +673,9 @@ class _Numbering:
         before it."""
         written = NUMBER.match(line)
         number, delimiter = int(written[1]), written[2]
-        before = ")" if self.delimiter == "." else "."
-        fits = {
-            "continues": delimiter == self.delimiter,
-            "starts": number == self.number,
-            "restarts": number == self.number and delimiter != before,
-        }[place]
+        fits = (place == "starts" or delimiter == self.delimiter) and (
+            place == "continues" or number == self.number
+        )
         if not fits:
             return line[: written.start(1)] + self.marker(note) + line[written.end() :]
         self.delimiter = delimiter
@@ -710,7 +709,7 @@ class _Writer:
         if self.out and self.out[-1] != "":
             self.out.append("")
 
-    def id_line(self, note_id, written, indent=""):
+    def id_line_of(self, note_id, written, indent=""):
         if written is not None and written.id == note_id and written.id_line is not None:
             return indent + self.spellings.lines[written.id_line].strip()
         return indent + id_line(note_id)
@@ -727,7 +726,7 @@ class _Writer:
             children = children[1:]
         if note_id is not None:
             self.separate()
-            self.out.append(self.id_line(note_id, written))
+            self.out.append(self.id_line_of(note_id, written))
         self.section(children)
 
     def section(self, children):
@@ -773,7 +772,8 @@ class _Writer:
             first_line, *more = text.split("\n")
             self.out.append(f"{indent}{marker} {box}{first_line}".rstrip())
             self.out.extend(f"{continued}{line}" for line in more)
-        inner = indent + self.child_offset(note, written, _item_indent(self.out[start].lstrip()))
+        width = _item_indent(self.out[start].lstrip())
+        inner = indent + self.child_offset(note, written, width)
         # An unquoted body reads from its note's content column, past the marker and its spaces.
         content = " " * _item_indent(self.out[start])
         rest = note.children
@@ -783,7 +783,7 @@ class _Writer:
             rest = rest[1:]
             under_text = True
         if note.id is not None:
-            self.out.append(self.id_line(note.id, written, inner))
+            self.out.append(self.id_line_of(note.id, written, inner))
             under_text = True
         numbering = _Numbering()
         after_children = False
@@ -800,39 +800,37 @@ class _Writer:
             late_start = child.marker[0] == "number" and child.marker[1] not in (None, 1)
             if directly_under_text and (empty or late_start):
                 self.separate()
-            self.item(child, inner, numbering, child_written)
+            offset = child_written and self.spellings.offsets.get(id(child_written))
+            fits = offset is not None and len(offset.expandtabs(4)) >= width
+            self.item(child, indent + offset if fits else inner, numbering, child_written)
             after_children = True
 
-    def child_offset(self, note, written, content):
-        """The indent past a note's own that its ID line and children take, at least its content
-        column `content`: what its kept text gave them, or else what its first kept child had
-        under its parent in the file, or else past its marker."""
+    def child_offset(self, note, written, width):
+        """The indent past a note's own, at least its content column `width`, for its ID line,
+        quoted bodies and new children: what its kept text gave its ID line or children, or else
+        what its first kept child had in the file, or else past its marker. A kept child keeps
+        its own."""
         for offset in self.file_offsets(note, written):
-            if len(offset.expandtabs(4)) >= content:
+            if offset is not None and len(offset.expandtabs(4)) >= width:
                 return offset
-        return " " * max(4, content)
+        return " " * max(4, width)
 
     def file_offsets(self, note, written):
         if not self.spellings:
             return
+        offsets = self.spellings.offsets
         if written:
-            starts = [c.span[0] for c in written.children if c.kind == "outline" and c.span]
-            if written.id_line is not None:
-                starts.insert(0, written.id_line)
-            if starts:
-                line = self.spellings.lines[starts[0]]
-                indent = line[: len(line) - len(line.lstrip())]
-                if indent.startswith(written.prefix):
-                    yield indent.removeprefix(written.prefix)
+            yield self.spellings.id_offsets.get(id(written))
+            yield next((offsets[id(c)] for c in written.children if id(c) in offsets), None)
         for child in note.children:
             kept = child.kind == "outline" and self.spellings.peek(child, under_item=True)
-            if kept and id(kept) in self.spellings.offsets:
-                yield self.spellings.offsets[id(kept)]
+            if kept and id(kept) in offsets:
+                yield offsets[id(kept)]
                 return
 
     def body(self, body, inner, content, after_text=False):
         written = self.claim(body, under_item=True)
-        if written and not written.quoted:
+        if written and ">" not in written.prefix:
             self.separate()
             self.out.extend(content + line if line else "" for line in body.source)
             return

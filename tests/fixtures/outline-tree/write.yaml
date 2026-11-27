@@ -204,7 +204,7 @@
 
     - [x] done, edited
 
-- name: a moved note whose continuation sits left of its marker is written canonically
+- name: a moved note whose continuation sits left of its marker keeps its lines
   file: |
     - a
         1. b long
@@ -217,7 +217,8 @@
   written: |
     - a
         1. c
-        2. b long cont
+        1. b long
+      cont
 
 - name: children keep their parent's indent as written, tabs included
   file: "- a\n\t- b\n- c\n"
