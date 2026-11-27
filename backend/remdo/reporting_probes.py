@@ -3,6 +3,7 @@
 import asyncio
 import io
 import json
+import logging
 import os
 import sys
 from contextlib import asynccontextmanager
@@ -214,6 +215,14 @@ async def mcp_failure():
     }
 
 
+async def logged_error():
+    try:
+        raise RuntimeError("reported-logged-exception")
+    except RuntimeError:
+        logging.getLogger("uvicorn.error").exception("Exception in ASGI application")
+    return {}
+
+
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "remdo.settings")
     django.setup()
@@ -224,6 +233,7 @@ if __name__ == "__main__":
             "disabled": disabled,
             "streaming-failure": streaming_failure,
             "mcp-failure": mcp_failure,
+            "logged-error": logged_error,
         }[sys.argv[1]]()
     )
     if settings.SENTRY_DSN:

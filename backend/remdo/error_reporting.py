@@ -1,9 +1,11 @@
+import logging
 from urllib.parse import quote
 
 import sentry_sdk
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from sentry_sdk.integrations.argv import ArgvIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.utils import BadDsn, Dsn
 
 KEPT_REQUEST_HEADERS = {"user-agent"}
@@ -19,15 +21,12 @@ def scrub_event(event, hint):
         # cut the URL where a query string begins.
         if (route := event.get("tags", {}).get("http.route")) is not None:
             request["url"] = settings.APP_ORIGIN + "/" + quote(route, safe="/<>:")
-        # Internal collaboration calls carry the service credential in a header,
-        # and OAuth callbacks carry authorization codes in the query string.
+        # Internal collaboration calls carry the service credential in a header.
         request["headers"] = {
             name: value
             for name, value in request.get("headers", {}).items()
             if name.lower() in KEPT_REQUEST_HEADERS
         }
-        for field in ("cookies", "query_string", "data", "env"):
-            request.pop(field, None)
     # Logging records from Django's request handling carry the request, whose
     # text form includes the query string.
     event.get("extra", {}).pop("request", None)
@@ -57,11 +56,20 @@ def start(dsn, release, environment):
         dsn=dsn,
         release=release or None,
         environment=environment,
-        send_default_pii=False,
-        include_local_variables=False,
-        max_request_body_size="never",
+        data_collection={
+            "user_info": False,
+            "cookies": {"mode": "off"},
+            "http_bodies": [],
+            "url_query_params": {"mode": "off"},
+            "database_query_data": False,
+            "stack_frame_variables": False,
+        },
+        attach_stacktrace=False,
         auto_session_tracking=False,
         before_send=scrub_event,
+        # sentry-sdk 3 no longer turns logged errors into events by default, and
+        # its log stream would bypass before_send.
+        integrations=[LoggingIntegration(level=None, event_level=logging.ERROR)],
         # Command lines can carry credentials.
         disabled_integrations=[ArgvIntegration()],
     )
