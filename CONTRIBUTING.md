@@ -101,11 +101,14 @@ dependencies.
 
 Dependency updates land only after review, and majors also need the
 developer's approval. Each npm and PyPI update waits three days after its
-release, except a security fix. Updates that need no runtime code change land
-together in one batch pull request; each update, or Renovate group that must
-move together, that needs or enables one lands in its own pull request with
-that code. Changes never go on bot branches: their bots stop updating a branch
-carrying added commits, and a requested rebase discards them.
+release, except a security fix: a fix younger than that lands through the
+`remdo-review-deps` batch with a release-age exclusion for its exact version,
+which a later batch removes once the version is three days old. Updates that
+need no runtime code change land together in one batch pull request; each
+update, or Renovate group that must move together, that needs or enables one
+lands in its own pull request with that code. Changes never go on bot branches:
+their bots stop updating a branch carrying added commits, and a requested
+rebase discards them.
 
 The developer runs [`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md)
 once Renovate's weekly pull requests open, and when a Dependabot alert opens.
