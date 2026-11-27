@@ -267,12 +267,12 @@ the same database.
 A workspace's document is the hub room `workspace:<id>`, named apart from
 editor documents, and open to its owner's browser sessions; integrations change
 it through [note operations](specs/outliner/note-operations.md). Its cache row
-holds the document's Yjs state and tree, each with the file version it builds
-on; it is deleted with its workspace. The document's current tree is the row's
-tree when that builds on the current file version, and otherwise the file's
-tree with notes matched to the row's tree, if any, as
-[Apply](#outline-tree) matches them; the row keeps the cache IDs this gives,
-and the file is unchanged.
+holds the document's Yjs state, with the file version it builds on, and its
+tree; it is deleted with its workspace. The document's current tree is the
+row's tree when that reads as the current file, and otherwise the file's tree
+with notes matched to the row's tree, if any, as [Apply](#outline-tree)
+matches them; the row keeps the cache IDs this gives, and the file is
+unchanged.
 
 - **Load:** when the row's state builds on the document's current file
   version, the room loads it. Otherwise, with no row or after the file changed
