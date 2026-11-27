@@ -120,18 +120,6 @@ deploys to production:
   Mechanical changes, scripted with the command in the pull request, stay apart
   from logic changes.
 
-Open decisions:
-
-1. Late offline clients: merge their edits through the text door during a grace
-   period, which keeps the old decoder and transport until it ends, or require a
-   sync before cutover.
-2. Cut over on the shipped V2 binding with its move limit, or wait for `@lexical/y`.
-3. Whether cutover requires a rehearsal on a fresh production copy that reports
-   no failures.
-4. The point after which cutover problems are fixed forward rather than rolled back.
-5. Whether changing the MCP surface for everyone waits for the
-   [Claude directory review](#claude-mcp-save-a-conversation-to-remdo) or accepts a re-review.
-
 Steps, in order, one pull request in review at a time:
 
 1. **Outline note operations.** Python note operations and MCP tools for
@@ -178,13 +166,14 @@ Steps, in order, one pull request in review at a time:
    workspaces.
 9. **Sharing.** [Workspace members](specs/access/access-control.md#future), shared on Home as editor documents are.
 10. **Live safety.**
-    [Note operations on open rooms and stale clients](architecture.md#workspace-document-state),
-    and late offline clients by decision 1. Two editors and an agent then work together
-    with no silent loss beyond the move limit.
+    [Note operations on open rooms and stale clients](architecture.md#workspace-document-state).
+    Two editors and an agent then work together with no silent loss beyond the
+    V2 binding's move limit, which cutover accepts.
 11. **Migration.** Reassess rich body paragraphs and count sharing combinations
     first. Convert user by user, moving a document only when export, read-back
     and tree comparison pass, and reporting the rest; a rerun moves only what is
-    left. Rehearse on test.remdo.com until a run reports no failures.
+    left. Rehearse on test.remdo.com until every document a run doesn't move
+    has a recorded outcome: fixed, accepted as lossy, or moved by hand.
     - Each editor document becomes its own workspace's `README.md`, with its
       owner, and its grants as members.
     - Links between editor documents become `note:` references across workspaces.
@@ -199,10 +188,18 @@ Steps, in order, one pull request in review at a time:
     editor session. Update the published OpenAI plugin and any pending directory
     review as the MCP change needs, and remove the [format](format.md)'s note on existing
     documents.
-13. **Cutover.** Stop writes and back up production, then merge the branch into
-    `main`, which deploys it and runs the migration. Check its report before
-    writes reopen. Keep editor documents' tables through any grace period
-    of decision 1, then remove them with the migration.
+13. **Cutover.** Rehearse once more on a fresh production copy. Then stop
+    writes and back up production, merge the branch into `main`, which deploys
+    it and runs the migration, and check its report before writes reopen.
+    - Until writes reopen, a problem rolls back: restore the backup and revert
+      `main`. Afterwards it's fixed forward.
+    - Edits made offline and not synced before cutover are lost; while the app
+      is experimental, there's no grace period or announcement.
+    - If the [Claude directory review](#claude-mcp-save-a-conversation-to-remdo)
+      is still pending, the submitted MCP tools keep their names and schemas,
+      acting on workspaces, until it ends. Otherwise the note tools replace them.
+    - Editor documents' tables stay, read-only, for recovering a document by
+      hand, until a later change removes them with the migration.
 14. **Tracking cleanup.** Fold into their owners or remove what this migration
     made obsolete in this record, the [legacy backlog](legacy-backlog.md) and the format's
     Follow-up, then delete this section.
@@ -282,12 +279,17 @@ Gaps:
     unchanged;
   - Set text writes an outline note as given rather than in canonical spelling.
 
-  A save re-spells the whole file instead of [writing](architecture.md#outline-tree)
-  only its changed notes. A spike kept the saved tree with cache IDs on the
+  A spike kept the saved tree with cache IDs on the
   cache row and merged changes into open rooms three ways from the state the
   room last saved; the merge base must come from the row rather than the
   hub's memory, since a lost save reply would otherwise duplicate text. It
   left open what an operation on a note that unsaved typing deleted does.
+- **Writes beyond the changed notes.** [Write](architecture.md#outline-tree)
+  pairs notes by what they read as, so it doesn't know an edited note's own
+  spelling, and the blank lines before it go. A file with CRLF endings goes LF
+  on the first save that changes it, and an edit whose kept lines wouldn't read
+  as the tree, such as a kept reference link whose definition the edit deletes,
+  re-spells the whole file unreported.
 - **Note operations on unusual text.** Set text and Ensure ID change only
   their note's own lines, and refuse what that can't express: notes sharing a
   marker's line, as in `- > quote` or `- - b`, a body whose lines hold a
@@ -297,7 +299,7 @@ Gaps:
   puts it.
 - **No Move tool.** The [MCP server](specs/integrations/mcp.md) offers one
   tool per note operation, but Move has none: add `move_note` beside the other
-  note tools, within decision 5.
+  note tools when they replace the submitted ones at cutover.
 - **Changes an open head undoes.** A live document's saves that return a file
   to what the open head's parent holds leave the head with a change that
   changes nothing, which the [store](specs/workspaces/store.md#commits) would

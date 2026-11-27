@@ -3,6 +3,7 @@ import json
 import re
 from pathlib import Path
 
+import yaml
 from django.test import SimpleTestCase
 
 from . import text_format
@@ -356,3 +357,77 @@ class OutlineTreeTests(SimpleTestCase):
         tree = text_format.to_json(document)
         self.assertEqual([note["cacheId"] for note in tree["children"]], ["b1", "n1"])
         self.assertEqual(text_format.to_json(text_format.from_json(tree)), tree)
+
+
+class WriteTests(SimpleTestCase):
+    """Writing a tree as an edit of a document's file (docs/architecture.md, under Outline tree)."""
+
+    def test_the_write_cases(self):
+        cases = yaml.safe_load((REPO / "tests/fixtures/outline-tree/write.yaml").read_text("utf8"))
+        for case in cases:
+            with self.subTest(case["name"]):
+                tree = text_format.read(case["tree"])
+                self.assertEqual(text_format.write(tree, case["file"]), case["written"])
+
+    def test_changing_one_note_changes_only_its_own_lines(self):
+        for name in ("test-document", "document"):
+            source = (REPO / f"tests/fixtures/outline-tree/{name}.md").read_text("utf8")
+            lines = text_format.lines_of(source)
+            notes = list(_notes(text_format.read(source)))
+            for index, note in enumerate(notes):
+                if note.span is None:
+                    continue
+                with self.subTest(document=name, note=note.source[0]):
+                    document = text_format.read(source)
+                    changed = list(_notes(document))[index]
+                    if changed.kind == "body":
+                        changed.source = [*changed.source, "changed"]
+                    else:
+                        changed.runs = [*changed.runs, text_format.Run("text", " changed")]
+                    written = text_format.lines_of(text_format.write(document, source))
+                    # Blank lines before it may go, and its children may be re-indented.
+                    before = note.span[0]
+                    while before > 0 and not lines[before - 1].strip():
+                        before -= 1
+                    later = notes[index + 1 + len(list(_notes(note))) :]
+                    after = next((n.span[0] for n in later if n.span), len(lines))
+                    self.assertEqual(written[:before], lines[:before])
+                    self.assertEqual(written[len(written) - (len(lines) - after) :], lines[after:])
+
+    def test_a_tree_note_keeps_its_lines_while_its_runs_read_as_the_files(self):
+        source = "* **bold** a\n* b\n"
+        document = text_format.read(source)
+        bold = ("bold",)
+        Run = text_format.Run
+        document.children[0].runs = [
+            Run("text", "bo", bold),
+            Run("text", "ld", bold),
+            Run("text", " a "),
+        ]
+        document.children[1].runs = [Run("text", "b2")]
+
+        self.assertEqual(text_format.write(document, source), "* **bold** a\n- b2\n")
+
+    def test_a_tree_whose_kept_lines_wouldnt_read_as_it_takes_canonical_spelling(self):
+        source = "* a [link][ref]\n* b\n\n[ref]: https://example.com\n"
+        document = text_format.read(source)
+        document.children.pop()
+
+        self.assertEqual(text_format.write(document, source), text_format.write(document))
+
+    def test_an_edit_reads_as_the_canonical_text_even_where_writing_that_again_wouldnt(self):
+        document = text_format.read("\t- e\n- id:: k1\n")
+        canonical = text_format.write(document)
+
+        written = text_format.write(document, "- x\n")
+
+        self.assertEqual(
+            text_format.to_json(text_format.read(written)),
+            text_format.to_json(text_format.read(canonical)),
+        )
+
+
+def _notes(parent):
+    for note in parent.children:
+        yield note
+        yield from _notes(note)

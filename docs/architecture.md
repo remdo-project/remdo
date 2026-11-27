@@ -191,10 +191,12 @@ stays out of it.
     elsewhere in the note survives. **Deterministic.**
 - **Write** gives a tree's text as an edit of the document's file. A body, and
   an outline note whose marker, checkbox, name and text read as the file's,
-  keep their lines as written, re-indented to where the tree puts them; other
-  notes, and a changed ID's line, take
-  [canonical spelling](format.md#canonical-spelling). A tree that reads as the
-  file writes it unchanged.
+  keep their lines as written and the blank lines before them, re-indented to
+  where the tree puts them; a numbered note's number and delimiter change only
+  where its place in its list needs them. Other notes, and a changed ID's line,
+  take [canonical spelling](format.md#canonical-spelling). A tree that reads as
+  the file writes it unchanged, and one its kept lines wouldn't read as is
+  written in canonical spelling throughout. **Deterministic.**
 
 ### Document identity
 
@@ -283,7 +285,8 @@ and the file is unchanged.
   [continuing commit](specs/workspaces/store.md#commits) by the workspace's
   owner, and the tree and state it was read from with that file's version, in one
   transaction: both land or neither does. A save that leaves the file
-  unchanged updates only the row. **Deterministic.**
+  unchanged updates only the row, and one whose kept lines would put the file
+  over its limit writes it in canonical spelling. **Deterministic.**
 - **Stale save:** when the file changed since the room's state, a save writes
   nothing, and the room merges the current tree into its state, keeping what
   was typed since its last save, before trying again. **Deterministic.**

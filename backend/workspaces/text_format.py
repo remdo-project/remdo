@@ -6,7 +6,9 @@ lines as written. A body holds any other Markdown verbatim.
 
 import dataclasses
 import datetime
+import json
 import re
+from collections import deque
 from dataclasses import dataclass, field
 
 from markdown_it import MarkdownIt
@@ -76,6 +78,7 @@ class Document:
     children: list = field(default_factory=list)
     start: int = field(default=0, compare=False, repr=False)
     id_line: int | None = field(default=None, compare=False, repr=False)
+    property_lines: set = field(default_factory=set, compare=False, repr=False)
 
 
 def lines_of(source):
@@ -100,15 +103,16 @@ def read(source):
         first_line = end + 1
     document.start = first_line
     tokens = _markdown.parse("\n".join(parsed))
-    _Reader(lines, tokens, first_line).section(document)
+    _Reader(lines, tokens, first_line, document.property_lines).section(document)
     return document
 
 
 class _Reader:
-    def __init__(self, lines, tokens, first_line):
+    def __init__(self, lines, tokens, first_line, property_lines):
         self.lines = lines
         self.tokens = tokens
         self.first_line = first_line
+        self.property_lines = property_lines
         self.identified = set()
         self.shared_lines = set()  # marker lines a note shares with its first child
 
@@ -205,6 +209,7 @@ class _Reader:
                 item_close = _close_of(self.tokens, index)
                 inline = self._property_inline(index, item_close)
                 if inline is not None:
+                    self.property_lines.add(self.tokens[index].map[0])
                     self._property(inline, owner, self.tokens[index].map[0])
                 else:
                     before_note()
@@ -559,28 +564,358 @@ def _run_from_json(data):
     return Run("verbatim", data["text"])
 
 
-def write(document):
-    """The canonical text of a document: what tools write, which reads back as the same tree,
-    adjacent bodies joined into one."""
-    out = []
-    _owner_children(document.children, document.id, out, at_start=True)
-    return "\n".join(out) + "\n" if out else ""
+def write(document, source=None):
+    """A document's text: its canonical spelling, which reads back as the same tree, adjacent
+    bodies joined into one; or, given `source`, an edit of that text reading as the canonical one
+    does, unchanged when `source` already reads so."""
+    canonical = _Writer().text(document)
+    return canonical if source is None else edit(canonical, source, read(source))
 
 
-def _owner_children(children, note_id, out, at_start=False):
-    """A document's or heading's children after its ID, which follows only front matter."""
-    if (
-        at_start
-        and children
-        and children[0].kind == "body"
-        and _is_front_matter(children[0].source)
-    ):
-        _section(children[:1], out)
-        children = children[1:]
-    if note_id is not None:
-        _separate(out)
-        out.append(id_line(note_id))
-    _section(children, out)
+def edit(canonical, source, parsed, document=None):
+    """`canonical`, a document's canonical text, which reads as `document`, written as an edit of
+    `source`, which reads as `parsed` (docs/architecture.md, under Outline tree): `source` itself
+    when it reads as `canonical` does, notes reading as they do in it keeping their lines, and
+    `canonical` when the edit wouldn't read as it does."""
+    document = document or read(canonical)
+    reading = to_json(document)
+    if to_json(parsed) == reading:
+        return source
+    edited = _Writer(_Spellings(source, parsed)).text(document)
+    # Writing a reading again can read differently, so only the canonical text is sure to.
+    return edited if to_json(read(edited)) == reading else canonical
+
+
+class _Spellings:
+    """A text's notes by what they read as, each kept for one note of an edit."""
+
+    def __init__(self, source, parsed):
+        self.lines = lines_of(source)
+        self.document = parsed
+        self.unclaimed = {}
+        # Indents past their parent list item's own: of the notes under one, and of ID lines.
+        self.offsets = {}
+        self.id_offsets = {}
+
+        def gather(notes, parent):
+            under_item = parent is not None and parent.marker[0] != "heading"
+            for note in notes:
+                if note.span is not None:
+                    self.unclaimed.setdefault(_reads_as(note, under_item), deque()).append(note)
+                    if under_item:
+                        self.offsets[id(note)] = _past(_leading(note.prefix), parent.prefix)
+                if note.kind == "outline" and note.id_line is not None:
+                    line = self.lines[note.id_line]
+                    self.id_offsets[id(note)] = _past(_leading(line), note.prefix)
+                gather(note.children, note if note.kind == "outline" else None)
+
+        gather(parsed.children, None)
+
+    def unclaimed_like(self, note, under_item):
+        return self.unclaimed.get(_reads_as(note, under_item)) or ()
+
+    def peek(self, note, under_item):
+        written = self.unclaimed_like(note, under_item)
+        return written[0] if written else None
+
+    def claim(self, note, under_item):
+        written = self.unclaimed_like(note, under_item)
+        return written.popleft() if written else None
+
+    def blank_lines_before(self, line):
+        first = line
+        while first > 0 and not self.lines[first - 1].strip():
+            first -= 1
+        return line - first
+
+    def body_lines(self, body):
+        """A body's lines as written, from its indent on, with the property lines among them, which
+        its owner writes, left blank."""
+        start, stop = body.span
+        indent = len(_leading(body.prefix))
+        return [
+            ""
+            if index in self.document.property_lines
+            else line[min(indent, len(_leading(line))) :]
+            for index, line in enumerate(self.lines[start:stop], start)
+        ]
+
+
+def _leading(text):
+    return text[: len(text) - len(text.lstrip())]
+
+
+def _past(indent, prefix):
+    return indent.removeprefix(prefix) if indent.startswith(prefix) else None
+
+
+def _fits(offset, width):
+    """Whether an indent past a list item's own puts a line in its content without making it code."""
+    return offset is not None and width <= len(offset.expandtabs(4)) < width + 4
+
+
+def _reads_as(note, under_item):
+    if note.kind == "body":
+        # A body's lines read as written only where they were: under a list item they lose quoting.
+        return ("body", under_item, tuple(note.source))
+    runs = json.dumps([_run_json(run) for run in note.runs])
+    return ("outline", note.marker, note.checkbox, note.name, runs)
+
+
+NUMBER = re.compile(r"\s*(\d+)([.)])")
+
+
+class _Numbering:
+    """The markers of a run of sibling notes, numbered as Markdown reads them."""
+
+    def __init__(self):
+        self.previous = None
+        self.number = 0
+        self.delimiter = "."
+
+    def follows(self, note):
+        """Number `note`, returning whether it continues a list, starts one, or starts one right
+        after another numbered list, which only a new delimiter does."""
+        place = "continues"
+        if _starts_new_list(note, self.previous):
+            self.delimiter = ")" if self.delimiter == "." else "."
+            self.number = _first_number(note)
+            place = "restarts"
+        elif self.previous != note.marker[0]:
+            self.number = _first_number(note)
+            self.delimiter = "."
+            place = "starts"
+        self.number += 1
+        self.previous = note.marker[0]
+        return place
+
+    def marker(self, note):
+        return f"{self.number}{self.delimiter}" if note.marker[0] == "number" else "-"
+
+    def kept(self, note, line, place):
+        """`line`, a numbered note's kept first line, with a number and delimiter that read as
+        the note's place: a list's first number is its start, and its delimiter ends the list
+        before it."""
+        written = NUMBER.match(line)
+        number, delimiter = int(written[1]), written[2]
+        fits = (place == "starts" or delimiter == self.delimiter) and (
+            place == "continues" or number == self.number
+        )
+        if not fits:
+            return line[: written.start(1)] + self.marker(note) + line[written.end() :]
+        self.delimiter = delimiter
+        return line
+
+
+class _Writer:
+    def __init__(self, spellings=None):
+        self.spellings = spellings
+        self.out = []
+        self.origins = []  # each written line's index in the edited text, if it comes from there
+        self.adjacent = False
+
+    def text(self, document):
+        owner = self.spellings.document if self.spellings else None
+        self.owner_children(document.children, document.id, owner, at_start=True)
+        return "\n".join(self.out) + "\n" if self.out else ""
+
+    def put(self, line, origin=None):
+        self.out.append(line)
+        self.origins.append(origin)
+        if line:
+            self.adjacent = False
+
+    def keep_blank_lines_before(self, line):
+        """Write the blank lines the edited text has before its `line`, noting whether the line
+        then follows what it follows there, so needs no other separation."""
+        blanks = self.spellings.blank_lines_before(line)
+        for _ in range(blanks - self.trailing_blanks()):
+            self.put("")
+        previous = next(
+            (o for o, text in zip(reversed(self.origins), reversed(self.out)) if text), -1
+        )
+        self.adjacent = previous == line - blanks - 1
+
+    def claim(self, note, under_item):
+        written = self.spellings and self.spellings.claim(note, under_item)
+        if written:
+            self.keep_blank_lines_before(written.span[0])
+        return written
+
+    def trailing_blanks(self):
+        count = 0
+        while count < len(self.out) and self.out[-1 - count] == "":
+            count += 1
+        return count
+
+    def separate(self):
+        if self.out and self.out[-1] != "" and not self.adjacent:
+            self.put("")
+
+    def put_kept(self, written, lines, indent):
+        for index, line in enumerate(lines, written.span[0]):
+            self.put(indent + line if line.strip() else "", index)
+
+    def put_id_line(self, note_id, written, indent="", separate=False):
+        if written is not None and written.id == note_id and written.id_line is not None:
+            self.keep_blank_lines_before(written.id_line)
+            if separate:
+                self.separate()
+            self.put(indent + self.spellings.lines[written.id_line].strip(), written.id_line)
+            return
+        if separate:
+            self.separate()
+        self.put(indent + id_line(note_id))
+
+    def owner_children(self, children, note_id, written, at_start=False):
+        """A document's or heading's children after its ID, which follows only front matter."""
+        if (
+            at_start
+            and children
+            and children[0].kind == "body"
+            and _is_front_matter(children[0].source)
+        ):
+            self.section(children[:1])
+            children = children[1:]
+        if note_id is not None:
+            self.put_id_line(note_id, written, separate=True)
+        self.section(children)
+
+    def section(self, children):
+        numbering = _Numbering()
+        for child in children:
+            written = self.claim(child, under_item=False)
+            if child.kind == "body":
+                self.separate()
+                if written:
+                    self.put_kept(
+                        written, self.spellings.body_lines(written), _leading(written.prefix)
+                    )
+                else:
+                    for line in child.source:
+                        self.put(line)
+                numbering.previous = None
+            elif child.marker[0] == "heading":
+                self.separate()
+                if written:
+                    self.put_kept(written, written.source, "")
+                else:
+                    text = _note_text(child)
+                    # Trailing `#`s after a space would read as the heading's closing sequence.
+                    text = re.sub(r"(^|[ \t])(#+)([ \t]*)$", r"\1\\\2\3", text)
+                    self.put(f"{'#' * child.marker[1]} {text}".rstrip())
+                self.owner_children(child.children, child.id, written)
+                numbering.previous = None
+            else:
+                if numbering.previous is None:
+                    self.separate()
+                self.item(child, "", numbering, written)
+
+    def item(self, note, indent, numbering, written):
+        place = numbering.follows(note)
+        text = _note_text(note)
+        start = len(self.out)
+        if written:
+            lines = list(written.source)
+            if note.marker[0] == "number":
+                lines[0] = numbering.kept(note, lines[0], place)
+            self.put_kept(written, lines, indent)
+        else:
+            marker = numbering.marker(note)
+            box = "" if note.checkbox is None else "[x] " if note.checkbox == "checked" else "[ ] "
+            if PROPERTY.match(text):
+                # A list item named after a property would read as that property, losing the note.
+                text = text.replace("::", "\\::", 1)
+            continued = indent + " " * max(4, len(marker) + 1)
+            first_line, *more = text.split("\n")
+            self.put(f"{indent}{marker} {box}{first_line}".rstrip())
+            for line in more:
+                self.put(continued + line)
+        width = _item_indent(self.out[start].lstrip().expandtabs(4))
+        inner = indent + self.child_offset(note, written, width)
+        rest = note.children
+        first_body = rest[0] if rest and rest[0].kind == "body" else None
+        under_text = first_body is not None or note.id is not None
+        if first_body is not None:
+            rest = rest[1:]
+        # The ID line goes after the first body unless the edited text put it before.
+        id_first = (
+            written is not None
+            and written.id_line is not None
+            and written.children
+            and written.children[0].kind == "body"
+            and written.children[0].span is not None
+            and written.id_line < written.children[0].span[0]
+        )
+        if note.id is not None and id_first:
+            self.put_id_line(note.id, written, inner)
+        if first_body is not None:
+            self.body(first_body, indent, width, inner, after_text=not id_first)
+        if note.id is not None and not id_first:
+            self.put_id_line(note.id, written, inner)
+        numbering = _Numbering()
+        after_children = False
+        for child in rest:
+            if child.kind == "body":
+                self.body(child, indent, width, inner)
+                numbering.previous = None
+                after_children = True
+                continue
+            child_written = self.claim(child, under_item=True)
+            directly_under_text = not under_text and not after_children and text
+            empty = _note_text(child) == "" and child.checkbox is None
+            # Only `1.` can interrupt a paragraph, so another first number needs a blank line.
+            late_start = child.marker[0] == "number" and child.marker[1] not in (None, 1)
+            if directly_under_text and (empty or late_start):
+                self.separate()
+            offset = child_written and self.spellings.offsets.get(id(child_written))
+            child_indent = indent + offset if _fits(offset, width) else inner
+            self.item(child, child_indent, numbering, child_written)
+            after_children = True
+
+    def child_offset(self, note, written, width):
+        """The indent past a note's own, `width` columns to its content, for its ID line, new
+        children and canonically written bodies: what the edited text gave its ID line or
+        children, or else what its first kept child had there, or else past its marker. Kept
+        children and bodies keep their own."""
+        for offset in self.file_offsets(note, written):
+            if _fits(offset, width):
+                return offset
+        return " " * max(4, width)
+
+    def file_offsets(self, note, written):
+        if not self.spellings:
+            return
+        offsets = self.spellings.offsets
+        if written:
+            yield self.spellings.id_offsets.get(id(written))
+            yield next((offsets[id(c)] for c in written.children if id(c) in offsets), None)
+        for child in note.children:
+            kept = self.spellings.peek(child, under_item=True)
+            if kept:
+                yield offsets.get(id(kept))
+                return
+
+    def body(self, body, indent, width, inner, after_text=False):
+        """A body under a list item `width` columns to its content: kept bodies as written, and
+        others quoted."""
+        written = self.claim(body, under_item=True)
+        if written:
+            quoted = ">" in written.prefix
+            # Unquoted text right after a note's own would continue it.
+            if not (after_text and quoted):
+                self.separate()
+            offset = self.spellings.offsets.get(id(written))
+            if _fits(offset, width):
+                base = indent + offset
+            else:
+                base = inner if quoted else indent + " " * width
+            self.put_kept(written, self.spellings.body_lines(written), base)
+            return
+        if not after_text:
+            self.separate()
+        for line in _quoted(body.source):
+            self.put(inner + line)
 
 
 def _is_front_matter(source):
@@ -596,94 +931,6 @@ def _first_number(note):
 def _starts_new_list(note, previous):
     """A numbered note with its own start after numbered siblings begins another list."""
     return note.marker[0] == "number" and previous == "number" and note.marker[1] is not None
-
-
-def _separate(out):
-    if out and out[-1] != "":
-        out.append("")
-
-
-def _section(children, out):
-    in_list = False
-    numbered = 0
-    previous = None
-    delimiter = "."
-    for child in children:
-        if child.kind == "body":
-            _separate(out)
-            out.extend(child.source)
-            in_list = False
-        elif child.marker[0] == "heading":
-            _separate(out)
-            text = _note_text(child)
-            # Trailing `#`s after a space would read as the heading's closing sequence.
-            text = re.sub(r"(^|[ \t])(#+)([ \t]*)$", r"\1\\\2\3", text)
-            out.append(f"{'#' * child.marker[1]} {text}".rstrip())
-            _owner_children(child.children, child.id, out)
-            in_list = False
-        else:
-            if not in_list:
-                _separate(out)
-            if _starts_new_list(child, previous if in_list else None):
-                # Only a new delimiter starts another numbered list right after one.
-                delimiter = ")" if delimiter == "." else "."
-                numbered = _first_number(child)
-            elif not in_list or previous != child.marker[0]:
-                numbered = _first_number(child)
-                delimiter = "."
-            numbered += 1
-            _item(child, "", numbered, out, delimiter)
-            in_list = True
-            previous = child.marker[0]
-
-
-def _item(note, indent, number, out, delimiter="."):
-    marker = f"{number}{delimiter}" if note.marker[0] == "number" else "-"
-    box = "" if note.checkbox is None else "[x] " if note.checkbox == "checked" else "[ ] "
-    text = _note_text(note)
-    if PROPERTY.match(text):
-        # A list item named after a property would read as that property, losing the note.
-        text = text.replace("::", "\\::", 1)
-    inner = indent + " " * max(4, len(marker) + 1)
-    first, *more = text.split("\n")
-    out.append(f"{indent}{marker} {box}{first}".rstrip())
-    out.extend(f"{inner}{line}" for line in more)
-    rest = note.children
-    under_text = False
-    if rest and rest[0].kind == "body":
-        out.extend(f"{inner}{line}" for line in _quoted(rest[0].source))
-        rest = rest[1:]
-        under_text = True
-    if note.id is not None:
-        out.append(inner + id_line(note.id))
-        under_text = True
-    numbered = 0
-    previous = None
-    delimiter = "."
-    after_children = False
-    for child in rest:
-        if child.kind == "body":
-            out.append("")
-            out.extend(f"{inner}{line}" for line in _quoted(child.source))
-            previous = None
-            after_children = True
-            continue
-        directly_under_text = not under_text and not after_children and text
-        empty = _note_text(child) == "" and child.checkbox is None
-        # Only `1.` can interrupt a paragraph, so another first number needs a blank line before it.
-        late_start = child.marker[0] == "number" and child.marker[1] not in (None, 1)
-        if directly_under_text and (empty or late_start):
-            out.append("")
-        if _starts_new_list(child, previous):
-            delimiter = ")" if delimiter == "." else "."
-            numbered = _first_number(child)
-        elif previous != child.marker[0]:
-            numbered = _first_number(child)
-            delimiter = "."
-        numbered += 1
-        _item(child, inner, numbered, out, delimiter)
-        previous = child.marker[0]
-        after_children = True
 
 
 def _quoted(source):

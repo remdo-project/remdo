@@ -56,8 +56,12 @@ _readings = {}
 
 def _reading(blob_hash):
     if blob_hash not in _readings:
-        _remember(blob_hash, tree_of(store.contents([blob_hash])[blob_hash] if blob_hash else b""))
+        _remember(blob_hash, tree_of(_file(blob_hash)))
     return _readings[blob_hash]
+
+
+def _file(blob_hash):
+    return store.contents([blob_hash])[blob_hash] if blob_hash else b""
 
 
 def _remember(blob_hash, reading):
@@ -95,22 +99,24 @@ def _load(workspace):
 
 
 def _save(request, workspace):
-    """Write the room's text as its file and its state to its row, together."""
+    """Write the room's text as an edit of its file, and its state to its row, together."""
     try:
         data = json.loads(request.read())
         state = base64.b64decode(data["state"])
-        content = text_format.write(text_format.from_json(data["tree"])).encode()
+        canonical = text_format.write(text_format.from_json(data["tree"]))
         base = data["version"]
     except KeyError, TypeError, ValueError, AttributeError:
         return _refuse("MALFORMED")
-    if len(content) > FILE_MAX_BYTES:
+    if len(canonical.encode()) > FILE_MAX_BYTES:
         return _refuse("TOO_LARGE")
-    return _write(workspace, base, state, content, loading=data.get("load") is True)
+    return _write(workspace, base, state, canonical, loading=data.get("load") is True)
 
 
 @transaction.atomic
-def _write(workspace, base, state, content, loading):
-    reading = tree_of(content)
+def _write(workspace, base, state, canonical, loading):
+    """Save the room's text, given in canonical spelling."""
+    document = text_format.read(canonical)
+    reading = text_format.to_json(document)
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
     version = store.version(locked, README)
     row = DocumentState.objects.filter(workspace=locked).only("version").first()
@@ -118,9 +124,14 @@ def _write(workspace, base, state, content, loading):
     # landed even if its reply was lost.
     if version != base and not (row and row.version == version):
         return JsonResponse({"version": version, "tree": _reading(version)}, status=409)
-    # The file's own spelling stays until a save changes what it reads as, and opening a room
-    # writes no file even when applying the file doesn't read back the same.
+    # A save that reads as the file leaves it alone, and opening a room writes no file even when
+    # applying the file doesn't read back the same.
     if not loading and reading != _reading(version):
+        source = _file(version).decode()
+        content = text_format.edit(canonical, source, text_format.read(source), document).encode()
+        if len(content) > FILE_MAX_BYTES:
+            # Kept spellings can be longer than the canonical text, which fits.
+            content = canonical.encode()
         store.commit(
             locked, locked.owner, SAVE_MESSAGE, {README: (version, content)}, continuing=True
         )

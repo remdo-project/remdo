@@ -1,0 +1,397 @@
+# Each case writes a tree as an edit of a document's file (docs/architecture.md, under Outline tree):
+# - file: the file before the save;
+# - tree: the tree the save writes, usually changed from the file's, given as Markdown whose
+#   spelling doesn't matter, only what it reads as;
+# - written: the file after the save.
+
+- name: a tree that reads as the file writes it unchanged
+  file: |
+    * a
+
+    * b
+  tree: |
+    - a
+    - b
+  written: |
+    * a
+
+    * b
+
+- name: a changed note takes canonical spelling and the others keep theirs
+  file: |
+    * a
+    * b
+  tree: |
+    - a, edited
+    - b
+  written: |
+    - a, edited
+    * b
+
+- name: moved notes keep their lines
+  file: |
+    * a
+    * b
+  tree: |
+    - b
+    - a
+  written: |
+    * b
+    * a
+
+- name: a moved note keeps its indent under its new parent
+  file: |
+    - a
+      - b
+      - c
+    - d
+  tree: |
+    - a
+        - b
+    - d
+        - c
+  written: |
+    - a
+      - b
+    - d
+      - c
+
+- name: a new child goes where its parent's text put the other children
+  file: |
+    - a
+      - b
+  tree: |
+    - a
+        - b
+        - c
+  written: |
+    - a
+      - b
+      - c
+
+- name: a note's continuation lines stay as written
+  file: |
+    - a long
+      note
+    - b
+  tree: |
+    - a long note
+    - b, edited
+  written: |
+    - a long
+      note
+    - b, edited
+
+- name: blank lines before an unchanged note stay
+  file: |
+    - a
+
+    - b
+
+    - c
+  tree: |
+    - a
+    - b, edited
+    - c
+  written: |
+    - a
+    - b, edited
+
+    - c
+
+- name: a list's first kept number is renumbered to its start
+  file: |
+    1. a
+    2. b
+    3. c
+  tree: |
+    1. b
+    2. c
+  written: |
+    1. b
+    3. c
+
+- name: a kept number takes the delimiter of the list it joins
+  file: |
+    1) a
+    2) b
+  tree: |
+    1. a
+    2. x
+    3. b
+  written: |
+    1) a
+    2) x
+    2) b
+
+- name: a body under a list item keeps its unquoted lines
+  file: |
+    - a
+
+      old
+    - b
+  tree: |
+    - a
+
+        > old
+    - b, edited
+  written: |
+    - a
+
+      old
+    - b, edited
+
+- name: a changed body takes canonical spelling
+  file: |
+    - a
+
+      old
+  tree: |
+    - a
+
+        > new
+  written: |
+    - a
+      > new
+
+- name: an unchanged ID line keeps its spelling
+  file: |
+    - a
+      * id:: k3x9
+    - b
+  tree: |
+    - a
+        - id:: k3x9
+    - b, edited
+  written: |
+    - a
+      * id:: k3x9
+    - b, edited
+
+- name: a changed ID's line takes canonical spelling
+  file: |
+    - a
+      * id:: k3x9
+  tree: |
+    - a
+        - id:: m2p7
+  written: |
+    - a
+      - id:: m2p7
+
+- name: headings and the text between them keep their lines
+  file: |
+    Plan
+    ====
+
+    Some  *text*
+    here
+
+    - [X]  done
+  tree: |
+    # Plan
+
+    Some  *text*
+    here
+
+    - [x] done, edited
+  written: |
+    Plan
+    ====
+
+    Some  *text*
+    here
+
+    - [x] done, edited
+
+- name: a moved note whose continuation sits left of its marker keeps its lines
+  file: |
+    - a
+        1. b long
+      cont
+        2. c
+  tree: |
+    - a
+        1. c
+        2. b long cont
+  written: |
+    - a
+        1. c
+        1. b long
+      cont
+
+- name: children keep their parent's indent as written, tabs included
+  file: "- a\n\t- b\n- c\n"
+  tree: |
+    - a
+        - b
+    - c2
+  written: "- a\n\t- b\n- c2\n"
+
+- name: an edited note's children keep their indent
+  file: |
+    - a
+      - b
+  tree: |
+    - a, edited
+        - b
+  written: |
+    - a, edited
+      - b
+
+- name: a quoted body under a list item keeps its lines
+  file: |
+    - a
+      >old
+      lazy
+    - b
+  tree: |
+    - a
+        > old
+        > lazy
+    - b, edited
+  written: |
+    - a
+      >old
+      lazy
+    - b, edited
+
+- name: kept notes keep the absence of blank lines around them
+  file: |
+    # H
+    - id:: abc
+    - a
+    - b
+    # G
+    para
+    - c
+  tree: |
+    # H
+
+    - id:: abc
+
+    - a
+    - b2
+
+    # G
+
+    para
+
+    - c
+  written: |
+    # H
+    - id:: abc
+    - a
+    - b2
+
+    # G
+    para
+    - c
+
+- name: an ID line inside a body's lines is written once
+  file: |
+    - a
+      > q1
+      - id:: k1
+      > q2
+      - c
+    - b
+  tree: |
+    - a
+        > q1
+        >
+        > q2
+        - id:: k1
+        - c
+    - b2
+  written: |
+    - a
+      > q1
+
+      > q2
+      - id:: k1
+      - c
+    - b2
+
+- name: notes that read alike at different depths keep their own lines
+  file: |
+    - a
+      * x
+
+    - x
+    - z
+  tree: |
+    - a
+        - x
+    - x
+    - z2
+  written: |
+    - a
+      * x
+
+    - x
+    - z2
+
+- name: an unquoted body keeps its lines as written, a quote after it included
+  file: |
+    - a
+
+      para
+
+      > quote
+    - b
+  tree: |
+    - a
+
+        > para
+        >
+        > quote
+    - b2
+  written: |
+    - a
+
+      para
+
+      > quote
+    - b2
+
+- name: an ID line before a body stays before it
+  file: |
+    - a
+      - id:: k1
+      > q
+    - b
+  tree: |
+    - a
+        > q
+        - id:: k1
+    - b2
+  written: |
+    - a
+      - id:: k1
+      > q
+    - b2
+
+- name: a tab-indented note's unquoted body keeps its lines
+  file: "- p\n\t- a\n\n\t  body\n- q\n"
+  tree: |
+    - p
+        - a
+
+            > body
+    - q2
+  written: "- p\n\t- a\n\n\t  body\n- q2\n"
+
+- name: a child too far past its new parent's text takes the parent's indent
+  file: |
+    1.  a
+           - b
+    - z
+  tree: |
+    1. a2
+        - b
+    - z
+  written: |
+    1. a2
+        - b
+    - z
