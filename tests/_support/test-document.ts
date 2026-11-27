@@ -37,7 +37,7 @@ export function readTestDocument(source: string): TestDocument {
       const item = items.get(note)!;
       const notePath = [...path, index];
       const text = textOf(item);
-      textAt.set(notePath.join('.'), { item, escape: escapeOf(text) });
+      textAt.set(notePath.join('.'), { item, escape: escapeOf(text), ...keptOf(item, text.name) });
       if (note.folded) folded.push(notePath);
       const previous = children.at(-1);
       children.push({
@@ -63,13 +63,31 @@ interface WrittenText {
   item: MarkdownItem;
   /** Where the editor writes a backslash before the `::` of unnamed text that would read as named. */
   escape: number | null;
+  /** Where the text the note keeps after its name starts and ends, as the Markdown's offsets count. */
+  from: number;
+  to: number;
+  /** Where that text starts in the editor. */
+  at: number;
+}
+
+// The tree drops whitespace written at the text's edges, so an offset there points at the kept text's edge.
+function keptOf(item: MarkdownItem, name: string | null): Pick<WrittenText, 'from' | 'to' | 'at'> {
+  const { rest } = splitName(item.content);
+  const read = (item.inline ?? []).reduce((length, token) => length + (token.type === 'text' || token.type === 'code_inline' ? token.content.length : 0), 0);
+  const start = name === null ? 0 : item.content.length - rest.length;
+  const from = Math.min(start + /^\s*/.exec(rest)![0].length, read);
+  const to = Math.max(from, read - /\s*$/.exec(rest)![0].length);
+  return { from, to, at: name === null ? 0 : name.length + 2 + (from < to ? 1 : 0) };
 }
 
 function escapeOf({ name, runs: [first] }: Pick<OutlineNote, 'name' | 'runs'>): number | null {
   return name === null && isPlainText(first) ? nameOf(first.text)?.length ?? null : null;
 }
 
-/** A selection whose offsets count the text as the editor holds it: each date as its label, and a name's escape. */
+/**
+ * A selection whose offsets count the text as the editor holds it: each date as its label, a name's
+ * escape, and none of the edge whitespace the tree drops.
+ */
 function inEditorOffsets(selection: MarkdownSelection, textAt: (path: NotePath) => WrittenText): MarkdownSelection {
   const point = ({ note, offset }: MarkdownPoint): MarkdownPoint => ({ note, offset: editorOffset(textAt(note), offset) });
   if (selection.state === 'caret') return { state: 'caret', at: point(selection.at) };
@@ -77,9 +95,11 @@ function inEditorOffsets(selection: MarkdownSelection, textAt: (path: NotePath) 
   return selection;
 }
 
-function editorOffset({ item, escape }: WrittenText, offset: number): number {
+function editorOffset({ item, escape, from, to, at }: WrittenText, written: number): number {
+  if (written < at) return written;
+  const offset = Math.min(Math.max(written, from), to);
   let read = 0;
-  let shift = escape !== null && offset > escape ? 1 : 0;
+  let shift = at - from + (escape !== null && offset - from > escape ? 1 : 0);
   let date: { start: number; iso: string } | null = null;
   for (const token of item.inline ?? []) {
     const iso = token.type === 'link_open' ? dateOf(token) : null;
@@ -138,7 +158,9 @@ function withoutName(tokens: Token[]): Token[] {
 
 function dateOf(link: Token): string | null {
   const href = String(link.attrGet('href') ?? '');
-  return href.startsWith('date:') && isValidIsoDate(href.slice(5)) ? href.slice(5) : null;
+  const iso = href.slice(5);
+  // Python's reader reads year 0, which no calendar date has, as a link.
+  return href.startsWith('date:') && isValidIsoDate(iso) && !iso.startsWith('0000') ? iso : null;
 }
 
 function runsOf(tokens: Token[]): Run[] {
@@ -155,7 +177,7 @@ function runsOf(tokens: Token[]): Run[] {
       inDate = token.type !== 'link_close';
     } else if (mark !== undefined) {
       if (token.type === 'html_inline' ? token.content === '<u>' : token.nesting === 1) marks.push(mark);
-      else marks.splice(marks.lastIndexOf(mark), 1);
+      else if (marks.includes(mark)) marks.splice(marks.lastIndexOf(mark), 1);
     } else if (token.type === 'text') {
       text(token.content);
     } else if (token.type === 'code_inline') {

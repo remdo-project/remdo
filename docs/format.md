@@ -114,3 +114,5 @@ The [text format migration](todo.md#text-format-migration) tracks repository int
 - Insert a blank line before a list that follows an HTML block
 - Keep inline HTML when its note is edited
 - Define spellings for autolinks, flanking cases and an empty document
+- Read a name written with Markdown that `::` follows, such as `~~a~~:: x`,
+  as text rather than a name

@@ -372,6 +372,131 @@
       "id": null,
       "cacheId": null,
       "children": []
+    },
+    {
+      "kind": "outline",
+      "marker": {
+        "kind": "bullet"
+      },
+      "checkbox": "open",
+      "name": null,
+      "runs": [
+        {
+          "kind": "text",
+          "text": "two spaces after the box",
+          "marks": []
+        }
+      ],
+      "id": null,
+      "cacheId": null,
+      "children": []
+    },
+    {
+      "kind": "outline",
+      "marker": {
+        "kind": "bullet"
+      },
+      "checkbox": "checked",
+      "name": null,
+      "runs": [
+        {
+          "kind": "text",
+          "text": "an uppercase box",
+          "marks": []
+        }
+      ],
+      "id": null,
+      "cacheId": null,
+      "children": []
+    },
+    {
+      "kind": "outline",
+      "marker": {
+        "kind": "bullet"
+      },
+      "checkbox": null,
+      "name": null,
+      "runs": [
+        {
+          "kind": "text",
+          "text": "not a date: ",
+          "marks": []
+        },
+        {
+          "kind": "link",
+          "href": "date:0000-01-01",
+          "runs": [
+            {
+              "kind": "text",
+              "text": "zero",
+              "marks": []
+            }
+          ]
+        }
+      ],
+      "id": null,
+      "cacheId": null,
+      "children": []
+    },
+    {
+      "kind": "outline",
+      "marker": {
+        "kind": "bullet"
+      },
+      "checkbox": null,
+      "name": null,
+      "runs": [
+        {
+          "kind": "link",
+          "href": "café.md",
+          "runs": [
+            {
+              "kind": "text",
+              "text": "as written",
+              "marks": []
+            }
+          ]
+        },
+        {
+          "kind": "text",
+          "text": " and ",
+          "marks": []
+        },
+        {
+          "kind": "link",
+          "href": "file:x",
+          "runs": [
+            {
+              "kind": "text",
+              "text": "a file",
+              "marks": []
+            }
+          ]
+        }
+      ],
+      "id": null,
+      "cacheId": null,
+      "children": []
+    },
+    {
+      "kind": "outline",
+      "marker": {
+        "kind": "bullet"
+      },
+      "checkbox": null,
+      "name": null,
+      "runs": [
+        {
+          "kind": "text",
+          "text": "a  b",
+          "marks": [
+            "bold"
+          ]
+        }
+      ],
+      "id": null,
+      "cacheId": null,
+      "children": []
     }
   ]
 }

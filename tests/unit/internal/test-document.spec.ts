@@ -41,6 +41,7 @@ describe('reading a test document', () => {
       - tail&#160;
       - &#32;
       - &#32;&#32;**both**&#32;
+      - [ ] &#32;boxed
     `).document.children.map((note) => note.kind === 'outline' && note.runs);
 
     expect(texts).toEqual([
@@ -48,12 +49,22 @@ describe('reading a test document', () => {
       [{ kind: 'text', text: 'tail\u00A0', marks: [] }],
       [{ kind: 'text', text: ' ', marks: [] }],
       [{ kind: 'text', text: '  ', marks: [] }, { kind: 'text', text: 'both', marks: ['bold'] }, { kind: 'text', text: ' ', marks: [] }],
+      [{ kind: 'text', text: ' boxed', marks: [] }],
     ]);
   });
 
   it('reads whitespace written before a trailing tag as no text', () => {
     expect(readTestDocument('- alpha <selection />').document.children[0])
       .toMatchObject({ runs: [{ kind: 'text', text: 'alpha', marks: [] }] });
+  });
+
+  it.each([
+    ['whitespace before a trailing tag', '- alpha <selection />', 5],
+    ['extra spaces after a name', '- Status::  x<selection />', 10],
+    ['the space after an empty name', '- Empty:: <selection />', 7],
+    ['whitespace before the text', '- <selection /> alpha', 0],
+  ])('counts no offset for %s, which the tree drops', (_, source, offset) => {
+    expect(readTestDocument(source).selection).toEqual({ state: 'caret', at: { note: [0], offset } });
   });
 
   it('counts a selected date as the editor labels it', () => {
