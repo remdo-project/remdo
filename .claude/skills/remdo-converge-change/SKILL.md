@@ -1,6 +1,6 @@
 ---
 name: remdo-converge-change
-description: Simplify, review, and verify one RemDo change scope with Claude Code's /simplify and /code-review. Use only when the caller explicitly invokes remdo-converge-change.
+description: Simplify, review, and verify one RemDo change scope with Claude Code's /simplify and /code-review. Use on a commit range before handing it off for a pull request, unless the developer says to skip it, and whenever the developer invokes remdo-converge-change.
 argument-hint: "[uncommitted | <base>..HEAD | <base>...HEAD]"
 ---
 
