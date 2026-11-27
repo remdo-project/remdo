@@ -191,10 +191,12 @@ stays out of it.
     elsewhere in the note survives. **Deterministic.**
 - **Write** gives a tree's text as an edit of the document's file. A body, and
   an outline note whose marker, checkbox, name and text read as the file's,
-  keep their lines as written, re-indented to where the tree puts them; other
-  notes, and a changed ID's line, take
-  [canonical spelling](format.md#canonical-spelling). A tree that reads as the
-  file writes it unchanged.
+  keep their lines as written and the blank lines before them, re-indented to
+  where the tree puts them; a numbered note's number and delimiter change only
+  where its place in its list needs them. Other notes, and a changed ID's line,
+  take [canonical spelling](format.md#canonical-spelling). A tree that reads as
+  the file writes it unchanged, and one its kept lines wouldn't read as is
+  written in canonical spelling throughout. **Deterministic.**
 
 ### Document identity
 

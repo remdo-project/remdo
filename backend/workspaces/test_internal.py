@@ -145,6 +145,13 @@ class WorkspaceRoomTests(TestCase):
         self.assertEqual(self.readme().content, b"* a\n")
         self.assertEqual(Workspace.objects.get(pk=self.workspace.pk).head, changed)
 
+    def test_a_save_keeps_the_lines_of_notes_it_leaves_alone(self):
+        store.commit(self.workspace, self.owner, "agent", {"README.md": (None, b"* a\n* b\n")})
+
+        self.save(tree_of("- a\n- b, typed\n"), self.load()["version"])
+
+        self.assertEqual(self.readme().content, b"* a\n- b, typed\n")
+
     def test_a_stale_save_writes_nothing_and_returns_the_current_file(self):
         version = self.save(tree_of("- one\n"), None, b"first").json()["version"]
         changed = store.commit(

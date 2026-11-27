@@ -279,12 +279,17 @@ Gaps:
     unchanged;
   - Set text writes an outline note as given rather than in canonical spelling.
 
-  A save re-spells the whole file instead of [writing](architecture.md#outline-tree)
-  only its changed notes. A spike kept the saved tree with cache IDs on the
+  A spike kept the saved tree with cache IDs on the
   cache row and merged changes into open rooms three ways from the state the
   room last saved; the merge base must come from the row rather than the
   hub's memory, since a lost save reply would otherwise duplicate text. It
   left open what an operation on a note that unsaved typing deleted does.
+- **Writes beyond the changed notes.** [Write](architecture.md#outline-tree)
+  pairs notes by what they read as, so it doesn't know an edited note's own
+  spelling: its children take a 4-space indent and the blank lines before it
+  go. A file with CRLF endings goes LF on the first save that changes it, and
+  an edit whose kept lines wouldn't read as the tree, so far only a heading
+  moved into a list item, re-spells the whole file unreported.
 - **Note operations on unusual text.** Set text and Ensure ID change only
   their note's own lines, and refuse what that can't express: notes sharing a
   marker's line, as in `- > quote` or `- - b`, a body whose lines hold a

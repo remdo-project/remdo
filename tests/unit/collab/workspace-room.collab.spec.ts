@@ -86,6 +86,33 @@ describe('workspace rooms', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
     }
   });
 
+  it('keep the lines of notes a save leaves alone', async () => {
+    const file = [
+      '* plain',
+      '* **bold**  and _italic_ with [a link](https://example.com)',
+      '* due [1 Nov 2026](date:2026-11-01)',
+      '* Status::  in review',
+      '* [X] done',
+      '',
+      '  an unquoted body',
+      '  * child',
+      '',
+      '1) one',
+      '2) two',
+      '',
+    ].join('\n');
+    const workspace = await createWorkspace(file);
+    const room = await open(workspace);
+    try {
+      applyTree(room.doc, retext(readTree(room.doc), 'plain', 'plain typed'));
+      await room.persisted();
+
+      expect((await readme(workspace)).content).toBe(file.replace('* plain', '- plain typed'));
+    } finally {
+      room.close();
+    }
+  });
+
   it('open an empty workspace without writing its file', async () => {
     const workspace = await createWorkspace('');
     const room = await open(workspace);

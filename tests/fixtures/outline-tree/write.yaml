@@ -1,0 +1,225 @@
+# Each case: a document's file, the text whose reading is the tree to write, and what writing the
+# tree as an edit of the file gives (docs/architecture.md, under Outline tree).
+
+- name: a tree that reads as the file writes it unchanged
+  file: |
+    * a
+
+    * b
+  tree: |
+    - a
+    - b
+  written: |
+    * a
+
+    * b
+
+- name: a changed note takes canonical spelling and the others keep theirs
+  file: |
+    * a
+    * b
+  tree: |
+    - a, edited
+    - b
+  written: |
+    - a, edited
+    * b
+
+- name: moved notes keep their lines
+  file: |
+    * a
+    * b
+  tree: |
+    - b
+    - a
+  written: |
+    * b
+    * a
+
+- name: a moved note is re-indented to where the tree puts it
+  file: |
+    - a
+      - b
+      - c
+    - d
+  tree: |
+    - a
+        - b
+    - d
+        - c
+  written: |
+    - a
+      - b
+    - d
+        - c
+
+- name: a new child goes where its parent's text put the other children
+  file: |
+    - a
+      - b
+  tree: |
+    - a
+        - b
+        - c
+  written: |
+    - a
+      - b
+      - c
+
+- name: a note's continuation lines stay as written
+  file: |
+    - a long
+      note
+    - b
+  tree: |
+    - a long note
+    - b, edited
+  written: |
+    - a long
+      note
+    - b, edited
+
+- name: blank lines before an unchanged note stay
+  file: |
+    - a
+
+    - b
+
+    - c
+  tree: |
+    - a
+    - b, edited
+    - c
+  written: |
+    - a
+    - b, edited
+
+    - c
+
+- name: a list's first kept number is renumbered to its start
+  file: |
+    1. a
+    2. b
+    3. c
+  tree: |
+    1. b
+    2. c
+  written: |
+    1. b
+    3. c
+
+- name: a kept number takes the delimiter of the list it joins
+  file: |
+    1) a
+    2) b
+  tree: |
+    1. a
+    2. x
+    3. b
+  written: |
+    1) a
+    2) x
+    2) b
+
+- name: a body under a list item keeps its unquoted lines
+  file: |
+    - a
+
+      old
+    - b
+  tree: |
+    - a
+
+        > old
+    - b, edited
+  written: |
+    - a
+
+      old
+    - b, edited
+
+- name: a changed body takes canonical spelling
+  file: |
+    - a
+
+      old
+  tree: |
+    - a
+
+        > new
+  written: |
+    - a
+        > new
+
+- name: an unchanged ID line keeps its spelling
+  file: |
+    - a
+      * id:: k3x9
+    - b
+  tree: |
+    - a
+        - id:: k3x9
+    - b, edited
+  written: |
+    - a
+      * id:: k3x9
+    - b, edited
+
+- name: a changed ID's line takes canonical spelling
+  file: |
+    - a
+      * id:: k3x9
+  tree: |
+    - a
+        - id:: m2p7
+  written: |
+    - a
+      - id:: m2p7
+
+- name: headings and the text between them keep their lines
+  file: |
+    Plan
+    ====
+
+    Some  *text*
+    here
+
+    - [X]  done
+  tree: |
+    # Plan
+
+    Some  *text*
+    here
+
+    - [x] done, edited
+  written: |
+    Plan
+    ====
+
+    Some  *text*
+    here
+
+    - [x] done, edited
+
+- name: a moved note whose continuation sits left of its marker is written canonically
+  file: |
+    - a
+        1. b long
+      cont
+        2. c
+  tree: |
+    - a
+        1. c
+        2. b long cont
+  written: |
+    - a
+        1. c
+        2. b long cont
+
+- name: children keep their parent's indent as written, tabs included
+  file: "- a\n\t- b\n- c\n"
+  tree: |
+    - a
+        - b
+    - c2
+  written: "- a\n\t- b\n- c2\n"
