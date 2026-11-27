@@ -216,13 +216,13 @@ export interface components {
          * @description * `account` - account
          *     * `workspace` - workspace
          *     * `folder` - folder
-         *     * `document` - document
          *     * `file` - file
+         *     * `document` - document
          *     * `outlineNote` - outlineNote
          *     * `body` - body
          * @enum {string}
          */
-        KindEnum: "account" | "workspace" | "folder" | "document" | "file" | "outlineNote" | "body";
+        KindEnum: "account" | "workspace" | "folder" | "file" | "document" | "outlineNote" | "body";
         Note: {
             ref: string;
             kind: components["schemas"]["KindEnum"];

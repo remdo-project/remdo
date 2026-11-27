@@ -263,6 +263,12 @@ class Note:
     operations = ("read",)
     listing = False
     temporary = False  # named by a temporary reference
+    registry = {}  # each kind's class, registered by naming its kind
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls.__dict__.get("kind"):
+            Note.registry.setdefault(cls.kind, cls)
 
     def __init__(self, call, path):
         self.call = call
@@ -288,6 +294,12 @@ class Note:
 
 class Container(Note):
     """A workspace or folder: it holds the files under its path, listed by name."""
+
+    held = ("document", "file")
+
+    @property
+    def holds(self):
+        return {kind: Note.registry[kind] for kind in self.held}
 
     def version(self):
         return self.tree.initial_version(self.path)
@@ -537,10 +549,7 @@ class Document(File):
         return self.call.current_tree(self.path)
 
     def node_of(self, note):
-        nodes = {
-            id(read): node for read, node in _pairs(self.parsed.children, self.outline["children"])
-        }
-        return nodes[id(note)]
+        return self.call.nodes(self.path)[0][id(note)]
 
     def identified(self):
         """Its notes that carry an ID, with their IDs, the document itself included."""
@@ -550,10 +559,8 @@ class Document(File):
         ]
 
     def note_with_cache_id(self, cache_id):
-        for note, node in _pairs(self.parsed.children, self.outline["children"]):
-            if node["cacheId"] == cache_id:
-                return TextNote(self, note)
-        return None
+        note = self.call.nodes(self.path)[1].get(cache_id)
+        return None if note is None else TextNote(self, note)
 
     def check_content(self, current, content):
         self.check_text(self.call, content)
@@ -692,9 +699,7 @@ CHANGES_OTHERS = (
     "changes only this note's own text."
 )
 
-KINDS = {"workspace": Workspace, "folder": Folder, "document": Document, "file": File}
-NOTE_KINDS = [*KINDS, *TextNote.kinds]
-Container.holds = {"document": Document, "file": File}
+NOTE_KINDS = [*Note.registry, *TextNote.kinds]
 
 
 def workspace_notes(user):
@@ -742,6 +747,7 @@ class WorkspaceCall(Call):
         self._holders = {}
         self._holders_of = None
         self.trees = {}  # each document version's current tree
+        self._nodes = {}
         self.latest = {}  # each document's tree as of the call's last look at it
         self.expectations = Expectations(self.tree, self.expected_paths(expected or {}), self.ref)
 
@@ -822,6 +828,18 @@ class WorkspaceCall(Call):
         self.latest[path] = self.trees[hash_]
         return self.trees[hash_]
 
+    def nodes(self, path):
+        """A document's read notes' nodes in its current tree, by note, and its notes by cache ID."""
+        hash_ = self.tree.files.get(path)
+        if hash_ not in self._nodes:
+            tree = self.current_tree(path)
+            pairs = list(_pairs(self.tree.reading(path).children, tree["children"]))
+            self._nodes[hash_] = (
+                {id(note): node for note, node in pairs},
+                {node["cacheId"]: note for note, node in pairs},
+            )
+        return self._nodes[hash_]
+
     def keep_tree(self, tree):
         """Keep `tree` as the README's on its cache row, leaving the row's state and the version
         it builds on to the room."""
@@ -868,7 +886,7 @@ class WorkspaceCall(Call):
     def note_at(self, path):
         if self.is_readme(path):
             return Readme(self, path)
-        return KINDS[self.tree.kind(path)](self, path)
+        return Note.registry[self.tree.kind(path)](self, path)
 
     def is_readme(self, path):
         return self.single_file and path == README
@@ -961,6 +979,7 @@ class WorkspaceCall(Call):
             self.refuse("INVALID_ARGUMENT", f"content: {error}")
         if tree is not None:
             self.trees[self.tree.files[path]] = tree
+            self._nodes.pop(self.tree.files[path], None)
             self.latest[path] = tree
 
 
