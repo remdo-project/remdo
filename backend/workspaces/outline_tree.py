@@ -59,7 +59,8 @@ def keep(workspace, tree):
 
 def _locked(workspace):
     # The room's saves write the row under the same lock.
-    models.Workspace.objects.select_for_update().filter(pk=workspace.pk).first()
+    if models.Workspace.objects.select_for_update().filter(pk=workspace.pk).first() is None:
+        raise models.Workspace.DoesNotExist
     return models.DocumentState.objects.filter(workspace=workspace)
 
 

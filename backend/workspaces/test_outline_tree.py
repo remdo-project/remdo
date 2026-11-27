@@ -1,9 +1,10 @@
 from pathlib import Path
 
 import yaml
-from django.test import SimpleTestCase
+from accounts.models import User
+from django.test import SimpleTestCase, TestCase
 
-from . import outline_tree, text_format
+from . import models, outline_tree, text_format
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -69,3 +70,16 @@ class CurrentTreeTests(SimpleTestCase):
         self.assertEqual(outline_tree.stripped(current), tree_of("- a\n- c\n"))
         self.assertEqual(current["children"][0]["cacheId"], tree["children"][0]["cacheId"])
         self.assertNotEqual(current["children"][1]["cacheId"], tree["children"][1]["cacheId"])
+
+
+class KeptTreeTests(TestCase):
+    def test_a_workspace_deleted_meanwhile_keeps_no_tree(self):
+        workspace = models.Workspace.objects.create(
+            name="Gone", owner=User.objects.create_user("owner@example.test")
+        )
+        models.Workspace.objects.filter(pk=workspace.pk).delete()
+
+        with self.assertRaises(models.Workspace.DoesNotExist):
+            outline_tree.kept(workspace, tree_of("- a\n"))
+
+        self.assertFalse(models.DocumentState.objects.exists())

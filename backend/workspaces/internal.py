@@ -129,9 +129,8 @@ def _write(workspace, base, state, tree, canonical, loading):
     # applying the file doesn't read back the same.
     if not loading and reading != _reading(version):
         source = _file(version).decode()
-        content = text_format.edit(canonical, source, text_format.read(source), document)[
-            0
-        ].encode()
+        content = text_format.edit(document, source, text_format.read(source), canonical)
+        content = content[0].encode()
         if len(content) > FILE_MAX_BYTES:
             # Kept spellings can be longer than the canonical text, which fits.
             content = canonical.encode()

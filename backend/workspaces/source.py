@@ -618,16 +618,15 @@ class Document(File):
 
     def change(self, tree, code, reason):
         """Write `tree`, its current tree with an operation's change, as an edit of its file,
-        refusing with `code` and `reason` when the tree's text wouldn't read as the tree."""
-        canonical = text_format.write(text_format.from_json(tree))
-        reading = text_format.read(canonical)
-        if not outline_tree.same(tree, text_format.to_json(reading)):
-            self.call.refuse(code, reason)
+        refusing with `code` and `reason` when the text written wouldn't read as the tree."""
         try:
             source = self.content.decode()
         except UnicodeDecodeError:
             self.call.refuse("INVALID_ARGUMENT", "target: its document isn't UTF-8 text.")
-        content, written = text_format.edit(canonical, source, self.parsed, reading)
+        target = text_format.from_json(outline_tree.stripped(tree))
+        content, written = text_format.edit(target, source, self.parsed)
+        if not outline_tree.same(tree, text_format.to_json(written)):
+            self.call.refuse(code, reason)
         self.call.put(self.path, content.encode(), written, tree)
 
 
@@ -705,7 +704,7 @@ class TextNote(Note):
             if (
                 read["id"] is not None
                 or new is None
-                or {key: new[key] for key in ("kind", "id", "children")}
+                or {key: new.get(key) for key in ("kind", "id", "children")}
                 != {"kind": "outline", "id": None, "children": []}
             ):
                 self.call.refuse("INVALID_ARGUMENT", f"text: {CHANGES_OTHERS}")
@@ -811,6 +810,9 @@ class WorkspaceCall(Call):
             found = self.holders(note_id)
             if len(found) == 1 and isinstance(found[0], Document):
                 paths[found[0].path] = version
+            elif not found and self.single_file:
+                # An ID that no longer resolves was the document's, changed since it was read.
+                paths.setdefault(README, version)
         return paths
 
     def note(self, ref, field="target"):
@@ -860,7 +862,10 @@ class WorkspaceCall(Call):
             if outline is not None:
                 tree = outline_tree.current(outline.tree, reading)
             elif self.is_readme(path):
-                tree = self.kept = outline_tree.kept(self.workspace, reading)
+                try:
+                    tree = self.kept = outline_tree.kept(self.workspace, reading)
+                except models.Workspace.DoesNotExist as error:
+                    raise Refusal("NOT_FOUND", MISSING_WORKSPACE) from error
             else:
                 tree = outline_tree.match(reading)
             outline = self.outlines[path] = _Outline(version, tree)

@@ -79,8 +79,9 @@ content, and deletes the workspace's history with it.
 
 - **Multi-file workspaces:** Insert, Move, Delete and Set text of folders,
   documents and plain files in a workspace, a folder's operations stating the
-  version of its [listing](../workspaces/store.md#reads), and Set content of
-  plain files.
+  version of its [listing](../workspaces/store.md#reads), Set content of
+  plain files, and a cache row for each document, so its notes' temporary
+  references hold across calls as the README's do.
 
 ## References
 

@@ -214,6 +214,19 @@
     - {op: setText, target: "- b", text: "- id:: k3x9"}
   refused: INVALID_ARGUMENT
 
+- name: outline note text that reads as a body is refused
+  before: |
+    - a
+  operations:
+    - {op: setText, target: "- a", text: plain}
+  refused: INVALID_ARGUMENT
+
+- name: a note whose canonical spelling would read differently keeps its lines when another changes
+  before: "- a  \n  hard break\n- c\n"
+  operations:
+    - {op: setText, target: "- c", text: "- c2"}
+  after: "- a  \n  hard break\n- c2\n"
+
 - name: text that would add an ID line is refused
   before: |
     - a

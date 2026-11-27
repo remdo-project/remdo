@@ -589,6 +589,24 @@ class SingleFileWorkspaceTests(TestCase):
         )
         self.assertEqual(store.read(self.workspace, "README.md").content, b"- id:: doc\n\n- a2\n")
 
+    def test_a_version_stated_by_an_id_the_document_lost_since_is_stale(self):
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, b"- id:: doc\n\n- a\n")})
+        document = notes.read(self.owner, self.readme, depth=0, content=True)
+        store.commit(self.workspace, self.owner, "", {"README.md": (document["version"], b"- a\n")})
+
+        with self.assertRaises(notes.Refusal) as refusal:
+            notes.call(
+                self.owner,
+                [{"op": "setContent", "target": self.readme, "content": "- b\n"}],
+                {document["ref"]: document["version"]},
+            )
+
+        self.assertEqual(refusal.exception.code, "FAILED_PRECONDITION")
+        self.assertEqual(
+            refusal.exception.versions,
+            {self.readme: store.read(self.workspace, "README.md").blob_hash},
+        )
+
     def test_a_workspace_holds_its_readme_which_reads_empty_until_saved(self):
         node = notes.read(self.owner, self.workspace.pk, depth=1)
 

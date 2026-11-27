@@ -409,3 +409,22 @@
     - a
     - b
     * c
+
+- name: a note sharing its marker line with its first child keeps its lines
+  file: |
+    - > quote
+    - - b
+          - x
+    - c
+  tree: |
+    -
+        > quote
+    -
+        - b
+            - x
+    - c2
+  written: |
+    - > quote
+    - - b
+          - x
+    - c2
