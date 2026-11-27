@@ -132,86 +132,82 @@ Open decisions:
 5. Whether changing the MCP surface for everyone waits for the
    [Claude directory review](#claude-mcp-save-a-conversation-to-remdo) or accepts a re-review.
 
-Steps, in order. After the bootstrap, the editor and server tracks run in parallel.
+Steps, in order, one pull request in review at a time:
 
-1. **Bootstrap.** Create the branch from `main` and add it to CI's triggers.
-2. Editor track:
-   1. **Test reader and matcher.** Close the reader and matcher gaps of *Tests
-      on editor documents*.
-   2. **Tests on test documents.** Script editor tests off IDs taken from note
-      text, one area at a time, then start every editor test from a
-      [test document](specs/testing/test-documents.md) and compare with `toMatchDocument`. Browser and
-      collaboration fixtures load through Python's reader and Node's tree. Delete
-      `toMatchOutline`, the fixture builder and the fixture rules editor
-      documents need. A trial run failed 474 of 853 editor tests, about 250 on
-      text-derived IDs; body and marker differences move with the production
-      steps that fix them.
-   3. **Gestures.** Gestures place, convert and check notes by [list types](specs/outliner/list-types.md),
-      and list-level types and the legacy marker fallback go. Waits for the
-      decoder freeze.
-   4. **Blocks and bodies.** Headings, `block` lines and bodies become Markdown
-      source lines without the body wrapper, and links keep every target as
-      written. Decide whether bodies render when not being edited; the
-      [note body](specs/outliner/body.md) shows them as written. The editor keeps a note's name in its
-      text, with any escape that stops text from reading as a name, so
-      `foo:: x` names and `foo\:: x` stays literal. Waits for the decoder freeze.
-   5. **Editable workspace outline.** A workspace's document opens in the
-      editor, replacing the read-only outline, its text box and editor documents
-      in the UI. Its breadcrumb reads Home, then the workspace's name.
-   6. **Editor actions as note operations.** The open document's semantic
-      operations move into note operations, leaving the open document as the
-      editor session; consider the [note range](specs/outliner/selection.md#note-ranges) as the operand of Move and
-      Delete. Operation cases are written once, as text before, operations, and
-      text after or the refusal, run on Python and a few on each other surface;
-      add that rule to the [testing policy](dev/testing.md) once it has worked. Each editor
-      action changes the document as some sequence of note operations would, and
-      a document edits and saves stably through the randomized test and a real
-      process kill. Waits for outline note operations.
-3. Server track:
-   1. **Decoder freeze.** Copy the code that reads list-level types, the body
-      wrapper and the legacy marker fallback into the migration's exporter
-      unchanged, run it on a production copy on test.remdo.com, and report what
-      each document would lose.
-   2. **Outline note operations.** Python note operations and MCP tools for
-      outline notes and bodies, starting with Set text and Ensure ID. A document
-      with an ID reads by its ID reference once expected versions accept one.
-      Each note resolves its own children and names the kinds it holds, and each
-      kind class registers itself. Operations change documents through their
-      [tree](architecture.md#workspace-document-state), starting with closed
-      ones, and saves and operations share one [writer](architecture.md#outline-tree).
-   3. **Note layer.** `resolve(uri)` for `note:` across workspaces,
-      [`/n/` URLs](specs/outliner/note-ids.md#ids-in-workspaces) for workspaces and notes, then [search](specs/outliner/search.md#future) across the account's
-      workspaces.
-   4. **Sharing.** [Workspace members](specs/access/access-control.md#future), shared on Home as editor documents are.
-4. **Live safety**, after both tracks:
-   [note operations on open rooms and stale clients](architecture.md#workspace-document-state),
-   and late offline clients by decision 1. Two editors and an agent then work together
-   with no silent loss beyond the move limit.
-5. **Migration.** Reassess rich body paragraphs and count sharing combinations
-   first. Convert user by user, moving a document only when export, read-back
-   and tree comparison pass, and reporting the rest; a rerun moves only what is
-   left. Rehearse on test.remdo.com until a run reports no failures.
-   - Each editor document becomes its own workspace's `README.md`, with its
-     owner, and its grants as members.
-   - Links between editor documents become `note:` references across workspaces.
-   - Old note IDs stay as cache IDs, referenced ones are promoted to `id::`,
-     fold state is reapplied, and old `/n/` URLs redirect.
-   - History starts with one import revision per workspace, and undo resets.
-6. **Cleanup.** Remove `DocumentContent`, `DocumentGrant`, per-call headless
-   editors, old routes and the experimental flag from everything but the
-   migration. Give the remaining kinds, such as account roots and user-data
-   notes, note operations or retire them; drop editor documents from the sources
-   and their sharing rules; rename what remains of the open document to the
-   editor session. Update the published OpenAI plugin and any pending directory
-   review as the MCP change needs, and remove the [format](format.md)'s note on existing
-   documents.
-7. **Cutover.** Stop writes and back up production, then merge the branch into
-   `main`, which deploys it and runs the migration. Check its report before
-   writes reopen. Keep editor documents' tables through any grace period
-   of decision 1, then remove them with the migration.
-8. **Tracking cleanup.** Fold into their owners or remove what this migration
-   made obsolete in this record, the [legacy backlog](legacy-backlog.md) and the format's
-   Follow-up, then delete this section.
+1. **Outline note operations.** Python note operations and MCP tools for
+   outline notes and bodies, starting with Set text and Ensure ID. A document
+   with an ID reads by its ID reference once expected versions accept one.
+   Each note resolves its own children and names the kinds it holds, and each
+   kind class registers itself. Operations change documents through their
+   [tree](architecture.md#workspace-document-state), starting with closed
+   ones, and saves and operations share one [writer](architecture.md#outline-tree).
+2. **Test reader and matcher.** Close the reader and matcher gaps of *Tests
+   on editor documents*.
+3. **Decoder freeze.** Copy the code that reads list-level types, the body
+   wrapper and the legacy marker fallback into the migration's exporter
+   unchanged, run it on a production copy on test.remdo.com, and report what
+   each document would lose.
+4. **Tests on test documents.** Script editor tests off IDs taken from note
+   text, one area at a time, then start every editor test from a
+   [test document](specs/testing/test-documents.md) and compare with `toMatchDocument`. Browser and
+   collaboration fixtures load through Python's reader and Node's tree. Delete
+   `toMatchOutline`, the fixture builder and the fixture rules editor
+   documents need. A trial run failed 474 of 853 editor tests, about 250 on
+   text-derived IDs; body and marker differences move with the production
+   steps that fix them.
+5. **Gestures.** Gestures place, convert and check notes by [list types](specs/outliner/list-types.md),
+   and list-level types and the legacy marker fallback go.
+6. **Blocks and bodies.** Headings, `block` lines and bodies become Markdown
+   source lines without the body wrapper, and links keep every target as
+   written. Decide whether bodies render when not being edited; the
+   [note body](specs/outliner/body.md) shows them as written. The editor keeps a note's name in its
+   text, with any escape that stops text from reading as a name, so
+   `foo:: x` names and `foo\:: x` stays literal.
+7. **Editable workspace outline.** A workspace's document opens in the
+   editor, replacing the read-only outline, its text box and editor documents
+   in the UI. Its breadcrumb reads Home, then the workspace's name.
+8. **Editor actions as note operations.** The open document's semantic
+   operations move into note operations, leaving the open document as the
+   editor session; consider the [note range](specs/outliner/selection.md#note-ranges) as the operand of Move and
+   Delete. Operation cases are written once, as text before, operations, and
+   text after or the refusal, run on Python and a few on each other surface;
+   add that rule to the [testing policy](dev/testing.md) once it has worked. Each editor
+   action changes the document as some sequence of note operations would, and
+   a document edits and saves stably through the randomized test and a real
+   process kill.
+9. **Note layer.** `resolve(uri)` for `note:` across workspaces,
+   [`/n/` URLs](specs/outliner/note-ids.md#ids-in-workspaces) for workspaces and notes, then [search](specs/outliner/search.md#future) across the account's
+   workspaces.
+10. **Sharing.** [Workspace members](specs/access/access-control.md#future), shared on Home as editor documents are.
+11. **Live safety.**
+    [Note operations on open rooms and stale clients](architecture.md#workspace-document-state),
+    and late offline clients by decision 1. Two editors and an agent then work together
+    with no silent loss beyond the move limit.
+12. **Migration.** Reassess rich body paragraphs and count sharing combinations
+    first. Convert user by user, moving a document only when export, read-back
+    and tree comparison pass, and reporting the rest; a rerun moves only what is
+    left. Rehearse on test.remdo.com until a run reports no failures.
+    - Each editor document becomes its own workspace's `README.md`, with its
+      owner, and its grants as members.
+    - Links between editor documents become `note:` references across workspaces.
+    - Old note IDs stay as cache IDs, referenced ones are promoted to `id::`,
+      fold state is reapplied, and old `/n/` URLs redirect.
+    - History starts with one import revision per workspace, and undo resets.
+13. **Cleanup.** Remove `DocumentContent`, `DocumentGrant`, per-call headless
+    editors, old routes and the experimental flag from everything but the
+    migration. Give the remaining kinds, such as account roots and user-data
+    notes, note operations or retire them; drop editor documents from the sources
+    and their sharing rules; rename what remains of the open document to the
+    editor session. Update the published OpenAI plugin and any pending directory
+    review as the MCP change needs, and remove the [format](format.md)'s note on existing
+    documents.
+14. **Cutover.** Stop writes and back up production, then merge the branch into
+    `main`, which deploys it and runs the migration. Check its report before
+    writes reopen. Keep editor documents' tables through any grace period
+    of decision 1, then remove them with the migration.
+15. **Tracking cleanup.** Fold into their owners or remove what this migration
+    made obsolete in this record, the [legacy backlog](legacy-backlog.md) and the format's
+    Follow-up, then delete this section.
 
 Gaps:
 
