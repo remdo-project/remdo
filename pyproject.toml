@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [tool.uv]
-# Renovate's release-age hold skips lock-file maintenance, so uv enforces it.
+# Renovate's release-age hold skips lock-file maintenance and updates applied outside its branches, so uv enforces it.
 exclude-newer = "3 days"
 
 [tool.ruff]

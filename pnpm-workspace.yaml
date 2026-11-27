@@ -1,6 +1,28 @@
 catalogMode: prefer
 
+# Renovate's release-age hold skips lock-file maintenance and updates applied outside its branches, so pnpm enforces it.
+minimumReleaseAge: 4320
 minimumReleaseAgeExcludePrune: true
+minimumReleaseAgeExclude:
+  - '@boundaries/policies@1.1.0'
+  - '@tabler/icons-react@3.53.0'
+  - '@tabler/icons@3.53.0'
+  - '@types/estree@1.0.11'
+  - '@types/node@26.6.10'
+  - '@types/react@19.3.3'
+  - colord@2.14.1
+  - electron-to-chromium@1.5.494
+  - eslint-plugin-boundaries@7.4.5
+  - eslint-plugin-jsdoc@65.5.5
+  - eslint-plugin-n@18.6.0
+  - fast-uri@4.2.4
+  - hono@4.13.22
+  - ignore@7.0.17
+  - react-router-dom@7.18.7
+  - react-router@7.18.7
+  - tinyexec@1.4.0
+  - tldts-core@7.6.0
+  - tldts@7.6.0
 trustPolicy: no-downgrade
 
 trustPolicyExclude:

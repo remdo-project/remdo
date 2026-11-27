@@ -99,12 +99,16 @@ Dependency changes preserve workspace catalogs, applicable trust and
 build-approval policy, package-manager integrity, and locked runtime and project
 dependencies.
 
-Dependency updates land only after review, and majors also wait for approval.
-Updates that need no runtime code change land together in one batch pull
-request; each update, or Renovate group that must move together, that needs
-one lands in its own pull request with that code. Changes never go on bot
-branches: their bots stop updating a branch carrying added commits, and a
-requested rebase discards them.
+Dependency updates land only after review, and majors also need the
+developer's approval. Each npm and PyPI update waits three days after its
+release, except a security fix: a fix younger than that lands through the
+`remdo-review-deps` batch with a release-age exclusion for its exact version,
+which a later batch removes once the version is three days old. Updates that
+need no runtime code change land together in one batch pull request; each
+update, or Renovate group that must move together, that needs or enables one
+lands in its own pull request with that code. Changes never go on bot branches:
+their bots stop updating a branch carrying added commits, and a requested
+rebase discards them.
 
 The developer runs [`remdo-review-deps`](.claude/skills/remdo-review-deps/SKILL.md)
 once Renovate's weekly pull requests open, and when a Dependabot alert opens.
@@ -113,9 +117,9 @@ Dependency-specific workarounds and updater holds follow the
 [tracked-comment policy](#code-comments), which is the only record of deferred
 dependency work. A hold that blocks an update disables it with a
 [renovate.json5](renovate.json5) rule; closing a Renovate pull request by hand
-would make Renovate ignore that version instead. Remove an affected existing
-hold only when the selected update proves its deferral obsolete or approval
-already defers it.
+would make Renovate ignore that version, or the whole major for a major,
+instead. Remove an affected existing hold only when the selected update proves
+its deferral obsolete.
 
 ### Dependency patches
 
