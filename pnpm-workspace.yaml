@@ -1,6 +1,28 @@
 catalogMode: prefer
 
+# Renovate's release-age hold skips lock-file maintenance and updates applied outside its branches, so pnpm enforces it.
+minimumReleaseAge: 4320
 minimumReleaseAgeExcludePrune: true
+minimumReleaseAgeExclude:
+  - '@boundaries/policies@1.1.0'
+  - '@tabler/icons-react@3.53.0'
+  - '@tabler/icons@3.53.0'
+  - '@types/estree@1.0.11'
+  - '@types/node@26.6.10'
+  - '@types/react@19.3.3'
+  - colord@2.14.1
+  - electron-to-chromium@1.5.494
+  - eslint-plugin-boundaries@7.4.5
+  - eslint-plugin-jsdoc@65.5.5
+  - eslint-plugin-n@18.6.0
+  - fast-uri@4.2.4
+  - hono@4.13.22
+  - ignore@7.0.17
+  - react-router-dom@7.18.7
+  - react-router@7.18.7
+  - tinyexec@1.4.0
+  - tldts-core@7.6.0
+  - tldts@7.6.0
 trustPolicy: no-downgrade
 
 trustPolicyExclude:
@@ -26,7 +48,7 @@ overrides:
   # TODO(deps): drop once micromark-extension-math accepts katex 0.18; katex 0.16 has no GHSA-238p-pmpm-9mq7 fix,
   # and markdownlint and @eslint/markdown use only its math syntax, which imports but never calls katex.
   # Probe: remove it, run pnpm install, and confirm every katex resolves to 0.18.2 or later.
-  micromark-extension-math>katex: '>=0.18.2 <0.19'
+  micromark-extension-math>katex: '>=0.18.2 <0.20'
   minimatch@5>brace-expansion: 2.1.8
   nanoid@3: '>=3.3.17 <4'
   postcss: '>=8.5.23'
@@ -41,7 +63,7 @@ overrides:
 packageExtensions:
   eslint-plugin-compat:
     dependencies:
-      caniuse-lite: 1.0.30001826
+      caniuse-lite: 1.0.30001827
 patchedDependencies:
   # Lexical V2 must ignore remote cursors mapped only to deleted text nodes.
   # Regression: tests/unit/collab/lexical-yjs-cursor-sync.collab.spec.ts.
@@ -55,9 +77,9 @@ catalog:
   '@antfu/eslint-config': 10.0.0
   '@ast-grep/cli': ^0.51.0
   '@eslint-react/eslint-plugin': ^5.20.8
-  '@hocuspocus/extension-database': 4.8.0
-  '@hocuspocus/provider': 4.8.0
-  '@hocuspocus/server': 4.8.0
+  '@hocuspocus/extension-database': 4.9.0
+  '@hocuspocus/provider': 4.9.0
+  '@hocuspocus/server': 4.9.0
   '@internationalized/date': ^3.12.4
   '@lexical/clipboard': 0.53.0
   '@lexical/eslint-plugin': 0.53.0
@@ -75,9 +97,9 @@ catalog:
   '@sentry/core': ^11.0.0
   '@sentry/vite-plugin': ^11.9.0
   '@tabler/icons-react': ^3.48.0
-  '@tanstack/query-core': 5.107.1
-  '@tanstack/react-query': 5.107.1
-  '@testing-library/jest-dom': ^7.0.1
+  '@tanstack/query-core': 5.108.4
+  '@tanstack/react-query': 5.108.4
+  '@testing-library/jest-dom': ^8.0.0
   '@testing-library/react': ^16.3.3
   '@types/estree': ^1.0.9
   '@types/jsdom': ^30.0.0
@@ -85,8 +107,8 @@ catalog:
   '@types/react': ^19.3.0
   '@types/react-dom': ^19.3.0
   '@types/ws': ^8.18.1
-  '@vitest/coverage-v8': 5.1.0
-  '@vitest/ui': 5.1.0
+  '@vitest/coverage-v8': 5.1.1
+  '@vitest/ui': 5.1.1
   chokidar-cli: ^3.0.0
   cross-env: ^10.1.0
   csstree-validator: ^4.0.1
@@ -123,7 +145,7 @@ catalog:
   typescript: ^6.0.3
   vite: ^8.3.1
   vite-plugin-pwa: ^2.0.0
-  vitest: 5.1.0
+  vitest: 5.1.1
   workbox-build: 7.4.0
   workbox-window: ^7.4.1
   ws: 8.23.0

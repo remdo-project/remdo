@@ -15,13 +15,16 @@ dependencies = [
     "mcp>=2.3.0",
     "psycopg[binary,pool]>=3.3.6",
     "pyyaml>=6.0.3",
-    "sentry-sdk>=2.70.0",
+    # TODO(deps): move error_reporting.start() to data_collection, then drop the cap; sentry-sdk 3 rejects
+    # send_default_pii and include_local_variables, and its data_collection defaults collect more.
+    # Probe: remove the cap, re-lock, then run remdo.tests.ConfigurationTests.
+    "sentry-sdk>=2.70.0,<3",
     "starlette>=1.8",
     "uvicorn>=0.54",
 ]
 
 [tool.uv]
-# Renovate's release-age hold skips lock-file maintenance, so uv enforces it.
+# Renovate's release-age hold skips lock-file maintenance and updates applied outside its branches, so uv enforces it.
 exclude-newer = "3 days"
 
 [tool.ruff]
