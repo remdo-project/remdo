@@ -64,8 +64,8 @@ class Note:
     # marker's line.
     span: tuple | None = field(default=None, compare=False, repr=False)
     prefix: str = field(default="", compare=False, repr=False)
-    inner: str = field(default="", compare=False, repr=False)
     id_line: int | None = field(default=None, compare=False, repr=False)
+    line: int | None = field(default=None, compare=False, repr=False)  # a list item's marker line
 
     @property
     def text(self):
@@ -76,7 +76,6 @@ class Note:
 class Document:
     id: str | None = None
     children: list = field(default_factory=list)
-    start: int = field(default=0, compare=False, repr=False)
     id_line: int | None = field(default=None, compare=False, repr=False)
     property_lines: set = field(default_factory=set, compare=False, repr=False)
 
@@ -101,7 +100,6 @@ def read(source):
         document.children.append(Note("body", lines[: end + 1], span=(0, end + 1)))
         parsed = ["" if index <= end else line for index, line in enumerate(lines)]
         first_line = end + 1
-    document.start = first_line
     tokens = _markdown.parse("\n".join(parsed))
     _Reader(lines, tokens, first_line, document.property_lines).section(document)
     return document
@@ -275,7 +273,7 @@ class _Reader:
                 self.shared_lines.add(line)
         span = (line, stop) if stop > line and line not in self.shared_lines else None
         prefix = self.lines[line][:lead]
-        note = Note("outline", source, marker, span=span, prefix=prefix, inner=" " * indent)
+        note = Note("outline", source, marker, span=span, prefix=prefix, line=line)
         checkbox = CHECKBOX.match(content)
         if checkbox:
             note.checkbox = "open" if checkbox.group(1) == " " else "checked"
@@ -569,21 +567,25 @@ def write(document, source=None):
     bodies joined into one; or, given `source`, an edit of that text reading as the canonical one
     does, unchanged when `source` already reads so."""
     canonical = _Writer().text(document)
-    return canonical if source is None else edit(canonical, source, read(source))
+    if source is None:
+        return canonical
+    return edit(read(canonical), source, read(source), canonical)[0]
 
 
-def edit(canonical, source, parsed, document=None):
-    """`canonical`, a document's canonical text, which reads as `document`, written as an edit of
-    `source`, which reads as `parsed` (docs/architecture.md, under Outline tree): `source` itself
-    when it reads as `canonical` does, notes reading as they do in it keeping their lines, and
-    `canonical` when the edit wouldn't read as it does."""
-    document = document or read(canonical)
-    reading = to_json(document)
+def edit(target, source, parsed, canonical=None):
+    """`target`, a document as text reads it, written as an edit of `source`, which reads as
+    `parsed` (docs/architecture.md, under Outline tree), with what the text written reads as:
+    `source` itself when it already reads so, notes reading as they do in it keeping their lines,
+    and else `canonical`, the target's canonical text."""
+    reading = to_json(target)
     if to_json(parsed) == reading:
-        return source
-    edited = _Writer(_Spellings(source, parsed)).text(document)
-    # Writing a reading again can read differently, so only the canonical text is sure to.
-    return edited if to_json(read(edited)) == reading else canonical
+        return source, parsed
+    edited = _Writer(_Spellings(source, parsed)).text(target)
+    edited_reading = read(edited)
+    if to_json(edited_reading) == reading:
+        return edited, edited_reading
+    canonical = canonical or _Writer().text(target)
+    return canonical, read(canonical)
 
 
 class _Spellings:
@@ -593,23 +595,71 @@ class _Spellings:
         self.lines = lines_of(source)
         self.document = parsed
         self.unclaimed = {}
-        # Indents past their parent list item's own: of the notes under one, and of ID lines.
+        # Indents past their parent list item's own: of the notes under one, and of ID lines;
+        # and top-level list items' own.
         self.offsets = {}
         self.id_offsets = {}
+        self.top_offsets = {}
+        # Notes sharing their marker line with their first child, kept whole with their lines.
+        self.subtrees = {}
 
         def gather(notes, parent):
             under_item = parent is not None and parent.marker[0] != "heading"
             for note in notes:
+                shared = (
+                    note.kind == "outline"
+                    and note.span is None
+                    and note.line is not None
+                    and (parent is None or parent.line != note.line)
+                )
                 if note.span is not None:
                     self.unclaimed.setdefault(_reads_as(note, under_item), deque()).append(note)
+                if note.span is not None or shared:
                     if under_item:
                         self.offsets[id(note)] = _past(_leading(note.prefix), parent.prefix)
+                    elif parent is None and note.kind == "outline":
+                        self.top_offsets[id(note)] = _leading(note.prefix)
+                if shared:
+                    key = json.dumps(_note_json(note))
+                    self.subtrees.setdefault(key, deque()).append(note)
                 if note.kind == "outline" and note.id_line is not None:
                     line = self.lines[note.id_line]
                     self.id_offsets[id(note)] = _past(_leading(line), note.prefix)
                 gather(note.children, note if note.kind == "outline" else None)
 
         gather(parsed.children, None)
+        starts = sorted(
+            {_first_line(note) for note in _in_document_order(parsed.children)} - {None}
+        )
+        self.ends = {}
+        for queue in self.subtrees.values():
+            for note in queue:
+                self.ends[id(note)] = self._subtree_end(note, starts)
+
+    def _subtree_end(self, note, starts):
+        """Where a note's lines and its children's end: before the next note after them, or a
+        property line that isn't theirs."""
+        inside = {_first_line(n) for n in _in_document_order([note])} - {None}
+        own_ids = {n.id_line for n in _in_document_order([note]) if n.kind == "outline"}
+        last = max(inside)
+        end = next((start for start in starts if start > last), len(self.lines))
+        for index in range(note.line, end):
+            if index in self.document.property_lines and index not in own_ids:
+                end = index
+                break
+        while end > note.line + 1 and not self.lines[end - 1].strip():
+            end -= 1
+        return end
+
+    def claim_subtree(self, note, indent):
+        """The note sharing its marker line that `note` is, unchanged, when it stays at `indent`."""
+        # A kept number would need renumbering where its list changed.
+        if note.kind != "outline" or note.marker[0] == "number":
+            return None
+        written = self.subtrees.get(json.dumps(_note_json(note)))
+        if not written or _leading(self.lines[written[0].line]) != indent:
+            return None
+        return written.popleft()
 
     def unclaimed_like(self, note, under_item):
         return self.unclaimed.get(_reads_as(note, under_item)) or ()
@@ -652,6 +702,16 @@ def _past(indent, prefix):
 def _fits(offset, width):
     """Whether an indent past a list item's own puts a line in its content without making it code."""
     return offset is not None and width <= len(offset.expandtabs(4)) < width + 4
+
+
+def _in_document_order(notes):
+    for note in notes:
+        yield note
+        yield from _in_document_order(note.children)
+
+
+def _first_line(note):
+    return note.span[0] if note.span is not None else note.line
 
 
 def _reads_as(note, under_item):
@@ -752,6 +812,14 @@ class _Writer:
         if self.out and self.out[-1] != "" and not self.adjacent:
             self.put("")
 
+    def put_subtree(self, written, indent):
+        """A kept note and its children as their lines were written, re-indented."""
+        old = len(_leading(self.spellings.lines[written.line]))
+        for index in range(written.line, self.spellings.ends[id(written)]):
+            line = self.spellings.lines[index]
+            kept = line[min(old, len(_leading(line))) :]
+            self.put(indent + kept if line.strip() else "", index)
+
     def put_kept(self, written, lines, indent):
         for index, line in enumerate(lines, written.span[0]):
             self.put(indent + line if line.strip() else "", index)
@@ -783,7 +851,17 @@ class _Writer:
 
     def section(self, children):
         numbering = _Numbering()
+        content_column = None
         for child in children:
+            whole = self.spellings and self.spellings.claim_subtree(child, "")
+            if whole:
+                self.keep_blank_lines_before(whole.line)
+                if numbering.previous is None:
+                    self.separate()
+                numbering.follows(child)
+                self.put_subtree(whole, "")
+                content_column = None
+                continue
             written = self.claim(child, under_item=False)
             if child.kind == "body":
                 self.separate()
@@ -795,6 +873,7 @@ class _Writer:
                     for line in child.source:
                         self.put(line)
                 numbering.previous = None
+                content_column = None
             elif child.marker[0] == "heading":
                 self.separate()
                 if written:
@@ -806,10 +885,19 @@ class _Writer:
                     self.put(f"{'#' * child.marker[1]} {text}".rstrip())
                 self.owner_children(child.children, child.id, written)
                 numbering.previous = None
+                content_column = None
             else:
                 if numbering.previous is None:
                     self.separate()
-                self.item(child, "", numbering, written)
+                indent = written and self.spellings.top_offsets.get(id(written))
+                # Indented to the previous item's content, a kept item would nest under it.
+                if not _fits(indent, 0) or (
+                    content_column is not None and len(indent.expandtabs(4)) >= content_column
+                ):
+                    indent = ""
+                start = len(self.out)
+                self.item(child, indent, numbering, written)
+                content_column = _item_indent(self.out[start].expandtabs(4))
 
     def item(self, note, indent, numbering, written):
         place = numbering.follows(note)
@@ -859,6 +947,13 @@ class _Writer:
             if child.kind == "body":
                 self.body(child, indent, width, inner)
                 numbering.previous = None
+                after_children = True
+                continue
+            whole = self.spellings and self.spellings.claim_subtree(child, inner)
+            if whole:
+                self.keep_blank_lines_before(whole.line)
+                numbering.follows(child)
+                self.put_subtree(whole, inner)
                 after_children = True
                 continue
             child_written = self.claim(child, under_item=True)

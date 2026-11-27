@@ -183,8 +183,8 @@ REF = {
     "type": "string",
     "description": "A note reference, as read_note returns it: `me` for the account root, "
     "which lists the user's workspaces, a workspace ID, `<workspaceId>/README.md` for a "
-    "workspace's document, `<workspaceId>_<id>` for a note with an ID, or the reference "
-    "read_note returned for any other note.",
+    "workspace's document, `<workspaceId>_<id>` for a note or document with an ID, or the "
+    "reference read_note returned for any other note.",
 }
 EXPECTED = {
     "type": "object",
@@ -244,9 +244,9 @@ NOTE_TOOLS = [
         "workspaces, a workspace, whose one child is its Markdown document README.md, that "
         "document, or one of its outline notes and bodies. Returns its kind, text (a name, or "
         "a note's lines as written), the operations it offers, its version, and its children "
-        "to the given depth. A note without an ID comes with a reference to pass back while "
-        "its document is unchanged. Pass the versions you read as `expected` when changing "
-        "notes.",
+        "to the given depth. A note without an ID comes with a reference to pass back, which "
+        "holds until the note is deleted or replaced. Pass the versions you read as `expected` "
+        "when changing notes.",
         {
             "ref": {**REF, "description": "The note to read. Defaults to `me`."},
             "depth": {

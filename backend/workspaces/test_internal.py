@@ -8,7 +8,7 @@ from django.contrib.auth.models import Permission
 from django.db import DatabaseError
 from django.test import Client, TestCase, override_settings
 
-from . import store, text_format
+from . import outline_tree, store, text_format
 from .models import Blob, DocumentState, Revision, Workspace
 
 EMPTY = {"id": None, "children": []}
@@ -172,9 +172,8 @@ class WorkspaceRoomTests(TestCase):
 
         current = self.readme()
         self.assertEqual(response.status_code, 409)
-        self.assertEqual(
-            response.json(), {"version": current.blob_hash, "tree": tree_of("- agent\n")}
-        )
+        self.assertEqual(response.json()["version"], current.blob_hash)
+        self.assertEqual(outline_tree.stripped(response.json()["tree"]), tree_of("- agent\n"))
         self.assertEqual(current.content, b"- agent\n")
         self.assertEqual(Workspace.objects.get(pk=self.workspace.pk).head, changed)
         self.assertEqual(bytes(DocumentState.objects.get(workspace=self.workspace).state), b"first")
@@ -187,14 +186,29 @@ class WorkspaceRoomTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.readme().content, b"- one\n- two\n")
 
-    def test_a_load_after_the_file_changed_includes_its_tree(self):
-        version = self.save(tree_of("- one\n"), None).json()["version"]
-        store.commit(self.workspace, self.owner, "agent", {"README.md": (version, b"- agent\n")})
+    def test_a_load_after_the_file_changed_includes_its_tree_with_the_saved_cache_ids(self):
+        saved = tree_of("- one\n- two\n")
+        for note, cache_id in zip(saved["children"], ("c1", "c2"), strict=True):
+            note["cacheId"] = cache_id
+        version = self.save(saved, None).json()["version"]
+        store.commit(
+            self.workspace, self.owner, "agent", {"README.md": (version, b"- one\n- agent\n")}
+        )
 
         loaded = self.load()
 
-        self.assertEqual(loaded["tree"], tree_of("- agent\n"))
+        self.assertEqual(outline_tree.stripped(loaded["tree"]), tree_of("- one\n- agent\n"))
+        self.assertEqual(loaded["tree"]["children"][0]["cacheId"], "c1")
+        self.assertNotIn(loaded["tree"]["children"][1]["cacheId"], (None, "c2"))
         self.assertEqual(loaded["version"], self.readme().blob_hash)
+
+    def test_loads_keep_the_cache_ids_they_give(self):
+        store.commit(self.workspace, self.owner, "agent", {"README.md": (None, b"- a\n")})
+
+        first, second = self.load(), self.load()
+
+        self.assertEqual(first["tree"], second["tree"])
+        self.assertEqual(DocumentState.objects.get(workspace=self.workspace).tree, first["tree"])
 
     def test_the_state_goes_with_its_workspace(self):
         version = self.save(tree_of("- one\n"), None).json()["version"]
@@ -230,7 +244,7 @@ class WorkspaceRoomTests(TestCase):
 
     def test_a_failed_state_write_leaves_no_revision(self):
         with (
-            patch.object(DocumentState.objects, "update_or_create", side_effect=DatabaseError),
+            patch.object(DocumentState.objects, "create", side_effect=DatabaseError),
             self.assertRaises(DatabaseError),
         ):
             self.save(tree_of("- one\n"), None)

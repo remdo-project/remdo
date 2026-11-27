@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from documents.notices import notify_document_list_changed
 from notes.service import can_use_workspaces
 
-from . import store, text_format
+from . import outline_tree, store, text_format
 from .models import FILE_MAX_BYTES, DocumentState, Workspace
 from .source import README
 
@@ -94,7 +94,7 @@ def _load(workspace):
         "state": base64.b64encode(bytes(row.state)).decode() if row else None,
     }
     if row is None or row.version != version:
-        body["tree"] = _reading(version)
+        body["tree"] = outline_tree.kept(locked, _reading(version))
     return JsonResponse(body)
 
 
@@ -109,26 +109,28 @@ def _save(request, workspace):
         return _refuse("MALFORMED")
     if len(canonical.encode()) > FILE_MAX_BYTES:
         return _refuse("TOO_LARGE")
-    return _write(workspace, base, state, canonical, loading=data.get("load") is True)
+    return _write(workspace, base, state, data["tree"], canonical, loading=data.get("load") is True)
 
 
 @transaction.atomic
-def _write(workspace, base, state, canonical, loading):
-    """Save the room's text, given in canonical spelling."""
+def _write(workspace, base, state, tree, canonical, loading):
+    """Save the room's `tree`, whose text is `canonical`."""
     document = text_format.read(canonical)
     reading = text_format.to_json(document)
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
     version = store.version(locked, README)
     row = DocumentState.objects.filter(workspace=locked).only("version").first()
-    # Only the room writes its row, so a row on the current file means the room's last write
-    # landed even if its reply was lost.
+    # Only the room writes its row's state and version, so a row on the current file means the
+    # room's last write landed even if its reply was lost.
     if version != base and not (row and row.version == version):
-        return JsonResponse({"version": version, "tree": _reading(version)}, status=409)
+        current = outline_tree.kept(locked, _reading(version))
+        return JsonResponse({"version": version, "tree": current}, status=409)
     # A save that reads as the file leaves it alone, and opening a room writes no file even when
     # applying the file doesn't read back the same.
     if not loading and reading != _reading(version):
         source = _file(version).decode()
-        content = text_format.edit(canonical, source, text_format.read(source), document).encode()
+        content = text_format.edit(document, source, text_format.read(source), canonical)
+        content = content[0].encode()
         if len(content) > FILE_MAX_BYTES:
             # Kept spellings can be longer than the canonical text, which fits.
             content = canonical.encode()
@@ -139,7 +141,11 @@ def _write(workspace, base, state, canonical, loading):
         _readings.pop(version, None)
         version = store.blob_hash(content)
         _remember(version, reading)
-    DocumentState.objects.update_or_create(
-        workspace=locked, defaults={"state": state, "version": version}
-    )
+    fields = {
+        "state": state,
+        "version": version,
+        "tree": outline_tree.current(tree, _reading(version)),
+    }
+    if not DocumentState.objects.filter(workspace=locked).update(**fields):
+        DocumentState.objects.create(workspace=locked, **fields)
     return JsonResponse({"version": version})
