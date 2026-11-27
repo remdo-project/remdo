@@ -109,15 +109,13 @@ def _save(request, workspace):
         return _refuse("MALFORMED")
     if len(canonical.encode()) > FILE_MAX_BYTES:
         return _refuse("TOO_LARGE")
-    return _write(
-        workspace, base, state, text_format.read(canonical), loading=data.get("load") is True
-    )
+    return _write(workspace, base, state, canonical, loading=data.get("load") is True)
 
 
 @transaction.atomic
-def _write(workspace, base, state, document, loading):
-    """Save `document`, what the room's text reads as."""
-    reading = text_format.to_json(document)
+def _write(workspace, base, state, canonical, loading):
+    """Save the room's text, given in canonical spelling."""
+    reading = text_format.to_json(text_format.read(canonical))
     locked = Workspace.objects.select_for_update().get(pk=workspace.pk)
     version = store.version(locked, README)
     row = DocumentState.objects.filter(workspace=locked).only("version").first()
@@ -129,7 +127,7 @@ def _write(workspace, base, state, document, loading):
     # applying the file doesn't read back the same.
     if not loading and reading != _reading(version):
         source = _file(version).decode()
-        content = text_format.edit(document, source, text_format.read(source)).encode()
+        content = text_format.edit(canonical, source, text_format.read(source)).encode()
         if len(content) > FILE_MAX_BYTES:
             return _refuse("TOO_LARGE")
         store.commit(

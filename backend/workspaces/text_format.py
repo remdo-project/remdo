@@ -566,18 +566,21 @@ def write(document, source=None):
     bodies joined into one; or, given `source`, an edit of that text reading as the canonical one
     does, unchanged when `source` already reads so."""
     canonical = _Writer().text(document)
-    if source is None:
-        return canonical
-    reading, parsed = read(canonical), read(source)
-    return source if to_json(parsed) == to_json(reading) else edit(reading, source, parsed)
+    return canonical if source is None else edit(canonical, source, read(source))
 
 
-def edit(reading, source, parsed):
-    """`reading`, what a document's canonical text reads as, written as an edit of `source`, which
-    reads as `parsed` (docs/architecture.md, under Outline tree): notes reading as they do in it
-    keep their lines, and an edit that wouldn't read as `reading` is canonical throughout."""
-    edited = _Writer(_Spellings(source, parsed)).text(reading)
-    return edited if to_json(read(edited)) == to_json(reading) else _Writer().text(reading)
+def edit(canonical, source, parsed):
+    """`canonical`, a document's canonical text, written as an edit of `source`, which reads as
+    `parsed` (docs/architecture.md, under Outline tree): `source` itself when it reads as
+    `canonical` does, notes reading as they do in it keeping their lines, and `canonical` when the
+    edit wouldn't read as it does."""
+    document = read(canonical)
+    reading = to_json(document)
+    if to_json(parsed) == reading:
+        return source
+    edited = _Writer(_Spellings(source, parsed)).text(document)
+    # Writing a reading again can read differently, so only the canonical text is sure to.
+    return edited if to_json(read(edited)) == reading else canonical
 
 
 class _Spellings:
@@ -836,6 +839,12 @@ class _Writer:
             return
         if not after_text:
             self.separate()
+        if written:
+            start, stop = written.span
+            indent = len(written.prefix) - len(written.prefix.lstrip())
+            lines = _dedent(self.spellings.lines[start:stop], indent)
+            self.out.extend(inner + line if line.strip() else "" for line in lines)
+            return
         self.out.extend(f"{inner}{line}" for line in _quoted(body.source))
 
 

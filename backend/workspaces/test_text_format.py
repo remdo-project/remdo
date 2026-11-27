@@ -415,6 +415,17 @@ class WriteTests(SimpleTestCase):
 
         self.assertEqual(text_format.write(document, source), text_format.write(document))
 
+    def test_an_edit_reads_as_the_canonical_text_even_where_writing_that_again_wouldnt(self):
+        document = text_format.read("\t- e\n- id:: k1\n")
+        canonical = text_format.write(document)
+
+        written = text_format.write(document, "- x\n")
+
+        self.assertEqual(
+            text_format.to_json(text_format.read(written)),
+            text_format.to_json(text_format.read(canonical)),
+        )
+
 
 def _notes(parent):
     for note in parent.children:

@@ -238,3 +238,20 @@
   written: |
     - a, edited
       - b
+
+- name: a quoted body under a list item keeps its lines
+  file: |
+    - a
+      >old
+      lazy
+    - b
+  tree: |
+    - a
+        > old
+        > lazy
+    - b, edited
+  written: |
+    - a
+        >old
+        lazy
+    - b, edited
