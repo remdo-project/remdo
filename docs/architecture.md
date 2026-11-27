@@ -165,7 +165,7 @@ the document's ID and children, each outline note's marker, checkbox, name,
 text, ID, cache ID and children, and each body's lines as written. Fold state
 stays out of it.
 
-- **Read** returns the tree of a document's current Yjs state, with notes
+- **Read** returns the tree of a document's Yjs state, with notes
   nested under a body as the notes after it. For structure the text format can
   hold, writing that tree as text and reading the text back gives the same
   tree, cache IDs aside. **Deterministic.**
@@ -189,6 +189,12 @@ stays out of it.
     typed survives. **Deterministic.**
   - Changed text is replaced only where it differs, so concurrent typing
     elsewhere in the note survives. **Deterministic.**
+- **Write** gives a tree's text as an edit of the document's file. A body, and
+  an outline note whose marker, checkbox, name and text read as the file's,
+  keep their lines as written, re-indented to where the tree puts them; other
+  notes, and a changed ID's line, take
+  [canonical spelling](format.md#canonical-spelling). A tree that reads as the
+  file writes it unchanged.
 
 ### Document identity
 
@@ -259,28 +265,32 @@ the same database.
 A workspace's document is the hub room `workspace:<id>`, named apart from
 editor documents, and open to its owner's browser sessions; integrations change
 it through [note operations](specs/outliner/note-operations.md). Its cache row
-holds the document's Yjs state and the file version that state builds on; it is
-deleted with its workspace.
+holds the document's Yjs state and tree, each with the file version it builds
+on; it is deleted with its workspace. The document's current tree is the row's
+tree when that builds on the current file version, and otherwise the file's
+tree with notes matched to the row's tree, if any, as
+[Apply](#outline-tree) matches them; the row keeps the cache IDs this gives,
+and the file is unchanged.
 
-- **Load:** when the row's version is the document's current file version, the
-  room loads the row's state. Otherwise, with no row or after the file changed
-  outside the room, the hub [applies](#outline-tree) the file's tree to the
+- **Load:** when the row's state builds on the document's current file
+  version, the room loads it. Otherwise, with no row or after the file changed
+  outside the room, the hub [applies](#outline-tree) the current tree to the
   row's state, or to an empty one, and saves the result before any client
   syncs, so every load after one change gives the same state. A missing file
   reads as an empty document, and loading writes no file. **Deterministic.**
-- **Save:** a [save](#collab-hub) writes the [tree](#outline-tree)'s text as
-  the document's file, as a
+- **Save:** a [save](#collab-hub) [writes](#outline-tree) the tree as the
+  document's file, as a
   [continuing commit](specs/workspaces/store.md#commits) by the workspace's
-  owner, and the state it was read from with that file's version, in one
-  transaction: both land or neither does. A save whose text reads as the file
-  does updates only the row, so the file keeps its own spelling.
-  **Deterministic.**
-- **Stale save:** when the file changed since the row's version, a save writes
-  nothing, and the room applies the current file's tree, as on load, before
-  trying again. **Deterministic.**
-- **Note operations:** a note operation changes a document through its tree,
-  read from its room when the room is open and from its cache row otherwise,
-  so open clients lose no unsaved edits and notes keep their cache IDs.
+  owner, and the tree and state it was read from with that file's version, in one
+  transaction: both land or neither does. A save that leaves the file
+  unchanged updates only the row. **Deterministic.**
+- **Stale save:** when the file changed since the room's state, a save writes
+  nothing, and the room merges the current tree into its state, keeping what
+  was typed since its last save, before trying again. **Deterministic.**
+- **Note operations:** a note operation changes the current tree and, in one
+  transaction, writes it as the document's file in its own commit and keeps
+  it, cache IDs included, as the row's tree. A room open on the document then
+  takes the change as on a stale save, so its clients lose no unsaved edits.
 - **Stale client:** loading a file's tree into an empty state starts a new
   lineage of the document's Yjs state. A client holding state from an earlier
   lineage never syncs it; what it changed since its last synced text merges

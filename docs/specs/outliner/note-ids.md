@@ -141,12 +141,13 @@ Behavioral clipboard rules (capture, removal, placement, and focus) live in
 6. A [reference](./note-model.md#note-kinds) is `me` for the caller's account
    root, `<workspaceId>` for a workspace, `<workspaceId>_<id>` for a note with
    an ID, and `<workspaceId>/<path>` for a folder or file. Any other note of a
-   document has a temporary reference that Read returns, valid while its
-   document is unchanged; its form isn't part of the contract.
+   document has a temporary reference that Read returns, valid while the note
+   keeps its [cache ID](../../architecture.md#outline-tree); its form isn't
+   part of the contract.
    **Deterministic.**
 7. A workspace opens at `/n/<workspaceId>`, and a note at
    `/n/<workspaceId>_<id>` with its ID or, when it has none, its
    [cache ID](../../architecture.md#outline-tree). The ID first written for a
    note is its cache ID, so its URL stays the same. A note keeps its cache ID
-   through every note operation except Delete. Only the opened document
-   resolves a cache ID, which isn't a reference.
+   through every note operation except Delete. A URL's cache ID resolves only
+   in the opened document.

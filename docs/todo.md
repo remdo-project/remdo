@@ -178,7 +178,7 @@ Steps, in order. After the bootstrap, the editor and server tracks run in parall
       Each note resolves its own children and names the kinds it holds, and each
       kind class registers itself. Operations change documents through their
       [tree](architecture.md#workspace-document-state), starting with closed
-      ones.
+      ones, and saves and operations share one [writer](architecture.md#outline-tree).
    3. **Note layer.** `resolve(uri)` for `note:` across workspaces,
       [`/n/` URLs](specs/outliner/note-ids.md#ids-in-workspaces) for workspaces and notes, then [search](specs/outliner/search.md#future) across the account's
       workspaces.
@@ -276,16 +276,23 @@ Gaps:
   when it has no `id::`. A spike measured 29% of cache IDs lost after 20 edits.
   Note operations lose them the same way until the outline note operations
   step; edits made outside RemDo keep losing them.
-- **Note operations on files.** Note operations change a workspace document's
-  file rather than its [tree](architecture.md#workspace-document-state). A
-  closed document's cache row takes the change by applying the file's tree,
-  losing cache IDs as *Cache IDs through recovery* describes; an open room
-  takes it only at its next save, which discards what was typed since the last
-  save. Ensure ID writes a fresh ID rather than
-  [the note's cache ID](specs/outliner/note-ids.md#ids-in-workspaces). The
-  outline note operations step closes this for closed documents and live
-  safety for open rooms. Only Node reads the tree, so first decide whether
-  Python reads the cache row's Yjs state or asks the hub.
+- **Note operations on files.** [Note operations](architecture.md#workspace-document-state)
+  edit a workspace document's file lines rather than its last saved tree, so:
+  - a closed document's cache row takes the change by applying the file's
+    tree, losing cache IDs as *Cache IDs through recovery* describes, and an
+    open room takes it only at its next save, discarding what was typed since;
+  - Ensure ID writes a fresh ID rather than
+    [the note's cache ID](specs/outliner/note-ids.md#ids-in-workspaces);
+  - temporary references are positions, valid only while the document is
+    unchanged;
+  - Set text writes an outline note as given rather than in canonical spelling.
+
+  A save re-spells the whole file instead of [writing](architecture.md#outline-tree)
+  only its changed notes. A spike kept the saved tree with cache IDs on the
+  cache row and merged changes into open rooms three ways from the state the
+  room last saved; the merge base must come from the row rather than the
+  hub's memory, since a lost save reply would otherwise duplicate text. It
+  left open what an operation on a note that unsaved typing deleted does.
 - **Note operations on unusual text.** Set text and Ensure ID change only
   their note's own lines, and refuse what that can't express: notes sharing a
   marker's line, as in `- > quote` or `- - b`, and a body whose lines hold a

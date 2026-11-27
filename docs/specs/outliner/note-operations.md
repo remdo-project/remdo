@@ -22,8 +22,9 @@ agents and integrations use them alike.
    workspace, at a position as for Insert. **Deterministic.**
 4. **Delete** removes a note. A note with children is removed only when the
    operation says so, along with its children. **Deterministic.**
-5. **Set text** changes a note's [text](./note-model.md#note-kinds), written as
-   given. **Deterministic.**
+5. **Set text** changes a note's [text](./note-model.md#note-kinds) to read as
+   given: a body keeps it as given, and an outline note takes the text format's
+   [canonical spelling](../../format.md#canonical-spelling). **Deterministic.**
 6. **Set content** changes a document's whole content.
    **Deterministic.**
 7. **Ensure ID** returns a note's [ID](./note-ids.md#ids-in-workspaces),
