@@ -1,0 +1,139 @@
+# Each case matches a tree read from text, which holds no cache IDs, to a base tree, as Apply
+# matches it to the document state holding the base (docs/architecture.md, under Outline tree):
+# - base: the base tree's text; its notes hold the cache IDs n0, n1, … in document order, or the
+#   ID their text writes;
+# - read: the text the read tree comes from;
+# - takes: for each note of the read tree, in document order, the index of the base note whose
+#   cache ID it takes, or null for a new one.
+
+- name: unchanged notes keep their cache IDs
+  base: |
+    - a
+        - b
+    - c
+  read: |
+    - a
+        - b
+    - c
+  takes: [0, 1, 2]
+
+- name: an edited note gets a new cache ID
+  base: |
+    - a
+    - b
+    - c
+  read: |
+    - a
+    - b, edited
+    - c
+  takes: [0, null, 2]
+
+- name: reordered siblings keep theirs
+  base: |
+    - a
+    - b
+    - c
+  read: |
+    - c
+    - a
+    - b
+  takes: [2, 0, 1]
+
+- name: a changed marker or checkbox keeps a note's cache ID
+  base: |
+    - a
+    - b
+  read: |
+    1. a
+    - [x] b
+  takes: [0, 1]
+
+- name: a note moved to another parent gets a new cache ID
+  base: |
+    - a
+        - x
+    - b
+  read: |
+    - a
+    - b
+        - x
+  takes: [0, 2, null]
+
+- name: a note moved with its written ID keeps it
+  base: |
+    - a
+        - x
+            - id:: k1
+    - b
+  read: |
+    - a
+    - b
+        - x
+            - id:: k1
+  takes: [0, 2, 1]
+
+- name: repeated notes match in order after the last matched sibling
+  base: |
+    - t
+    - t
+    - u
+  read: |
+    - t
+    - u
+    - t
+  takes: [0, 2, 1]
+
+- name: a note replaced in place gets a new cache ID
+  base: |
+    - a
+    - b
+  read: |
+    - a
+    - c
+  takes: [0, null]
+
+- name: an edited note's children get new cache IDs
+  base: |
+    - a
+
+        > body
+        - child
+  read: |
+    - a, edited
+
+        > body
+        - child
+  takes: [null, null, null]
+
+- name: an unchanged body keeps its cache ID
+  base: |
+    - a
+
+        > body
+  read: |
+    - a
+
+        > body
+    - b
+  takes: [0, 1, null]
+
+- name: a written ID claims its value from the note holding it only as its cache ID
+  base: |
+    - a
+    - b
+  read: |
+    - b
+        - id:: n0
+    - a
+  takes: [0, null]
+
+- name: of two notes writing one ID, the first in document order takes it
+  base: |
+    - a
+        - id:: k1
+  read: |
+    - a
+        - id:: k1
+    - b
+        - id:: k1
+  takes: [0, null]

@@ -5,6 +5,8 @@ import type { ListItemNode } from '@lexical/list';
 import { $getRoot, $isElementNode, $isTextNode, $setState, createEditor } from 'lexical';
 import type { LexicalNode } from 'lexical';
 import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
+import { readTestDocument } from '#tests-common/test-document';
 import { $isNoteFolded, $setNoteFolded } from '#client/editor/outline/fold-state';
 import { $getOrCreateChildList } from '#client/editor/outline/list-structure';
 import { editorConfig } from '#client/editor/runtime/config';
@@ -219,6 +221,30 @@ describe('the outline tree', () => {
     Y.applyUpdate(copy, state);
 
     expect(readTree(copy)).toEqual(tree);
+  });
+});
+
+function inOrder(notes: readonly TreeNote[]): TreeNote[] {
+  return notes.flatMap((child) => [child, ...(child.kind === 'outline' ? inOrder(child.children) : [])]);
+}
+
+// The same cases check Python's matching (test_outline_tree.py).
+describe('matching a read tree to a document', () => {
+  interface MatchCase { name: string; base: string; read: string; takes: (number | null)[] }
+  const cases = parse(readFileSync('tests/fixtures/outline-tree/match.yaml', 'utf8')) as MatchCase[];
+
+  it.each(cases)('$name', ({ base, read, takes }) => {
+    const tree = readTestDocument(base).document;
+    inOrder(tree.children).forEach((child, index) => {
+      child.cacheId = (child.kind === 'outline' && child.id) || `n${index}`;
+    });
+    const doc = opened(tree);
+    const ids = inOrder(readTree(doc).children).map((child) => child.cacheId);
+
+    applyTree(doc, readTestDocument(read).document);
+
+    const taken = inOrder(readTree(doc).children).map((child) => ids.indexOf(child.cacheId));
+    expect(taken.map((index) => (index === -1 ? null : index))).toEqual(takes);
   });
 });
 

@@ -100,6 +100,9 @@ class DocumentState(models.Model):
     # The blob hash of the README version the state builds on; null when it builds on a missing
     # file. Not a reference, so replaced content can be dropped while the row still names it.
     version = models.CharField(max_length=64, null=True, blank=True)
+    # The document's outline tree, with the cache IDs its text omits: the tree a save wrote, or
+    # what a note operation or Read made it since. It is current while it reads as the file.
+    tree = models.JSONField(null=True, blank=True)
 
     class Meta:
         default_permissions = ()
