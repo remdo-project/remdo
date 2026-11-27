@@ -1,7 +1,7 @@
 # Verification only. Each invocation owns a disposable database.
 services:
   postgres:
-    image: postgres:18
+    image: postgres:19
     environment:
       POSTGRES_USER: remdo
       POSTGRES_PASSWORD: development
