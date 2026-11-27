@@ -15,14 +15,14 @@
             - id:: k3x9
             - detail
 
-- name: other notes keep their spelling
+- name: the note takes canonical spelling and other notes keep theirs
   before: |
     * a
     * b
   operations:
     - {op: setText, target: "* a", text: "* a, edited"}
   after: |
-    * a, edited
+    - a, edited
     * b
 
 - name: replacements apply to the note's text
@@ -46,14 +46,17 @@
     - a2
     - b2
 
-- name: a temporary reference after an earlier operation moved notes is refused
+- name: a temporary reference holds after an earlier operation moved notes
   before: |
     - a
     - b
   operations:
     - {op: setContent, target: README.md, content: "- x\n- a\n- b\n"}
     - {op: setText, target: "- b", text: "- b2"}
-  refused: INVALID_ARGUMENT
+  after: |
+    - x
+    - a
+    - b2
 
 - name: a bullet becomes a number
   before: |
@@ -65,7 +68,7 @@
     1. a
     - b
 
-- name: a nested note keeps its indent when a continuation line sits left of its marker
+- name: a nested note whose continuation line sits left of its marker stays under its parent
   before: |
     - a
         - b long
@@ -76,8 +79,7 @@
       replacements: [{old: cont, new: more}]
   after: |
     - a
-        - b long
-      more
+      - b long more
 
 - name: a heading's text changes, keeping what it contains
   before: |
@@ -118,20 +120,21 @@
     - {op: setText, target: one, text: "two\n\nthree"}
   after: |
     - a
-
         > two
         >
         > three
     - b
 
-- name: body text that wouldn't read back as given is refused
+- name: a body under a list item keeps a quote marker as its text
   before: |
     - a
 
       old
   operations:
     - {op: setText, target: old, text: "> quote"}
-  refused: INVALID_ARGUMENT
+  after: |
+    - a
+      > > quote
 
 - name: a body between headings changes as written
   before: |
@@ -190,12 +193,14 @@
     - {op: setText, target: "- a", text: "- a\n"}
   refused: INVALID_ARGUMENT
 
-- name: a note on its parent's marker line is refused
+- name: a note on its parent's marker line changes, its parent taking a line of its own
   before: |
     - - b
   operations:
     - {op: setText, target: "- b", text: "- c"}
-  refused: INVALID_ARGUMENT
+  after: |
+    -
+        - c
 
 - name: unchanged text is refused
   before: |
@@ -204,9 +209,11 @@
     - {op: setText, target: "- a", text: "- a"}
   refused: INVALID_ARGUMENT
 
-- name: a note whose child starts on its line is refused
+- name: a note whose child starts on its line changes, its child taking a line of its own
   before: |
     - > quote
   operations:
     - {op: setText, target: "-", text: "- a"}
-  refused: INVALID_ARGUMENT
+  after: |
+    - a
+        > quote

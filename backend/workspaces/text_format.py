@@ -809,7 +809,8 @@ class _Writer:
             else:
                 if numbering.previous is None:
                     self.separate()
-                self.item(child, "", numbering, written)
+                indent = _leading(written.prefix) if written else ""
+                self.item(child, indent if _fits(indent, 0) else "", numbering, written)
 
     def item(self, note, indent, numbering, written):
         place = numbering.follows(note)

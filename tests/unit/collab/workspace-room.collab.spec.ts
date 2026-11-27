@@ -29,6 +29,13 @@ async function readme(workspace: string) {
   return await response.json() as components['schemas']['Note'];
 }
 
+async function readNotes(workspace: string) {
+  const response = await fetch(`${resolveApiServerOrigin()}/api/notes/${workspace}/README.md?depth=1`);
+  const note = await response.json() as components['schemas']['Note'];
+  const refs = new Map((note.children ?? []).map((child) => [child.text, child.ref]));
+  return { version: note.version ?? null, refs };
+}
+
 async function createWorkspace(content: string) {
   const created = await call([{ op: 'insert', parent: 'me', kind: 'workspace', text: 'Room test', content }]);
   return String(created.results[0]!.ref);
@@ -155,6 +162,45 @@ describe('workspace rooms', { timeout: COLLAB_LONG_TIMEOUT_MS }, () => {
       const after = cacheIds(readTree(room.doc));
       expect([after[0], after[2]]).toEqual([before[0], before[2]]);
       expect(after[1]).not.toBe(before[1]);
+    } finally {
+      room.close();
+    }
+  });
+
+  it('keep the cache IDs of a closed document through an operation by temporary reference', async () => {
+    const workspace = await createWorkspace('- a\n- b\n');
+    const first = await open(workspace);
+    let before: (string | null)[];
+    try {
+      await first.persisted();
+      before = cacheIds(readTree(first.doc));
+    } finally {
+      first.close();
+    }
+    const { version, refs } = await readNotes(workspace);
+    await call([{ op: 'setText', target: refs.get('- b')!, text: '- b by agent' }], { [`${workspace}/README.md`]: version });
+
+    const again = await open(workspace);
+    try {
+      await expect.poll(() => texts(readTree(again.doc))).toEqual(['a', 'b by agent']);
+      expect(cacheIds(readTree(again.doc))).toEqual(before);
+    } finally {
+      again.close();
+    }
+  });
+
+  it('open a document never opened before with the cache IDs Read gave its notes', async () => {
+    const workspace = await createWorkspace('- a\n- b\n');
+    const read = await readNotes(workspace);
+    const path = `${workspace}/README.md`;
+    await call([{ op: 'setContent', target: path, content: '- new\n- a\n- b\n' }], { [path]: read.version });
+
+    const room = await open(workspace);
+    try {
+      await room.persisted();
+      const { refs } = await readNotes(workspace);
+
+      expect([refs.get('- a'), refs.get('- b')]).toEqual([read.refs.get('- a'), read.refs.get('- b')]);
     } finally {
       room.close();
     }

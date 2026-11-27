@@ -1,3 +1,4 @@
+import re
 from unittest import mock
 
 from accounts.models import User
@@ -5,7 +6,7 @@ from django.test import TestCase
 from notes import service as notes
 
 from . import source, store
-from .models import Blob, Workspace
+from .models import Blob, DocumentState, Workspace
 
 DOC = "# Plan\n\n- step\n    - id:: k3x9\n"
 OTHER = "- other\n  - id:: p7q2\n"
@@ -519,6 +520,63 @@ class SingleFileWorkspaceTests(TestCase):
             {self.readme: version},
         )
 
+    def test_read_keeps_the_cache_ids_it_gives_on_the_row_leaving_its_state_to_the_room(self):
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, b"- a\n- b\n")})
+        DocumentState.objects.create(workspace=self.workspace, state=b"saved", version="v1")
+
+        children = notes.read(self.owner, self.readme, depth=1)["children"]
+
+        row = DocumentState.objects.get(workspace=self.workspace)
+        self.assertEqual((bytes(row.state), row.version), (b"saved", "v1"))
+        self.assertEqual(
+            [f"{self.readme}/{note['cacheId']}" for note in row.tree["children"]],
+            [child["ref"] for child in children],
+        )
+        self.assertEqual(notes.read(self.owner, self.readme, depth=1)["children"], children)
+
+    def test_an_operation_on_a_document_never_opened_leaves_its_row_state_to_the_room(self):
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, b"- a\n")})
+        document = notes.read(self.owner, self.readme, depth=1)
+        [child] = document["children"]
+
+        notes.call(
+            self.owner,
+            [{"op": "setText", "target": child["ref"], "text": "- a2"}],
+            {self.readme: document["version"]},
+        )
+
+        row = DocumentState.objects.get(workspace=self.workspace)
+        self.assertEqual((bytes(row.state), row.version), (b"", None))
+        self.assertEqual(row.tree["children"][0]["cacheId"], child["ref"].rsplit("/", 1)[1])
+        self.assertEqual(row.tree["children"][0]["runs"][0]["text"], "a2")
+
+    def test_a_dry_run_and_listing_workspaces_keep_no_tree(self):
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, b"- a\n")})
+
+        notes.read(self.owner, "me", depth=2)
+        notes.call(
+            self.owner,
+            [{"op": "setContent", "target": self.readme, "content": "- b\n"}],
+            {self.readme: store.read(self.workspace, "README.md").blob_hash},
+            dry_run=True,
+        )
+
+        self.assertFalse(DocumentState.objects.exists())
+
+    def test_a_document_with_an_id_reads_by_it_and_its_versions_accept_it(self):
+        store.commit(self.workspace, self.owner, "", {"README.md": (None, b"- id:: doc\n\n- a\n")})
+        ws = self.workspace.pk
+
+        document = notes.read(self.owner, self.readme, depth=1)
+        notes.call(
+            self.owner,
+            [{"op": "setText", "target": document["children"][0]["ref"], "text": "- a2"}],
+            {document["ref"]: document["version"]},
+        )
+
+        self.assertEqual(document["ref"], f"{ws}_doc")
+        self.assertEqual(store.read(self.workspace, "README.md").content, b"- id:: doc\n\n- a2\n")
+
     def test_a_workspace_holds_its_readme_which_reads_empty_until_saved(self):
         node = notes.read(self.owner, self.workspace.pk, depth=1)
 
@@ -597,30 +655,37 @@ class SingleFileWorkspaceTests(TestCase):
         store.commit(self.workspace, self.owner, "", {"README.md": (None, content.encode())})
         ws = self.workspace.pk
 
+        temporary = re.compile(rf"{ws}/README\.md/[A-Za-z0-9]+")
+        refs = {}
+
         def shape(node):
             children = [shape(child) for child in node.get("children", [])]
-            return (node["ref"], node["kind"], node["text"], children)
+            ref = node["ref"]
+            if temporary.fullmatch(ref):
+                refs[node["text"]] = ref
+                ref = "<temporary>"
+            return (ref, node["kind"], node["text"], children)
 
         self.assertEqual(
             shape(notes.read(self.owner, self.readme, depth=4)),
             (
-                self.readme,
+                f"{ws}_doc",
                 "document",
                 "README",
                 [
                     (
-                        f"{ws}/README.md/0",
+                        "<temporary>",
                         "outlineNote",
                         "# Trip",
                         [
-                            (f"{ws}/README.md/0/0", "body", "Intro", []),
+                            ("<temporary>", "body", "Intro", []),
                             (
                                 f"{ws}_k3x9",
                                 "outlineNote",
                                 "- [x] pack:: bags",
                                 [
-                                    (f"{ws}/README.md/0/1/0", "body", "a body", []),
-                                    (f"{ws}/README.md/0/1/1", "outlineNote", "- socks", []),
+                                    ("<temporary>", "body", "a body", []),
+                                    ("<temporary>", "outlineNote", "- socks", []),
                                 ],
                             ),
                         ],
@@ -628,8 +693,9 @@ class SingleFileWorkspaceTests(TestCase):
                 ],
             ),
         )
+        self.assertEqual(len(set(refs.values())), 4)
         for ref, text in (
-            (f"{ws}/README.md/0/1/1", "- socks"),
+            (refs["- socks"], "- socks"),
             (f"{ws}_k3x9", "- [x] pack:: bags"),
         ):
             with self.subTest(ref=ref):
@@ -639,31 +705,31 @@ class SingleFileWorkspaceTests(TestCase):
                 )
                 self.assertEqual(node["version"], store.read(self.workspace, "README.md").blob_hash)
 
-    def test_a_handle_past_the_documents_notes_and_a_shared_id_are_not_found(self):
+    def test_a_temporary_reference_no_note_holds_and_a_shared_id_are_not_found(self):
         content = b"- a\n    - id:: twin\n- b\n    - id:: twin\n"
         store.commit(self.workspace, self.owner, "", {"README.md": (None, content)})
         ws = self.workspace.pk
-        for ref in (f"{ws}/README.md/5", f"{ws}/README.md/0/0", f"{ws}_twin"):
+        for ref in (f"{ws}/README.md/k3x9", f"{ws}/README.md/0/0", f"{ws}_twin"):
             with self.subTest(ref=ref), self.assertRaises(notes.Refusal) as refusal:
                 notes.read(self.owner, ref)
             self.assertEqual(refusal.exception.code, "NOT_FOUND")
 
-    def test_a_handle_too_long_to_name_a_position_is_refused(self):
+    def test_a_reference_too_long_to_name_a_note_is_refused(self):
         with self.assertRaises(notes.Refusal) as refusal:
             notes.read(self.owner, f"{self.workspace.pk}/README.md/{'9' * 5000}")
         self.assertEqual(refusal.exception.code, "INVALID_ARGUMENT")
 
-    def test_notes_sharing_an_id_are_listed_by_position(self):
+    def test_notes_sharing_an_id_are_listed_by_temporary_reference(self):
         content = b"- a\n    - id:: twin\n- b\n    - id:: twin\n"
         store.commit(self.workspace, self.owner, "", {"README.md": (None, content)})
         ws = self.workspace.pk
 
         children = notes.read(self.owner, self.readme, depth=1)["children"]
 
-        self.assertEqual(
-            [child["ref"] for child in children], [f"{ws}/README.md/0", f"{ws}/README.md/1"]
-        )
-        self.assertEqual(notes.read(self.owner, children[1]["ref"])["text"], "- b")
+        refs = [child["ref"] for child in children]
+        self.assertTrue(all(ref.startswith(f"{ws}/README.md/") for ref in refs))
+        self.assertEqual(len(set(refs)), 2)
+        self.assertEqual(notes.read(self.owner, refs[1])["text"], "- b")
 
     def test_reading_a_document_parses_it_a_fixed_number_of_times_whatever_its_ids(self):
         content = "".join(f"- note {i}\n    - id:: n{i}\n" for i in range(5)).encode()

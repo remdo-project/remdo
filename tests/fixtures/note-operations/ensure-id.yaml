@@ -26,7 +26,7 @@
       - id:: <new>
       - detail
 
-- name: a note's ID line comes before the body under it
+- name: a note's ID line comes after the body directly under it
   before: |
     - a
         > body
@@ -34,8 +34,8 @@
     - {op: ensureId, target: "- a"}
   after: |
     - a
-        - id:: <new>
         > body
+        - id:: <new>
 
 - name: a note's ID line follows its continuation lines
   before: |
