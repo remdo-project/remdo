@@ -483,6 +483,15 @@ print(json.dumps({'status': response.status_code, 'body': response.content.decod
         )
         self.assertNotIn("private-", json.dumps(events))
 
+    def test_logged_errors_are_reported_as_events(self):
+        ingest = FakeIngest()
+        self.addCleanup(ingest.close)
+        self.reporting_probe("logged-error", SENTRY_DSN=ingest.dsn)
+        [(kind, event)] = ingest.items()
+        self.assertEqual(kind, "event")
+        self.assertEqual(event["logger"], "uvicorn.error")
+        self.assertEqual(event["exception"]["values"][-1]["value"], "reported-logged-exception")
+
     def test_http_reporting_is_not_loaded_without_a_dsn(self):
         self.assertEqual(
             self.reporting_probe("disabled"),
