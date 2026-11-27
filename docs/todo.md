@@ -286,10 +286,10 @@ Gaps:
   left open what an operation on a note that unsaved typing deleted does.
 - **Writes beyond the changed notes.** [Write](architecture.md#outline-tree)
   pairs notes by what they read as, so it doesn't know an edited note's own
-  spelling: its children take a 4-space indent and the blank lines before it
-  go. A file with CRLF endings goes LF on the first save that changes it, and
-  an edit whose kept lines wouldn't read as the tree, so far only a heading
-  moved into a list item, re-spells the whole file unreported.
+  spelling, and the blank lines before it go. A file with CRLF endings goes LF
+  on the first save that changes it, and an edit whose kept lines wouldn't read
+  as the tree, so far only a heading moved into a list item, re-spells the
+  whole file unreported.
 - **Note operations on unusual text.** Set text and Ensure ID change only
   their note's own lines, and refuse what that can't express: notes sharing a
   marker's line, as in `- > quote` or `- - b`, a body whose lines hold a

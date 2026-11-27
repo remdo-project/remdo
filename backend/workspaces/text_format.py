@@ -590,14 +590,24 @@ class _Spellings:
         self.lines = lines_of(source)
         self.document = parsed
         self.unclaimed = {}
+        self.offsets = {}  # each outline note's indent past its parent list item's
 
-        def gather(notes, under_item):
+        def gather(notes, parent):
+            under_item = parent is not None and parent.marker[0] != "heading"
             for note in notes:
-                if note.span is not None:
-                    self.unclaimed.setdefault(_reads_as(note, under_item), deque()).append(note)
-                gather(note.children, note.kind == "outline" and note.marker[0] != "heading")
+                if note.span is None:
+                    continue
+                self.unclaimed.setdefault(_reads_as(note, under_item), deque()).append(note)
+                if under_item and note.kind == "outline" and note.prefix.startswith(parent.prefix):
+                    self.offsets[id(note)] = note.prefix.removeprefix(parent.prefix)
+            for note in notes:
+                gather(note.children, note if note.kind == "outline" else None)
 
-        gather(parsed.children, False)
+        gather(parsed.children, None)
+
+    def peek(self, note, under_item):
+        written = self.unclaimed.get(_reads_as(note, under_item))
+        return written[0] if written else None
 
     def claim(self, note, under_item):
         written = self.unclaimed.get(_reads_as(note, under_item))
@@ -753,17 +763,17 @@ class _Writer:
             if note.marker[0] == "number":
                 lines[0] = numbering.kept(note, lines[0], place)
             self.out.extend(indent + line if line else "" for line in lines)
-            inner = indent + self.child_offset(written)
         else:
             marker = numbering.marker(note)
             box = "" if note.checkbox is None else "[x] " if note.checkbox == "checked" else "[ ] "
             if PROPERTY.match(text):
                 # A list item named after a property would read as that property, losing the note.
                 text = text.replace("::", "\\::", 1)
-            inner = indent + " " * max(4, len(marker) + 1)
+            continued = indent + " " * max(4, len(marker) + 1)
             first_line, *more = text.split("\n")
             self.out.append(f"{indent}{marker} {box}{first_line}".rstrip())
-            self.out.extend(f"{inner}{line}" for line in more)
+            self.out.extend(f"{continued}{line}" for line in more)
+        inner = indent + self.child_offset(note, written, _item_indent(self.out[start].lstrip()))
         # An unquoted body reads from its note's content column, past the marker and its spaces.
         content = " " * _item_indent(self.out[start])
         rest = note.children
@@ -793,20 +803,32 @@ class _Writer:
             self.item(child, inner, numbering, child_written)
             after_children = True
 
-    def child_offset(self, written):
-        """The indent past a kept note's own that its ID line and children take: what its text
-        gave them, or else past its marker."""
-        content = _item_indent(written.source[0])
-        starts = [c.span[0] for c in written.children if c.kind == "outline" and c.span]
-        if written.id_line is not None:
-            starts.insert(0, written.id_line)
-        if starts:
-            line = self.spellings.lines[starts[0]]
-            indent = line[: len(line) - len(line.lstrip())]
-            offset = indent.removeprefix(written.prefix)
-            if indent.startswith(written.prefix) and len(offset.expandtabs(4)) >= content:
+    def child_offset(self, note, written, content):
+        """The indent past a note's own that its ID line and children take, at least its content
+        column `content`: what its kept text gave them, or else what its first kept child had
+        under its parent in the file, or else past its marker."""
+        for offset in self.file_offsets(note, written):
+            if len(offset.expandtabs(4)) >= content:
                 return offset
         return " " * max(4, content)
+
+    def file_offsets(self, note, written):
+        if not self.spellings:
+            return
+        if written:
+            starts = [c.span[0] for c in written.children if c.kind == "outline" and c.span]
+            if written.id_line is not None:
+                starts.insert(0, written.id_line)
+            if starts:
+                line = self.spellings.lines[starts[0]]
+                indent = line[: len(line) - len(line.lstrip())]
+                if indent.startswith(written.prefix):
+                    yield indent.removeprefix(written.prefix)
+        for child in note.children:
+            kept = child.kind == "outline" and self.spellings.peek(child, under_item=True)
+            if kept and id(kept) in self.spellings.offsets:
+                yield self.spellings.offsets[id(kept)]
+                return
 
     def body(self, body, inner, content, after_text=False):
         written = self.claim(body, under_item=True)

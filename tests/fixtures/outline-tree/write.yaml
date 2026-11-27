@@ -1,5 +1,8 @@
-# Each case: a document's file, the text whose reading is the tree to write, and what writing the
-# tree as an edit of the file gives (docs/architecture.md, under Outline tree).
+# Each case writes a tree as an edit of a document's file (docs/architecture.md, under Outline tree):
+# - file: the file before the save;
+# - tree: the tree the save writes, usually changed from the file's, given as Markdown whose
+#   spelling doesn't matter, only what it reads as;
+# - written: the file after the save.
 
 - name: a tree that reads as the file writes it unchanged
   file: |
@@ -36,7 +39,7 @@
     * b
     * a
 
-- name: a moved note is re-indented to where the tree puts it
+- name: a moved note keeps its indent under its new parent
   file: |
     - a
       - b
@@ -51,7 +54,7 @@
     - a
       - b
     - d
-        - c
+      - c
 
 - name: a new child goes where its parent's text put the other children
   file: |
@@ -223,3 +226,14 @@
         - b
     - c2
   written: "- a\n\t- b\n- c2\n"
+
+- name: an edited note's children keep their indent
+  file: |
+    - a
+      - b
+  tree: |
+    - a, edited
+        - b
+  written: |
+    - a, edited
+      - b
