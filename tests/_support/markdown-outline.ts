@@ -38,7 +38,7 @@ export interface MarkdownItem {
   opensList: boolean;
   /** The text's markdown-it inline tokens, without the checkbox. */
   inline?: Token[];
-  /** The text as written on the marker's line, without the checkbox. */
+  /** The marker line's text after the checkbox, trimmed, then without its selection tags. */
   content: string;
   bodyLines?: Token[][];
   /** The body's lines without their `>` prefixes. */
@@ -52,9 +52,13 @@ export interface MarkdownOutline {
 }
 
 const markdown = new MarkdownIt('commonmark').enable('strikethrough');
+// As in Python's reader, link targets are kept as written.
+markdown.validateLink = () => true;
+markdown.normalizeLink = (url) => url;
+markdown.normalizeLinkText = (url) => url;
 const UNDERLINE_TAG = /^<\/?u>$/;
 const TAG = /<selection\s*\/>|<selection>|<\/selection>/g;
-const MARKER = /^\s*(?:[-*+]|\d+[.)])(?:\s+\[([ x])\])?(?:\s+|$)/;
+const MARKER = /^\s*(?:[-*+]|\d+[.)])(?:\s+\[([ x])\])?(?:\s+|$)/i;
 const PROPERTY_LINE = /^(id|folded)::(?: .*)?$/;
 
 // Inline tags become private-use characters so the note's parsed text says where they sat.
@@ -127,6 +131,8 @@ interface Frame {
   line?: number;
   item?: MarkdownItem;
   textRead?: boolean;
+  /** How much of the text's start its checkbox takes, with the whitespace written after it. */
+  box?: number;
   statedProperties?: Set<string>;
 }
 
@@ -161,6 +167,7 @@ function readList(
       const line = token.map![0];
       const marker = MARKER.exec(lines[line]!)!;
       const checkbox = marker[1] !== undefined;
+      const box = checkbox ? marker[0].length - marker[0].indexOf('[') : 0;
       const content = lines[line]!.slice(marker[0].length).trim();
       const property = PROPERTY_LINE.exec(stripTags(content));
       if (property && tokens[index + 1]!.type === 'paragraph_open') {
@@ -170,7 +177,7 @@ function readList(
         if (name === 'id' && !frame.note) throw new Error('A top-level id:: line identifies no note; indent it under its note.');
         if (name === 'id' && stated.has(name)) throw new Error(`A note's later id:: lines state nothing; it already has ${frame.note!.id}.`);
         if (frame.note && !stated.has(name)) {
-          const text = plainText(withoutCheckbox(tokens[index + 2]!.children ?? [], checkbox));
+          const text = plainText(withoutCheckbox(tokens[index + 2]!.children ?? [], box));
           const value = text.slice(text.indexOf('::') + 2).trim();
           if (name === 'id' && !/^\S+$/.test(value)) throw new Error('An id:: line holds one ID.');
           if (name === 'id') frame.note.id = value;
@@ -181,7 +188,7 @@ function readList(
         index = closeOf(tokens, index);
         continue;
       }
-      const note: MarkdownNote = marker[1] === 'x' ? { checked: true } : {};
+      const note: MarkdownNote = marker[1]?.toLowerCase() === 'x' ? { checked: true } : {};
       const path = [...frame.path, frame.children.length];
       frame.children.push(note);
       located.push({ path, line });
@@ -196,7 +203,7 @@ function readList(
       };
       list.notes += 1;
       items.set(note, item);
-      frames.push({ note, children: [], path, line, item });
+      frames.push({ note, children: [], path, line, item, box });
     } else if (token.type === 'list_item_close') {
       const closed = frames.pop()!;
       if (closed.note && closed.children.length > 0) closed.note.children = closed.children;
@@ -209,7 +216,7 @@ function readList(
       if (frame.textRead) throw new Error('A note holds one paragraph; write a body as > lines before its children.');
       if (token.map![0] !== frame.line) throw new Error('A note\'s text must fit on its marker\'s line.');
       frame.textRead = true;
-      const inline = withoutCheckbox(token.children ?? [], frame.item!.checkbox);
+      const inline = withoutCheckbox(token.children ?? [], frame.box!);
       frame.item!.inline = inline.map(withoutTags);
       const text = takeMarks(plainText(inline), frame.path, marks);
       if (text) frame.note!.text = text;
@@ -219,13 +226,12 @@ function readList(
 }
 
 // CommonMark keeps a task checkbox in the item's text; the marker already recorded it.
-function withoutCheckbox(tokens: Token[], checkbox: boolean): Token[] {
+function withoutCheckbox(tokens: Token[], box: number): Token[] {
   const [first, ...rest] = tokens;
-  if (!checkbox || first?.type !== 'text') return tokens;
-  return [withContent(first, first.content.replace(/^\[[ x]\] ?/, '')), ...rest];
+  if (box === 0 || first?.type !== 'text') return tokens;
+  return [withContent(first, first.content.slice(box)), ...rest];
 }
 
-/** A copy of a markdown-it token holding other content. */
 export function withContent(token: Token, content: string): Token {
   const copy = Object.assign(Object.create(Object.getPrototypeOf(token) as object) as Token, token);
   copy.content = content;

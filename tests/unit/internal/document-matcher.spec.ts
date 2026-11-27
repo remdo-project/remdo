@@ -83,6 +83,12 @@ describe('toMatchDocument', () => {
       expect(remdo).toMatchDocument(String.raw`- Not\:: a<selection /> name`);
     });
 
+    it('matches a caret written past whitespace the tree drops', meta({ document: '- Status:: x' }), async ({ remdo }) => {
+      await placeCaretAtNote(remdo, 'Status:: x', 'Status:: x'.length);
+
+      expect(remdo).toMatchDocument('- Status::  x <selection />');
+    });
+
     it('matches a range within a note', meta({ document: notes }), async ({ remdo }) => {
       await selectNoteRange(remdo, 'alpha', 'alpha');
 

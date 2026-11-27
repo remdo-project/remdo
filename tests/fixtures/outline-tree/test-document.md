@@ -17,3 +17,8 @@
 - Status:: in review
 - Not\:: a name
 - due [1 Nov 2026](date:2026-11-01) or [later](date:2026-02-30)
+- [ ]  two spaces after the box
+- [X] an uppercase box
+- not a date: [zero](date:0000-01-01)
+- [as written](café.md) and [a file](file:x)
+- **a </u> b**
