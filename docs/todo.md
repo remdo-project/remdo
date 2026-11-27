@@ -296,6 +296,9 @@ Gaps:
   such as `> quote` in an unquoted body under a list item. Ensure ID also
   refuses a note whose text wouldn't read back with its new ID line where it
   puts it.
+- **No Move tool.** The [MCP server](specs/integrations/mcp.md) offers one
+  tool per note operation, but Move has none: add `move_note` beside the other
+  note tools, within decision 5.
 - **Changes an open head undoes.** A live document's saves that return a file
   to what the open head's parent holds leave the head with a change that
   changes nothing, which the [store](specs/workspaces/store.md#commits) would
