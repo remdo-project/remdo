@@ -107,8 +107,8 @@ catalog:
   '@types/react': ^19.3.0
   '@types/react-dom': ^19.3.0
   '@types/ws': ^8.18.1
-  '@vitest/coverage-v8': 5.1.1
-  '@vitest/ui': 5.1.1
+  '@vitest/coverage-v8': 5.1.2
+  '@vitest/ui': 5.1.2
   chokidar-cli: ^3.0.0
   cross-env: ^10.1.0
   csstree-validator: ^4.0.1
@@ -145,7 +145,7 @@ catalog:
   typescript: ^6.0.3
   vite: ^8.3.1
   vite-plugin-pwa: ^2.0.0
-  vitest: 5.1.1
+  vitest: 5.1.2
   workbox-build: 7.4.0
   workbox-window: ^7.4.1
   ws: 8.23.0
